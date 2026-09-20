@@ -98,7 +98,7 @@ Sem credenciais reais em `config.js`, o botão **Entrar em modo local** permite 
 - Eventos com jogadores em campo, substituição única `Sai`/`Entra`, tempo acrescentado e scoreboard calculado automaticamente.
 - Linha do tempo horizontal na app e vertical no Word, com VFN à esquerda e adversário à direita.
 - Análise com cinco avaliações táticas e campos de texto livre para síntese e treino.
-- Tab Equipa com foto, stats, atributos 0–99, modal estilo FIFA Card, edição e sumários.
+- Tab Equipa com foto, dados biográficos, stats, atributos 0–10, mapa de posições, modal estilo Zerozero/FIFA e sumários.
 
 ## GitHub Pages
 

@@ -105,6 +105,7 @@
       </div>
       <div class="field"><label for="pjNotasAdversario">Notas do jogo</label><textarea id="pjNotasAdversario" rows="3" placeholder="Observações opcionais..."></textarea></div>
     </div>
+    <div id="seasonStatsCard" class="card season-stats-card"></div>
     <aside class="pre-game-side">
       <div id="liveSummary" class="card live-summary"></div>
       <div class="card next-match-card"><h2 class="section-title">Próximo jogo</h2><div class="field"><label for="nextMatchDate">Data</label><input type="date" id="nextMatchDate"></div><div class="field"><label for="nextMatchOpponent">Adversário</label><input type="text" id="nextMatchOpponent" placeholder="Nome do clube"></div></div>
@@ -251,17 +252,19 @@
 
 <!-- MODAL: Adicionar Jogador -->
 <div id="modalOverlay" class="modal-overlay" hidden>
-  <div class="modal-box">
-    <h3>Adicionar Jogador</h3>
+  <div class="modal-box player-modal-box">
+    <div id="playerModalProfile" class="player-modal-profile"><div id="playerModalPhoto" class="player-modal-photo"></div><div><h3 id="playerModalName">Adicionar Jogador</h3><p id="playerModalMeta">Ficha do jogador</p><div id="playerModalMainStats" class="player-modal-stats"></div></div></div>
     <div class="field">
       <label for="modalNome">Nome</label>
       <input type="text" id="modalNome" placeholder="Nome do jogador">
     </div>
     <div class="field"><label for="modalFoto">Foto (URL opcional)</label><input type="url" id="modalFoto" placeholder="https://..."></div>
     <div class="field"><label for="modalFotoUpload">Ou carregar fotografia</label><input type="file" id="modalFotoUpload" accept="image/*"></div>
+    <div class="grid grid-2"><div class="field"><label for="modalNacionalidade">Nacionalidade</label><input type="text" id="modalNacionalidade" placeholder="Portuguesa"></div><div class="field"><label for="modalNascimento">Data de nascimento</label><input type="date" id="modalNascimento"></div></div>
+    <div class="grid grid-3"><div class="field"><label for="modalPe">Pé preferencial</label><select id="modalPe"><option value="">Não indicado</option><option>Direito</option><option>Esquerdo</option><option>Ambos</option></select></div><div class="field"><label for="modalAltura">Altura (cm)</label><input type="number" id="modalAltura" min="100" max="250"></div><div class="field"><label for="modalPeso">Peso (kg)</label><input type="number" id="modalPeso" min="30" max="200"></div></div>
     <div class="field"><label for="modalStats">Stats JSON opcional</label><input type="text" id="modalStats" placeholder='{"jogos":0,"golos":0}'></div>
     <div id="modalAttributes" class="attribute-editor"></div>
-    <div class="position-map"><span>Mapa de posições</span><div class="position-pitch"><button type="button" data-position="GR">GR</button><button type="button" data-position="DC">DC</button><button type="button" data-position="MCen">MC</button><button type="button" data-position="PL">PL</button></div></div>
+    <div class="position-map"><span>Mapa de posições</span><div class="position-pitch"><svg viewBox="0 0 200 130" aria-label="Mapa de posições"><rect x="1" y="1" width="198" height="128" rx="4"></rect><line x1="0" y1="65" x2="200" y2="65"></line><circle cx="100" cy="65" r="18"></circle><rect x="65" y="1" width="70" height="22"></rect><rect x="65" y="107" width="70" height="22"></rect></svg><div id="positionPoints"></div></div><small>Clica nos pontos para definir posição principal e secundárias.</small></div>
     <div class="field">
       <label for="modalPosicao">Posição</label>
       <input type="text" id="modalPosicao" placeholder="Ex: DC, MDef, ED/PL...">

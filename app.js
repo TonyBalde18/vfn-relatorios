@@ -103,7 +103,7 @@ const SECCOES_TATICAS = [
 
 function jogadorBase(id, nome, posicao, numero) {
   return {
-    id, nome, posicao, numero: numero || "", fotoUrl: "", attributes: {}, stats: { jogos: 0 },
+    id, nome, posicao, numero: numero || "", fotoUrl: "", nacionalidade: "", nascimento: "", pePreferencial: "", altura: "", peso: "", notas: "", attributes: {}, stats: { jogos: 0 },
     golos: 0, assistencias: 0, cartoesAmarelos: 0, cartoesVermelhos: 0, minutosTotais: 0
   };
 }
@@ -196,6 +196,9 @@ let plantel = [];
 let jogadorEmEdicao = null;
 let pesquisaEquipa = "";
 let filtroPosicaoEquipa = "";
+let posicoesModal = [];
+let posicaoPrincipalModal = "";
+const POSICOES_MAPA = { GR: [50, 88], DC: [38, 64], DD: [78, 64], DE: [18, 64], MDef: [50, 48], MCen: [50, 35], MOfe: [50, 22], ED: [82, 16], EE: [18, 16], PL: [50, 7] };
 const ATRIBUTOS_POR_POSICAO = {
   GR: ["Reflexos", "Posicionamento", "Jogo com os pés", "Saídas", "Comunicação"],
   DC: ["Marcação", "Cabeceamento", "Força", "Posicionamento", "Desarme"],
@@ -233,6 +236,26 @@ async function carregarRascunhoSupabase() {
   return { savedAt: data.updated_at, data: data.data };
 }
 
+async function carregarEstatisticasEpocaSupabase() {
+  const vazio = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 };
+  if (!supabaseClient || !currentUser) { renderSeasonStats(vazio); return; }
+  const { data, error } = await supabaseClient.from("match_reports").select("match_data").eq("user_id", currentUser.id);
+  if (error || !data) { renderSeasonStats(vazio); return; }
+  const stats = data.reduce((acc, row) => {
+    const jogo = row.match_data || {}; const pre = jogo.preJogo || {}; const jogoData = jogo.jogo || {};
+    const eventos = jogoData.eventos || []; let vfn = Number(jogoData.golosVFN) || 0; let adv = Number(jogoData.golosAdversario) || 0;
+    if (eventos.length) { vfn = 0; adv = 0; eventos.forEach(evento => { if (evento.tipo !== "Golo" && evento.tipo !== "Auto-golo") return; const vfnMarca = evento.tipo === "Golo" ? evento.equipa === "VFN" : evento.equipa !== "VFN"; if (vfnMarca) vfn++; else adv++; }); }
+    acc.jogos++; acc.marcados += vfn; acc.sofridos += adv; if (vfn > adv) acc.vitorias++; else if (vfn === adv) acc.empates++; else acc.derrotas++; return acc;
+  }, vazio);
+  renderSeasonStats(stats);
+}
+
+function renderSeasonStats(stats) {
+  const container = el("seasonStatsCard");
+  if (!container) return;
+  container.innerHTML = `<h2 class="section-title">Estatísticas Rápidas da Época</h2><div class="season-stats-grid">${[["Jogos", stats.jogos], ["Vitórias", stats.vitorias], ["Empates", stats.empates], ["Derrotas", stats.derrotas], ["Golos marcados", stats.marcados], ["Golos sofridos", stats.sofridos]].map(([label, value]) => `<div class="season-stat"><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>${stats.jogos === 0 ? '<small class="season-empty">Ainda não existem relatórios guardados.</small>' : ""}`;
+}
+
 async function guardarRelatorioSupabase() {
   if (!supabaseClient || !currentUser) return;
   const { error } = await supabaseClient.from("match_reports").insert({ user_id: currentUser.id, match_data: state, updated_at: new Date().toISOString() });
@@ -241,7 +264,7 @@ async function guardarRelatorioSupabase() {
 
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const rows = plantel.map(p => ({ id: `${currentUser.id}-${p.id}`, user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: p.stats || p }));
+  const rows = plantel.map(p => ({ id: `${currentUser.id}-${p.id}`, user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (rows.length) await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
 }
 
@@ -263,6 +286,12 @@ function migrarJogador(p) {
     minutosTotais: Number(p.minutosTotais) || 0,
     jogos: Number(p.jogos) || Number(stats.jogos) || 0,
     fotoUrl: p.fotoUrl || p.photo_url || "",
+    nacionalidade: p.nacionalidade || stats.nacionalidade || "",
+    nascimento: p.nascimento || stats.nascimento || "",
+    pePreferencial: p.pePreferencial || stats.pePreferencial || "",
+    altura: p.altura || stats.altura || "",
+    peso: p.peso || stats.peso || "",
+    notas: p.notas || stats.notas || "",
     attributes: p.attributes || {},
     stats: stats
   };
@@ -1089,6 +1118,8 @@ function initPlantel() {
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
     jogador.notas = el("modalNotes").value;
+    jogador.nacionalidade = el("modalNacionalidade").value.trim(); jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value; jogador.altura = el("modalAltura").value; jogador.peso = el("modalPeso").value;
+    jogador.posicao = posicoesModal.join("/") || jogador.posicao;
     try { jogador.stats = JSON.parse(el("modalStats").value || JSON.stringify(jogador.stats || { jogos: 0 })); } catch (e) { el("modalStats").focus(); return; }
     jogador.attributes = {};
     el("modalAttributes").querySelectorAll("input[data-attribute]").forEach(input => { jogador.attributes[input.dataset.attribute] = Number(input.value) || 0; });
@@ -1107,16 +1138,11 @@ function initPlantel() {
     const ficheiro = event.target.files[0];
     if (!ficheiro) return;
     const reader = new FileReader();
-    reader.onload = () => { el("modalFoto").value = reader.result; };
+    reader.onload = () => { el("modalFoto").value = reader.result; renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: reader.result, golos: 0, assistencias: 0, minutosTotais: 0 }); };
     reader.readAsDataURL(ficheiro);
   });
-  el("modalPosicao").addEventListener("input", () => renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {}));
-  document.querySelectorAll(".position-pitch button").forEach(button => button.addEventListener("click", () => {
-    const posicao = button.dataset.position;
-    const atual = el("modalPosicao").value.split("/").filter(Boolean);
-    el("modalPosicao").value = atual.includes(posicao) ? atual.filter(item => item !== posicao).join("/") : [...atual, posicao].join("/");
-    renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {});
-  }));
+  el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
+  el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {}); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
 
@@ -1134,8 +1160,11 @@ function abrirModalJogador() {
   el("modalFoto").value = "";
   el("modalFotoUpload").value = "";
   el("modalNotes").value = "";
+  el("modalNacionalidade").value = ""; el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalAltura").value = ""; el("modalPeso").value = "";
+  posicoesModal = []; posicaoPrincipalModal = "";
   el("modalStats").value = '{"jogos":0,"golos":0,"assistencias":0,"cartoesA":0,"cartoesV":0,"minutos":0}';
   renderModalAttributes({});
+  renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
   el("modalNome").focus();
 }
@@ -1148,8 +1177,11 @@ function abrirModalExistente(jogador) {
   el("modalFoto").value = jogador.fotoUrl || "";
   el("modalFotoUpload").value = "";
   el("modalNotes").value = jogador.notas || "";
+  el("modalNacionalidade").value = jogador.nacionalidade || ""; el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || ""; el("modalAltura").value = jogador.altura || ""; el("modalPeso").value = jogador.peso || "";
+  posicoesModal = (jogador.posicao || "").split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || "";
   el("modalStats").value = JSON.stringify(jogador.stats || {});
   renderModalAttributes(jogador.attributes || {});
+  renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
 }
 
@@ -1163,6 +1195,32 @@ function renderModalAttributes(attributes) {
     return `<label class="attribute-row"><span>${nome}</span><input type="range" min="0" max="10" value="${value}" data-attribute="${escapeHtml(nome)}"><span class="attribute-bar"><i style="width:${value * 10}%"></i></span><output>${value}/10</output></label>`;
   }).join("");
   container.querySelectorAll("input[type=range]").forEach(input => input.addEventListener("input", () => { input.nextElementSibling.querySelector("i").style.width = `${input.value * 10}%`; input.nextElementSibling.nextElementSibling.value = `${input.value}/10`; }));
+}
+
+function renderPositionMap() {
+  const container = el("positionPoints");
+  if (!container) return;
+  container.innerHTML = Object.entries(POSICOES_MAPA).map(([posicao, [left, top]]) => {
+    const classe = posicao === posicaoPrincipalModal ? "primary" : (posicoesModal.includes(posicao) ? "secondary" : "");
+    return `<button type="button" class="position-point ${classe}" data-position="${posicao}" style="left:${left}%;top:${top}%">${posicao}</button>`;
+  }).join("");
+  container.querySelectorAll(".position-point").forEach(button => button.addEventListener("click", () => {
+    const posicao = button.dataset.position;
+    if (!posicoesModal.includes(posicao)) { posicoesModal.push(posicao); if (!posicaoPrincipalModal) posicaoPrincipalModal = posicao; }
+    else if (posicao === posicaoPrincipalModal) { posicaoPrincipalModal = posicoesModal.find(item => item !== posicao) || ""; posicoesModal = posicoesModal.filter(item => item !== posicao); }
+    else posicoesModal = posicoesModal.filter(item => item !== posicao);
+    el("modalPosicao").value = posicoesModal.join("/"); renderPositionMap(); renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {});
+  }));
+}
+
+function renderPlayerModalHeader(jogador) {
+  const photo = el("playerModalPhoto");
+  const svg = '<svg class="player-silhouette" viewBox="0 0 82 105" aria-label="Silhueta de jogador"><circle cx="41" cy="24" r="17" fill="#c7c7c4"/><path d="M12 101c2-29 15-43 29-43s27 14 29 43" fill="#c7c7c4"/></svg>';
+  photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : svg;
+  el("playerModalName").textContent = jogador ? jogador.nome : "Adicionar Jogador";
+  el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nacionalidade ? ` · ${jogador.nacionalidade}` : ""}${jogador.nascimento ? ` · ${jogador.nascimento}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
+  const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
+  el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
 
 function fecharModalJogador() {
@@ -1791,6 +1849,8 @@ function initAplicacao() {
   initLimparFormulario();
 
   renderTudo();
+  renderSeasonStats({ jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 });
+  carregarEstatisticasEpocaSupabase();
 
   initRascunho();
 
