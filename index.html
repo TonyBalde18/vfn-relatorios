@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACD Vila Franca das Naves — Relatórios de Jogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<section id="loginScreen" class="login-screen" hidden>
+  <div class="login-card">
+    <div class="login-logo"><img src="logo.png" alt="Logótipo VFN"><span>VFN</span></div>
+    <h1>Relatórios VFN</h1>
+    <p>Entra para aceder aos relatórios, rascunhos e equipa.</p>
+    <form id="loginForm">
+      <div class="field"><label for="loginEmail">Email</label><input type="email" id="loginEmail" required autocomplete="email"></div>
+      <div class="field"><label for="loginPassword">Password</label><input type="password" id="loginPassword" required autocomplete="current-password"></div>
+      <button class="btn btn-accent" type="submit">Entrar</button>
+      <button class="btn btn-ghost" type="button" id="btnLocalMode" hidden>Entrar em modo local</button>
+      <p id="loginMessage" class="login-message" role="alert"></p>
+    </form>
+  </div>
+</section>
+
+<div id="draftBanner" class="draft-banner" hidden>
+  <span id="draftBannerText">Tens um rascunho guardado. Carregar?</span>
+  <div class="draft-banner-actions">
+    <button id="btnLoadDraft" class="btn btn-accent btn-sm">Carregar</button>
+    <button id="btnDismissDraft" class="btn btn-ghost btn-sm">Ignorar</button>
+  </div>
+</div>
+
+<div id="appShell" class="protected-ui" hidden>
+<aside id="appSidebar" class="app-sidebar">
+  <div class="sidebar-brand"><img id="clubLogo" src="logo.png" alt="Logótipo ACD Vila Franca das Naves"><div id="logoPlaceholder" class="logo-placeholder" hidden>VFN</div><div class="sidebar-brand-copy"><strong>VFN</strong><span>Relatórios 26/27</span></div></div>
+  <div class="sidebar-user"><span class="user-avatar">👤</span><span id="sidebarUserName">Utilizador</span></div>
+  <nav class="sidebar-nav" id="tabNav" aria-label="Navegação principal">
+    <button class="tab-btn nav-item active" data-tab="pre-jogo"><span class="nav-icon">📋</span><span class="nav-label">Pré-Jogo</span></button>
+    <button class="tab-btn nav-item" data-tab="jogo"><span class="nav-icon">⚽</span><span class="nav-label">Jogo</span><span id="eventCountBadge" class="tab-count">0</span></button>
+    <button class="tab-btn nav-item" data-tab="analise"><span class="nav-icon">📊</span><span class="nav-label">Análise</span></button>
+    <button class="tab-btn nav-item" data-tab="equipa"><span class="nav-icon">👥</span><span class="nav-label">Equipa</span></button>
+    <button class="nav-item nav-placeholder" type="button" title="Disponível numa versão futura"><span class="nav-icon">📁</span><span class="nav-label">Histórico</span></button>
+  </nav>
+  <button id="btnLogout" class="sidebar-logout"><span class="nav-icon">↪</span><span class="nav-label">Sair</span></button>
+</aside>
+
+<div class="app-content">
+<header class="app-header">
+  <button id="btnSidebarToggle" class="sidebar-toggle" type="button" aria-label="Abrir menu">☰</button>
+  <div class="header-title"><span class="header-kicker">ACD Vila Franca das Naves</span><h1 id="currentSectionTitle">Pré-Jogo</h1></div>
+  <div class="header-actions">
+    <button id="btnExportarRascunho" class="btn btn-ghost" title="Guardar o rascunho agora">💾 Guardar Rascunho</button>
+    <label for="importRascunhoInput" class="btn btn-ghost file-btn" title="Carregar um ficheiro .json exportado anteriormente">📂 Carregar Rascunho</label>
+    <input type="file" id="importRascunhoInput" accept=".json,application/json" hidden>
+    <button id="btnClearForm" class="btn btn-ghost">Limpar Formulário</button>
+    <button id="btnGenerateDocx" class="btn btn-accent">Gerar Relatório Word</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- TAB 1: PRÉ-JOGO -->
+  <section id="tab-pre-jogo" class="tab-panel active">
+    <div class="pre-game-layout">
+    <div class="card">
+      <h2 class="section-title">Informação da Partida</h2>
+      <div class="grid grid-3">
+        <div class="field">
+          <label for="pjJornada">Jornada</label>
+          <input type="number" id="pjJornada" min="1" placeholder="Ex: 5">
+        </div>
+        <div class="field">
+          <label for="pjData">Data</label>
+          <input type="date" id="pjData">
+        </div>
+        <div class="field">
+          <label for="pjCompeticao">Competição</label>
+          <select id="pjCompeticao">
+            <option>2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES</option>
+            <option>TAÇA 2ª LIGA - FDM</option>
+            <option>TAÇA DE HONRA COMUNILOG</option>
+            <option>Amigável</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Casa ou Fora</label>
+          <div class="toggle-group" id="pjCasaFora">
+            <button type="button" class="toggle-btn active" data-value="Casa">Casa</button>
+            <button type="button" class="toggle-btn" data-value="Fora">Fora</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="pjAdversario">Adversário</label>
+          <input type="text" id="pjAdversario" placeholder="Nome do clube adversário">
+        </div>
+        <div class="field">
+          <label for="pjFormacaoPrevista">Formação VFN Prevista</label>
+          <select id="pjFormacaoPrevista"></select>
+        </div>
+      </div>
+      <div class="field"><label for="pjNotasAdversario">Notas do jogo</label><textarea id="pjNotasAdversario" rows="3" placeholder="Observações opcionais..."></textarea></div>
+    </div>
+    <aside class="pre-game-side">
+      <div id="liveSummary" class="card live-summary"></div>
+      <div class="card next-match-card"><h2 class="section-title">Próximo jogo</h2><div class="field"><label for="nextMatchDate">Data</label><input type="date" id="nextMatchDate"></div><div class="field"><label for="nextMatchOpponent">Adversário</label><input type="text" id="nextMatchOpponent" placeholder="Nome do clube"></div></div>
+    </aside>
+    </div>
+  </section>
+
+  <section id="tab-jogo" class="tab-panel">
+    <div class="scoreboard card"><div class="scoreboard-team">VFN</div><div class="scoreboard-score" id="scoreboardScore">0 — 0</div><div class="scoreboard-team">Adversário</div><div class="scoreboard-half" id="scoreboardHalf">Intervalo: 0 — 0</div></div>
+    <div class="card">
+      <h2 class="section-title">Formações</h2>
+      <div class="grid grid-2"><div class="field"><label for="jgFormacaoVFN">Formação VFN Utilizada</label><select id="jgFormacaoVFN"></select></div><div class="field"><label for="jgFormacaoAdv">Formação Adversário</label><select id="jgFormacaoAdv"></select></div></div>
+    </div>
+    <div class="card">
+      <h2 class="section-title">Onze Inicial e Suplentes</h2>
+      <div class="pitch-layout">
+        <div class="pitch-wrap">
+          <div class="pitch" id="pitch"></div>
+          <p class="pitch-hint">Campo apenas ilustrativo — define o onze através dos menus ao lado.</p>
+          <div class="pitch-controls">
+            <label for="coachpadInput" class="btn btn-ghost btn-sm file-btn">Usar Imagem do CoachPad</label>
+            <input type="file" id="coachpadInput" accept="image/*" hidden>
+            <button type="button" id="btnRemoveCoachpad" class="btn btn-ghost btn-sm" hidden>Remover Imagem</button>
+          </div>
+          <div id="coachpadPreview" class="coachpad-preview" hidden>
+            <img id="coachpadImg" alt="Imagem do CoachPad">
+          </div>
+        </div>
+        <div class="lineup-panel">
+          <h3>Titulares (Onze Inicial)</h3>
+          <div id="titularesList" class="lineup-list"></div>
+          <h3>Suplentes (até 7)</h3>
+          <div id="benchList" class="lineup-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header-row">
+        <h2 class="section-title">Eventos do Jogo</h2>
+        <div class="button-group">
+          <button type="button" id="btnOrdenarEventos" class="btn btn-ghost btn-sm">Ordenar por Minuto</button>
+          <button type="button" id="btnAddEvento" class="btn btn-accent btn-sm">Adicionar Evento</button>
+        </div>
+      </div>
+      <div id="halfTimeScore" class="partial-score" aria-live="polite"></div>
+      <div id="matchTimeline" class="match-timeline" aria-label="Linha do tempo do jogo"></div>
+      <div class="table-wrap">
+        <table class="events-table" id="eventsTable">
+          <thead>
+            <tr>
+              <th>Minuto</th>
+              <th>Equipa</th>
+              <th>Tipo</th>
+              <th>Jogador/Detalhe</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="eventsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: ANÁLISE -->
+  <section id="tab-analise" class="tab-panel">
+    <div id="analysisSummary" class="card analysis-summary"></div>
+    <div id="taticalSections"></div>
+
+    <div class="card"><h2 class="section-title">Síntese</h2><div class="grid grid-2"><div class="field"><label for="positivosText">Pontos Positivos</label><textarea id="positivosText" rows="5"></textarea></div><div class="field"><label for="melhorarText">Pontos a Melhorar</label><textarea id="melhorarText" rows="5"></textarea></div></div></div>
+
+    <div class="card">
+      <h2 class="section-title">Análise do Adversário</h2>
+      <div class="field">
+        <label for="advEstilo">Estilo de Jogo</label>
+        <textarea id="advEstilo" rows="4" placeholder="Como joga o adversário..."></textarea>
+      </div>
+      <div class="field">
+        <label>Jogadores-Chave que se Destacaram</label>
+        <div id="jogadoresChaveList" class="dynamic-list"></div>
+        <button type="button" id="btnAddJogadorChave" class="btn btn-ghost btn-sm">+ Adicionar Jogador</button>
+      </div>
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="advPontosFortes">Pontos Fortes</label>
+          <textarea id="advPontosFortes" rows="4" placeholder="Pontos fortes do adversário..."></textarea>
+        </div>
+        <div class="field">
+          <label for="advVulnerabilidades">Vulnerabilidades a Explorar na 2ª Volta</label>
+          <textarea id="advVulnerabilidades" rows="4" placeholder="O que podemos explorar..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card"><h2 class="section-title">Tópicos para o Treino</h2><textarea id="topicosText" rows="5"></textarea></div>
+  </section>
+
+  <!-- TAB 4: EQUIPA -->
+  <section id="tab-equipa" class="tab-panel">
+    <div class="card">
+      <div class="section-header-row">
+        <h2 class="section-title">Plantel</h2>
+        <button type="button" id="btnOpenAddJogador" class="btn btn-accent btn-sm">+ Adicionar Jogador</button>
+      </div>
+      <div class="team-toolbar"><input type="search" id="teamSearch" placeholder="Pesquisar jogador..."><select id="teamPositionFilter"><option value="">Todas as posições</option><option value="GR">GR</option><option value="Def">Defesa</option><option value="Meio">Meio-campo</option><option value="Ata">Ataque</option></select></div>
+      <div id="teamQuickStats" class="team-quick-stats"></div>
+      <div class="table-wrap">
+        <table class="plantel-table" id="plantelTable">
+          <thead>
+            <tr>
+              <th>Foto</th><th>Nome</th>
+              <th>Posição</th>
+              <th>Nº</th>
+              <th>Jogos</th>
+              <th>Golos</th>
+              <th>Assist.</th>
+              <th>C.A.</th>
+              <th>C.V.</th>
+              <th>Minutos</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="plantelBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header-row">
+        <h2 class="section-title">Estatísticas da Época</h2>
+        <button type="button" id="btnExportarPlantel" class="btn btn-ghost btn-sm">Exportar Plantel JSON</button>
+      </div>
+      <div id="plantelSummary" class="stat-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <p>ACD Vila Franca das Naves · Análise Tática · Época 2026/27</p>
+</footer>
+</div>
+</div>
+
+<!-- MODAL: Adicionar Jogador -->
+<div id="modalOverlay" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h3>Adicionar Jogador</h3>
+    <div class="field">
+      <label for="modalNome">Nome</label>
+      <input type="text" id="modalNome" placeholder="Nome do jogador">
+    </div>
+    <div class="field"><label for="modalFoto">Foto (URL opcional)</label><input type="url" id="modalFoto" placeholder="https://..."></div>
+    <div class="field"><label for="modalFotoUpload">Ou carregar fotografia</label><input type="file" id="modalFotoUpload" accept="image/*"></div>
+    <div class="field"><label for="modalStats">Stats JSON opcional</label><input type="text" id="modalStats" placeholder='{"jogos":0,"golos":0}'></div>
+    <div id="modalAttributes" class="attribute-editor"></div>
+    <div class="position-map"><span>Mapa de posições</span><div class="position-pitch"><button type="button" data-position="GR">GR</button><button type="button" data-position="DC">DC</button><button type="button" data-position="MCen">MC</button><button type="button" data-position="PL">PL</button></div></div>
+    <div class="field">
+      <label for="modalPosicao">Posição</label>
+      <input type="text" id="modalPosicao" placeholder="Ex: DC, MDef, ED/PL...">
+    </div>
+    <div class="field">
+      <label for="modalNumero">Nº Camisola</label>
+      <input type="number" id="modalNumero" min="1" max="99" placeholder="Ex: 7">
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="btnModalCancelar" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnModalGuardar" class="btn btn-accent">Guardar</button>
+    </div>
+    <div class="field"><label for="modalNotes">Notas do treinador</label><textarea id="modalNotes" rows="3"></textarea></div>
+    <div class="recent-games"><strong>Jogos recentes</strong><p>Os últimos relatórios associados aparecerão aqui.</p></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
+<script src="config.js?v=2"></script>
+<script src="app.js?v=2"></script>
+</body>
+</html>

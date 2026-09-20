@@ -1,0 +1,1841 @@
+"use strict";
+
+/* =========================================================
+   DADOS DE BASE
+   ========================================================= */
+
+const FORMACOES = ["4-3-3", "4-4-2", "4-4-2 Losango", "4-2-3-1", "3-5-2", "5-3-2"];
+
+const FORMACOES_SLOTS = {
+  "4-3-3": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+    { label: "MCen", x: 28, y: 55 }, { label: "MCen", x: 50, y: 58 }, { label: "MCen", x: 72, y: 55 },
+    { label: "EE", x: 17, y: 25 }, { label: "PL", x: 50, y: 15 }, { label: "ED", x: 83, y: 25 }
+  ],
+  "4-4-2": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+    { label: "ED", x: 83, y: 50 }, { label: "MCen", x: 60, y: 52 }, { label: "MCen", x: 40, y: 52 }, { label: "EE", x: 17, y: 50 },
+    { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
+  ],
+  "4-4-2 Losango": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+    { label: "MDef", x: 50, y: 62 }, { label: "ED", x: 76, y: 47 }, { label: "EE", x: 24, y: 47 }, { label: "MOfe", x: 50, y: 33 },
+    { label: "PL", x: 38, y: 16 }, { label: "PL", x: 62, y: 16 }
+  ],
+  "4-2-3-1": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+    { label: "MDef", x: 38, y: 60 }, { label: "MDef", x: 62, y: 60 },
+    { label: "EE", x: 18, y: 36 }, { label: "MOfe", x: 50, y: 38 }, { label: "ED", x: 82, y: 36 },
+    { label: "PL", x: 50, y: 14 }
+  ],
+  "3-5-2": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DC", x: 70, y: 78 }, { label: "DC", x: 50, y: 81 }, { label: "DC", x: 30, y: 78 },
+    { label: "DD", x: 90, y: 55 }, { label: "MCen", x: 65, y: 52 }, { label: "MCen", x: 50, y: 55 }, { label: "MCen", x: 35, y: 52 }, { label: "DE", x: 10, y: 55 },
+    { label: "PL", x: 38, y: 18 }, { label: "PL", x: 62, y: 18 }
+  ],
+  "5-3-2": [
+    { label: "GR", x: 50, y: 93 },
+    { label: "DD", x: 90, y: 75 }, { label: "DC", x: 68, y: 80 }, { label: "DC", x: 50, y: 82 }, { label: "DC", x: 32, y: 80 }, { label: "DE", x: 10, y: 75 },
+    { label: "MCen", x: 30, y: 50 }, { label: "MCen", x: 50, y: 53 }, { label: "MCen", x: 70, y: 50 },
+    { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
+  ]
+};
+
+const COMPETICOES = ["2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES", "TAÇA 2ª LIGA - FDM", "TAÇA DE HONRA COMUNILOG", "Amigável"];
+const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Nota"];
+const ICONES_EVENTO = {
+  "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴",
+  "Cartão Amarelo": "🟨", "Cartão Vermelho": "🟥", "Lesão": "🤕",
+  "Substituição": "🔄", "Tempo Acrescentado": "⏱️", "Nota": "📝"
+};
+
+const SECCOES_TATICAS = [
+  {
+    key: "organizacaoOfensiva",
+    titulo: "Organização Ofensiva",
+    perguntas: [
+      "Como circulámos a bola?",
+      "Criámos situações de golo?",
+      "Explorámos os corredores?",
+      "Como foi a ligação entre linhas?"
+    ]
+  },
+  {
+    key: "organizacaoDefensiva",
+    titulo: "Organização Defensiva",
+    perguntas: [
+      "Mantivemos o bloco compacto?",
+      "Como foi a pressão?",
+      "Sofremos perigo por onde?",
+      "Como defendemos as bolas paradas?"
+    ]
+  },
+  {
+    key: "transicoesOfensivas",
+    titulo: "Transições Ofensivas",
+    perguntas: [
+      "Fomos rápidos a sair a jogar?",
+      "Explorámos os espaços após recuperar a bola?"
+    ]
+  },
+  {
+    key: "transicoesDefensivas",
+    titulo: "Transições Defensivas",
+    perguntas: [
+      "Recuperámos bem a posição defensiva?",
+      "Fomos vulneráveis ao contra-ataque?"
+    ]
+  },
+  {
+    key: "bolasParadas",
+    titulo: "Bolas Paradas",
+    perguntas: [
+      "Como foram os nossos cantos e livres?",
+      "Sofremos perigo em bolas paradas?"
+    ]
+  }
+];
+
+function jogadorBase(id, nome, posicao, numero) {
+  return {
+    id, nome, posicao, numero: numero || "", fotoUrl: "", attributes: {}, stats: { jogos: 0 },
+    golos: 0, assistencias: 0, cartoesAmarelos: 0, cartoesVermelhos: 0, minutosTotais: 0
+  };
+}
+
+async function carregarFotoParaSupabase(file, jogadorId) {
+  if (!supabaseClient || !currentUser || !file) return null;
+  const caminho = `${currentUser.id}/${jogadorId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabaseClient.storage.from("player-photos").upload(caminho, file, { upsert: true });
+  if (error) { console.warn("Não foi possível carregar a fotografia:", error.message); return null; }
+  const { data } = supabaseClient.storage.from("player-photos").getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
+const PLANTEL_DEFAULT = [
+  jogadorBase(1, "João Macedo", "DC/MDef"),
+  jogadorBase(2, "Rodrigo Cruz", "MOfe"),
+  jogadorBase(3, "Tomás Vitória", "MCen"),
+  jogadorBase(4, "Jota", "DD"),
+  jogadorBase(5, "Tony Baldé", "DE"),
+  jogadorBase(6, "Silvestre", "DC"),
+  jogadorBase(7, "José Maia", "MDef"),
+  jogadorBase(8, "João Carvalho (Gravatas)", "GR"),
+  jogadorBase(9, "Tiago Rocha", "GR"),
+  jogadorBase(10, "Tomás Salcedas", "Posição a definir"),
+  jogadorBase(11, "Amadeu", "ED/PL"),
+  jogadorBase(12, "Diogo", "GR"),
+  jogadorBase(13, "Painço", "DE"),
+  jogadorBase(14, "João", "DC"),
+  jogadorBase(15, "Marco", "MDef"),
+  jogadorBase(16, "Tomás", "MCen"),
+  jogadorBase(17, "Fred", "MCen"),
+  jogadorBase(18, "Telmo", "EE"),
+  jogadorBase(19, "Bomba", "PL"),
+  jogadorBase(20, "Bernardo", "DE")
+];
+
+const DRAFT_KEY = "vfnRelatorioDraft";
+const PLANTEL_KEY = "vfnPlantel";
+
+/* =========================================================
+   ESTADO
+   ========================================================= */
+
+function estadoInicial() {
+  return {
+    preJogo: {
+      jornada: "",
+      data: "",
+      competicao: COMPETICOES[0],
+      casaFora: "Casa",
+      adversario: "",
+      formacaoPrevista: "4-3-3",
+      notasAdversario: "",
+      proximoJogo: { data: "", adversario: "" }
+    },
+    jogo: {
+      golosVFN: 0,
+      golosAdversario: 0,
+      duracaoJogo: 90,
+      formacaoVFN: "4-3-3",
+      formacaoAdversario: "4-4-2",
+      titulares: new Array(11).fill(null),
+      suplentes: new Array(7).fill(null),
+      coachpad: null, // { dataUrl, tipo, largura, altura }
+      eventos: []
+    },
+    analise: {
+      seccoes: {
+        organizacaoOfensiva: { avaliacao: null, texto: "" },
+        organizacaoDefensiva: { avaliacao: null, texto: "" },
+        transicoesOfensivas: { avaliacao: null, texto: "" },
+        transicoesDefensivas: { avaliacao: null, texto: "" },
+        bolasParadas: { avaliacao: null, texto: "" }
+      },
+      positivos: "",
+      aMelhorar: "",
+      adversario: {
+        estilo: "",
+        jogadoresChave: [],
+        pontosFortes: "",
+        vulnerabilidades: ""
+      },
+      topicosTreino: ""
+    }
+  };
+}
+
+let state = estadoInicial();
+let plantel = [];
+let jogadorEmEdicao = null;
+let pesquisaEquipa = "";
+let filtroPosicaoEquipa = "";
+const ATRIBUTOS_POR_POSICAO = {
+  GR: ["Reflexos", "Posicionamento", "Jogo com os pés", "Saídas", "Comunicação"],
+  DC: ["Marcação", "Cabeceamento", "Força", "Posicionamento", "Desarme"],
+  DD: ["Velocidade", "Cruzamento", "Marcação", "Resistência", "Posicionamento"],
+  DE: ["Velocidade", "Cruzamento", "Marcação", "Resistência", "Posicionamento"],
+  MDef: ["Recuperação", "Cobertura", "Passe", "Posicionamento", "Construção"],
+  MCen: ["Passe", "Movimentação", "Drible", "Resistência", "Remate"],
+  MOfe: ["Criatividade", "Drible", "Passe final", "Remate", "Velocidade"],
+  ED: ["Velocidade", "Movimentação", "Cruzamento", "Remate", "1v1"],
+  EE: ["Velocidade", "Movimentação", "Cruzamento", "Remate", "1v1"],
+  PL: ["Finalização", "Cabeceamento", "Movimentação", "Posicionamento", "Velocidade"]
+};
+let supabaseClient = null;
+let currentUser = null;
+let localMode = false;
+
+function supabaseConfigurado() {
+  return typeof window.supabase !== "undefined" && typeof SUPABASE_URL !== "undefined" && !SUPABASE_URL.startsWith("YOUR_") && typeof SUPABASE_ANON_KEY !== "undefined" && !SUPABASE_ANON_KEY.startsWith("YOUR_");
+}
+
+function iniciarSupabase() {
+  if (supabaseConfigurado()) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+async function sincronizarRascunhoSupabase() {
+  if (!supabaseClient || !currentUser) return;
+  const { error } = await supabaseClient.from("draft").upsert({ user_id: currentUser.id, data: state, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) console.warn("Não foi possível sincronizar o rascunho:", error.message);
+}
+
+async function carregarRascunhoSupabase() {
+  if (!supabaseClient || !currentUser) return null;
+  const { data, error } = await supabaseClient.from("draft").select("data, updated_at").eq("user_id", currentUser.id).maybeSingle();
+  if (error || !data) return null;
+  return { savedAt: data.updated_at, data: data.data };
+}
+
+async function guardarRelatorioSupabase() {
+  if (!supabaseClient || !currentUser) return;
+  const { error } = await supabaseClient.from("match_reports").insert({ user_id: currentUser.id, match_data: state, updated_at: new Date().toISOString() });
+  if (error) console.warn("Não foi possível guardar o relatório:", error.message);
+}
+
+async function sincronizarPlantelSupabase() {
+  if (!supabaseClient || !currentUser) return;
+  const rows = plantel.map(p => ({ id: `${currentUser.id}-${p.id}`, user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: p.stats || p }));
+  if (rows.length) await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
+}
+
+/* =========================================================
+   PERSISTÊNCIA — PLANTEL
+   ========================================================= */
+
+function migrarJogador(p) {
+  const stats = p.stats || {};
+  return {
+    id: p.id,
+    nome: p.nome || "",
+    posicao: p.posicao || "—",
+    numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
+    golos: Number(p.golos) || 0,
+    assistencias: Number(p.assistencias) || 0,
+    cartoesAmarelos: Number(p.cartoesAmarelos) || 0,
+    cartoesVermelhos: Number(p.cartoesVermelhos) || 0,
+    minutosTotais: Number(p.minutosTotais) || 0,
+    jogos: Number(p.jogos) || Number(stats.jogos) || 0,
+    fotoUrl: p.fotoUrl || p.photo_url || "",
+    attributes: p.attributes || {},
+    stats: stats
+  };
+}
+
+function carregarPlantel() {
+  try {
+    const raw = localStorage.getItem(PLANTEL_KEY);
+    if (raw) {
+      plantel = JSON.parse(raw).map(migrarJogador);
+      return;
+    }
+  } catch (e) { /* ignora */ }
+  plantel = PLANTEL_DEFAULT.map(p => ({ ...p }));
+  guardarPlantel();
+}
+
+async function carregarPlantelSupabase() {
+  if (!supabaseClient || !currentUser) return;
+  const { data, error } = await supabaseClient.from("players").select("id, name, position, number, photo_url, attributes, stats").eq("user_id", currentUser.id);
+  if (error || !data || !data.length) return;
+  plantel = data.map((p, index) => migrarJogador({ id: Number(String(p.id).split("-").pop()) || index + 1, nome: p.name, posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats }));
+}
+
+function guardarPlantel() {
+  try {
+    localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel));
+  } catch (e) { /* quota excedida - ignora silenciosamente */ }
+  sincronizarPlantelSupabase();
+}
+
+function proximoIdPlantel() {
+  const maxId = plantel.reduce((m, p) => Math.max(m, p.id), 0);
+  return maxId + 1;
+}
+
+/* =========================================================
+   PERSISTÊNCIA — RASCUNHO (localStorage + JSON exportável)
+   ========================================================= */
+
+function guardarRascunho() {
+  const payload = { savedAt: new Date().toISOString(), data: state };
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+  } catch (e) {
+    try {
+      const copiaSemImagem = JSON.parse(JSON.stringify(state));
+      if (copiaSemImagem.jogo) copiaSemImagem.jogo.coachpad = null;
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data: copiaSemImagem }));
+    } catch (e2) { /* ignora */ }
+  }
+  sincronizarRascunhoSupabase();
+}
+
+function lerRascunhoArmazenado() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.data) return parsed;
+    return { savedAt: null, data: parsed }; // compatibilidade com formato antigo
+  } catch (e) {
+    return null;
+  }
+}
+
+function existeRascunho() {
+  return !!lerRascunhoArmazenado();
+}
+
+function aplicarDadosEstado(dados) {
+  const base = estadoInicial();
+  state = base;
+  state.preJogo = Object.assign(base.preJogo, dados.preJogo || {});
+  state.preJogo.proximoJogo = Object.assign(base.preJogo.proximoJogo, dados.preJogo && dados.preJogo.proximoJogo || {});
+  state.jogo = Object.assign(base.jogo, dados.jogo);
+  state.jogo.eventos = (state.jogo.eventos || []).map(migrarEvento);
+  state.analise = Object.assign(base.analise, dados.analise || {});
+  if (Array.isArray(state.analise.positivos)) state.analise.positivos = state.analise.positivos.filter(Boolean).join("\n");
+  if (Array.isArray(state.analise.aMelhorar)) state.analise.aMelhorar = state.analise.aMelhorar.filter(Boolean).join("\n");
+  if (Array.isArray(state.analise.topicosTreino)) state.analise.topicosTreino = state.analise.topicosTreino.filter(Boolean).join("\n");
+  if (dados.analise && dados.analise.seccoes) {
+    state.analise.seccoes = Object.assign(base.analise.seccoes, dados.analise.seccoes);
+  }
+}
+
+function carregarRascunho() {
+  const armazenado = lerRascunhoArmazenado();
+  if (!armazenado) return false;
+  try {
+    aplicarDadosEstado(armazenado.data);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function limparRascunhoStorage() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+function formatarDataHora(iso) {
+  if (!iso) return "data desconhecida";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-PT") + " às " + d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return "data desconhecida";
+  }
+}
+
+function exportarRascunhoJSON() {
+  const nomeFicheiro = `rascunho_${sanitizarNomeFicheiro(state.preJogo.adversario)}_${state.preJogo.data || "sem-data"}.json`;
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  descarregarBlob(blob, nomeFicheiro);
+}
+
+function importarRascunhoJSON(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const dados = JSON.parse(ev.target.result);
+      aplicarDadosEstado(dados);
+      renderTudo();
+      guardarRascunho();
+      alert("Rascunho carregado com sucesso.");
+    } catch (e) {
+      alert("Não foi possível ler este ficheiro. Verifica se é um JSON de rascunho válido.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function descarregarBlob(blob, nomeFicheiro) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeFicheiro;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function el(id) { return document.getElementById(id); }
+
+function criarOpcoesFormacao(select) {
+  select.innerHTML = "";
+  FORMACOES.forEach(f => {
+    const opt = document.createElement("option");
+    opt.value = f;
+    opt.textContent = f;
+    select.appendChild(opt);
+  });
+}
+
+function jogadorPorId(id) {
+  return plantel.find(p => p.id === Number(id));
+}
+
+function nomeJogador(id) {
+  const j = jogadorPorId(id);
+  return j ? j.nome : "";
+}
+
+/**
+ * Constrói as <option> do plantel.
+ * opts.onlyIds   -> restringe a lista a estes ids (mais o valor já selecionado)
+ * opts.excludeIds -> remove estes ids da lista (mais o valor já selecionado, que nunca é removido)
+ */
+function opcoesJogadoresHTML(selecionadoId, opts) {
+  opts = opts || {};
+  const selNum = selecionadoId ? Number(selecionadoId) : null;
+  let lista = [...plantel];
+
+  if (opts.onlyIds) {
+    const onlySet = new Set(opts.onlyIds.map(Number));
+    lista = lista.filter(j => onlySet.has(j.id) || j.id === selNum);
+  }
+  if (opts.excludeIds) {
+    const exSet = new Set(opts.excludeIds.map(Number));
+    lista = lista.filter(j => !exSet.has(j.id) || j.id === selNum);
+  }
+
+  lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+
+  let html = '<option value="">— Selecionar —</option>';
+  lista.forEach(j => {
+    const sel = selNum === j.id ? "selected" : "";
+    const numTag = j.numero ? `#${escapeHtml(j.numero)} ` : "";
+    html += `<option value="${j.id}" ${sel}>${numTag}${escapeHtml(j.nome)} — ${escapeHtml(j.posicao)}</option>`;
+  });
+  return html;
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function uid() { return Date.now() + Math.floor(Math.random() * 1000); }
+
+function sanitizarNomeFicheiro(str) {
+  return String(str || "Adversario")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "Adversario";
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+function initTabs() {
+  const botoes = document.querySelectorAll(".tab-btn");
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa" };
+  botoes.forEach(btn => {
+    btn.addEventListener("click", () => {
+      guardarRascunho(); // preserva dados sempre que se muda de separador
+      botoes.forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      el("tab-" + btn.dataset.tab).classList.add("active");
+      el("currentSectionTitle").textContent = titulos[btn.dataset.tab] || btn.dataset.tab;
+      el("appSidebar").classList.remove("is-open");
+    });
+  });
+  el("btnSidebarToggle").addEventListener("click", () => el("appSidebar").classList.toggle("is-open"));
+}
+
+/* =========================================================
+   TAB 1: PRÉ-JOGO
+   ========================================================= */
+
+function initPreJogo() {
+  criarOpcoesFormacao(el("pjFormacaoPrevista"));
+
+  el("pjJornada").addEventListener("input", e => state.preJogo.jornada = e.target.value);
+  el("pjData").addEventListener("input", e => state.preJogo.data = e.target.value);
+  el("pjCompeticao").addEventListener("change", e => state.preJogo.competicao = e.target.value);
+  el("pjAdversario").addEventListener("input", e => state.preJogo.adversario = e.target.value);
+  el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
+  el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
+  el("nextMatchDate").addEventListener("input", e => state.preJogo.proximoJogo.data = e.target.value);
+  el("nextMatchOpponent").addEventListener("input", e => state.preJogo.proximoJogo.adversario = e.target.value);
+
+  const grupoCasaFora = el("pjCasaFora");
+  grupoCasaFora.querySelectorAll(".toggle-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      grupoCasaFora.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.preJogo.casaFora = btn.dataset.value;
+    });
+  });
+}
+
+function renderPreJogo() {
+  el("pjJornada").value = state.preJogo.jornada;
+  el("pjData").value = state.preJogo.data;
+  el("pjCompeticao").value = state.preJogo.competicao;
+  el("pjAdversario").value = state.preJogo.adversario;
+  el("pjFormacaoPrevista").value = state.preJogo.formacaoPrevista;
+  el("pjNotasAdversario").value = state.preJogo.notasAdversario;
+  el("nextMatchDate").value = state.preJogo.proximoJogo.data;
+  el("nextMatchOpponent").value = state.preJogo.proximoJogo.adversario;
+
+  const grupoCasaFora = el("pjCasaFora");
+  grupoCasaFora.querySelectorAll(".toggle-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.value === state.preJogo.casaFora);
+  });
+  renderLiveSummary();
+}
+
+function renderLiveSummary() {
+  const container = el("liveSummary");
+  if (!container) return;
+  const avaliadas = Object.values(state.analise.seccoes).filter(sec => sec.avaliacao).length;
+  container.innerHTML = `<h2 class="section-title">Resumo em tempo real</h2><div class="live-summary-row"><span>Resultado atual</span><strong>${state.jogo.golosVFN} — ${state.jogo.golosAdversario}</strong></div><div class="live-summary-row"><span>Formação</span><strong>${escapeHtml(state.jogo.formacaoVFN)}</strong></div><div class="live-summary-row"><span>Eventos</span><strong>${state.jogo.eventos.length}</strong></div><div class="live-summary-row"><span>Avaliações</span><strong>${avaliadas}/5</strong></div>`;
+}
+
+/* =========================================================
+   TAB 2: JOGO
+   ========================================================= */
+
+function initJogo() {
+  criarOpcoesFormacao(el("jgFormacaoVFN"));
+  criarOpcoesFormacao(el("jgFormacaoAdv"));
+
+  el("jgFormacaoVFN").addEventListener("change", e => {
+    state.jogo.formacaoVFN = e.target.value;
+    renderPitch();
+    renderTitulares();
+  });
+  el("jgFormacaoAdv").addEventListener("change", e => state.jogo.formacaoAdversario = e.target.value);
+
+  el("btnAddEvento").addEventListener("click", () => {
+    state.jogo.eventos.push({ id: uid(), minuto: 0, equipa: "VFN", tipo: "Golo", jogadorId: "", jogadorSaiId: "", detalhe: "" });
+    renderEventos(true);
+  });
+  el("btnOrdenarEventos").addEventListener("click", () => renderEventos(true));
+
+  el("coachpadInput").addEventListener("change", handleCoachpadUpload);
+  el("btnRemoveCoachpad").addEventListener("click", () => {
+    state.jogo.coachpad = null;
+    renderCoachpad();
+  });
+}
+
+function handleCoachpadUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (ev) {
+    const dataUrl = ev.target.result;
+    const img = new Image();
+    img.onload = function () {
+      state.jogo.coachpad = {
+        dataUrl: dataUrl,
+        tipo: file.type.indexOf("png") !== -1 ? "png" : "jpg",
+        largura: img.naturalWidth,
+        altura: img.naturalHeight
+      };
+      renderCoachpad();
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+}
+
+function renderCoachpad() {
+  const preview = el("coachpadPreview");
+  const btnRemover = el("btnRemoveCoachpad");
+  if (state.jogo.coachpad) {
+    el("coachpadImg").src = state.jogo.coachpad.dataUrl;
+    preview.hidden = false;
+    btnRemover.hidden = false;
+  } else {
+    preview.hidden = true;
+    btnRemover.hidden = true;
+  }
+}
+
+/* ---- Onze inicial / suplentes: exclusividade de jogadores ---- */
+
+function idsUsadosExcluindo(valorAtual) {
+  const usados = [];
+  state.jogo.titulares.forEach(id => { if (id) usados.push(Number(id)); });
+  state.jogo.suplentes.forEach(id => { if (id) usados.push(Number(id)); });
+  const valorNum = valorAtual ? Number(valorAtual) : null;
+  return usados.filter(id => id !== valorNum);
+}
+
+/* Campo visual — apenas decorativo, reflete os dropdowns */
+function renderPitch() {
+  const pitch = el("pitch");
+  pitch.innerHTML = "";
+  const slots = FORMACOES_SLOTS[state.jogo.formacaoVFN] || FORMACOES_SLOTS["4-3-3"];
+
+  slots.forEach((slot, idx) => {
+    const jogadorId = state.jogo.titulares[idx];
+    const div = document.createElement("div");
+    div.className = "pitch-slot" + (jogadorId ? "" : " empty");
+    div.style.left = slot.x + "%";
+    div.style.top = slot.y + "%";
+
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "slot-label";
+    labelSpan.textContent = slot.label;
+    div.appendChild(labelSpan);
+
+    if (jogadorId) {
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "slot-name";
+      nameSpan.textContent = nomeJogador(jogadorId).split(" ")[0];
+      div.appendChild(nameSpan);
+    }
+
+    pitch.appendChild(div);
+  });
+}
+
+/* Lista de dropdowns dos titulares — é aqui que o onze é realmente definido */
+function renderTitulares() {
+  const container = el("titularesList");
+  container.innerHTML = "";
+  const slots = FORMACOES_SLOTS[state.jogo.formacaoVFN] || FORMACOES_SLOTS["4-3-3"];
+
+  slots.forEach((slot, idx) => {
+    const row = document.createElement("div");
+    row.className = "lineup-row";
+
+    const label = document.createElement("span");
+    label.className = "lineup-label";
+    label.textContent = (idx + 1) + ". " + slot.label;
+
+    const valorAtual = state.jogo.titulares[idx];
+    const select = document.createElement("select");
+    select.innerHTML = opcoesJogadoresHTML(valorAtual, { excludeIds: idsUsadosExcluindo(valorAtual) });
+    select.addEventListener("change", () => {
+      state.jogo.titulares[idx] = select.value ? Number(select.value) : null;
+      renderPitch();
+      renderTitulares();
+      renderBench();
+      renderEventos(false);
+    });
+
+    row.appendChild(label);
+    row.appendChild(select);
+    container.appendChild(row);
+  });
+}
+
+function renderBench() {
+  const container = el("benchList");
+  container.innerHTML = "";
+  for (let i = 0; i < 7; i++) {
+    const row = document.createElement("div");
+    row.className = "lineup-row";
+
+    const label = document.createElement("span");
+    label.className = "lineup-label";
+    label.textContent = "Sup. " + (i + 1);
+
+    const valorAtual = state.jogo.suplentes[i];
+    const select = document.createElement("select");
+    select.innerHTML = opcoesJogadoresHTML(valorAtual, { excludeIds: idsUsadosExcluindo(valorAtual) });
+    select.addEventListener("change", () => {
+      state.jogo.suplentes[i] = select.value ? Number(select.value) : null;
+      renderBench();
+      renderTitulares();
+      renderEventos(false);
+    });
+
+    row.appendChild(label);
+    row.appendChild(select);
+    container.appendChild(row);
+  }
+}
+
+/* ---- Eventos do jogo ---- */
+
+function titularesIds() {
+  return state.jogo.titulares.filter(id => id).map(Number);
+}
+
+function jaSairam(excludeEventId) {
+  const set = new Set();
+  state.jogo.eventos.forEach(e => {
+    if (e.equipa === "VFN" && e.tipo === "Substituição" && e.id !== excludeEventId && e.jogadorSaiId) set.add(Number(e.jogadorSaiId));
+  });
+  return set;
+}
+
+function jaEntraram(excludeEventId) {
+  const set = new Set();
+  state.jogo.eventos.forEach(e => {
+    if (e.equipa === "VFN" && e.tipo === "Substituição" && e.id !== excludeEventId && e.jogadorId) set.add(Number(e.jogadorId));
+  });
+  return set;
+}
+
+function titularesEmCampo(excludeEventId) {
+  const saidos = jaSairam(excludeEventId);
+  return titularesIds().filter(id => !saidos.has(id));
+}
+
+function bancoDisponivel(excludeEventId) {
+  const titulares = new Set(titularesIds());
+  const entrados = jaEntraram(excludeEventId);
+  return plantel.filter(p => !titulares.has(p.id) && !entrados.has(p.id)).map(p => p.id);
+}
+
+function migrarEvento(evento) {
+  const ev = { ...evento };
+  ev.id = ev.id || uid();
+  ev.equipa = ev.equipa === "Adversário" ? "Adversário" : "VFN";
+  if (ev.tipo === "Substituição — Entra") ev.tipo = "Substituição";
+  if (ev.tipo === "Substituição — Sai") ev.tipo = "Substituição";
+  ev.detalhe = ev.detalhe || ev.nota || "";
+  ev.jogadorId = ev.jogadorId || "";
+  ev.jogadorSaiId = ev.jogadorSaiId || "";
+  return ev;
+}
+
+function eventoJogadorId(ev) {
+  return ev.jogadorId;
+}
+
+function nomeOuDetalheEvento(ev) {
+  if (ev.tipo === "Substituição") return `${nomeJogador(ev.jogadorSaiId) || "—"} sai / ${nomeJogador(ev.jogadorId) || "—"} entra`;
+  return ev.equipa === "VFN" ? (nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—") : (ev.detalhe || "—");
+}
+
+function renderTimeline() {
+  const container = el("matchTimeline");
+  if (!container) return;
+  const duracao = 90;
+  container.innerHTML = `<div class="timeline-track"><span class="timeline-half"></span><span class="timeline-label start">0'</span><span class="timeline-label half">45'</span><span class="timeline-label end">${duracao}'</span></div>`;
+  const track = container.querySelector(".timeline-track");
+  state.jogo.eventos.forEach(ev => {
+    const marker = document.createElement("div");
+    marker.className = `timeline-event ${ev.equipa === "VFN" ? "vfn" : "adv"}`;
+    marker.dataset.type = ev.tipo;
+    marker.style.left = `${Math.min(100, Math.max(0, Number(ev.minuto) || 0) / duracao * 100)}%`;
+    marker.title = `${ev.minuto}' ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
+    marker.textContent = ICONES_EVENTO[ev.tipo] || "📝";
+    const label = document.createElement("span");
+    label.textContent = `${ev.minuto}'`;
+    marker.appendChild(label);
+    track.appendChild(marker);
+  });
+}
+
+function calcularResultadoEventos(limite) {
+  const resultado = { vfn: 0, adv: 0 };
+  state.jogo.eventos.forEach(ev => {
+    if ((Number(ev.minuto) || 0) > limite || ev.tipo !== "Golo" && ev.tipo !== "Auto-golo") return;
+    if (ev.tipo === "Auto-golo") {
+      ev.equipa === "VFN" ? resultado.adv++ : resultado.vfn++;
+    } else {
+      ev.equipa === "VFN" ? resultado.vfn++ : resultado.adv++;
+    }
+  });
+  return resultado;
+}
+
+function renderResultadoParcial() {
+  const elResultado = el("halfTimeScore");
+  if (elResultado) elResultado.textContent = `Resultado ao intervalo (eventos registados até 45'): ${calcularResultadoEventos(45).vfn} - ${calcularResultadoEventos(45).adv}`;
+}
+
+function calcularResultadoFinal() {
+  return calcularResultadoEventos(90);
+}
+
+function atualizarScoreboard() {
+  const final = calcularResultadoFinal();
+  const intervalo = calcularResultadoEventos(45);
+  state.jogo.golosVFN = final.vfn;
+  state.jogo.golosAdversario = final.adv;
+  el("scoreboardScore").textContent = `${final.vfn} — ${final.adv}`;
+  el("scoreboardHalf").textContent = `Intervalo: ${intervalo.vfn} — ${intervalo.adv}`;
+}
+
+function atualizarIndicadoresJogo() {
+  el("eventCountBadge").textContent = state.jogo.eventos.length;
+  renderTimeline();
+  renderResultadoParcial();
+  atualizarScoreboard();
+  renderLiveSummary();
+  if (el("analysisSummary")) renderAnalysisSummary();
+}
+
+function renderEventos(ordenar) {
+  if (ordenar) state.jogo.eventos.sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+  const tbody = el("eventsBody");
+  tbody.innerHTML = "";
+
+  state.jogo.eventos.forEach(ev => {
+    const tr = document.createElement("tr");
+    const tdMin = document.createElement("td");
+    const inputMin = document.createElement("input");
+    inputMin.type = "number"; inputMin.min = "0"; inputMin.max = "90"; inputMin.value = ev.minuto;
+    inputMin.addEventListener("change", () => { ev.minuto = Number(inputMin.value) || 0; renderTimeline(); renderResultadoParcial(); });
+    tdMin.appendChild(inputMin);
+
+    const tdEquipa = document.createElement("td");
+    const selectEquipa = document.createElement("select");
+    selectEquipa.innerHTML = ["VFN", "Adversário"].map(e => `<option value="${e}" ${e === ev.equipa ? "selected" : ""}>${e}</option>`).join("");
+    selectEquipa.addEventListener("change", () => { ev.equipa = selectEquipa.value; ev.jogadorId = ""; ev.jogadorSaiId = ""; renderEventos(false); });
+    tdEquipa.appendChild(selectEquipa);
+
+    const tdTipo = document.createElement("td");
+    const selectTipo = document.createElement("select");
+    selectTipo.innerHTML = TIPOS_EVENTO.map(t => `<option value="${t}" ${t === ev.tipo ? "selected" : ""}>${ICONES_EVENTO[t]} ${t}</option>`).join("");
+    selectTipo.addEventListener("change", () => { ev.tipo = selectTipo.value; renderEventos(false); });
+    tdTipo.appendChild(selectTipo);
+
+    const tdJogador = document.createElement("td");
+    if (ev.equipa === "VFN" && ev.tipo === "Substituição") {
+      const selectSai = document.createElement("select");
+      selectSai.title = "Sai"; selectSai.innerHTML = opcoesJogadoresHTML(ev.jogadorSaiId, { onlyIds: titularesEmCampo(ev.id) });
+      selectSai.addEventListener("change", () => { ev.jogadorSaiId = selectSai.value ? Number(selectSai.value) : ""; renderEventos(false); });
+      const selectEntra = document.createElement("select");
+      selectEntra.title = "Entra"; selectEntra.innerHTML = opcoesJogadoresHTML(ev.jogadorId, { onlyIds: bancoDisponivel(ev.id) });
+      selectEntra.addEventListener("change", () => { ev.jogadorId = selectEntra.value ? Number(selectEntra.value) : ""; renderEventos(false); });
+      tdJogador.append("Sai: ", selectSai, " Entra: ", selectEntra);
+    } else if (ev.equipa === "VFN" && ev.tipo !== "Nota") {
+      const select = document.createElement("select");
+      select.innerHTML = opcoesJogadoresHTML(ev.jogadorId, { onlyIds: titularesEmCampo(ev.id) });
+      select.addEventListener("change", () => { ev.jogadorId = select.value ? Number(select.value) : ""; renderEventos(false); });
+      tdJogador.appendChild(select);
+    } else {
+      const input = document.createElement("input");
+      input.type = ev.tipo === "Tempo Acrescentado" ? "number" : "text"; input.placeholder = ev.tipo === "Tempo Acrescentado" ? "+4" : (ev.tipo === "Nota" ? "Nota do jogo" : "Nome ou número"); input.value = ev.detalhe || "";
+      input.addEventListener("input", () => { ev.detalhe = input.value; });
+      tdJogador.appendChild(input);
+    }
+
+    const tdAcao = document.createElement("td");
+    const btnRemover = document.createElement("button");
+    btnRemover.className = "remove-btn"; btnRemover.textContent = "×"; btnRemover.title = "Eliminar evento";
+    btnRemover.addEventListener("click", () => { state.jogo.eventos = state.jogo.eventos.filter(e => e.id !== ev.id); renderEventos(false); });
+    tdAcao.appendChild(btnRemover);
+
+    tr.append(tdMin, tdEquipa, tdTipo, tdJogador, tdAcao);
+    tbody.appendChild(tr);
+  });
+  atualizarIndicadoresJogo();
+}
+
+function renderJogo() {
+  state.jogo.duracaoJogo = 90;
+  el("jgFormacaoVFN").value = state.jogo.formacaoVFN;
+  el("jgFormacaoAdv").value = state.jogo.formacaoAdversario;
+  renderPitch();
+  renderTitulares();
+  renderBench();
+  renderCoachpad();
+  renderEventos(false);
+}
+
+/* =========================================================
+   TAB 3: ANÁLISE
+   ========================================================= */
+
+function initAnalise() {
+  const container = el("taticalSections");
+  container.innerHTML = "";
+
+  SECCOES_TATICAS.forEach(sec => {
+    const card = document.createElement("div");
+    card.className = "card tatical-card";
+    card.innerHTML = `
+      <div class="tatical-head">
+        <h2 class="section-title" style="border:none;padding-left:0;margin-bottom:0;">${sec.titulo}</h2>
+        <div class="avaliacao-group" data-key="${sec.key}">
+          <button type="button" class="avaliacao-btn" data-val="Bom">🟢 Bom</button>
+          <button type="button" class="avaliacao-btn" data-val="Medio">🟡 Médio</button>
+          <button type="button" class="avaliacao-btn" data-val="Mau">🔴 Mau</button>
+        </div>
+      </div>
+      <details class="guia">
+        <summary>Ver perguntas-guia</summary>
+        <ul>${sec.perguntas.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>
+      </details>
+      <div class="field">
+        <textarea rows="5" data-key="${sec.key}" placeholder="Escreve aqui a tua análise..."></textarea>
+      </div>
+    `;
+    container.appendChild(card);
+
+    card.querySelectorAll(".avaliacao-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.analise.seccoes[sec.key].avaliacao = btn.dataset.val;
+        card.querySelectorAll(".avaliacao-btn").forEach(b => b.classList.toggle("active", b === btn));
+      });
+    });
+
+    const textarea = card.querySelector("textarea");
+    textarea.addEventListener("input", () => {
+      state.analise.seccoes[sec.key].texto = textarea.value;
+    });
+  });
+
+  el("btnAddJogadorChave").addEventListener("click", () => { state.analise.adversario.jogadoresChave.push({ nome: "", posicao: "", descricao: "" }); renderJogadoresChave(); });
+  el("positivosText").addEventListener("input", e => state.analise.positivos = e.target.value);
+  el("melhorarText").addEventListener("input", e => state.analise.aMelhorar = e.target.value);
+  el("topicosText").addEventListener("input", e => state.analise.topicosTreino = e.target.value);
+
+  el("advEstilo").addEventListener("input", e => state.analise.adversario.estilo = e.target.value);
+  el("advPontosFortes").addEventListener("input", e => state.analise.adversario.pontosFortes = e.target.value);
+  el("advVulnerabilidades").addEventListener("input", e => state.analise.adversario.vulnerabilidades = e.target.value);
+}
+
+function renderBulletList(containerId, arr) {
+  const container = el(containerId);
+  container.innerHTML = "";
+  arr.forEach((texto, idx) => {
+    const row = document.createElement("div");
+    row.className = "bullet-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = texto;
+    input.placeholder = "Escreve aqui...";
+    input.addEventListener("input", () => { arr[idx] = input.value; });
+    const btnRemover = document.createElement("button");
+    btnRemover.className = "remove-btn";
+    btnRemover.textContent = "×";
+    btnRemover.addEventListener("click", () => { arr.splice(idx, 1); renderBulletList(containerId, arr); });
+    row.appendChild(input);
+    row.appendChild(btnRemover);
+    container.appendChild(row);
+  });
+}
+
+function renderJogadoresChave() {
+  const container = el("jogadoresChaveList");
+  container.innerHTML = "";
+  state.analise.adversario.jogadoresChave.forEach((jc, idx) => {
+    const row = document.createElement("div");
+    row.className = "dynamic-row jogador-chave";
+
+    const inputNome = document.createElement("input");
+    inputNome.type = "text";
+    inputNome.className = "nome-jc";
+    inputNome.placeholder = "Nome";
+    inputNome.value = jc.nome;
+    inputNome.addEventListener("input", () => { jc.nome = inputNome.value; });
+
+    const inputPosicao = document.createElement("input");
+    inputPosicao.type = "text";
+    inputPosicao.className = "posicao-jc";
+    inputPosicao.placeholder = "Posição";
+    inputPosicao.value = jc.posicao || "";
+    inputPosicao.addEventListener("input", () => { jc.posicao = inputPosicao.value; });
+
+    const textareaDesc = document.createElement("textarea");
+    textareaDesc.className = "desc-jc";
+    textareaDesc.rows = 2;
+    textareaDesc.placeholder = "Descrição / observação (o que se destaca)";
+    textareaDesc.value = jc.descricao || "";
+    textareaDesc.addEventListener("input", () => { jc.descricao = textareaDesc.value; });
+
+    const btnRemover = document.createElement("button");
+    btnRemover.className = "remove-btn";
+    btnRemover.textContent = "×";
+    btnRemover.addEventListener("click", () => {
+      state.analise.adversario.jogadoresChave.splice(idx, 1);
+      renderJogadoresChave();
+    });
+
+    row.appendChild(inputNome);
+    row.appendChild(inputPosicao);
+    row.appendChild(textareaDesc);
+    row.appendChild(btnRemover);
+    container.appendChild(row);
+  });
+}
+
+function renderTopicos() {
+  const container = el("topicosList");
+  container.innerHTML = "";
+  state.analise.topicosTreino.forEach((texto, idx) => {
+    const row = document.createElement("div");
+    row.className = "dynamic-row";
+    const numBadge = document.createElement("span");
+    numBadge.className = "num-badge";
+    numBadge.textContent = (idx + 1) + ".";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Tópico de treino...";
+    input.value = texto;
+    input.addEventListener("input", () => { state.analise.topicosTreino[idx] = input.value; });
+    const btnRemover = document.createElement("button");
+    btnRemover.className = "remove-btn";
+    btnRemover.textContent = "×";
+    btnRemover.addEventListener("click", () => {
+      state.analise.topicosTreino.splice(idx, 1);
+      renderTopicos();
+    });
+    row.appendChild(numBadge);
+    row.appendChild(input);
+    row.appendChild(btnRemover);
+    container.appendChild(row);
+  });
+}
+
+function renderAnalise() {
+  document.querySelectorAll(".avaliacao-group").forEach(group => {
+    const key = group.dataset.key;
+    const valorAtual = state.analise.seccoes[key].avaliacao;
+    group.querySelectorAll(".avaliacao-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.val === valorAtual);
+    });
+  });
+  document.querySelectorAll('#taticalSections textarea[data-key]').forEach(ta => {
+    ta.value = state.analise.seccoes[ta.dataset.key].texto;
+  });
+
+  renderJogadoresChave();
+  el("positivosText").value = state.analise.positivos;
+  el("melhorarText").value = state.analise.aMelhorar;
+  el("topicosText").value = state.analise.topicosTreino;
+
+  renderAnalysisSummary();
+
+  el("advEstilo").value = state.analise.adversario.estilo;
+  el("advPontosFortes").value = state.analise.adversario.pontosFortes;
+  el("advVulnerabilidades").value = state.analise.adversario.vulnerabilidades;
+}
+
+function renderAnalysisSummary() {
+  const avaliadas = Object.values(state.analise.seccoes).filter(sec => sec.avaliacao).length;
+  const resultado = `${state.jogo.golosVFN} - ${state.jogo.golosAdversario}`;
+  el("analysisSummary").innerHTML = `
+    <h2>Resumo rápido</h2>
+    <div><span class="summary-label">Resultado</span><span class="summary-value">${escapeHtml(resultado)}</span></div>
+    <div><span class="summary-label">Formação</span><span class="summary-value">${escapeHtml(state.jogo.formacaoVFN)}</span></div>
+    <div><span class="summary-label">Nº eventos</span><span class="summary-value">${state.jogo.eventos.length}</span></div>
+    <div><span class="summary-label">Avaliações preenchidas</span><span class="summary-value">${avaliadas}/5</span></div>
+  `;
+}
+
+/* =========================================================
+   TAB 4: PLANTEL
+   ========================================================= */
+
+function initPlantel() {
+  el("btnOpenAddJogador").addEventListener("click", abrirModalJogador);
+  el("btnModalCancelar").addEventListener("click", fecharModalJogador);
+  el("btnModalGuardar").addEventListener("click", async () => {
+    const nome = el("modalNome").value.trim();
+    const posicao = el("modalPosicao").value.trim();
+    const numero = el("modalNumero").value.trim();
+    if (!nome) { el("modalNome").focus(); return; }
+    const jogador = jogadorEmEdicao || jogadorBase(proximoIdPlantel(), nome, posicao || "—", numero);
+    jogador.nome = nome; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
+      const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
+      if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
+    jogador.notas = el("modalNotes").value;
+    try { jogador.stats = JSON.parse(el("modalStats").value || JSON.stringify(jogador.stats || { jogos: 0 })); } catch (e) { el("modalStats").focus(); return; }
+    jogador.attributes = {};
+    el("modalAttributes").querySelectorAll("input[data-attribute]").forEach(input => { jogador.attributes[input.dataset.attribute] = Number(input.value) || 0; });
+    if (!jogadorEmEdicao) plantel.push(jogador);
+    guardarPlantel();
+    sincronizarPlantelSupabase();
+    jogadorEmEdicao = null;
+    fecharModalJogador();
+    renderPlantel();
+    renderJogo();
+  });
+  el("modalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "modalOverlay") fecharModalJogador();
+  });
+  el("modalFotoUpload").addEventListener("change", event => {
+    const ficheiro = event.target.files[0];
+    if (!ficheiro) return;
+    const reader = new FileReader();
+    reader.onload = () => { el("modalFoto").value = reader.result; };
+    reader.readAsDataURL(ficheiro);
+  });
+  el("modalPosicao").addEventListener("input", () => renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {}));
+  document.querySelectorAll(".position-pitch button").forEach(button => button.addEventListener("click", () => {
+    const posicao = button.dataset.position;
+    const atual = el("modalPosicao").value.split("/").filter(Boolean);
+    el("modalPosicao").value = atual.includes(posicao) ? atual.filter(item => item !== posicao).join("/") : [...atual, posicao].join("/");
+    renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {});
+  }));
+  el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
+  el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
+
+  el("btnExportarPlantel").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(plantel, null, 2)], { type: "application/json" });
+    descarregarBlob(blob, "plantel_vfn.json");
+  });
+}
+
+function abrirModalJogador() {
+  jogadorEmEdicao = null;
+  el("modalNome").value = "";
+  el("modalPosicao").value = "";
+  el("modalNumero").value = "";
+  el("modalFoto").value = "";
+  el("modalFotoUpload").value = "";
+  el("modalNotes").value = "";
+  el("modalStats").value = '{"jogos":0,"golos":0,"assistencias":0,"cartoesA":0,"cartoesV":0,"minutos":0}';
+  renderModalAttributes({});
+  el("modalOverlay").hidden = false;
+  el("modalNome").focus();
+}
+
+function abrirModalExistente(jogador) {
+  jogadorEmEdicao = jogador;
+  el("modalNome").value = jogador.nome;
+  el("modalPosicao").value = jogador.posicao;
+  el("modalNumero").value = jogador.numero;
+  el("modalFoto").value = jogador.fotoUrl || "";
+  el("modalFotoUpload").value = "";
+  el("modalNotes").value = jogador.notas || "";
+  el("modalStats").value = JSON.stringify(jogador.stats || {});
+  renderModalAttributes(jogador.attributes || {});
+  el("modalOverlay").hidden = false;
+}
+
+function renderModalAttributes(attributes) {
+  const container = el("modalAttributes");
+  const posicao = (el("modalPosicao").value || "").split("/")[0];
+  const nomes = ATRIBUTOS_POR_POSICAO[posicao] || ATRIBUTOS_POR_POSICAO.MCen;
+  container.innerHTML = nomes.map(nome => {
+    const raw = Number(attributes[nome]);
+    const value = raw > 10 ? Math.round(raw / 10) : (Number.isFinite(raw) ? raw : 5);
+    return `<label class="attribute-row"><span>${nome}</span><input type="range" min="0" max="10" value="${value}" data-attribute="${escapeHtml(nome)}"><span class="attribute-bar"><i style="width:${value * 10}%"></i></span><output>${value}/10</output></label>`;
+  }).join("");
+  container.querySelectorAll("input[type=range]").forEach(input => input.addEventListener("input", () => { input.nextElementSibling.querySelector("i").style.width = `${input.value * 10}%`; input.nextElementSibling.nextElementSibling.value = `${input.value}/10`; }));
+}
+
+function fecharModalJogador() {
+  el("modalOverlay").hidden = true;
+}
+
+function criarCelulaEditavel(jogador, campo, tipo, classe) {
+  const td = document.createElement("td");
+  td.className = classe;
+  const input = document.createElement("input");
+  input.type = tipo;
+  if (tipo === "number") input.min = "0";
+  input.value = jogador[campo];
+  input.addEventListener("change", () => {
+    jogador[campo] = tipo === "number" ? (Number(input.value) || 0) : input.value;
+    guardarPlantel();
+    renderPlantelSummary();
+    if (campo === "nome" || campo === "posicao" || campo === "numero") {
+      renderJogo();
+    }
+  });
+  td.appendChild(input);
+  return td;
+}
+
+function renderPlantel() {
+  const tbody = el("plantelBody");
+  tbody.innerHTML = "";
+  const ordenado = [...plantel].filter(j => {
+    const matchesSearch = !pesquisaEquipa || j.nome.toLocaleLowerCase("pt-PT").includes(pesquisaEquipa);
+    const posicao = (j.posicao || "").toUpperCase();
+    const matchesPosition = !filtroPosicaoEquipa || (filtroPosicaoEquipa === "Def" ? /DC|DD|DE/.test(posicao) : filtroPosicaoEquipa === "Meio" ? /MDEF|MCEN|MOFE|EE|ED/.test(posicao) : filtroPosicaoEquipa === "Ata" ? /PL|EE|ED/.test(posicao) : posicao.includes(filtroPosicaoEquipa.toUpperCase()));
+    return matchesSearch && matchesPosition;
+  }).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+
+  ordenado.forEach(j => {
+    const tr = document.createElement("tr");
+
+    const tdFoto = document.createElement("td");
+    tdFoto.innerHTML = j.fotoUrl ? `<img class="player-avatar" src="${escapeHtml(j.fotoUrl)}" alt="">` : "<span class=\"player-avatar silhouette\">○</span>";
+    tr.appendChild(tdFoto);
+
+    tr.appendChild(criarCelulaEditavel(j, "nome", "text", "col-nome"));
+    tr.appendChild(criarCelulaEditavel(j, "posicao", "text", "col-pos"));
+    tr.appendChild(criarCelulaEditavel(j, "numero", "text", "col-num"));
+      tr.appendChild(criarCelulaEditavel(j, "jogos", "number", "col-stat"));
+    tr.appendChild(criarCelulaEditavel(j, "golos", "number", "col-stat"));
+    tr.appendChild(criarCelulaEditavel(j, "assistencias", "number", "col-stat"));
+    tr.appendChild(criarCelulaEditavel(j, "cartoesAmarelos", "number", "col-stat"));
+    tr.appendChild(criarCelulaEditavel(j, "cartoesVermelhos", "number", "col-stat"));
+    tr.appendChild(criarCelulaEditavel(j, "minutosTotais", "number", "col-stat"));
+
+    const tdAcao = document.createElement("td");
+    const btnRemover = document.createElement("button");
+    btnRemover.className = "remove-btn";
+    btnRemover.textContent = "×";
+    btnRemover.title = "Remover jogador";
+    btnRemover.addEventListener("click", () => {
+      if (!confirm(`Remover "${j.nome}" do plantel?`)) return;
+      plantel = plantel.filter(p => p.id !== j.id);
+      guardarPlantel();
+      renderPlantel();
+      renderJogo();
+    });
+    tdAcao.appendChild(btnRemover);
+    tr.appendChild(tdAcao);
+    tr.addEventListener("click", event => { if (!event.target.closest("input,button")) abrirModalExistente(j); });
+
+    tbody.appendChild(tr);
+  });
+
+  renderPlantelSummary();
+  renderTeamQuickStats();
+}
+
+function renderTeamQuickStats() {
+  const totalAtributos = plantel.flatMap(j => Object.values(j.attributes || {})).map(Number).filter(Number.isFinite);
+  const media = totalAtributos.length ? (totalAtributos.reduce((sum, value) => sum + Math.min(10, value > 10 ? value / 10 : value), 0) / totalAtributos.length).toFixed(1) : "—";
+  const golos = plantel.reduce((sum, jogador) => sum + (Number(jogador.golos) || 0), 0);
+  el("teamQuickStats").innerHTML = `<span><strong>${plantel.length}</strong> jogadores</span><span><strong>${media}</strong> média atributos</span><span><strong>${golos}</strong> golos totais</span>`;
+}
+
+function criarStatCard(titulo, lista, formatador) {
+  const card = document.createElement("div");
+  card.className = "stat-card";
+  const h4 = document.createElement("h4");
+  h4.textContent = titulo;
+  card.appendChild(h4);
+  if (lista.length === 0) {
+    const p = document.createElement("p");
+    p.className = "stat-empty";
+    p.textContent = "Sem dados registados.";
+    card.appendChild(p);
+  } else {
+    const ol = document.createElement("ol");
+    lista.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = formatador(item);
+      ol.appendChild(li);
+    });
+    card.appendChild(ol);
+  }
+  return card;
+}
+
+function renderPlantelSummary() {
+  const container = el("plantelSummary");
+  container.innerHTML = "";
+
+  const topGolos = [...plantel].filter(p => p.golos > 0).sort((a, b) => b.golos - a.golos).slice(0, 3);
+  const topAssist = [...plantel].filter(p => p.assistencias > 0).sort((a, b) => b.assistencias - a.assistencias).slice(0, 3);
+  const topMinutos = [...plantel].filter(p => p.minutosTotais > 0).sort((a, b) => b.minutosTotais - a.minutosTotais).slice(0, 3);
+  const totalAmarelos = plantel.reduce((s, p) => s + (Number(p.cartoesAmarelos) || 0), 0);
+  const totalVermelhos = plantel.reduce((s, p) => s + (Number(p.cartoesVermelhos) || 0), 0);
+
+  container.appendChild(criarStatCard("⚽ Top 3 Golos", topGolos, p => `${p.nome} — ${p.golos}`));
+  container.appendChild(criarStatCard("🎯 Top 3 Assistências", topAssist, p => `${p.nome} — ${p.assistencias}`));
+  container.appendChild(criarStatCard("⏱️ Top 3 Minutos Jogados", topMinutos, p => `${p.nome} — ${p.minutosTotais}'`));
+
+  const cardCartoes = document.createElement("div");
+  cardCartoes.className = "stat-card";
+  cardCartoes.innerHTML = `
+    <h4>Cartões da Equipa</h4>
+    <div class="big-number-row">
+      <div class="big-number-item"><span class="big-number">${totalAmarelos}</span><span class="stat-label">Amarelos</span></div>
+      <div class="big-number-item"><span class="big-number">${totalVermelhos}</span><span class="stat-label">Vermelhos</span></div>
+    </div>
+  `;
+  container.appendChild(cardCartoes);
+}
+
+/* =========================================================
+   RASCUNHO — BANNER / LIMPAR
+   ========================================================= */
+
+function initRascunho() {
+  const armazenado = lerRascunhoArmazenado();
+  if (armazenado) {
+    el("draftBannerText").textContent = `Tens um rascunho guardado de ${formatarDataHora(armazenado.savedAt)}. Carregar?`;
+    el("draftBanner").hidden = false;
+  }
+  el("btnLoadDraft").addEventListener("click", () => {
+    if (carregarRascunho()) renderTudo();
+    el("draftBanner").hidden = true;
+  });
+  el("btnDismissDraft").addEventListener("click", () => {
+    el("draftBanner").hidden = true;
+  });
+
+  setInterval(guardarRascunho, 30000);
+  window.addEventListener("beforeunload", guardarRascunho);
+
+  el("btnExportarRascunho").addEventListener("click", async () => { guardarRascunho(); await sincronizarRascunhoSupabase(); alert("Rascunho guardado."); });
+  el("importRascunhoInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importarRascunhoJSON(file);
+    e.target.value = "";
+  });
+}
+
+function initLimparFormulario() {
+  el("btnClearForm").addEventListener("click", () => {
+    if (!confirm("Tens a certeza que queres limpar todo o formulário? Esta ação não pode ser desfeita (o plantel não é afetado).")) return;
+    state = estadoInicial();
+    limparRascunhoStorage();
+    renderTudo();
+  });
+}
+
+/* =========================================================
+   RENDER GERAL
+   ========================================================= */
+
+function renderTudo() {
+  renderPreJogo();
+  renderJogo();
+  renderAnalise();
+  renderPlantel();
+}
+
+/* =========================================================
+   LOGO — fallback caso não exista
+   ========================================================= */
+
+function initLogo() {
+  const img = el("clubLogo");
+  const placeholder = el("logoPlaceholder");
+  img.addEventListener("error", () => {
+    img.style.display = "none";
+    placeholder.hidden = false;
+  });
+}
+
+/* =========================================================
+   CÁLCULO DE MINUTOS JOGADOS (para o relatório Word)
+   ========================================================= */
+
+function calcularMinutosJogadores() {
+  const duracao = Number(state.jogo.duracaoJogo) || 90;
+  const titulares = titularesIds();
+  const periodos = {}; // id -> [{ inicio, fim }]
+
+  titulares.forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
+
+  const subsOrdenadas = state.jogo.eventos
+    .filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
+    .slice()
+    .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+
+  subsOrdenadas.forEach(ev => {
+    const minuto = Math.min(Number(ev.minuto) || 0, duracao);
+    const saiId = Number(ev.jogadorSaiId);
+    const entraId = Number(ev.jogadorId);
+    if (periodos[saiId] && periodos[saiId].length) {
+      const aberto = periodos[saiId].find(p => p.fim === null);
+      if (aberto) aberto.fim = minuto;
+    }
+    if (!periodos[entraId]) periodos[entraId] = [];
+    periodos[entraId].push({ inicio: minuto, fim: null });
+  });
+
+  const resultado = [];
+  Object.keys(periodos).forEach(idStr => {
+    const id = Number(idStr);
+    let total = 0;
+    periodos[id].forEach(p => {
+      const fim = p.fim === null ? duracao : p.fim;
+      total += Math.max(0, fim - p.inicio);
+    });
+    if (total > 0) {
+      const j = jogadorPorId(id);
+      resultado.push({ id, nome: j ? j.nome : "Desconhecido", posicao: j ? j.posicao : "—", minutos: total });
+    }
+  });
+
+  resultado.sort((a, b) => b.minutos - a.minutos);
+  return resultado;
+}
+
+/* =========================================================
+   GERAÇÃO DO WORD (.docx)
+   ========================================================= */
+
+async function carregarImagemComoArrayBuffer(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("Não foi possível carregar: " + url);
+  return await resp.arrayBuffer();
+}
+
+function dataUrlParaArrayBuffer(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const binStr = atob(base64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function corAvaliacao(av) {
+  if (av === "Bom") return "67A23F";
+  if (av === "Medio") return "E7A601";
+  if (av === "Mau") return "B23A2E";
+  return "4F4847";
+}
+
+function valorAvaliacao(av) {
+  if (av === "Bom") return "Bom";
+  if (av === "Medio") return "Médio";
+  if (av === "Mau") return "Mau";
+  return "Sem avaliação";
+}
+
+function descricaoEvento(ev) {
+  return nomeOuDetalheEvento(ev);
+}
+
+function validarAntesDeGerarWord() {
+  const faltas = [];
+  if (!state.preJogo.adversario.trim()) faltas.push("Adversário");
+  if (!state.preJogo.data) faltas.push("Data");
+  if (titularesIds().length === 0) faltas.push("Pelo menos 1 titular");
+  if (faltas.length) alert(`Antes de gerar o Word, faltam preencher:\n\n• ${faltas.join("\n• ")}\n\nO relatório será gerado na mesma assim.`);
+}
+
+async function gerarRelatorioWord() {
+  validarAntesDeGerarWord();
+  const btn = el("btnGenerateDocx");
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "A gerar...";
+
+  try {
+    const {
+      Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+      WidthType, AlignmentType, ImageRun, PageBreak, Footer, BorderStyle,
+      ShadingType
+    } = docx;
+
+    const COR_DARK_KHAKI = "4D4017";
+    const COR_OLD_GOLD = "C7B750";
+    const COR_CHARCOAL = "4F4847";
+    const COR_SILVER = "C7C7C4";
+
+    const SEM_BORDAS = {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }
+    };
+    const CELULA_SEM_BORDAS = {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }
+    };
+
+    const dataFormatada = state.preJogo.data
+      ? new Date(state.preJogo.data + "T00:00:00").toLocaleDateString("pt-PT")
+      : "—";
+    const nomeAdversario = state.preJogo.adversario || "Adversário";
+
+    // ================= PÁGINA 1 — CAPA (estilo Wyscout) =================
+    const pagina1 = [];
+
+    pagina1.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 300 },
+      children: [new TextRun({ text: "ACD VILA FRANCA DAS NAVES · RELATÓRIO DE JOGO · ÉPOCA 2026/27", bold: true, size: 18, color: COR_CHARCOAL })]
+    }));
+
+    const caixaLogo = (texto) => new TableCell({
+      width: { size: 34, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD },
+        bottom: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD },
+        left: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD },
+        right: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD }
+      },
+      margins: { top: 500, bottom: 500 },
+      children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: texto, bold: true, size: 24, color: COR_CHARCOAL })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [new TextRun({ text: "(colar aqui)", italics: true, size: 16, color: COR_SILVER })] })
+      ]
+    });
+
+    const caixaResultado = new TableCell({
+      width: { size: 32, type: WidthType.PERCENTAGE },
+      borders: CELULA_SEM_BORDAS,
+      margins: { top: 500, bottom: 500 },
+      children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${state.jogo.golosVFN} - ${state.jogo.golosAdversario}`, bold: true, size: 42, color: COR_CHARCOAL })] })]
+    });
+
+    pagina1.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: SEM_BORDAS,
+      rows: [new TableRow({ children: [caixaLogo("Logo VFN"), caixaResultado, caixaLogo("Logo " + nomeAdversario)] })]
+    }));
+
+    pagina1.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: SEM_BORDAS,
+      rows: [new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 34, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS,
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300 }, children: [new TextRun({ text: "VILA FRANCA DAS NAVES", bold: true, size: 24, color: COR_DARK_KHAKI })] })]
+          }),
+          new TableCell({
+            width: { size: 32, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS,
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 240 }, children: [new TextRun({ text: `${state.jogo.golosVFN} - ${state.jogo.golosAdversario}`, bold: true, size: 72, color: COR_CHARCOAL })] })]
+          }),
+          new TableCell({
+            width: { size: 34, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS,
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300 }, children: [new TextRun({ text: nomeAdversario.toUpperCase(), bold: true, size: 24, color: COR_DARK_KHAKI })] })]
+          })
+        ]
+      })]
+    }));
+
+    pagina1.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 260 },
+      children: [new TextRun({
+        text: `${state.preJogo.competicao} · Jornada ${state.preJogo.jornada || "—"} · ${dataFormatada} · ${state.preJogo.casaFora}`,
+        size: 22, color: COR_CHARCOAL
+      })]
+    }));
+    pagina1.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 80 },
+      children: [new TextRun({ text: `Formação VFN: ${state.jogo.formacaoVFN}   ·   Formação ${nomeAdversario}: ${state.jogo.formacaoAdversario}`, size: 20, color: COR_CHARCOAL, italics: true })]
+    }));
+
+    if (state.preJogo.notasAdversario) {
+      pagina1.push(new Paragraph({ spacing: { before: 300, after: 60 }, children: [new TextRun({ text: "Notas Prévias Sobre o Adversário", bold: true, size: 20, color: COR_DARK_KHAKI })] }));
+      pagina1.push(new Paragraph({ children: [new TextRun({ text: state.preJogo.notasAdversario, size: 18 })] }));
+    }
+
+    pagina1.push(new Paragraph({ children: [new PageBreak()] }));
+
+    // ================= PÁGINA 2 — FICHA DE JOGO =================
+    const pagina2 = [];
+    pagina2.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 }, children: [new TextRun({ text: "FICHA DE JOGO", bold: true, size: 28, color: COR_DARK_KHAKI })] }));
+    const eventosOrdenados = [...state.jogo.eventos].sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+    const eventosColuna = (equipa, cor) => {
+      const eventos = eventosOrdenados.filter(ev => ev.equipa === equipa);
+      const children = [new Paragraph({ alignment: AlignmentType.CENTER, shading: { type: ShadingType.SOLID, color: cor, fill: cor }, children: [new TextRun({ text: equipa, bold: true, color: "FFFFFF", size: 20 })] })];
+      if (!eventos.length) children.push(new Paragraph({ children: [new TextRun({ text: "Sem eventos registados.", italics: true, size: 16 })] }));
+      eventos.forEach(ev => children.push(new Paragraph({ spacing: { after: 45 }, children: [new TextRun({ text: `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' `, bold: true, size: 16 }), new TextRun({ text: `${ev.tipo} — ${nomeOuDetalheEvento(ev)}`, size: 16 })] })));
+      return children;
+    };
+    pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: [new TableRow({ children: [
+      new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { right: 200 }, children: eventosColuna("VFN", COR_DARK_KHAKI) }),
+      new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { left: 200 }, children: eventosColuna("Adversário", COR_CHARCOAL) })
+    ] })] }));
+    const eventosPorMinuto = eventosOrdenados.reduce((mapa, ev) => { const minuto = Number(ev.minuto) || 0; (mapa[minuto] ||= []).push(ev); return mapa; }, {});
+    const timelineRows = [0, ...Object.keys(eventosPorMinuto).map(Number).filter(m => m > 0 && m < 90).sort((a, b) => a - b), 45, 90].filter((m, i, arr) => arr.indexOf(m) === i).sort((a, b) => a - b).map(minuto => {
+      const eventos = eventosPorMinuto[minuto] || [];
+      const esquerda = eventos.filter(ev => ev.equipa === "VFN").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' ${nomeOuDetalheEvento(ev)}`).join("\n");
+      const direita = eventos.filter(ev => ev.equipa === "Adversário").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' ${nomeOuDetalheEvento(ev)}`).join("\n");
+      const centro = minuto === 45 ? "│\nIntervalo\n│" : "│";
+      return new TableRow({ children: [
+        new TableCell({ width: { size: 43, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: esquerda || "", size: 15 })] })] }),
+        new TableCell({ width: { size: 14, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.SINGLE, size: 10, color: COR_DARK_KHAKI }, right: { style: BorderStyle.SINGLE, size: 10, color: COR_DARK_KHAKI } }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${minuto}'\n${centro}`, bold: true, size: 14, color: COR_DARK_KHAKI })] })] }),
+        new TableCell({ width: { size: 43, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, children: [new Paragraph({ children: [new TextRun({ text: direita || "", size: 15 })] })] })
+      ] });
+    });
+    pagina2.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 220, after: 60 }, children: [new TextRun({ text: "LINHA DO TEMPO", bold: true, size: 20, color: COR_DARK_KHAKI })] }));
+    pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: timelineRows }));
+
+    // Tabela de minutos jogados
+    pagina2.push(new Paragraph({ spacing: { before: 320, after: 120 }, children: [new TextRun({ text: "MINUTOS JOGADOS", bold: true, size: 24, color: COR_DARK_KHAKI })] }));
+    const minutosJogadores = calcularMinutosJogadores();
+    if (minutosJogadores.length === 0) {
+      pagina2.push(new Paragraph({ children: [new TextRun({ text: "Sem dados suficientes para calcular os minutos.", italics: true, size: 18 })] }));
+    } else {
+      const linhaCabecalhoMin = new TableRow({
+        tableHeader: true,
+        children: ["Jogador", "Posição", "Minutos"].map(h => new TableCell({
+          shading: { type: ShadingType.SOLID, color: COR_DARK_KHAKI, fill: COR_DARK_KHAKI },
+          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 16 })] })]
+        }))
+      });
+      const linhasMin = minutosJogadores.map(m => new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.nome, size: 16 })] })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.posicao, size: 16 })] })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.minutos + "'", size: 16 })] })] })
+        ]
+      }));
+      pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [linhaCabecalhoMin, ...linhasMin] }));
+    }
+    pagina2.push(new Paragraph({ spacing: { before: 80 }, children: [new TextRun({ text: "* Calculado com base nas substituições registadas.", italics: true, size: 14, color: COR_CHARCOAL })] }));
+
+    if (state.jogo.coachpad) {
+      try {
+        const buf = dataUrlParaArrayBuffer(state.jogo.coachpad.dataUrl);
+        const larguraMax = 460;
+        const escala = Math.min(1, larguraMax / state.jogo.coachpad.largura);
+        const w = Math.round(state.jogo.coachpad.largura * escala);
+        const h = Math.round(state.jogo.coachpad.altura * escala);
+        pagina2.push(new Paragraph({
+          spacing: { before: 320 },
+          alignment: AlignmentType.CENTER,
+          children: [new ImageRun({ data: buf, type: state.jogo.coachpad.tipo === "png" ? "png" : "jpg", transformation: { width: w, height: h } })]
+        }));
+        pagina2.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 60 },
+          children: [new TextRun({ text: "Posicionamento Tático", italics: true, size: 18, color: COR_CHARCOAL })]
+        }));
+      } catch (e) { /* imagem inválida - ignora */ }
+    }
+
+    pagina2.push(new Paragraph({ children: [new PageBreak()] }));
+
+    // ================= PÁGINA 3 — ANÁLISE TÁTICA (2 colunas) =================
+    const pagina3 = [];
+    pagina3.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: "ANÁLISE TÁTICA", bold: true, size: 28, color: COR_DARK_KHAKI })] }));
+
+    const blocoSeccao = (sec) => {
+      const dados = state.analise.seccoes[sec.key];
+      return [
+        new Paragraph({
+          spacing: { before: 80, after: 60 },
+          shading: { type: ShadingType.SOLID, color: COR_DARK_KHAKI, fill: COR_DARK_KHAKI },
+          children: [new TextRun({ text: "  " + sec.titulo.toUpperCase(), bold: true, color: COR_OLD_GOLD, size: 20 })]
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [new TextRun({ text: "● " + valorAvaliacao(dados.avaliacao), bold: true, color: corAvaliacao(dados.avaliacao), size: 18 })]
+        }),
+        new Paragraph({
+          spacing: { after: 160 },
+          children: [new TextRun({ text: dados.texto || "Sem notas registadas.", size: 18, italics: !dados.texto })]
+        })
+      ];
+    };
+
+    for (let i = 0; i < SECCOES_TATICAS.length; i += 2) {
+      const secEsq = SECCOES_TATICAS[i];
+      const secDir = SECCOES_TATICAS[i + 1];
+      const celulas = [
+        new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { right: 200 }, children: blocoSeccao(secEsq) })
+      ];
+      if (secDir) {
+        celulas.push(new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { left: 200 }, children: blocoSeccao(secDir) }));
+      } else {
+        celulas.push(new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, children: [new Paragraph({ children: [new TextRun({ text: "" })] })] }));
+      }
+      pagina3.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: [new TableRow({ children: celulas })] }));
+    }
+
+    pagina3.push(new Paragraph({ children: [new PageBreak()] }));
+
+    // ================= PÁGINA 4 — SÍNTESE =================
+    const pagina4 = [];
+
+    const blocoPositivos = [
+      new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: "PONTOS POSITIVOS", bold: true, size: 22, color: "67A23F" })] })
+    ];
+    const positivosValidos = String(state.analise.positivos || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+    if (positivosValidos.length === 0) {
+      blocoPositivos.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
+    } else {
+      positivosValidos.forEach(p => blocoPositivos.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "✅ " + p, size: 18 })] })));
+    }
+
+    const blocoMelhorar = [
+      new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: "PONTOS A MELHORAR", bold: true, size: 22, color: "E7A601" })] })
+    ];
+    const melhorarValidos = String(state.analise.aMelhorar || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+    if (melhorarValidos.length === 0) {
+      blocoMelhorar.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
+    } else {
+      melhorarValidos.forEach(p => blocoMelhorar.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "⚠️ " + p, size: 18 })] })));
+    }
+
+    pagina4.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: SEM_BORDAS,
+      rows: [new TableRow({
+        children: [
+          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { right: 200 }, children: blocoPositivos }),
+          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { left: 200 }, children: blocoMelhorar })
+        ]
+      })]
+    }));
+
+    pagina4.push(new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: "TÓPICOS PARA O TREINO", bold: true, size: 24, color: COR_DARK_KHAKI })] }));
+    const topicosValidos = String(state.analise.topicosTreino || "").split(/\n+/).map(t => t.trim()).filter(Boolean);
+    if (topicosValidos.length === 0) {
+      pagina4.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
+    } else {
+      topicosValidos.forEach((t, idx) => {
+        pagina4.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${idx + 1}. ${t}`, size: 18 })] }));
+      });
+    }
+
+    pagina4.push(new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: "ANÁLISE DO ADVERSÁRIO", bold: true, size: 24, color: COR_DARK_KHAKI })] }));
+    pagina4.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "Estilo de Jogo: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.estilo || "—", size: 18 })] }));
+
+    pagina4.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: "Jogadores-Chave", bold: true, size: 18, color: COR_CHARCOAL })] }));
+    const jogadoresChaveValidos = state.analise.adversario.jogadoresChave.filter(jc => jc.nome);
+    if (jogadoresChaveValidos.length === 0) {
+      pagina4.push(new Paragraph({ children: [new TextRun({ text: "—", size: 18 })] }));
+    } else {
+      jogadoresChaveValidos.forEach(jc => {
+        const posicaoTxt = jc.posicao ? ` (${jc.posicao})` : "";
+        pagina4.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: `• ${jc.nome}${posicaoTxt}`, bold: true, size: 18 }), new TextRun({ text: jc.descricao ? " — " + jc.descricao : "", size: 18 })] }));
+      });
+    }
+
+    pagina4.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: "Pontos Fortes: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.pontosFortes || "—", size: 18 })] }));
+    pagina4.push(new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: "Vulnerabilidades a Explorar na 2ª Volta: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.vulnerabilidades || "—", size: 18 })] }));
+
+    const footer = new Footer({
+      children: [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: "ACD Vila Franca das Naves · Análise Tática · Época 2026/27", size: 16, color: COR_CHARCOAL })]
+      })]
+    });
+
+    const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: { font: "Roboto", size: 20 }
+          }
+        }
+      },
+      sections: [{
+        properties: {},
+        footers: { default: footer },
+        children: [...pagina1, ...pagina2, ...pagina3, ...pagina4]
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    await guardarRelatorioSupabase();
+    const nomeFicheiro = `Relatorio_${sanitizarNomeFicheiro(state.preJogo.adversario)}_J${state.preJogo.jornada || "0"}_${state.preJogo.data || "sem-data"}.docx`;
+    descarregarBlob(blob, nomeFicheiro);
+
+  } catch (err) {
+    console.error(err);
+    alert("Ocorreu um erro ao gerar o relatório Word. Verifica a consola para mais detalhes.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
+
+/* =========================================================
+   INICIALIZAÇÃO
+   ========================================================= */
+
+function initAplicacao() {
+  carregarPlantel();
+  initLogo();
+  initTabs();
+  initPreJogo();
+  initJogo();
+  initAnalise();
+  initPlantel();
+  initLimparFormulario();
+
+  renderTudo();
+
+  initRascunho();
+
+  el("btnGenerateDocx").addEventListener("click", gerarRelatorioWord);
+}
+
+function mostrarAplicacao() {
+  el("loginScreen").hidden = true;
+  el("appShell").hidden = false;
+  el("sidebarUserName").textContent = currentUser ? (currentUser.user_metadata && (currentUser.user_metadata.full_name || currentUser.user_metadata.name) || currentUser.email) : "Modo local";
+}
+
+function mostrarLogin(mensagem) {
+  el("appShell").hidden = true;
+  el("loginScreen").hidden = false;
+  el("loginMessage").textContent = mensagem || "";
+  el("btnLocalMode").hidden = supabaseConfigurado();
+}
+
+async function iniciarAutenticacao() {
+  iniciarSupabase();
+  if (supabaseClient) {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) { currentUser = data.session.user; await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); const draft = await carregarRascunhoSupabase(); if (draft) mostrarBannerRascunho(draft); }
+    else mostrarLogin();
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      currentUser = session && session.user;
+      if (currentUser && !document.querySelector("#appShell:not([hidden])")) { await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); }
+      if (!currentUser && _event !== "INITIAL_SESSION") mostrarLogin("Sessão terminada.");
+    });
+  } else mostrarLogin();
+  el("loginForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signInWithPassword({ email: el("loginEmail").value, password: el("loginPassword").value });
+    if (error) el("loginMessage").textContent = error.message;
+  });
+  el("btnLocalMode").addEventListener("click", () => { localMode = true; mostrarAplicacao(); initAplicacao(); });
+  el("btnLogout").addEventListener("click", async () => { if (supabaseClient) await supabaseClient.auth.signOut(); else { localMode = false; mostrarLogin(); } });
+}
+
+function mostrarBannerRascunho(armazenado) {
+  el("draftBannerText").textContent = `Tens um rascunho de ${formatarDataHora(armazenado.savedAt)}. Carregar?`;
+  el("draftBanner").hidden = false;
+  el("btnLoadDraft").onclick = () => { aplicarDadosEstado(armazenado.data); renderTudo(); el("draftBanner").hidden = true; };
+}
+
+document.addEventListener("DOMContentLoaded", iniciarAutenticacao);
