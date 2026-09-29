@@ -364,6 +364,16 @@ function renderCalendario() {
 
 /* ---------- Arranque ---------- */
 
+function mostrarEsqueletos() {
+  $("cardProximoJogo").innerHTML = H.esqueleto("hero");
+  $("hubResultados").innerHTML = H.esqueleto("linhas", 5);
+  $("hubClassificacao").innerHTML = H.esqueleto("linhas", 8);
+  $("hubMarcadores").innerHTML = H.esqueleto("linhas", 5);
+  $("plantelGrid").innerHTML = H.esqueleto("cards", 8);
+  $("calendarioLista").innerHTML = H.esqueleto("jogos", 5);
+  $("minutosLista").innerHTML = H.esqueleto("linhas", 8);
+}
+
 function renderTudo() {
   renderHub();
   renderPlantel();
@@ -383,6 +393,7 @@ async function iniciarApp(perfil) {
   $("linkAdmin").hidden = !(perfil && (perfil.role === "admin" || perfil.role === "sem-tabela"));
   if (appIniciada) return;
   appIniciada = true;
+  mostrarEsqueletos();
   await carregarDados();
   renderTudo();
 }

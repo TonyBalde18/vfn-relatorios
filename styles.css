@@ -777,3 +777,25 @@ body.tab-gestao .app-content .header-actions { display: none; }
 .results-table tr.is-vfn-game td { background: rgba(255,215,0,.10); }
 .results-table tr.state-cancelado td { opacity: .55; }
 .nowrap { white-space: nowrap; }
+
+/* ---------- Tarefa 8: mapa de posições, cursor, transições ---------- */
+.position-pitch { width: 240px; height: 320px; max-width: 100%; }
+.position-point { width: 28px; height: 28px; font-size: .52rem; }
+.player-card, .player-card .vfn-avatar, #plantelBody tr { cursor: pointer; }
+@keyframes tab-in { from { opacity: 0; } to { opacity: 1; } }
+.tab-panel.active, .view.active { animation: tab-in 200ms ease-out both; }
+@keyframes item-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.players-grid > *, .calendar-list > *, .standings-compact tbody tr, .standings-table tbody tr, .results-table tbody tr, .minutes-list li, .result-list li { animation: item-in 250ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel.active, .view.active, .players-grid > *, .calendar-list > *, .standings-compact tbody tr, .standings-table tbody tr, .results-table tbody tr, .minutes-list li, .result-list li { animation: none; }
+}
+/* skeleton enquanto os dados carregam */
+.skeleton { position: relative; overflow: hidden; border-radius: 8px; background: #E8EBF0; }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation: skeleton-brilho 1.2s ease-in-out infinite; }
+@keyframes skeleton-brilho { to { transform: translateX(100%); } }
+.skeleton-card { height: 170px; border-radius: 12px; }
+.skeleton-row { height: 42px; margin-bottom: 8px; }
+.skeleton-match { height: 78px; margin-bottom: 8px; border-radius: 10px; }
+.skeleton-hero { height: 220px; border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) { .skeleton::after { animation: none; } }
+.position-point.secondary { background: rgba(255,215,0,.45); }

@@ -272,7 +272,7 @@
 
   let contadorAvatar = 0;
 
-  /** Camisola principal VFN (amarela com faixa azul) com o número. SVG 80x90. */
+  /** Camisola principal VFN (amarela com faixa azul #055bd0) com o número. SVG 80x90. */
   function generateJerseyAvatar(number) {
     const numero = escapeHtml(String(number == null ? "" : number).trim().slice(0, 3));
     const id = `vfnJersey${++contadorAvatar}`;
@@ -281,9 +281,9 @@
     return `<svg class="jersey-avatar" xmlns="http://www.w3.org/2000/svg" width="80" height="90" viewBox="0 0 80 90" role="img" aria-label="${numero ? "Camisola número " + numero : "Camisola VFN"}">` +
       `<defs><clipPath id="${id}"><path d="${corpo}"/></clipPath></defs>` +
       `<path d="${corpo}" fill="#FFD700"/>` +
-      `<g clip-path="url(#${id})"><rect x="33" y="0" width="14" height="90" fill="#0A1628"/>` +
-      `<path d="M2 28 L13 38 L15 36 L4 26 Z M78 28 L67 38 L65 36 L76 26 Z" fill="#0A1628"/></g>` +
-      `<path d="M27 7 Q40 17 53 7" fill="none" stroke="#0A1628" stroke-width="3"/>` +
+      `<g clip-path="url(#${id})"><rect x="33" y="0" width="14" height="90" fill="#055bd0"/>` +
+      `<path d="M2 28 L13 38 L15 36 L4 26 Z M78 28 L67 38 L65 36 L76 26 Z" fill="#055bd0"/></g>` +
+      `<path d="M27 7 Q40 17 53 7" fill="none" stroke="#055bd0" stroke-width="3"/>` +
       `<path d="${corpo}" fill="none" stroke="#0A1628" stroke-opacity=".35" stroke-width="1.2"/>` +
       (numero ? `<text x="40" y="${tamanho > 28 ? 64 : 61}" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${tamanho}" fill="#FFFFFF" stroke="#0A1628" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${numero}</text>` : "") +
       `</svg>`;

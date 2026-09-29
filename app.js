@@ -203,7 +203,8 @@ let pesquisaEquipa = "";
 let filtroPosicaoEquipa = "";
 let posicoesModal = [];
 let posicaoPrincipalModal = "";
-const POSICOES_MAPA = { GR: [50, 88], DC: [38, 64], DD: [78, 64], DE: [18, 64], MDef: [50, 48], MCen: [50, 35], MOfe: [50, 22], ED: [82, 16], EE: [18, 16], PL: [50, 7] };
+// campo vertical (ataque em cima); DC centrado na mesma vertical do MDef
+const POSICOES_MAPA = { GR: [50, 92], DC: [50, 77], DD: [85, 70], DE: [15, 70], MDef: [50, 61], MCen: [50, 46], MOfe: [50, 31], ED: [84, 21], EE: [16, 21], PL: [50, 9] };
 let supabaseClient = null;
 let currentUser = null;
 let localMode = false;

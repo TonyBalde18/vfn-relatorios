@@ -73,6 +73,16 @@ function renderCalendario() {
   $("pubCalendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));
 }
 
+function mostrarEsqueletos() {
+  $("pubProximoJogo").innerHTML = H.esqueleto("hero");
+  $("pubUltimoResultado").innerHTML = H.esqueleto("hero");
+  $("pubForma").innerHTML = H.esqueleto("linhas");
+  $("pubPlantel").innerHTML = H.esqueleto("cards", 8);
+  $("pubClassificacao").innerHTML = H.esqueleto("linhas", 8);
+  $("pubCalendario").innerHTML = H.esqueleto("jogos", 5);
+  $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
+}
+
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
@@ -99,7 +109,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") fecharJogador(); });
   $("pubCompeticao").addEventListener("change", e => { competicao = e.target.value; $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao); });
-  renderTudo(); // estados vazios enquanto carrega
+  mostrarEsqueletos();
   await carregarDados();
   renderTudo();
   setInterval(H.atualizarContagens, 30000);

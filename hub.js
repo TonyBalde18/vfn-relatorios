@@ -240,6 +240,13 @@
     return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
   }
 
+  /* ---------- Esqueletos enquanto os dados carregam ---------- */
+
+  function esqueleto(tipo, n) {
+    const classe = { cards: "skeleton skeleton-card", linhas: "skeleton skeleton-row", jogos: "skeleton skeleton-match", hero: "skeleton skeleton-hero" }[tipo] || "skeleton skeleton-row";
+    return Array.from({ length: n || 1 }, () => `<div class="${classe}" aria-hidden="true"></div>`).join("");
+  }
+
   /* ---------- Rodapé ---------- */
 
   function competicaoAtiva(dados) {
@@ -254,6 +261,6 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva, esqueleto
   };
 })();
