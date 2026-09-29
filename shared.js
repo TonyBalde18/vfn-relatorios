@@ -268,6 +268,28 @@
     return "";
   }
 
+  /* ---------- Logos das equipas ---------- */
+
+  const BASE_SITE = "https://tonybalde18.github.io/vfn-relatorios/";
+  const LOGO_VFN = BASE_SITE + "assets/logo.png";
+
+  /**
+   * URL absoluto do logo de uma equipa (GitHub Pages):
+   * - logo_url absoluto (http/data) é usado como está;
+   * - logo_url relativo ("assets/...") passa a BASE_SITE + caminho;
+   * - sem logo_url e com id numérico (zerozero): assets/opponents/{id}.png;
+   * - o VFN usa assets/logo.png.
+   */
+  function urlLogoEquipa(equipa, nome) {
+    const t = equipa || {};
+    const logo = String(t.logo_url || "").trim();
+    if (/^(https?:|data:)/i.test(logo)) return logo;
+    if (logo) return BASE_SITE + logo.replace(/^\.?\//, "");
+    if (eVFN(t.name || nome)) return LOGO_VFN;
+    if (/^\d+$/.test(String(t.id || ""))) return `${BASE_SITE}assets/opponents/${t.id}.png`;
+    return "";
+  }
+
   /* ---------- Avatar camisola ---------- */
 
   let contadorAvatar = 0;
@@ -402,6 +424,7 @@
     escapeHtml, novoId, slug,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao,

@@ -199,6 +199,11 @@ alter table public.players add column if not exists date_of_birth date;
 alter table public.matches add column if not exists home_team_id text;
 alter table public.matches add column if not exists away_team_id text;
 
+-- Logos das equipas com o caminho absoluto do GitHub Pages
+update public.teams
+set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url
+where logo_url like 'assets/%';
+
 -- A view pública passa a ter os nomes curto e completo (colunas novas no fim)
 create or replace view public.players_public as
 select

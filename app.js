@@ -672,7 +672,8 @@ function equipaPorId(id) {
 }
 
 function logoEquipaHTML(equipa, nome) {
-  if (equipa && equipa.logo_url) return `<img class="team-logo" src="${escapeHtml(equipa.logo_url)}" alt="Logótipo ${escapeHtml(nome)}">`;
+  const url = VFN.urlLogoEquipa(equipa, nome);
+  if (url) return `<img class="team-logo" src="${escapeHtml(url)}" alt="Logótipo ${escapeHtml(nome)}">`;
   const iniciais = String(nome || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
   return `<span class="team-logo-placeholder" aria-hidden="true">${escapeHtml(iniciais)}</span>`;
 }
@@ -695,7 +696,7 @@ function renderProximoJogoPreJogo() {
   const adversario = nomeAdversarioJogo(jogo);
   const casa = VFN.jogoEmCasa(jogo);
   state.preJogo.proximoJogo = { data: VFN.dataIso(jogo.date), adversario };
-  const vfn = `<div>${logoEquipaHTML({ logo_url: "assets/logo.png" }, "VFN")}VFN</div>`;
+  const vfn = `<div>${logoEquipaHTML({ logo_url: VFN.LOGO_VFN }, "VFN")}VFN</div>`;
   const adv = `<div>${logoEquipaHTML(equipaPorId(jogo.opponent_team_id), adversario)}${escapeHtml(adversario)}</div>`;
   const associado = state.preJogo.matchId === jogo.id;
   container.innerHTML = `

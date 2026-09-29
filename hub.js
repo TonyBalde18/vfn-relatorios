@@ -40,13 +40,13 @@
   }
 
   function logoVFN(dados) {
-    const t = (dados.teams || []).find(x => VFN.eVFN(x.name) && x.logo_url);
-    return (t && t.logo_url) || "assets/logo.png";
+    const t = (dados.teams || []).find(x => VFN.eVFN(x.name));
+    return VFN.urlLogoEquipa(t, "VFN") || VFN.LOGO_VFN;
   }
 
   function logoEquipa(t, nome, classe) {
-    if (t && t.logo_url) return `<img class="team-logo ${classe || ""}" src="${esc(t.logo_url)}" alt="Logótipo ${esc(nome)}" loading="lazy">`;
-    if (VFN.eVFN(nome)) return `<img class="team-logo ${classe || ""}" src="assets/logo.png" alt="Logótipo VFN">`;
+    const url = VFN.urlLogoEquipa(t, nome);
+    if (url) return `<img class="team-logo ${classe || ""}" src="${esc(url)}" alt="Logótipo ${esc(nome)}" loading="lazy">`;
     const iniciais = String(nome || "?").split(/\s+/).filter(w => w.length > 2 || /^[A-Z]{2,}$/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
     return `<span class="team-logo-placeholder ${classe || ""}" aria-hidden="true">${esc(iniciais)}</span>`;
   }

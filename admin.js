@@ -129,7 +129,7 @@ function renderMultas() {
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
       <td>${celulaJogadorHTML(f.player_id)}</td>
-      <td class="fine-infraction">${escapeHtml(f.infraction_type)}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
+      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
       <td class="num">${formatoEuro.format(Number(f.amount) || 0)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
       <td>${dataPt(f.match_date)}</td>
@@ -144,10 +144,16 @@ function renderMultas() {
   });
 }
 
+function rotuloInfraccao(tipo) {
+  return tipo === MULTA_FALTA_TREINO.infraction_type ? "Falta treino (automática)" : tipo;
+}
+
 function abrirModalMulta(multa) {
   multaEmEdicao = multa;
   el("modalMultaTitulo").textContent = multa ? "Editar Multa" : "Adicionar Multa";
   el("multaJogador").innerHTML = opcoesPlantelHTML(multa ? multa.player_id : "");
+  el("multaTipo").innerHTML = TIPOS_INFRACCAO.map(t => `<option>${escapeHtml(t)}</option>`).join("");
+  if (multa && !TIPOS_INFRACCAO.includes(multa.infraction_type)) el("multaTipo").add(new Option(rotuloInfraccao(multa.infraction_type), multa.infraction_type));
   el("multaTipo").value = multa ? multa.infraction_type : TIPOS_INFRACCAO[0];
   el("multaValor").value = multa ? multa.amount : "";
   el("multaDescricao").value = multa ? multa.description || "" : "";
@@ -204,7 +210,7 @@ async function alternarPagamento(multa, pago) {
 }
 
 async function apagarMulta(multa) {
-  if (!confirm(`Eliminar a multa "${multa.infraction_type}" de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
+  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}" de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
   try {
     await dadosClube.remover("fines", multa.id);
     cacheAdmin.fines = cacheAdmin.fines.filter(f => f !== multa);
@@ -264,6 +270,10 @@ function renderPresencas() {
   const sessoes = sessoesDoMes(mes);
   const jogadores = [...plantel].sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
   const container = el("presencasGrelha");
+  // a grelha é redesenhada a cada clique: guardar scroll (da grelha e da página) e foco
+  const grelhaAntiga = container.querySelector(".attendance-wrap");
+  const scroll = { top: grelhaAntiga ? grelhaAntiga.scrollTop : 0, left: grelhaAntiga ? grelhaAntiga.scrollLeft : 0, pagina: window.scrollY };
+  const focada = document.activeElement && document.activeElement.classList.contains("att-cell") ? { jogador: document.activeElement.dataset.jogador, sessao: document.activeElement.dataset.sessao } : null;
 
   if (!sessoes.length) {
     container.innerHTML = `<p class="empty-state">Sem sessões em ${escapeHtml(el("presencasMes").selectedOptions[0].textContent)}. Usa "Adicionar Sessão" para criar um treino ou jogo.</p>`;
@@ -301,8 +311,37 @@ function renderPresencas() {
       </table>
     </div>`;
 
-  container.querySelectorAll(".att-cell").forEach(btn => btn.addEventListener("click", () => alternarPresenca(btn.dataset.jogador, sessoes[Number(btn.dataset.sessao)])));
+  const grelha = container.querySelector(".attendance-wrap");
+  grelha.scrollTop = scroll.top;
+  grelha.scrollLeft = scroll.left;
+  if (focada) {
+    const alvo = [...container.querySelectorAll(".att-cell")].find(b => b.dataset.jogador === focada.jogador && b.dataset.sessao === focada.sessao);
+    if (alvo) alvo.focus({ preventScroll: true });
+  }
+  if (window.scrollY !== scroll.pagina) window.scrollTo(0, scroll.pagina);
+
+  container.querySelectorAll(".att-cell").forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); alternarPresenca(btn.dataset.jogador, sessoes[Number(btn.dataset.sessao)]); }));
   container.querySelectorAll(".session-remove").forEach(btn => btn.addEventListener("click", () => removerSessao(sessoes[Number(btn.dataset.sessao)])));
+}
+
+const MULTA_FALTA_TREINO = { infraction_type: "falta_treino", amount: 5.00 };
+
+function multaAutomatica(playerId, data) {
+  return cacheAdmin.fines.find(f => String(f.player_id) === String(playerId) && f.infraction_type === MULTA_FALTA_TREINO.infraction_type && f.match_date === data) || null;
+}
+
+/** Falta num treino cria a multa automática; ao sair de F, a multa é retirada se ainda não estiver paga. */
+async function sincronizarMultaFalta(playerId, sessao, anterior, seguinte) {
+  if (sessao.tipo !== "treino" || (anterior !== "F" && seguinte !== "F")) return;
+  if (!tabelasCarregadas.has("fines")) await carregarTabelaAdmin("fines", "presencasErro");
+  const existente = multaAutomatica(playerId, sessao.data);
+  if (seguinte === "F" && !existente) {
+    const multa = await dadosClube.guardar("fines", { player_id: playerId, ...MULTA_FALTA_TREINO, match_date: sessao.data, description: "Criada automaticamente (falta no treino)", paid: false, paid_date: null });
+    cacheAdmin.fines.push(multa);
+  } else if (anterior === "F" && seguinte !== "F" && existente && !existente.paid) {
+    await dadosClube.remover("fines", existente.id);
+    cacheAdmin.fines = cacheAdmin.fines.filter(f => f !== existente);
+  }
 }
 
 function alternarPresenca(playerId, sessao) {
@@ -327,6 +366,7 @@ function alternarPresenca(playerId, sessao) {
     try {
       if (idRemover) await dadosClube.remover("attendance", idRemover);
       else if (copia) await dadosClube.guardar("attendance", copia);
+      await sincronizarMultaFalta(playerId, sessao, atual, seguinte);
       mostrarErroAdmin("presencasErro", null);
     } catch (e) {
       mostrarErroAdmin("presencasErro", e);
@@ -832,7 +872,7 @@ async function abrirTabGestao(tab) {
     await carregarTabelaAdmin("fines", "multasErro");
     renderMultas();
   } else if (tab === "presencas") {
-    await Promise.all([carregarTabelaAdmin("attendance", "presencasErro"), carregarTabelaAdmin("sessions", "presencasErro")]);
+    await Promise.all([carregarTabelaAdmin("attendance", "presencasErro"), carregarTabelaAdmin("sessions", "presencasErro"), carregarTabelaAdmin("fines", "presencasErro")]);
     renderPresencas();
   } else if (tab === "calendario") {
     renderCalendarioAdmin();
