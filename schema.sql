@@ -187,6 +187,41 @@ from public.players;
 grant select on public.players_public to anon, authenticated;
 
 -- ---------------------------------------------------------------------
+-- ATUALIZAÇÃO 30/09/2026 — nomes dos jogadores e jogos entre outras equipas
+-- (só acrescenta colunas; pode ser corrida sozinha)
+-- ---------------------------------------------------------------------
+alter table public.players add column if not exists display_name text;
+alter table public.players add column if not exists full_name text;
+alter table public.players add column if not exists date_of_birth date;
+
+-- Jogos entre outras equipas da liga (para a classificação completa).
+-- Nos jogos do VFN ficam a null e continuam a usar opponent/home_away.
+alter table public.matches add column if not exists home_team_id text;
+alter table public.matches add column if not exists away_team_id text;
+
+-- A view pública passa a ter os nomes curto e completo (colunas novas no fim)
+create or replace view public.players_public as
+select
+  id,
+  name,
+  position,
+  number,
+  photo_url,
+  jsonb_build_object(
+    'jogos', coalesce(stats->'jogos', '0'::jsonb),
+    'golos', coalesce(stats->'golos', '0'::jsonb),
+    'assistencias', coalesce(stats->'assistencias', '0'::jsonb),
+    'cartoesA', coalesce(stats->'cartoesA', '0'::jsonb),
+    'cartoesV', coalesce(stats->'cartoesV', '0'::jsonb),
+    'minutos', coalesce(stats->'minutos', '0'::jsonb)
+  ) as stats,
+  display_name,
+  full_name
+from public.players;
+
+grant select on public.players_public to anon, authenticated;
+
+-- ---------------------------------------------------------------------
 -- RLS — remove todas as políticas antigas destas tabelas e recria
 -- ---------------------------------------------------------------------
 do $$

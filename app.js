@@ -268,7 +268,7 @@ async function guardarRelatorioSupabase() {
 
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const rows = plantel.map(p => ({ id: `${currentUser.id}-${p.id}`, user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
+  const rows = plantel.map(p => ({ id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (!rows.length) return;
   const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
   if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
@@ -280,9 +280,9 @@ function sincronizarPlantelDiferido() {
   temporizadorPlantel = setTimeout(sincronizarPlantelSupabase, 1500);
 }
 
-/** Id do jogador na tabela players (e em fines/attendance). */
+/** Id do jogador na tabela players (e em fines/attendance): o id que veio do Supabase, ou o id local para jogadores novos. */
 function idJogadorBD(jogador) {
-  return currentUser ? `${currentUser.id}-${jogador.id}` : String(jogador.id);
+  return jogador.idBD || String(jogador.id);
 }
 
 function jogadorPorIdBD(playerId) {
@@ -351,6 +351,7 @@ function migrarJogador(p) {
   const stats = p.stats || {};
   return {
     id: p.id,
+    idBD: p.idBD || "",
     nome: p.nome || "",
     posicao: p.posicao || "—",
     numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
@@ -388,9 +389,17 @@ function carregarPlantel() {
 /** Devolve true se o plantel veio do Supabase (e passa a ser a fonte de verdade). */
 async function carregarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return false;
-  const { data, error } = await supabaseClient.from("players").select("id, name, position, number, photo_url, attributes, stats").eq("user_id", currentUser.id);
+  // todos os jogadores da tabela, com os ids que lá estão (ex.: ids do zerozero)
+  const { data, error } = await supabaseClient.from("players").select("*");
   if (error || !data || !data.length) return false;
-  plantel = data.map((p, index) => migrarJogador({ id: Number(String(p.id).split("-").pop()) || index + 1, nome: p.name, posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats }));
+  const usados = new Set();
+  plantel = data.map((p, index) => {
+    const texto = String(p.id);
+    let id = /^\d+$/.test(texto) ? Number(texto) : Number(texto.split("-").pop()) || index + 1;
+    while (usados.has(id)) id += 100000; // ids locais têm de ser únicos
+    usados.add(id);
+    return migrarJogador({ id, idBD: texto, nome: p.name, posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
+  });
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   return true;
 }
