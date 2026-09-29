@@ -110,7 +110,17 @@
     <div id="seasonStatsCard" class="card season-stats-card"></div>
     <aside class="pre-game-side">
       <div id="liveSummary" class="card live-summary"></div>
-      <div class="card next-match-card"><h2 class="section-title">Próximo jogo</h2><div class="field"><label for="nextMatchDate">Data</label><input type="date" id="nextMatchDate"></div><div class="field"><label for="nextMatchOpponent">Adversário</label><input type="text" id="nextMatchOpponent" placeholder="Nome do clube"></div></div>
+      <div class="card next-match-card"><h2 class="section-title">Próximo jogo</h2><div id="nextMatchBody" class="next-match-body"><p class="empty-state">A carregar calendário…</p></div></div>
+      <div class="card coachpad-card">
+        <h2 class="section-title">Plano Tático (CoachPad)</h2>
+        <div class="pitch-controls">
+          <label for="coachpadInputPre" class="btn btn-ghost btn-sm file-btn">Carregar imagem do CoachPad</label>
+          <input type="file" id="coachpadInputPre" accept="image/*" hidden>
+          <button type="button" id="btnRemoveCoachpadPre" class="btn btn-ghost btn-sm" hidden>Remover Imagem</button>
+        </div>
+        <div id="coachpadPreviewPre" class="coachpad-preview" hidden><img id="coachpadImgPre" alt="Imagem do CoachPad"></div>
+        <small class="muted">A mesma imagem aparece no separador Jogo e no relatório Word.</small>
+      </div>
     </aside>
     </div>
   </section>
@@ -119,7 +129,7 @@
     <div class="scoreboard card"><div class="scoreboard-team">VFN</div><div class="scoreboard-score" id="scoreboardScore">0 — 0</div><div class="scoreboard-team">Adversário</div><div class="scoreboard-half" id="scoreboardHalf">Intervalo: 0 — 0</div></div>
     <div class="card">
       <h2 class="section-title">Formações</h2>
-      <div class="grid grid-2"><div class="field"><label for="jgFormacaoVFN">Formação VFN Utilizada</label><select id="jgFormacaoVFN"></select></div><div class="field"><label for="jgFormacaoAdv">Formação Adversário</label><select id="jgFormacaoAdv"></select></div></div>
+      <div class="grid grid-2"><div class="field"><label for="jgFormacaoVFN">Formação VFN Utilizada</label><select id="jgFormacaoVFN"></select></div><div class="field"><label for="jgFormacaoAdv">Formação Adversário</label><select id="jgFormacaoAdv"></select><input type="text" id="jgFormacaoAdvOutro" placeholder="Indica a formação (ex: 4-1-4-1)" aria-label="Outra formação do adversário" hidden></div></div>
     </div>
     <div class="card">
       <h2 class="section-title">Onze Inicial e Suplentes</h2>
@@ -159,7 +169,7 @@
         <table class="events-table" id="eventsTable">
           <thead>
             <tr>
-              <th>Minuto</th>
+              <th>Minuto (+X)</th>
               <th>Equipa</th>
               <th>Tipo</th>
               <th>Jogador/Detalhe</th>
@@ -247,6 +257,7 @@
 </main>
 
 <footer class="app-footer">
+  <div id="sponsorFooter" class="sponsor-footer"></div>
   <p>ACD Vila Franca das Naves · Análise Tática · Época 2026/27</p>
 </footer>
 </div>

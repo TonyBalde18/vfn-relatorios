@@ -157,6 +157,7 @@ function estadoInicial() {
       adversario: "",
       formacaoPrevista: "4-3-3",
       notasAdversario: "",
+      matchId: "", // jogo do calendário (tabela matches) associado a este relatório
       proximoJogo: { data: "", adversario: "" }
     },
     jogo: {
@@ -165,10 +166,13 @@ function estadoInicial() {
       duracaoJogo: 90,
       formacaoVFN: "4-3-3",
       formacaoAdversario: "4-4-2",
+      formacaoAdversarioOutro: "",
       titulares: new Array(11).fill(null),
       suplentes: new Array(7).fill(null),
       coachpad: null, // { dataUrl, tipo, largura, altura }
-      eventos: []
+      eventos: [],
+      statsAplicadas: {}, // contribuição deste jogo já somada ao plantel (id -> campos)
+      presencasAplicadas: false // jogos/minutos só contam depois de gerar o relatório
     },
     analise: {
       seccoes: {
@@ -265,7 +269,78 @@ async function guardarRelatorioSupabase() {
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
   const rows = plantel.map(p => ({ id: `${currentUser.id}-${p.id}`, user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
-  if (rows.length) await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
+  if (!rows.length) return;
+  const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
+  if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
+}
+
+let temporizadorPlantel = null;
+function sincronizarPlantelDiferido() {
+  clearTimeout(temporizadorPlantel);
+  temporizadorPlantel = setTimeout(sincronizarPlantelSupabase, 1500);
+}
+
+/** Id do jogador na tabela players (e em fines/attendance). */
+function idJogadorBD(jogador) {
+  return currentUser ? `${currentUser.id}-${jogador.id}` : String(jogador.id);
+}
+
+function jogadorPorIdBD(playerId) {
+  return plantel.find(j => idJogadorBD(j) === String(playerId));
+}
+
+/* ---- Dados do clube (matches, teams, standings, fines, attendance...) ----
+   Com sessão Supabase lê/escreve nas tabelas; em modo local usa localStorage. */
+
+const dadosClube = {
+  usaSupabase() { return !!(supabaseClient && currentUser); },
+  chaveLocal(tabela) { return `vfnTabela_${tabela}`; },
+  lerLocal(tabela) {
+    try { return JSON.parse(localStorage.getItem(this.chaveLocal(tabela)) || "[]"); } catch (e) { return []; }
+  },
+  gravarLocal(tabela, linhas) {
+    try { localStorage.setItem(this.chaveLocal(tabela), JSON.stringify(linhas)); } catch (e) { /* quota */ }
+  },
+  async listar(tabela) {
+    if (!this.usaSupabase()) return this.lerLocal(tabela);
+    const { data, error } = await supabaseClient.from(tabela).select("*");
+    if (error) throw error;
+    return data || [];
+  },
+  /** Insere ou atualiza pela chave primária `id` e devolve a linha gravada. */
+  async guardar(tabela, linha) {
+    const registo = { ...linha, id: linha.id || VFN.novoId() };
+    if (!this.usaSupabase()) {
+      const linhas = this.lerLocal(tabela).filter(l => String(l.id) !== String(registo.id));
+      linhas.push(registo);
+      this.gravarLocal(tabela, linhas);
+      return registo;
+    }
+    const { data, error } = await supabaseClient.from(tabela).upsert(registo).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async remover(tabela, id) {
+    if (!this.usaSupabase()) {
+      this.gravarLocal(tabela, this.lerLocal(tabela).filter(l => String(l.id) !== String(id)));
+      return;
+    }
+    const { error } = await supabaseClient.from(tabela).delete().eq("id", id);
+    if (error) throw error;
+  }
+};
+
+function mensagemErro(e) {
+  const msg = (e && (e.message || e.error_description)) || String(e);
+  if (/row-level security|permission denied/i.test(msg)) return "Sem permissão para gravar. Confirma que o teu utilizador tem o papel 'admin' na tabela profiles (ver schema.sql).";
+  if (/does not exist|schema cache/i.test(msg)) return "A tabela ainda não existe no Supabase. Corre o schema.sql no SQL Editor.";
+  return msg;
+}
+
+async function removerJogadorSupabase(jogador) {
+  if (!supabaseClient || !currentUser) return;
+  const { error } = await supabaseClient.from("players").delete().eq("id", idJogadorBD(jogador));
+  if (error) console.warn("Não foi possível remover o jogador no Supabase:", error.message);
 }
 
 /* =========================================================
@@ -279,11 +354,12 @@ function migrarJogador(p) {
     nome: p.nome || "",
     posicao: p.posicao || "—",
     numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
-    golos: Number(p.golos) || 0,
-    assistencias: Number(p.assistencias) || 0,
-    cartoesAmarelos: Number(p.cartoesAmarelos) || 0,
-    cartoesVermelhos: Number(p.cartoesVermelhos) || 0,
-    minutosTotais: Number(p.minutosTotais) || 0,
+    // os valores vindos do Supabase estão em players.stats com nomes curtos
+    golos: Number(p.golos ?? stats.golos) || 0,
+    assistencias: Number(p.assistencias ?? stats.assistencias) || 0,
+    cartoesAmarelos: Number(p.cartoesAmarelos ?? stats.cartoesA) || 0,
+    cartoesVermelhos: Number(p.cartoesVermelhos ?? stats.cartoesV) || 0,
+    minutosTotais: Number(p.minutosTotais ?? stats.minutos) || 0,
     jogos: Number(p.jogos) || Number(stats.jogos) || 0,
     fotoUrl: p.fotoUrl || p.photo_url || "",
     nacionalidade: p.nacionalidade || stats.nacionalidade || "",
@@ -309,11 +385,14 @@ function carregarPlantel() {
   guardarPlantel();
 }
 
+/** Devolve true se o plantel veio do Supabase (e passa a ser a fonte de verdade). */
 async function carregarPlantelSupabase() {
-  if (!supabaseClient || !currentUser) return;
+  if (!supabaseClient || !currentUser) return false;
   const { data, error } = await supabaseClient.from("players").select("id, name, position, number, photo_url, attributes, stats").eq("user_id", currentUser.id);
-  if (error || !data || !data.length) return;
+  if (error || !data || !data.length) return false;
   plantel = data.map((p, index) => migrarJogador({ id: Number(String(p.id).split("-").pop()) || index + 1, nome: p.name, posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats }));
+  try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
+  return true;
 }
 
 function guardarPlantel() {
@@ -369,6 +448,8 @@ function aplicarDadosEstado(dados) {
   state.preJogo.proximoJogo = Object.assign(base.preJogo.proximoJogo, dados.preJogo && dados.preJogo.proximoJogo || {});
   state.jogo = Object.assign(base.jogo, dados.jogo);
   state.jogo.eventos = (state.jogo.eventos || []).map(migrarEvento);
+  // rascunhos antigos: considera os eventos já refletidos no plantel para não os contar duas vezes
+  if (!dados.jogo || !dados.jogo.statsAplicadas) state.jogo.statsAplicadas = contribuicaoDoJogo();
   state.analise = Object.assign(base.analise, dados.analise || {});
   if (Array.isArray(state.analise.positivos)) state.analise.positivos = state.analise.positivos.filter(Boolean).join("\n");
   if (Array.isArray(state.analise.aMelhorar)) state.analise.aMelhorar = state.analise.aMelhorar.filter(Boolean).join("\n");
@@ -442,9 +523,9 @@ function descarregarBlob(blob, nomeFicheiro) {
 
 function el(id) { return document.getElementById(id); }
 
-function criarOpcoesFormacao(select) {
+function criarOpcoesFormacao(select, comOutro) {
   select.innerHTML = "";
-  FORMACOES.forEach(f => {
+  (comOutro ? [...FORMACOES, "Outro"] : FORMACOES).forEach(f => {
     const opt = document.createElement("option");
     opt.value = f;
     opt.textContent = f;
@@ -535,12 +616,16 @@ function initPreJogo() {
 
   el("pjJornada").addEventListener("input", e => state.preJogo.jornada = e.target.value);
   el("pjData").addEventListener("input", e => state.preJogo.data = e.target.value);
-  el("pjCompeticao").addEventListener("change", e => state.preJogo.competicao = e.target.value);
+  el("pjCompeticao").addEventListener("change", e => { state.preJogo.competicao = e.target.value; atualizarSponsorsAdmin(); });
   el("pjAdversario").addEventListener("input", e => state.preJogo.adversario = e.target.value);
   el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
   el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
-  el("nextMatchDate").addEventListener("input", e => state.preJogo.proximoJogo.data = e.target.value);
-  el("nextMatchOpponent").addEventListener("input", e => state.preJogo.proximoJogo.adversario = e.target.value);
+
+  el("coachpadInputPre").addEventListener("change", handleCoachpadUpload);
+  el("btnRemoveCoachpadPre").addEventListener("click", () => {
+    state.jogo.coachpad = null;
+    renderCoachpad();
+  });
 
   const grupoCasaFora = el("pjCasaFora");
   grupoCasaFora.querySelectorAll(".toggle-btn").forEach(btn => {
@@ -559,21 +644,116 @@ function renderPreJogo() {
   el("pjAdversario").value = state.preJogo.adversario;
   el("pjFormacaoPrevista").value = state.preJogo.formacaoPrevista;
   el("pjNotasAdversario").value = state.preJogo.notasAdversario;
-  el("nextMatchDate").value = state.preJogo.proximoJogo.data;
-  el("nextMatchOpponent").value = state.preJogo.proximoJogo.adversario;
 
   const grupoCasaFora = el("pjCasaFora");
   grupoCasaFora.querySelectorAll(".toggle-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.value === state.preJogo.casaFora);
   });
   renderLiveSummary();
+  renderProximoJogoPreJogo();
 }
 
 function renderLiveSummary() {
   const container = el("liveSummary");
   if (!container) return;
-  const avaliadas = Object.values(state.analise.seccoes).filter(sec => sec.avaliacao).length;
-  container.innerHTML = `<h2 class="section-title">Resumo em tempo real</h2><div class="live-summary-row"><span>Resultado atual</span><strong>${state.jogo.golosVFN} — ${state.jogo.golosAdversario}</strong></div><div class="live-summary-row"><span>Formação</span><strong>${escapeHtml(state.jogo.formacaoVFN)}</strong></div><div class="live-summary-row"><span>Eventos</span><strong>${state.jogo.eventos.length}</strong></div><div class="live-summary-row"><span>Avaliações</span><strong>${avaliadas}/5</strong></div>`;
+  container.innerHTML = `<h2 class="section-title">Resumo em tempo real</h2><div class="live-summary-row"><span>Resultado atual</span><strong>${state.jogo.golosVFN} — ${state.jogo.golosAdversario}</strong></div><div class="live-summary-row"><span>Formação</span><strong>${escapeHtml(state.jogo.formacaoVFN)}</strong></div><div class="live-summary-row"><span>Eventos</span><strong>${state.jogo.eventos.length}</strong></div>`;
+}
+
+/* ---- Próximo jogo: calculado a partir do calendário (tabela matches), só leitura ---- */
+
+function equipaPorId(id) {
+  return equipasCalendario.find(t => String(t.id) === String(id)) || null;
+}
+
+function logoEquipaHTML(equipa, nome) {
+  if (equipa && equipa.logo_url) return `<img class="team-logo" src="${escapeHtml(equipa.logo_url)}" alt="Logótipo ${escapeHtml(nome)}">`;
+  const iniciais = String(nome || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+  return `<span class="team-logo-placeholder" aria-hidden="true">${escapeHtml(iniciais)}</span>`;
+}
+
+function nomeAdversarioJogo(jogo) {
+  const equipa = equipaPorId(jogo.opponent_team_id);
+  return (equipa && equipa.name) || jogo.opponent || "Adversário";
+}
+
+function renderProximoJogoPreJogo() {
+  const container = el("nextMatchBody");
+  if (!container) return;
+  const jogo = VFN.proximoJogo(jogosCalendario);
+  if (!jogo) {
+    state.preJogo.proximoJogo = { data: "", adversario: "" };
+    container.innerHTML = `<p class="empty-state">${calendarioCarregado ? "Sem jogos agendados no calendário." : "A carregar calendário…"}</p>`;
+    return;
+  }
+  const adversario = nomeAdversarioJogo(jogo);
+  const casa = VFN.jogoEmCasa(jogo);
+  state.preJogo.proximoJogo = { data: VFN.dataIso(jogo.date), adversario };
+  const vfn = `<div>${logoEquipaHTML({ logo_url: "assets/logo.png" }, "VFN")}VFN</div>`;
+  const adv = `<div>${logoEquipaHTML(equipaPorId(jogo.opponent_team_id), adversario)}${escapeHtml(adversario)}</div>`;
+  const associado = state.preJogo.matchId === jogo.id;
+  container.innerHTML = `
+    <div class="next-match-teams">${casa ? vfn : adv}<span class="vs">vs</span>${casa ? adv : vfn}</div>
+    <div class="next-match-meta">
+      <span>${escapeHtml(VFN.dataLonga(jogo.date, true))}</span>
+      <span><span class="comp-tag comp-${VFN.categoriaCompeticao(jogo.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(jogo.competition))}</span>${jogo.jornada ? ` · Jornada ${escapeHtml(jogo.jornada)}` : ""} · ${casa ? "Casa" : "Fora"}</span>
+      <span>Faltam <span class="countdown">${escapeHtml(VFN.contagemDecrescente(jogo.date))}</span></span>
+    </div>
+    <button type="button" id="btnUsarProximoJogo" class="btn ${associado ? "btn-ghost" : "btn-accent"} btn-sm">${associado ? "✓ Associado a este relatório" : "Usar dados deste jogo"}</button>
+    <p class="readonly-note">Calculado automaticamente a partir do Calendário.</p>`;
+  el("btnUsarProximoJogo").addEventListener("click", () => usarJogoNoRelatorio(jogo));
+}
+
+function usarJogoNoRelatorio(jogo) {
+  state.preJogo.matchId = jogo.id;
+  state.preJogo.jornada = jogo.jornada != null ? String(jogo.jornada) : state.preJogo.jornada;
+  state.preJogo.data = VFN.dataIso(jogo.date);
+  if (COMPETICOES.includes(jogo.competition)) state.preJogo.competicao = jogo.competition;
+  state.preJogo.casaFora = VFN.jogoEmCasa(jogo) ? "Casa" : "Fora";
+  state.preJogo.adversario = nomeAdversarioJogo(jogo);
+  renderPreJogo();
+  atualizarSponsorsAdmin();
+  guardarRascunho();
+}
+
+/** Ao gerar o relatório, grava o resultado no jogo do calendário associado. */
+async function registarResultadoNoCalendario() {
+  const jogo = jogosCalendario.find(j => j.id === state.preJogo.matchId);
+  if (!jogo) return;
+  const casa = VFN.jogoEmCasa(jogo);
+  const atualizado = {
+    ...jogo,
+    status: "jogado",
+    score_home: casa ? state.jogo.golosVFN : state.jogo.golosAdversario,
+    score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN
+  };
+  try {
+    const gravado = await dadosClube.guardar("matches", atualizado);
+    jogosCalendario = jogosCalendario.map(j => j.id === gravado.id ? gravado : j);
+    renderProximoJogoPreJogo();
+    if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
+  } catch (e) {
+    console.warn("Não foi possível registar o resultado no calendário:", mensagemErro(e));
+  }
+}
+
+let jogosCalendario = [];
+let equipasCalendario = [];
+let calendarioCarregado = false;
+
+async function carregarCalendario() {
+  try {
+    [jogosCalendario, equipasCalendario] = await Promise.all([dadosClube.listar("matches"), dadosClube.listar("teams")]);
+  } catch (e) {
+    console.warn("Não foi possível carregar o calendário:", e.message || e);
+  }
+  calendarioCarregado = true;
+  renderProximoJogoPreJogo();
+}
+
+/* ---- Sponsors no rodapé: AF Guarda + sponsor da competição do relatório ---- */
+
+function atualizarSponsorsAdmin() {
+  VFN.renderSponsors(el("sponsorFooter"), state.preJogo.competicao);
 }
 
 /* =========================================================
@@ -582,17 +762,22 @@ function renderLiveSummary() {
 
 function initJogo() {
   criarOpcoesFormacao(el("jgFormacaoVFN"));
-  criarOpcoesFormacao(el("jgFormacaoAdv"));
+  criarOpcoesFormacao(el("jgFormacaoAdv"), true);
 
   el("jgFormacaoVFN").addEventListener("change", e => {
     state.jogo.formacaoVFN = e.target.value;
     renderPitch();
     renderTitulares();
   });
-  el("jgFormacaoAdv").addEventListener("change", e => state.jogo.formacaoAdversario = e.target.value);
+  el("jgFormacaoAdv").addEventListener("change", e => {
+    state.jogo.formacaoAdversario = e.target.value;
+    renderFormacaoAdversarioOutro();
+    if (e.target.value === "Outro") el("jgFormacaoAdvOutro").focus();
+  });
+  el("jgFormacaoAdvOutro").addEventListener("input", e => state.jogo.formacaoAdversarioOutro = e.target.value);
 
   el("btnAddEvento").addEventListener("click", () => {
-    state.jogo.eventos.push({ id: uid(), minuto: 0, equipa: "VFN", tipo: "Golo", jogadorId: "", jogadorSaiId: "", detalhe: "" });
+    state.jogo.eventos.push({ id: uid(), minuto: 0, acrescimo: "", equipa: "VFN", tipo: "Golo", jogadorId: "", jogadorSaiId: "", assistId: "", detalhe: "" });
     renderEventos(true);
   });
   el("btnOrdenarEventos").addEventListener("click", () => renderEventos(true));
@@ -604,39 +789,62 @@ function initJogo() {
   });
 }
 
+function formacaoAdversarioTexto() {
+  if (state.jogo.formacaoAdversario !== "Outro") return state.jogo.formacaoAdversario;
+  return state.jogo.formacaoAdversarioOutro.trim() || "Outro";
+}
+
+function renderFormacaoAdversarioOutro() {
+  const input = el("jgFormacaoAdvOutro");
+  input.hidden = state.jogo.formacaoAdversario !== "Outro";
+  input.value = state.jogo.formacaoAdversarioOutro || "";
+}
+
+const COACHPAD_LADO_MAX = 1600;
+
+/**
+ * Carrega a imagem do CoachPad (pré-jogo ou jogo) e reduz para no máximo 1600px,
+ * para caber no rascunho (localStorage/Supabase) e no Word.
+ */
 function handleCoachpadUpload(e) {
-  const file = e.target.files[0];
+  const input = e.target;
+  const file = input.files[0];
   if (!file) return;
+  if (!/^image\//.test(file.type)) { alert("Escolhe um ficheiro de imagem (PNG ou JPG)."); input.value = ""; return; }
   const reader = new FileReader();
+  reader.onerror = () => alert("Não foi possível ler a imagem do CoachPad.");
   reader.onload = function (ev) {
-    const dataUrl = ev.target.result;
     const img = new Image();
+    img.onerror = () => alert("Formato de imagem não suportado. Usa PNG ou JPG.");
     img.onload = function () {
-      state.jogo.coachpad = {
-        dataUrl: dataUrl,
-        tipo: file.type.indexOf("png") !== -1 ? "png" : "jpg",
-        largura: img.naturalWidth,
-        altura: img.naturalHeight
-      };
+      const escala = Math.min(1, COACHPAD_LADO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const largura = Math.round(img.naturalWidth * escala);
+      const altura = Math.round(img.naturalHeight * escala);
+      const canvas = document.createElement("canvas");
+      canvas.width = largura;
+      canvas.height = altura;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#FFFFFF"; // fundo branco para PNG transparentes convertidos em JPG
+      ctx.fillRect(0, 0, largura, altura);
+      ctx.drawImage(img, 0, 0, largura, altura);
+      state.jogo.coachpad = { dataUrl: canvas.toDataURL("image/jpeg", 0.85), tipo: "jpg", largura, altura };
       renderCoachpad();
+      guardarRascunho();
     };
-    img.src = dataUrl;
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-  e.target.value = "";
+  input.value = "";
 }
 
 function renderCoachpad() {
-  const preview = el("coachpadPreview");
-  const btnRemover = el("btnRemoveCoachpad");
-  if (state.jogo.coachpad) {
-    el("coachpadImg").src = state.jogo.coachpad.dataUrl;
-    preview.hidden = false;
-    btnRemover.hidden = false;
-  } else {
-    preview.hidden = true;
-    btnRemover.hidden = true;
-  }
+  [["coachpadPreview", "coachpadImg", "btnRemoveCoachpad"], ["coachpadPreviewPre", "coachpadImgPre", "btnRemoveCoachpadPre"]].forEach(([previewId, imgId, btnId]) => {
+    const preview = el(previewId);
+    if (!preview) return;
+    if (state.jogo.coachpad) el(imgId).src = state.jogo.coachpad.dataUrl;
+    preview.hidden = !state.jogo.coachpad;
+    el(btnId).hidden = !state.jogo.coachpad;
+  });
 }
 
 /* ---- Onze inicial / suplentes: exclusividade de jogadores ---- */
@@ -742,6 +950,10 @@ function titularesIds() {
   return state.jogo.titulares.filter(id => id).map(Number);
 }
 
+function suplentesIds() {
+  return state.jogo.suplentes.filter(id => id).map(Number);
+}
+
 function jaSairam(excludeEventId) {
   const set = new Set();
   state.jogo.eventos.forEach(e => {
@@ -758,9 +970,24 @@ function jaEntraram(excludeEventId) {
   return set;
 }
 
-function titularesEmCampo(excludeEventId) {
+/** Jogadores em campo: titulares + os que entraram, menos os que já saíram. */
+function jogadoresEmCampo(excludeEventId) {
   const saidos = jaSairam(excludeEventId);
-  return titularesIds().filter(id => !saidos.has(id));
+  const ids = new Set([...titularesIds(), ...jaEntraram(excludeEventId)]);
+  return [...ids].filter(id => !saidos.has(id));
+}
+
+/** Mantido por compatibilidade com código antigo. */
+function titularesEmCampo(excludeEventId) {
+  return jogadoresEmCampo(excludeEventId);
+}
+
+/**
+ * Cartões: quem está em campo, quem já foi substituído e os suplentes convocados
+ * (um jogador substituído ou no banco pode ver cartão).
+ */
+function jogadoresParaCartao(excludeEventId) {
+  return [...new Set([...jogadoresEmCampo(excludeEventId), ...jaSairam(excludeEventId), ...suplentesIds()])];
 }
 
 function bancoDisponivel(excludeEventId) {
@@ -778,6 +1005,8 @@ function migrarEvento(evento) {
   ev.detalhe = ev.detalhe || ev.nota || "";
   ev.jogadorId = ev.jogadorId || "";
   ev.jogadorSaiId = ev.jogadorSaiId || "";
+  ev.assistId = ev.assistId || "";
+  ev.acrescimo = ev.acrescimo || "";
   return ev;
 }
 
@@ -785,9 +1014,21 @@ function eventoJogadorId(ev) {
   return ev.jogadorId;
 }
 
+/** "45+2'" quando há tempo acrescentado, senão "45'". */
+function formatarMinuto(ev) {
+  const acrescimo = Number(ev.acrescimo) || 0;
+  return `${Number(ev.minuto) || 0}${acrescimo > 0 ? "+" + acrescimo : ""}'`;
+}
+
+function compararEventos(a, b) {
+  return (Number(a.minuto) || 0) - (Number(b.minuto) || 0) || (Number(a.acrescimo) || 0) - (Number(b.acrescimo) || 0);
+}
+
 function nomeOuDetalheEvento(ev) {
   if (ev.tipo === "Substituição") return `${nomeJogador(ev.jogadorSaiId) || "—"} sai / ${nomeJogador(ev.jogadorId) || "—"} entra`;
-  return ev.equipa === "VFN" ? (nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—") : (ev.detalhe || "—");
+  if (ev.equipa !== "VFN") return ev.detalhe || "—";
+  const nome = nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—";
+  return ev.tipo === "Golo" && ev.assistId ? `${nome} (assist. ${nomeJogador(ev.assistId)})` : nome;
 }
 
 function renderTimeline() {
@@ -801,10 +1042,10 @@ function renderTimeline() {
     marker.className = `timeline-event ${ev.equipa === "VFN" ? "vfn" : "adv"}`;
     marker.dataset.type = ev.tipo;
     marker.style.left = `${Math.min(100, Math.max(0, Number(ev.minuto) || 0) / duracao * 100)}%`;
-    marker.title = `${ev.minuto}' ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
+    marker.title = `${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
     marker.textContent = ICONES_EVENTO[ev.tipo] || "📝";
     const label = document.createElement("span");
-    label.textContent = `${ev.minuto}'`;
+    label.textContent = formatarMinuto(ev);
     marker.appendChild(label);
     track.appendChild(marker);
   });
@@ -825,7 +1066,7 @@ function calcularResultadoEventos(limite) {
 
 function renderResultadoParcial() {
   const elResultado = el("halfTimeScore");
-  if (elResultado) elResultado.textContent = `Resultado ao intervalo (eventos registados até 45'): ${calcularResultadoEventos(45).vfn} - ${calcularResultadoEventos(45).adv}`;
+  if (elResultado) elResultado.textContent = `Resultado ao intervalo (eventos registados até 45'+): ${calcularResultadoEventos(45).vfn} - ${calcularResultadoEventos(45).adv}`;
 }
 
 function calcularResultadoFinal() {
@@ -841,54 +1082,126 @@ function atualizarScoreboard() {
   el("scoreboardHalf").textContent = `Intervalo: ${intervalo.vfn} — ${intervalo.adv}`;
 }
 
+/* ---- Estatísticas dos jogadores atualizadas automaticamente pelos eventos ---- */
+
+const CAMPOS_STATS_JOGO = ["golos", "assistencias", "cartoesAmarelos", "cartoesVermelhos", "jogos", "minutosTotais"];
+
+/**
+ * Contribuição deste jogo para as estatísticas de cada jogador.
+ * Golos, assistências e cartões contam logo; jogos e minutos só depois
+ * de gerar o relatório (o onze pode mudar até lá).
+ */
+function contribuicaoDoJogo() {
+  const contribuicao = {};
+  const somar = (id, campo, valor) => {
+    if (!id) return;
+    const registo = contribuicao[id] || (contribuicao[id] = {});
+    registo[campo] = (registo[campo] || 0) + (valor == null ? 1 : valor);
+  };
+  state.jogo.eventos.forEach(ev => {
+    if (ev.equipa !== "VFN") return;
+    if (ev.tipo === "Golo") { somar(ev.jogadorId, "golos"); somar(ev.assistId, "assistencias"); }
+    else if (ev.tipo === "Cartão Amarelo") somar(ev.jogadorId, "cartoesAmarelos");
+    else if (ev.tipo === "Cartão Vermelho") somar(ev.jogadorId, "cartoesVermelhos");
+  });
+  if (state.jogo.presencasAplicadas) {
+    calcularMinutosJogadores().forEach(m => { somar(m.id, "jogos", 1); somar(m.id, "minutosTotais", m.minutos); });
+  }
+  return contribuicao;
+}
+
+/** Aplica ao plantel apenas a diferença face ao que já estava somado (idempotente). */
+function sincronizarStatsJogadores() {
+  const nova = contribuicaoDoJogo();
+  const anterior = state.jogo.statsAplicadas || {};
+  let mudou = false;
+  new Set([...Object.keys(nova), ...Object.keys(anterior)]).forEach(id => {
+    const jogador = jogadorPorId(id);
+    if (!jogador) return;
+    CAMPOS_STATS_JOGO.forEach(campo => {
+      const delta = ((nova[id] || {})[campo] || 0) - ((anterior[id] || {})[campo] || 0);
+      if (!delta) return;
+      jogador[campo] = Math.max(0, (Number(jogador[campo]) || 0) + delta);
+      mudou = true;
+    });
+  });
+  state.jogo.statsAplicadas = nova;
+  if (!mudou) return;
+  try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
+  sincronizarPlantelDiferido();
+  if (el("plantelBody")) renderPlantel();
+}
+
 function atualizarIndicadoresJogo() {
   el("eventCountBadge").textContent = state.jogo.eventos.length;
   renderTimeline();
   renderResultadoParcial();
   atualizarScoreboard();
+  sincronizarStatsJogadores();
   renderLiveSummary();
   if (el("analysisSummary")) renderAnalysisSummary();
 }
 
+function criarSelectJogador(valor, ids, titulo, aoMudar) {
+  const select = document.createElement("select");
+  select.title = titulo;
+  select.innerHTML = opcoesJogadoresHTML(valor, { onlyIds: ids });
+  select.addEventListener("change", () => aoMudar(select.value ? Number(select.value) : ""));
+  return select;
+}
+
 function renderEventos(ordenar) {
-  if (ordenar) state.jogo.eventos.sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+  if (ordenar) state.jogo.eventos.sort(compararEventos);
   const tbody = el("eventsBody");
   tbody.innerHTML = "";
 
   state.jogo.eventos.forEach(ev => {
     const tr = document.createElement("tr");
     const tdMin = document.createElement("td");
+    const minutoWrap = document.createElement("div");
+    minutoWrap.className = "minute-cell";
     const inputMin = document.createElement("input");
-    inputMin.type = "number"; inputMin.min = "0"; inputMin.max = "90"; inputMin.value = ev.minuto;
-    inputMin.addEventListener("change", () => { ev.minuto = Number(inputMin.value) || 0; renderTimeline(); renderResultadoParcial(); });
-    tdMin.appendChild(inputMin);
+    inputMin.type = "number"; inputMin.min = "0"; inputMin.max = "90"; inputMin.value = ev.minuto; inputMin.title = "Minuto"; inputMin.setAttribute("aria-label", "Minuto");
+    inputMin.addEventListener("change", () => { ev.minuto = Number(inputMin.value) || 0; renderTimeline(); renderResultadoParcial(); atualizarScoreboard(); });
+    const mais = document.createElement("span");
+    mais.className = "minute-plus"; mais.textContent = "+";
+    const inputAcr = document.createElement("input");
+    inputAcr.type = "number"; inputAcr.min = "0"; inputAcr.max = "30"; inputAcr.placeholder = "X"; inputAcr.value = ev.acrescimo || "";
+    inputAcr.title = "Tempo adicionado (+X min)"; inputAcr.setAttribute("aria-label", "Tempo adicionado em minutos");
+    inputAcr.addEventListener("change", () => { const v = Number(inputAcr.value) || 0; ev.acrescimo = v > 0 ? v : ""; inputAcr.value = ev.acrescimo; renderTimeline(); });
+    minutoWrap.append(inputMin, mais, inputAcr);
+    tdMin.appendChild(minutoWrap);
 
     const tdEquipa = document.createElement("td");
     const selectEquipa = document.createElement("select");
     selectEquipa.innerHTML = ["VFN", "Adversário"].map(e => `<option value="${e}" ${e === ev.equipa ? "selected" : ""}>${e}</option>`).join("");
-    selectEquipa.addEventListener("change", () => { ev.equipa = selectEquipa.value; ev.jogadorId = ""; ev.jogadorSaiId = ""; renderEventos(false); });
+    selectEquipa.addEventListener("change", () => { ev.equipa = selectEquipa.value; ev.jogadorId = ""; ev.jogadorSaiId = ""; ev.assistId = ""; renderEventos(false); });
     tdEquipa.appendChild(selectEquipa);
 
     const tdTipo = document.createElement("td");
     const selectTipo = document.createElement("select");
     selectTipo.innerHTML = TIPOS_EVENTO.map(t => `<option value="${t}" ${t === ev.tipo ? "selected" : ""}>${ICONES_EVENTO[t]} ${t}</option>`).join("");
-    selectTipo.addEventListener("change", () => { ev.tipo = selectTipo.value; renderEventos(false); });
+    selectTipo.addEventListener("change", () => { ev.tipo = selectTipo.value; if (ev.tipo !== "Golo") ev.assistId = ""; renderEventos(false); });
     tdTipo.appendChild(selectTipo);
 
     const tdJogador = document.createElement("td");
+    const eCartao = ev.tipo === "Cartão Amarelo" || ev.tipo === "Cartão Vermelho";
     if (ev.equipa === "VFN" && ev.tipo === "Substituição") {
-      const selectSai = document.createElement("select");
-      selectSai.title = "Sai"; selectSai.innerHTML = opcoesJogadoresHTML(ev.jogadorSaiId, { onlyIds: titularesEmCampo(ev.id) });
-      selectSai.addEventListener("change", () => { ev.jogadorSaiId = selectSai.value ? Number(selectSai.value) : ""; renderEventos(false); });
-      const selectEntra = document.createElement("select");
-      selectEntra.title = "Entra"; selectEntra.innerHTML = opcoesJogadoresHTML(ev.jogadorId, { onlyIds: bancoDisponivel(ev.id) });
-      selectEntra.addEventListener("change", () => { ev.jogadorId = selectEntra.value ? Number(selectEntra.value) : ""; renderEventos(false); });
+      // quem já saiu não volta a poder sair nem entrar
+      const selectSai = criarSelectJogador(ev.jogadorSaiId, jogadoresEmCampo(ev.id), "Sai", v => { ev.jogadorSaiId = v; renderEventos(false); });
+      const selectEntra = criarSelectJogador(ev.jogadorId, bancoDisponivel(ev.id), "Entra", v => { ev.jogadorId = v; renderEventos(false); });
       tdJogador.append("Sai: ", selectSai, " Entra: ", selectEntra);
-    } else if (ev.equipa === "VFN" && ev.tipo !== "Nota") {
-      const select = document.createElement("select");
-      select.innerHTML = opcoesJogadoresHTML(ev.jogadorId, { onlyIds: titularesEmCampo(ev.id) });
-      select.addEventListener("change", () => { ev.jogadorId = select.value ? Number(select.value) : ""; renderEventos(false); });
-      tdJogador.appendChild(select);
+    } else if (ev.equipa === "VFN" && eCartao) {
+      tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresParaCartao(ev.id), "Jogador", v => { ev.jogadorId = v; renderEventos(false); }));
+    } else if (ev.equipa === "VFN" && ev.tipo === "Golo") {
+      tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresEmCampo(ev.id), "Marcador", v => { ev.jogadorId = v; if (ev.assistId === v) ev.assistId = ""; renderEventos(false); }));
+      const label = document.createElement("label");
+      label.className = "assist-label"; label.textContent = "Assistência (opcional)";
+      const assistentes = jogadoresEmCampo(ev.id).filter(id => id !== Number(ev.jogadorId));
+      label.appendChild(criarSelectJogador(ev.assistId, assistentes, "Assistência", v => { ev.assistId = v; renderEventos(false); }));
+      tdJogador.appendChild(label);
+    } else if (ev.equipa === "VFN" && ev.tipo !== "Nota" && ev.tipo !== "Tempo Acrescentado") {
+      tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresEmCampo(ev.id), "Jogador", v => { ev.jogadorId = v; renderEventos(false); }));
     } else {
       const input = document.createElement("input");
       input.type = ev.tipo === "Tempo Acrescentado" ? "number" : "text"; input.placeholder = ev.tipo === "Tempo Acrescentado" ? "+4" : (ev.tipo === "Nota" ? "Nota do jogo" : "Nome ou número"); input.value = ev.detalhe || "";
@@ -915,6 +1228,7 @@ function renderJogo() {
   renderPitch();
   renderTitulares();
   renderBench();
+  renderFormacaoAdversarioOutro();
   renderCoachpad();
   renderEventos(false);
 }
@@ -1281,6 +1595,7 @@ function renderPlantel() {
     btnRemover.addEventListener("click", () => {
       if (!confirm(`Remover "${j.nome}" do plantel?`)) return;
       plantel = plantel.filter(p => p.id !== j.id);
+      removerJogadorSupabase(j);
       guardarPlantel();
       renderPlantel();
       renderJogo();
@@ -1612,7 +1927,7 @@ async function gerarRelatorioWord() {
     pagina1.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 80 },
-      children: [new TextRun({ text: `Formação VFN: ${state.jogo.formacaoVFN}   ·   Formação ${nomeAdversario}: ${state.jogo.formacaoAdversario}`, size: 20, color: COR_CHARCOAL, italics: true })]
+      children: [new TextRun({ text: `Formação VFN: ${state.jogo.formacaoVFN}   ·   Formação ${nomeAdversario}: ${formacaoAdversarioTexto()}`, size: 20, color: COR_CHARCOAL, italics: true })]
     }));
 
     if (state.preJogo.notasAdversario) {
@@ -1625,12 +1940,12 @@ async function gerarRelatorioWord() {
     // ================= PÁGINA 2 — FICHA DE JOGO =================
     const pagina2 = [];
     pagina2.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 }, children: [new TextRun({ text: "FICHA DE JOGO", bold: true, size: 28, color: COR_DARK_KHAKI })] }));
-    const eventosOrdenados = [...state.jogo.eventos].sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+    const eventosOrdenados = [...state.jogo.eventos].sort(compararEventos);
     const eventosColuna = (equipa, cor) => {
       const eventos = eventosOrdenados.filter(ev => ev.equipa === equipa);
       const children = [new Paragraph({ alignment: AlignmentType.CENTER, shading: { type: ShadingType.SOLID, color: cor, fill: cor }, children: [new TextRun({ text: equipa, bold: true, color: "FFFFFF", size: 20 })] })];
       if (!eventos.length) children.push(new Paragraph({ children: [new TextRun({ text: "Sem eventos registados.", italics: true, size: 16 })] }));
-      eventos.forEach(ev => children.push(new Paragraph({ spacing: { after: 45 }, children: [new TextRun({ text: `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' `, bold: true, size: 16 }), new TextRun({ text: `${ev.tipo} — ${nomeOuDetalheEvento(ev)}`, size: 16 })] })));
+      eventos.forEach(ev => children.push(new Paragraph({ spacing: { after: 45 }, children: [new TextRun({ text: `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} `, bold: true, size: 16 }), new TextRun({ text: `${ev.tipo} — ${nomeOuDetalheEvento(ev)}`, size: 16 })] })));
       return children;
     };
     pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: [new TableRow({ children: [
@@ -1640,8 +1955,8 @@ async function gerarRelatorioWord() {
     const eventosPorMinuto = eventosOrdenados.reduce((mapa, ev) => { const minuto = Number(ev.minuto) || 0; (mapa[minuto] ||= []).push(ev); return mapa; }, {});
     const timelineRows = [0, ...Object.keys(eventosPorMinuto).map(Number).filter(m => m > 0 && m < 90).sort((a, b) => a - b), 45, 90].filter((m, i, arr) => arr.indexOf(m) === i).sort((a, b) => a - b).map(minuto => {
       const eventos = eventosPorMinuto[minuto] || [];
-      const esquerda = eventos.filter(ev => ev.equipa === "VFN").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' ${nomeOuDetalheEvento(ev)}`).join("\n");
-      const direita = eventos.filter(ev => ev.equipa === "Adversário").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${ev.minuto}' ${nomeOuDetalheEvento(ev)}`).join("\n");
+      const esquerda = eventos.filter(ev => ev.equipa === "VFN").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} ${nomeOuDetalheEvento(ev)}`).join("\n");
+      const direita = eventos.filter(ev => ev.equipa === "Adversário").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} ${nomeOuDetalheEvento(ev)}`).join("\n");
       const centro = minuto === 45 ? "│\nIntervalo\n│" : "│";
       return new TableRow({ children: [
         new TableCell({ width: { size: 43, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: esquerda || "", size: 15 })] })] }),
@@ -1821,7 +2136,12 @@ async function gerarRelatorioWord() {
     });
 
     const blob = await Packer.toBlob(doc);
+    // o jogo fica registado: jogos e minutos passam a contar nas estatísticas
+    state.jogo.presencasAplicadas = true;
+    sincronizarStatsJogadores();
+    guardarRascunho();
     await guardarRelatorioSupabase();
+    await registarResultadoNoCalendario();
     const nomeFicheiro = `Relatorio_${sanitizarNomeFicheiro(state.preJogo.adversario)}_J${state.preJogo.jornada || "0"}_${state.preJogo.data || "sem-data"}.docx`;
     descarregarBlob(blob, nomeFicheiro);
 
@@ -1838,8 +2158,12 @@ async function gerarRelatorioWord() {
    INICIALIZAÇÃO
    ========================================================= */
 
+let plantelDoSupabase = false;
+
 function initAplicacao() {
-  carregarPlantel();
+  if (!plantelDoSupabase) carregarPlantel();
+  // primeiro login com Supabase vazio: envia o plantel local para a tabela players
+  if (!plantelDoSupabase && supabaseClient && currentUser) sincronizarPlantelSupabase();
   initLogo();
   initTabs();
   initPreJogo();
@@ -1853,6 +2177,9 @@ function initAplicacao() {
   carregarEstatisticasEpocaSupabase();
 
   initRascunho();
+  atualizarSponsorsAdmin();
+  carregarCalendario();
+  setInterval(renderProximoJogoPreJogo, 60000); // atualiza a contagem decrescente
 
   el("btnGenerateDocx").addEventListener("click", gerarRelatorioWord);
 }
@@ -1874,11 +2201,11 @@ async function iniciarAutenticacao() {
   iniciarSupabase();
   if (supabaseClient) {
     const { data } = await supabaseClient.auth.getSession();
-    if (data.session) { currentUser = data.session.user; await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); const draft = await carregarRascunhoSupabase(); if (draft) mostrarBannerRascunho(draft); }
+    if (data.session) { currentUser = data.session.user; plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); const draft = await carregarRascunhoSupabase(); if (draft) mostrarBannerRascunho(draft); }
     else mostrarLogin();
     supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session && session.user;
-      if (currentUser && !document.querySelector("#appShell:not([hidden])")) { await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); }
+      if (currentUser && !document.querySelector("#appShell:not([hidden])")) { plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); }
       if (!currentUser && _event !== "INITIAL_SESSION") mostrarLogin("Sessão terminada.");
     });
   } else mostrarLogin();
