@@ -763,3 +763,7 @@ body.tab-gestao .app-content .header-actions { display: none; }
 @media (max-width: 520px) { .attendance-table .col-player { min-width: 140px; max-width: 160px; } .attendance-table .col-player .vfn-avatar { display: none; } }
 .sidebar-links a[hidden] { display: none; }
 .modal-box .player-modal-profile h3 { color: #fff; }
+.select-with-logo { display: flex; align-items: center; gap: 8px; }
+.select-with-logo select { flex: 1; min-width: 0; }
+.select-with-logo span:empty { display: none; }
+.select-with-logo .team-logo, .select-with-logo .team-logo-placeholder { width: 34px; height: 34px; flex: 0 0 34px; }

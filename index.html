@@ -79,8 +79,8 @@
       <h2 class="section-title">Informação da Partida</h2>
       <div class="grid grid-3">
         <div class="field">
-          <label for="pjJornada">Jornada</label>
-          <input type="number" id="pjJornada" min="1" placeholder="Ex: 5">
+          <label for="pjJogo">Jornada / jogo</label>
+          <select id="pjJogo"><option value="">A carregar…</option></select>
         </div>
         <div class="field">
           <label for="pjData">Data</label>
@@ -106,7 +106,7 @@
         </div>
         <div class="field">
           <label for="pjAdversario">Adversário</label>
-          <input type="text" id="pjAdversario" placeholder="Nome do clube adversário">
+          <div class="select-with-logo"><span id="pjAdversarioLogo" aria-hidden="true"></span><select id="pjAdversario"><option value="">A carregar…</option></select></div>
         </div>
         <div class="field">
           <label for="pjFormacaoPrevista">Formação VFN Prevista</label>

@@ -158,6 +158,7 @@ function estadoInicial() {
       formacaoPrevista: "4-3-3",
       notasAdversario: "",
       matchId: "", // jogo do calendário (tabela matches) associado a este relatório
+      adversarioId: "", // equipa (tabela teams)
       proximoJogo: { data: "", adversario: "" }
     },
     jogo: {
@@ -612,10 +613,14 @@ function initTabs() {
 function initPreJogo() {
   criarOpcoesFormacao(el("pjFormacaoPrevista"));
 
-  el("pjJornada").addEventListener("input", e => state.preJogo.jornada = e.target.value);
+  el("pjJogo").addEventListener("change", e => {
+    const jogo = jogosCalendario.find(j => String(j.id) === e.target.value);
+    if (jogo) usarJogoNoRelatorio(jogo);
+    else { state.preJogo.matchId = ""; renderPreJogo(); }
+  });
   el("pjData").addEventListener("input", e => state.preJogo.data = e.target.value);
   el("pjCompeticao").addEventListener("change", e => { state.preJogo.competicao = e.target.value; atualizarSponsorsAdmin(); });
-  el("pjAdversario").addEventListener("input", e => state.preJogo.adversario = e.target.value);
+  el("pjAdversario").addEventListener("change", e => escolherAdversario(e.target.value));
   el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
   el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
 
@@ -636,10 +641,10 @@ function initPreJogo() {
 }
 
 function renderPreJogo() {
-  el("pjJornada").value = state.preJogo.jornada;
+  renderOpcoesPreJogo();
   el("pjData").value = state.preJogo.data;
+  garantirOpcaoCompeticao(state.preJogo.competicao);
   el("pjCompeticao").value = state.preJogo.competicao;
-  el("pjAdversario").value = state.preJogo.adversario;
   el("pjFormacaoPrevista").value = state.preJogo.formacaoPrevista;
   el("pjNotasAdversario").value = state.preJogo.notasAdversario;
 
@@ -677,6 +682,7 @@ function nomeAdversarioJogo(jogo) {
 function renderProximoJogoPreJogo() {
   const container = el("nextMatchBody");
   if (!container) return;
+  renderOpcoesPreJogo(); // o calendário ou as equipas podem ter mudado
   const jogo = VFN.proximoJogo(jogosCalendario);
   if (!jogo) {
     state.preJogo.proximoJogo = { data: "", adversario: "" };
@@ -701,13 +707,66 @@ function renderProximoJogoPreJogo() {
   el("btnUsarProximoJogo").addEventListener("click", () => usarJogoNoRelatorio(jogo));
 }
 
+/* ---- Jornada e adversário escolhidos a partir do calendário e das equipas ---- */
+
+function jogosSelecionaveis() {
+  return jogosCalendario
+    .filter(j => VFN.eJogoVFN(j) && VFN.estadoJogo(j) !== "cancelado")
+    .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+}
+
+function rotuloJogoPreJogo(j) {
+  const comp = VFN.nomeCurtoCompeticao(j.competition);
+  const inicio = j.jornada ? `J${j.jornada}` : comp;
+  return `${inicio} · ${VFN.dataCurta(j.date)} · ${nomeAdversarioJogo(j)} (${VFN.jogoEmCasa(j) ? "Casa" : "Fora"})${j.jornada ? " · " + comp : ""}`;
+}
+
+function garantirOpcaoCompeticao(competicao) {
+  const select = el("pjCompeticao");
+  if (competicao && ![...select.options].some(o => o.value === competicao)) select.add(new Option(competicao, competicao));
+}
+
+function renderOpcoesPreJogo() {
+  const jogos = jogosSelecionaveis();
+  const vazio = !calendarioCarregado ? "A carregar…" : !jogos.length ? "Sem jogos no calendário" : state.preJogo.jornada && !state.preJogo.matchId ? `Jornada ${state.preJogo.jornada} (sem jogo associado)` : "— Escolher jogo —";
+  const selJogo = el("pjJogo");
+  selJogo.innerHTML = `<option value="">${escapeHtml(vazio)}</option>` + jogos.map(j => `<option value="${escapeHtml(j.id)}">${escapeHtml(rotuloJogoPreJogo(j))}</option>`).join("");
+  selJogo.value = jogos.some(j => j.id === state.preJogo.matchId) ? state.preJogo.matchId : "";
+
+  const equipas = equipasCalendario.filter(t => !VFN.eVFN(t.name)).sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  const atual = equipas.find(t => String(t.id) === String(state.preJogo.adversarioId)) || equipas.find(t => t.name === state.preJogo.adversario);
+  let html = `<option value="">${calendarioCarregado ? "— Escolher adversário —" : "A carregar…"}</option>` + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join("");
+  // relatórios antigos com um adversário escrito à mão
+  if (!atual && state.preJogo.adversario) html += `<option value="__livre">${escapeHtml(state.preJogo.adversario)}</option>`;
+  const selAdv = el("pjAdversario");
+  selAdv.innerHTML = html;
+  selAdv.value = atual ? atual.id : (state.preJogo.adversario ? "__livre" : "");
+  el("pjAdversarioLogo").innerHTML = atual ? logoEquipaHTML(atual, atual.name) : "";
+}
+
+/** Escolher o adversário associa o jogo com essa equipa (o próximo, ou o mais recente). */
+function escolherAdversario(teamId) {
+  const equipa = equipaPorId(teamId);
+  if (!equipa) return;
+  state.preJogo.adversario = equipa.name;
+  state.preJogo.adversarioId = equipa.id;
+  const contra = jogosSelecionaveis().filter(j => String(j.opponent_team_id) === String(equipa.id));
+  const limite = Date.now() - 2 * 3600 * 1000;
+  const jogo = contra.find(j => VFN.paraData(j.date) && VFN.paraData(j.date).getTime() >= limite) || contra[contra.length - 1];
+  if (jogo && jogo.id !== state.preJogo.matchId) { usarJogoNoRelatorio(jogo); return; }
+  if (!jogo) state.preJogo.matchId = "";
+  renderPreJogo();
+  guardarRascunho();
+}
+
 function usarJogoNoRelatorio(jogo) {
   state.preJogo.matchId = jogo.id;
-  state.preJogo.jornada = jogo.jornada != null ? String(jogo.jornada) : state.preJogo.jornada;
+  state.preJogo.jornada = jogo.jornada != null ? String(jogo.jornada) : "";
   state.preJogo.data = VFN.dataIso(jogo.date);
-  if (COMPETICOES.includes(jogo.competition)) state.preJogo.competicao = jogo.competition;
+  if (jogo.competition) state.preJogo.competicao = jogo.competition;
   state.preJogo.casaFora = VFN.jogoEmCasa(jogo) ? "Casa" : "Fora";
   state.preJogo.adversario = nomeAdversarioJogo(jogo);
+  state.preJogo.adversarioId = jogo.opponent_team_id || "";
   renderPreJogo();
   atualizarSponsorsAdmin();
   guardarRascunho();

@@ -147,6 +147,11 @@
     return /vila\s*franca|^\s*vfn\s*$/i.test(String(nome || ""));
   }
 
+  /** Jogo do VFN (os jogos entre outras equipas têm home_team_id e away_team_id preenchidos). */
+  function eJogoVFN(jogo) {
+    return !!jogo && !(jogo.home_team_id && jogo.away_team_id);
+  }
+
   function jogoEmCasa(jogo) {
     return /^(casa|home|c)$/i.test(String(jogo && jogo.home_away || "").trim());
   }
@@ -345,7 +350,7 @@
     escapeHtml, novoId, slug,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    eVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     chipForma, badgeEstado, categoriaPosicao,
     generateJerseyAvatar, avatarJogador,
     iniciarCarregamento, terminarCarregamento,
