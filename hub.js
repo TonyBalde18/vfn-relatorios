@@ -120,8 +120,7 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    const comps = [...new Set((dados.standings || []).map(s => s.competition).filter(Boolean))];
-    return comps.sort((a, b) => VFN.COMPETICOES.indexOf(a) - VFN.COMPETICOES.indexOf(b));
+    return VFN.competicoesLiga(dados.matches);
   }
 
   function competicaoPreferida(dados) {
@@ -136,7 +135,8 @@
   }
 
   function classificacaoHTML(dados, competicao) {
-    const linhas = VFN.ordenarClassificacao((dados.standings || []).filter(s => s.competition === competicao));
+    // calculada a partir dos resultados em matches (não usa a tabela standings)
+    const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
     return `<div class="table-wrap"><table class="standings-compact">
       <thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Equipa</th><th scope="col">J</th><th scope="col">V</th><th scope="col">E</th><th scope="col">D</th><th scope="col" class="hide-xs">GM</th><th scope="col" class="hide-xs">GS</th><th scope="col">Pts</th></tr></thead>
@@ -192,7 +192,7 @@
   }
 
   function calendarioHTML(dados, filtro) {
-    const lista = [...(dados.matches || [])]
+    const lista = VFN.jogosDoVFN(dados.matches)
       .filter(j => filtro === "todos" || VFN.categoriaCompeticao(j.competition) === filtro)
       .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
     if (!lista.length) return vazio("Sem jogos nesta competição.");

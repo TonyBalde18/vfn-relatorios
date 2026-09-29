@@ -174,16 +174,68 @@
 
   function proximoJogo(jogos) {
     const limite = Date.now() - 2 * 3600 * 1000; // jogo em curso continua a ser o "próximo"
-    return (jogos || [])
+    return jogosDoVFN(jogos)
       .filter(j => estadoJogo(j) === "agendado" && paraData(j.date) && paraData(j.date).getTime() >= limite)
       .sort((a, b) => paraData(a.date) - paraData(b.date))[0] || null;
   }
 
   function ultimosJogos(jogos, n) {
-    return (jogos || [])
+    return jogosDoVFN(jogos)
       .filter(j => estadoJogo(j) === "jogado" && golosJogo(j))
       .sort((a, b) => (paraData(b.date) || 0) - (paraData(a.date) || 0))
       .slice(0, n || 5);
+  }
+
+  /** Só os jogos do VFN (exclui os jogos entre outras equipas usados na classificação). */
+  function jogosDoVFN(jogos) {
+    return (jogos || []).filter(eJogoVFN);
+  }
+
+  function equipaVFN(equipas) {
+    return (equipas || []).find(t => eVFN(t.name)) || { id: "vfn", name: "ACD Vila Franca das Naves" };
+  }
+
+  /** Equipas da casa e de fora de um jogo, como { id, nome }. */
+  function equipasDoJogo(jogo, equipas) {
+    const porId = id => (equipas || []).find(t => String(t.id) === String(id));
+    if (!eJogoVFN(jogo)) {
+      const casa = porId(jogo.home_team_id), fora = porId(jogo.away_team_id);
+      return { casa: { id: String(jogo.home_team_id), nome: casa ? casa.name : String(jogo.home_team_id) }, fora: { id: String(jogo.away_team_id), nome: fora ? fora.name : String(jogo.away_team_id) } };
+    }
+    const vfn = equipaVFN(equipas);
+    const adv = porId(jogo.opponent_team_id);
+    const nosso = { id: String(vfn.id), nome: vfn.name };
+    const deles = { id: adv ? String(adv.id) : `nome:${jogo.opponent || "?"}`, nome: adv ? adv.name : (jogo.opponent || "Adversário") };
+    return jogoEmCasa(jogo) ? { casa: nosso, fora: deles } : { casa: deles, fora: nosso };
+  }
+
+  /** Competições de liga presentes no calendário (as que têm classificação). */
+  function competicoesLiga(jogos) {
+    return [...new Set((jogos || []).map(j => j.competition).filter(c => c && categoriaCompeticao(c) === "liga"))].sort();
+  }
+
+  /**
+   * Classificação calculada em tempo real a partir dos resultados em matches
+   * (não usa a tabela standings). Entram todas as equipas com jogos na competição.
+   */
+  function calcularClassificacao(jogos, equipas, competicao) {
+    const linhas = new Map();
+    const linha = eq => {
+      if (!linhas.has(eq.id)) linhas.set(eq.id, { team_id: eq.id, team_name: eq.nome, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 });
+      return linhas.get(eq.id);
+    };
+    (jogos || []).filter(j => j.competition === competicao && estadoJogo(j) !== "cancelado").forEach(j => {
+      const { casa, fora } = equipasDoJogo(j, equipas);
+      const lc = linha(casa), lf = linha(fora);
+      const gc = j.score_home, gf = j.score_away;
+      if (estadoJogo(j) !== "jogado" || gc == null || gf == null || gc === "" || gf === "") return;
+      const [a, b] = [Number(gc), Number(gf)];
+      lc.played++; lf.played++;
+      lc.goals_for += a; lc.goals_against += b; lf.goals_for += b; lf.goals_against += a;
+      if (a > b) { lc.won++; lf.lost++; } else if (a < b) { lf.won++; lc.lost++; } else { lc.drawn++; lf.drawn++; }
+    });
+    linhas.forEach(l => { l.points = l.won * 3 + l.drawn; });
+    return ordenarClassificacao([...linhas.values()]);
   }
 
   function ordenarClassificacao(linhas) {
@@ -351,6 +403,7 @@
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    jogosDoVFN, equipaVFN, equipasDoJogo, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao,
     generateJerseyAvatar, avatarJogador,
     iniciarCarregamento, terminarCarregamento,

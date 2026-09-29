@@ -14,7 +14,7 @@ const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], standings: [], opponents: [], attendance: [] };
+let dados = { players: [], teams: [], matches: [], opponents: [], attendance: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -71,7 +71,7 @@ function proximoAdversarioHTML() {
   if (!jogo) return `<h2 class="hub-card-title">Próximo adversário</h2>${H.vazio("Sem jogos agendados.")}`;
   const nome = H.nomeAdversario(dados, jogo);
   const obs = dados.opponents.find(o => String(o.team_id) === String(jogo.opponent_team_id)) || {};
-  const confrontos = dados.matches
+  const confrontos = VFN.jogosDoVFN(dados.matches)
     .filter(j => j.id !== jogo.id && VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j) &&
       (jogo.opponent_team_id ? String(j.opponent_team_id) === String(jogo.opponent_team_id) : j.opponent === jogo.opponent))
     .sort((a, b) => VFN.paraData(b.date) - VFN.paraData(a.date));
@@ -214,7 +214,7 @@ function abrirJogador(id) {
 const COLUNAS_STATS = [["nome", "Jogador"], ["jogos", "J"], ["minutos", "Min"], ["golos", "Golos"], ["assistencias", "Ass"], ["cartoesA", "🟨"], ["cartoesV", "🟥"]];
 
 function renderEstatisticas() {
-  const jogados = dados.matches.filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j));
+  const jogados = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j));
   const t = { J: jogados.length, V: 0, E: 0, D: 0, GM: 0, GS: 0 };
   jogados.forEach(j => { const g = VFN.golosJogo(j); t[VFN.letraResultado(j)]++; t.GM += g.vfn; t.GS += g.adv; });
   $("statsEquipa").innerHTML = [["Jogos", t.J], ["Vitórias", t.V], ["Empates", t.E], ["Derrotas", t.D], ["Golos marcados", t.GM], ["Golos sofridos", t.GS]]

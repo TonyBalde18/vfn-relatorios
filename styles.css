@@ -767,3 +767,13 @@ body.tab-gestao .app-content .header-actions { display: none; }
 .select-with-logo select { flex: 1; min-width: 0; }
 .select-with-logo span:empty { display: none; }
 .select-with-logo .team-logo, .select-with-logo .team-logo-placeholder { width: 34px; height: 34px; flex: 0 0 34px; }
+.results-group + .results-group { margin-top: 22px; }
+.results-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; color: var(--vfn-navy); font-size: .95rem; }
+.results-table td.team-home, .results-table th.team-home { text-align: right; }
+.results-table td.team-home .team-inline { justify-content: flex-end; }
+.score-cell { white-space: nowrap; text-align: center; }
+.score-cell span { margin: 0 4px; color: var(--text-muted); font-weight: 700; }
+.data-table .score-cell input[type=number] { width: 52px; }
+.results-table tr.is-vfn-game td { background: rgba(255,215,0,.10); }
+.results-table tr.state-cancelado td { opacity: .55; }
+.nowrap { white-space: nowrap; }

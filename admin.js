@@ -17,9 +17,9 @@ const TIPOS_INFRACCAO = [
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
-const TABS_GESTAO = ["multas", "presencas", "calendario", "classificacao", "adversarios"];
+const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "classificacao", "adversarios"];
 
-const cacheAdmin = { fines: [], attendance: [], sessions: [], standings: [], opponents: [] };
+const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [] };
 const tabelasCarregadas = new Set();
 let filtroCalendarioAdmin = "todos";
 let multaEmEdicao = null;
@@ -249,7 +249,7 @@ function sessoesDoMes(mes) {
   };
   cacheAdmin.sessions.forEach(s => juntar(s.session_date, s.session_type, { sessao: s }));
   cacheAdmin.attendance.forEach(a => juntar(a.session_date, a.session_type));
-  jogosCalendario
+  VFN.jogosDoVFN(jogosCalendario)
     .filter(j => VFN.estadoJogo(j) !== "cancelado")
     .forEach(j => juntar(VFN.dataIso(j.date), "jogo", { calendario: true }));
   return [...mapa.values()].sort((a, b) => a.data.localeCompare(b.data) || (a.tipo === "treino" ? -1 : 1));
@@ -393,7 +393,7 @@ function initCalendarioAdmin() {
 function renderCalendarioAdmin() {
   const tbody = el("calendarioBody");
   if (!tbody) return;
-  const lista = [...jogosCalendario]
+  const lista = VFN.jogosDoVFN(jogosCalendario)
     .filter(j => filtroCalendarioAdmin === "todos" || VFN.categoriaCompeticao(j.competition) === filtroCalendarioAdmin)
     .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
   if (!lista.length) {
@@ -497,119 +497,190 @@ async function apagarJogo(jogo) {
 }
 
 /* =========================================================
-   CLASSIFICAÇÃO
+   RESULTADOS E CLASSIFICAÇÃO
+   A classificação é calculada em tempo real a partir dos resultados
+   em matches (jogos do VFN + jogos entre outras equipas da liga);
+   a tabela standings deixa de ser usada para a mostrar.
    ========================================================= */
 
-const CAMPOS_CLASSIFICACAO = ["played", "won", "drawn", "lost", "goals_for", "goals_against", "points"];
-const temporizadoresClassificacao = {};
+const ESTADOS_JOGO = [["agendado", "Agendado"], ["jogado", "Jogado"], ["cancelado", "Cancelado"]];
+const temporizadoresResultados = {};
 
-function initClassificacaoAdmin() {
-  el("classificacaoCompeticao").innerHTML = COMPETICOES.filter(c => VFN.categoriaCompeticao(c) !== "amigavel").map(c => `<option>${escapeHtml(c)}</option>`).join("");
+function initResultados() {
+  el("resultadosCompeticao").addEventListener("change", renderResultados);
   el("classificacaoCompeticao").addEventListener("change", renderClassificacaoAdmin);
-  el("btnAddLinhaClassificacao").addEventListener("click", () => adicionarLinhasClassificacao(false));
-  el("btnAddEquipasClassificacao").addEventListener("click", () => adicionarLinhasClassificacao(true));
+  el("btnAddResultadoOutro").addEventListener("click", abrirModalOutroJogo);
+  el("btnOutroCancelar").addEventListener("click", () => fecharModalAdmin("modalOutroJogo"));
+  el("btnOutroGuardar").addEventListener("click", guardarOutroJogo);
 }
 
-function linhasClassificacao() {
-  const comp = el("classificacaoCompeticao").value;
-  return VFN.ordenarClassificacao(cacheAdmin.standings.filter(s => s.competition === comp));
+function competicoesDoCalendario() {
+  const ordem = c => ({ liga: 0, taca: 1, amigavel: 2 })[VFN.categoriaCompeticao(c)];
+  return [...new Set(jogosCalendario.map(j => j.competition).filter(Boolean))]
+    .sort((a, b) => ordem(a) - ordem(b) || a.localeCompare(b, "pt"));
 }
 
-function renderClassificacaoAdmin() {
-  const tbody = el("classificacaoBody");
-  const linhas = linhasClassificacao();
-  if (!linhas.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">Sem equipas nesta competição. Usa "Adicionar todas as equipas" (criadas em Adversários) ou adiciona uma a uma.</td></tr>`;
+function logoPorId(id, nome) {
+  return logoEquipaHTML(equipaPorId(id), nome);
+}
+
+function linhaResultadoHTML(j) {
+  const { casa, fora } = VFN.equipasDoJogo(j, equipasCalendario);
+  const doVFN = VFN.eJogoVFN(j);
+  const estado = VFN.estadoJogo(j) || "agendado";
+  const valor = v => (v == null || v === "" ? "" : Number(v));
+  return `<tr data-id="${escapeHtml(j.id)}" class="${doVFN ? "is-vfn-game" : ""} state-${escapeHtml(estado)}">
+    <td class="nowrap">${escapeHtml(VFN.dataLonga(j.date))}</td>
+    <td class="num">${j.jornada != null ? escapeHtml(j.jornada) : "—"}</td>
+    <td class="team-home"><span class="team-inline">${escapeHtml(casa.nome)}${logoPorId(casa.id, casa.nome)}</span></td>
+    <td class="score-cell"><input type="number" min="0" data-campo="score_home" value="${valor(j.score_home)}" aria-label="Golos ${escapeHtml(casa.nome)}"><span>–</span><input type="number" min="0" data-campo="score_away" value="${valor(j.score_away)}" aria-label="Golos ${escapeHtml(fora.nome)}"></td>
+    <td><span class="team-inline">${logoPorId(fora.id, fora.nome)}${escapeHtml(fora.nome)}</span></td>
+    <td><select data-campo="status" aria-label="Estado do jogo">${ESTADOS_JOGO.map(([v, t]) => `<option value="${v}" ${v === estado ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+    <td>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : '<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">🗑</button>'}</td>
+  </tr>`;
+}
+
+function renderResultados() {
+  const select = el("resultadosCompeticao");
+  const comps = competicoesDoCalendario();
+  const atual = select.value;
+  select.innerHTML = '<option value="">Todas as competições</option>' + comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  select.value = comps.includes(atual) ? atual : "";
+
+  const grupos = (select.value ? [select.value] : comps)
+    .map(c => [c, jogosCalendario.filter(j => j.competition === c).sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0) || String(a.id).localeCompare(String(b.id)))])
+    .filter(([, lista]) => lista.length);
+  const container = el("resultadosLista");
+  if (!grupos.length) {
+    container.innerHTML = '<p class="empty-state">Sem jogos. Adiciona os jogos do VFN no Calendário e os das outras equipas aqui.</p>';
     return;
   }
-  const equipasOrdenadas = [...equipasCalendario].sort((a, b) => a.name.localeCompare(b.name, "pt"));
-  tbody.innerHTML = linhas.map((s, i) => {
-    const equipa = equipaPorId(s.team_id);
-    const nome = (equipa && equipa.name) || s.team_name || "";
-    const opcoes = `<option value="">— Equipa —</option>` + equipasOrdenadas.map(t => `<option value="${escapeHtml(t.id)}" ${String(t.id) === String(s.team_id) ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("");
-    const dg = (Number(s.goals_for) || 0) - (Number(s.goals_against) || 0);
-    return `<tr data-id="${escapeHtml(s.id)}" class="${VFN.eVFN(nome) ? "is-vfn-row" : ""}">
-      <td class="pos-col">${i + 1}</td>
-      <td class="team-col"><span class="team-inline">${logoEquipaHTML(equipa, nome)}<select data-campo="team_id" aria-label="Equipa">${opcoes}</select></span></td>
-      ${CAMPOS_CLASSIFICACAO.slice(0, 6).map(c => `<td><input type="number" min="0" data-campo="${c}" value="${Number(s[c]) || 0}" aria-label="${c}"></td>`).join("")}
-      <td class="num" data-dg>${dg > 0 ? "+" + dg : dg}</td>
-      <td class="pts-col"><input type="number" data-campo="points" value="${Number(s.points) || 0}" aria-label="Pontos"></td>
-      <td><button type="button" class="icon-btn danger" data-acao="apagar" title="Remover da classificação" aria-label="Remover da classificação">🗑</button></td>
-    </tr>`;
-  }).join("");
+  container.innerHTML = grupos.map(([comp, jogos]) => `
+    <section class="results-group">
+      <h3 class="results-title"><span class="comp-tag comp-${VFN.categoriaCompeticao(comp)}">${escapeHtml(VFN.nomeCurtoCompeticao(comp))}</span>${escapeHtml(comp)} <small class="muted">${jogos.length} jogo${jogos.length === 1 ? "" : "s"}</small></h3>
+      <div class="table-wrap"><table class="data-table results-table">
+        <thead><tr><th>Data</th><th class="num">J.</th><th class="team-home">Casa</th><th class="num">Resultado</th><th>Fora</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${jogos.map(linhaResultadoHTML).join("")}</tbody>
+      </table></div>
+    </section>`).join("");
 
-  tbody.querySelectorAll("tr[data-id]").forEach(tr => {
-    const linha = cacheAdmin.standings.find(s => String(s.id) === tr.dataset.id);
-    tr.querySelectorAll("[data-campo]").forEach(input => input.addEventListener("change", () => alterarLinhaClassificacao(linha, tr, input)));
-    tr.querySelector("[data-acao=apagar]").addEventListener("click", () => apagarLinhaClassificacao(linha));
+  container.querySelectorAll("tr[data-id]").forEach(tr => {
+    const jogo = jogosCalendario.find(j => String(j.id) === tr.dataset.id);
+    tr.querySelectorAll("[data-campo]").forEach(input => input.addEventListener("change", () => alterarResultado(jogo, tr, input)));
+    const apagar = tr.querySelector("[data-acao=apagar]");
+    if (apagar) apagar.addEventListener("click", () => apagarOutroJogo(jogo));
   });
 }
 
-function alterarLinhaClassificacao(linha, tr, input) {
+function alterarResultado(jogo, tr, input) {
   const campo = input.dataset.campo;
-  if (campo === "team_id") {
-    const equipa = equipaPorId(input.value);
-    linha.team_id = equipa ? equipa.id : null;
-    linha.team_name = equipa ? equipa.name : linha.team_name;
-  } else {
-    linha[campo] = Math.max(campo === "points" ? -99 : 0, Number(input.value) || 0);
+  if (campo === "status") jogo.status = input.value;
+  else jogo[campo] = input.value === "" ? null : Math.max(0, Math.round(Number(input.value) || 0));
+  // com os dois golos preenchidos, um jogo agendado passa a jogado
+  if (campo !== "status" && jogo.score_home != null && jogo.score_away != null && VFN.estadoJogo(jogo) === "agendado") {
+    jogo.status = "jogado";
+    tr.querySelector("[data-campo=status]").value = "jogado";
   }
-  // J e Pts acompanham V/E/D (Pts pode ser ajustado à mão depois, ex.: castigos)
-  if (["won", "drawn", "lost"].includes(campo)) {
-    linha.played = (Number(linha.won) || 0) + (Number(linha.drawn) || 0) + (Number(linha.lost) || 0);
-    linha.points = 3 * (Number(linha.won) || 0) + (Number(linha.drawn) || 0);
-    tr.querySelector("[data-campo=played]").value = linha.played;
-    tr.querySelector("[data-campo=points]").value = linha.points;
-  }
-  const dg = (Number(linha.goals_for) || 0) - (Number(linha.goals_against) || 0);
-  tr.querySelector("[data-dg]").textContent = dg > 0 ? "+" + dg : dg;
-  linha.updated_at = new Date().toISOString();
-
-  clearTimeout(temporizadoresClassificacao[linha.id]);
-  temporizadoresClassificacao[linha.id] = setTimeout(async () => {
+  clearTimeout(temporizadoresResultados[jogo.id]);
+  temporizadoresResultados[jogo.id] = setTimeout(async () => {
     try {
-      Object.assign(linha, await dadosClube.guardar("standings", linha));
-      mostrarErroAdmin("classificacaoErro", null);
+      Object.assign(jogo, await dadosClube.guardar("matches", jogo));
+      mostrarErroAdmin("resultadosErro", null);
     } catch (e) {
-      mostrarErroAdmin("classificacaoErro", e);
+      mostrarErroAdmin("resultadosErro", e);
     }
-    // reordena só quando já não se está a editar a tabela
-    setTimeout(() => { if (!el("classificacaoBody").contains(document.activeElement)) renderClassificacaoAdmin(); }, 50);
+    renderProximoJogoPreJogo();
   }, 400);
 }
 
-async function adicionarLinhasClassificacao(todas) {
-  const comp = el("classificacaoCompeticao").value;
-  const presentes = new Set(cacheAdmin.standings.filter(s => s.competition === comp).map(s => String(s.team_id)));
-  const novas = todas
-    ? equipasCalendario.filter(t => !presentes.has(String(t.id)))
-    : [null];
-  if (todas && !novas.length) {
-    alert(equipasCalendario.length ? "Todas as equipas já estão nesta classificação." : "Ainda não há equipas. Cria-as primeiro no separador Adversários.");
-    return;
-  }
+async function apagarOutroJogo(jogo) {
+  const { casa, fora } = VFN.equipasDoJogo(jogo, equipasCalendario);
+  if (!confirm(`Eliminar o jogo ${casa.nome} – ${fora.nome}?`)) return;
   try {
-    for (const equipa of novas) {
-      const linha = { competition: comp, team_id: equipa ? equipa.id : null, team_name: equipa ? equipa.name : "", played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, updated_at: new Date().toISOString() };
-      cacheAdmin.standings.push(await dadosClube.guardar("standings", linha));
-    }
-    mostrarErroAdmin("classificacaoErro", null);
-  } catch (e) {
-    mostrarErroAdmin("classificacaoErro", e);
-  }
-  renderClassificacaoAdmin();
-}
-
-async function apagarLinhaClassificacao(linha) {
-  const equipa = equipaPorId(linha.team_id);
-  if (!confirm(`Remover ${(equipa && equipa.name) || linha.team_name || "esta linha"} da classificação?`)) return;
-  try {
-    await dadosClube.remover("standings", linha.id);
-    cacheAdmin.standings = cacheAdmin.standings.filter(s => s !== linha);
-    renderClassificacaoAdmin();
+    await dadosClube.remover("matches", jogo.id);
+    jogosCalendario = jogosCalendario.filter(j => j !== jogo);
+    renderResultados();
   } catch (e) {
     alert(mensagemErro(e));
   }
+}
+
+/* ---- Jogos entre outras equipas da liga ---- */
+
+function abrirModalOutroJogo() {
+  const ligas = VFN.competicoesLiga(jogosCalendario);
+  const comps = ligas.length ? ligas : COMPETICOES.filter(c => VFN.categoriaCompeticao(c) === "liga");
+  const filtro = el("resultadosCompeticao").value;
+  el("outroCompeticao").innerHTML = comps.map(c => `<option ${c === filtro ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+  const equipas = [...equipasCalendario].filter(t => !VFN.eVFN(t.name)).sort((a, b) => a.name.localeCompare(b.name, "pt"));
+  const opcoes = '<option value="">— Equipa —</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join("");
+  el("outroCasa").innerHTML = opcoes;
+  el("outroFora").innerHTML = opcoes;
+  ["outroJornada", "outroGolosCasa", "outroGolosFora"].forEach(id => { el(id).value = ""; });
+  el("outroData").value = hojeIso();
+  el("outroErro").textContent = "";
+  abrirModalAdmin("modalOutroJogo");
+}
+
+async function guardarOutroJogo() {
+  const casa = el("outroCasa").value, fora = el("outroFora").value;
+  const gc = el("outroGolosCasa").value, gf = el("outroGolosFora").value;
+  const erro = !casa || !fora ? "Escolhe as duas equipas." : casa === fora ? "As equipas têm de ser diferentes." : !el("outroData").value ? "Indica a data." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum)." : "";
+  el("outroErro").textContent = erro;
+  if (erro) return;
+  const temResultado = gc !== "";
+  const linha = {
+    competition: el("outroCompeticao").value,
+    jornada: el("outroJornada").value ? Number(el("outroJornada").value) : null,
+    date: new Date(`${el("outroData").value}T15:00`).toISOString(),
+    home_team_id: casa,
+    away_team_id: fora,
+    home_away: null,
+    opponent: null,
+    opponent_team_id: null,
+    score_home: temResultado ? Number(gc) : null,
+    score_away: temResultado ? Number(gf) : null,
+    status: temResultado ? "jogado" : "agendado"
+  };
+  const botao = el("btnOutroGuardar");
+  botao.disabled = true;
+  try {
+    jogosCalendario.push(await dadosClube.guardar("matches", linha));
+    fecharModalAdmin("modalOutroJogo");
+    renderResultados();
+  } catch (e) {
+    el("outroErro").textContent = mensagemErro(e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+/* ---- Classificação (só leitura, calculada) ---- */
+
+function renderClassificacaoAdmin() {
+  const select = el("classificacaoCompeticao");
+  const comps = VFN.competicoesLiga(jogosCalendario);
+  const atual = select.value;
+  const proximo = VFN.proximoJogo(jogosCalendario);
+  select.innerHTML = comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  select.value = comps.includes(atual) ? atual : (proximo && comps.includes(proximo.competition) ? proximo.competition : comps[0] || "");
+  select.hidden = !comps.length;
+
+  const tbody = el("classificacaoBody");
+  const linhas = select.value ? VFN.calcularClassificacao(jogosCalendario, equipasCalendario, select.value) : [];
+  if (!linhas.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sem jogos de liga no calendário.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = linhas.map((s, i) => {
+    const dg = s.goals_for - s.goals_against;
+    return `<tr class="${VFN.eVFN(s.team_name) ? "is-vfn-row" : ""}">
+      <td class="pos-col">${i + 1}</td>
+      <td class="team-col"><span class="team-inline">${logoPorId(s.team_id, s.team_name)}${escapeHtml(s.team_name)}</span></td>
+      <td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td><td>${s.goals_for}</td><td>${s.goals_against}</td>
+      <td>${dg > 0 ? "+" + dg : dg}</td><td class="pts-col">${s.points}</td>
+    </tr>`;
+  }).join("");
 }
 
 /* =========================================================
@@ -723,8 +794,6 @@ async function guardarEquipa() {
         cacheAdmin.opponents = cacheAdmin.opponents.filter(o => String(o.id) !== String(obs.id)).concat(obs);
       }
     }
-    // nomes atualizados no calendário/classificação
-    cacheAdmin.standings.filter(s => String(s.team_id) === String(equipa.id)).forEach(s => { s.team_name = equipa.name; });
     fecharModalAdmin("modalEquipa");
     renderAdversarios();
     renderCalendarioAdmin();
@@ -767,8 +836,9 @@ async function abrirTabGestao(tab) {
     renderPresencas();
   } else if (tab === "calendario") {
     renderCalendarioAdmin();
+  } else if (tab === "resultados") {
+    renderResultados();
   } else if (tab === "classificacao") {
-    await carregarTabelaAdmin("standings", "classificacaoErro");
     renderClassificacaoAdmin();
   } else if (tab === "adversarios") {
     await carregarTabelaAdmin("opponents", "adversariosErro");
@@ -795,17 +865,17 @@ function initAdmin() {
   initMultas();
   initPresencas();
   initCalendarioAdmin();
-  initClassificacaoAdmin();
+  initResultados();
   initAdversarios();
 
   document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => btn.addEventListener("click", () => abrirTabGestao(btn.dataset.tab)));
   document.querySelectorAll("[data-fechar-modal]").forEach(b => b.addEventListener("click", () => fecharModalAdmin(b.dataset.fecharModal)));
-  ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
+  ["modalMulta", "modalSessao", "modalJogo", "modalEquipa", "modalOutroJogo"].forEach(id => {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });
   });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
+    ["modalMulta", "modalSessao", "modalJogo", "modalEquipa", "modalOutroJogo"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
   });
   verificarPapelAdmin();
 }

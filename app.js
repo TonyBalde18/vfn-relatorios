@@ -322,6 +322,8 @@ const dadosClube = {
 function mensagemErro(e) {
   const msg = (e && (e.message || e.error_description)) || String(e);
   if (/row-level security|permission denied/i.test(msg)) return "Sem permissão para gravar. Confirma que o teu utilizador tem o papel 'admin' na tabela profiles (ver schema.sql).";
+  if (/home_team_id|away_team_id|display_name|full_name|date_of_birth/i.test(msg) && /does not exist|schema cache|could not find/i.test(msg)) return "Falta uma coluna nova no Supabase. Corre a secção ATUALIZAÇÃO 30/09/2026 do schema.sql.";
+  if (/violates not-null/i.test(msg)) return "O Supabase recusou: uma coluna obrigatória ficou vazia (" + msg + ").";
   if (/does not exist|schema cache/i.test(msg)) return "A tabela ainda não existe no Supabase. Corre o schema.sql no SQL Editor.";
   return msg;
 }
@@ -591,7 +593,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", classificacao: "Classificação", adversarios: "Adversários" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador
@@ -788,6 +790,7 @@ async function registarResultadoNoCalendario() {
     jogosCalendario = jogosCalendario.map(j => j.id === gravado.id ? gravado : j);
     renderProximoJogoPreJogo();
     if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
+    if (typeof renderResultados === "function") renderResultados();
   } catch (e) {
     console.warn("Não foi possível registar o resultado no calendário:", mensagemErro(e));
   }
@@ -806,6 +809,7 @@ async function carregarCalendario() {
   calendarioCarregado = true;
   renderProximoJogoPreJogo();
   if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
+  if (typeof renderResultados === "function") { renderResultados(); renderClassificacaoAdmin(); }
 }
 
 /* ---- Sponsors no rodapé: AF Guarda + sponsor da competição do relatório ---- */

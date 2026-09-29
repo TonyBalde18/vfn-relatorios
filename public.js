@@ -2,14 +2,14 @@
 
 /* =========================================================
    PÁGINA PÚBLICA — atletas, sem login, só leitura.
-   Lê apenas dados públicos: teams, matches, standings e a view
+   Lê apenas dados públicos: teams, matches e a view
    players_public (sem atributos, notas, multas nem presenças).
    ========================================================= */
 
 const H = VFNHub;
 const $ = id => document.getElementById(id);
 
-let dados = { teams: [], matches: [], standings: [], players: [] };
+let dados = { teams: [], matches: [], players: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -18,7 +18,7 @@ let competicao = "";
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
-  const pedidos = { teams: "teams", matches: "matches", standings: "standings", players: "players_public" };
+  const pedidos = { teams: "teams", matches: "matches", players: "players_public" };
   const chaves = Object.keys(pedidos);
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select("*")));
   let falhou = false;
