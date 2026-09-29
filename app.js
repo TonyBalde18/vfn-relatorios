@@ -1063,7 +1063,9 @@ function migrarEvento(evento) {
   ev.detalhe = ev.detalhe || ev.nota || "";
   ev.jogadorId = ev.jogadorId || "";
   ev.jogadorSaiId = ev.jogadorSaiId || "";
-  ev.assistId = ev.assistId || "";
+  // formato gravado no match_data dos golos: { marcador, assistencia }
+  ev.jogadorId = ev.jogadorId || ev.marcador || "";
+  ev.assistId = ev.assistId || ev.assistencia || "";
   ev.acrescimo = ev.acrescimo || "";
   return ev;
 }
@@ -1190,7 +1192,26 @@ function sincronizarStatsJogadores() {
   if (el("plantelBody")) renderPlantel();
 }
 
+/** Golos do VFN guardam também { marcador: id, assistencia: id | null } no match_data. */
+function normalizarGolos() {
+  state.jogo.eventos.forEach(ev => {
+    if (ev.equipa === "VFN" && ev.tipo === "Golo") {
+      ev.marcador = ev.jogadorId || null;
+      ev.assistencia = ev.assistId || null;
+    } else {
+      delete ev.marcador;
+      delete ev.assistencia;
+    }
+  });
+}
+
+/** Convocados: onze inicial + suplentes. */
+function convocadosIds() {
+  return [...new Set([...titularesIds(), ...suplentesIds()])];
+}
+
 function atualizarIndicadoresJogo() {
+  normalizarGolos();
   el("eventCountBadge").textContent = state.jogo.eventos.length;
   renderTimeline();
   renderResultadoParcial();
@@ -1255,7 +1276,7 @@ function renderEventos(ordenar) {
       tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresEmCampo(ev.id), "Marcador", v => { ev.jogadorId = v; if (ev.assistId === v) ev.assistId = ""; renderEventos(false); }));
       const label = document.createElement("label");
       label.className = "assist-label"; label.textContent = "Assistência (opcional)";
-      const assistentes = jogadoresEmCampo(ev.id).filter(id => id !== Number(ev.jogadorId));
+      const assistentes = convocadosIds().filter(id => id !== Number(ev.jogadorId));
       label.appendChild(criarSelectJogador(ev.assistId, assistentes, "Assistência", v => { ev.assistId = v; renderEventos(false); }));
       tdJogador.appendChild(label);
     } else if (ev.equipa === "VFN" && ev.tipo !== "Nota" && ev.tipo !== "Tempo Acrescentado") {
