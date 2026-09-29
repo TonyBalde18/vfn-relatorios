@@ -178,3 +178,10 @@
 }
 #statsEquipa { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .top-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.player-card.is-static { cursor: default; }
+.player-card.is-static:hover { transform: none; box-shadow: none; border-color: var(--border-color); }
+@media (max-width: 520px) {
+  .standings-compact th, .standings-compact td { padding: 7px 4px; }
+  .standings-compact .team-inline span { max-width: 118px; }
+  .standings-compact .team-logo, .standings-compact .team-logo-placeholder { width: 22px; height: 22px; font-size: .5rem; }
+}

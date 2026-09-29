@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A1628">
+<title>ACD Vila Franca das Naves — Época 2026/27</title>
+<meta name="description" content="Próximo jogo, resultados, plantel, classificação e calendário do ACD Vila Franca das Naves.">
+<link rel="icon" href="assets/logo-icon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="hub.css?v=3">
+</head>
+<body class="hub-page public-page">
+
+<header class="public-header">
+  <img src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves">
+  <div><strong>ACD Vila Franca das Naves</strong><span>2ª Distrital da Guarda · Época 2026/27</span></div>
+</header>
+
+<nav class="public-nav" aria-label="Secções">
+  <button type="button" class="active" data-view="hub"><span aria-hidden="true">🏟️</span>Hub</button>
+  <button type="button" data-view="plantel"><span aria-hidden="true">👥</span>Plantel</button>
+  <button type="button" data-view="classificacao"><span aria-hidden="true">🏆</span>Tabela</button>
+  <button type="button" data-view="calendario"><span aria-hidden="true">📅</span>Jogos</button>
+  <button type="button" data-view="marcadores"><span aria-hidden="true">⚽</span>Marcadores</button>
+</nav>
+
+<main class="public-main">
+  <p id="avisoDados" class="admin-notice" role="status" hidden></p>
+
+  <section id="view-hub" class="view active">
+    <div class="public-stack two-col">
+      <article id="pubProximoJogo" class="card hub-hero" data-aos="fade-up"></article>
+      <div class="public-stack">
+        <article id="pubUltimoResultado" class="card hub-hero" data-aos="fade-up"></article>
+        <article class="card" data-aos="fade-up">
+          <h2 class="hub-card-title">Forma <small class="muted">últimos 5 jogos</small></h2>
+          <div id="pubForma"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-plantel" class="view">
+    <h2 class="public-section-title">Plantel</h2>
+    <div id="pubPlantelFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar por posição"></div>
+    <div id="pubPlantel" class="players-grid"></div>
+  </section>
+
+  <section id="view-classificacao" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Classificação</h2><label class="sr-only" for="pubCompeticao">Competição</label><select id="pubCompeticao" class="compact-select"></select></div>
+      <div id="pubClassificacao"></div>
+    </div>
+  </section>
+
+  <section id="view-calendario" class="view">
+    <h2 class="public-section-title">Calendário</h2>
+    <div id="pubCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
+    <div id="pubCalendario" class="calendar-list"></div>
+  </section>
+
+  <section id="view-marcadores" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Top marcadores</h2>
+      <div id="pubMarcadores"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="public-footer">
+  <div id="sponsorFooter" class="sponsor-footer"></div>
+  <p>ACD Vila Franca das Naves · Época 2026/27</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="config.js?v=3"></script>
+<script src="shared.js?v=3"></script>
+<script src="hub.js?v=3"></script>
+<script src="public.js?v=3"></script>
+</body>
+</html>
