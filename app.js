@@ -216,11 +216,11 @@ let currentUser = null;
 let localMode = false;
 
 function supabaseConfigurado() {
-  return typeof window.supabase !== "undefined" && typeof SUPABASE_URL !== "undefined" && !SUPABASE_URL.startsWith("YOUR_") && typeof SUPABASE_ANON_KEY !== "undefined" && !SUPABASE_ANON_KEY.startsWith("YOUR_");
+  return VFN.supabaseConfigurado();
 }
 
 function iniciarSupabase() {
-  if (supabaseConfigurado()) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = VFN.criarClienteSupabase(); // mostra o spinner VFN em todos os pedidos
 }
 
 async function sincronizarRascunhoSupabase() {
@@ -523,7 +523,7 @@ function initTabs() {
       el("appSidebar").classList.remove("is-open");
     });
   });
-  el("btnSidebarToggle").addEventListener("click", () => el("appSidebar").classList.toggle("is-open"));
+  VFN.initSidebar(el("appSidebar"), el("btnSidebarToggle"));
 }
 
 /* =========================================================

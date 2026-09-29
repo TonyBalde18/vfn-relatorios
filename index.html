@@ -4,15 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ACD Vila Franca das Naves — Relatórios de Jogo</title>
+<link rel="icon" href="assets/logo-icon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
 <section id="loginScreen" class="login-screen" hidden>
   <div class="login-card">
-    <div class="login-logo"><img src="logo.png" alt="Logótipo VFN"><span>VFN</span></div>
+    <div class="login-logo"><img src="assets/logo.png" alt="Logótipo VFN"><span>VFN</span></div>
     <h1>Relatórios VFN</h1>
     <p>Entra para aceder aos relatórios, rascunhos e equipa.</p>
     <form id="loginForm">
@@ -35,7 +37,7 @@
 
 <div id="appShell" class="protected-ui" hidden>
 <aside id="appSidebar" class="app-sidebar">
-  <div class="sidebar-brand"><img id="clubLogo" src="logo.png" alt="Logótipo ACD Vila Franca das Naves"><div id="logoPlaceholder" class="logo-placeholder" hidden>VFN</div><div class="sidebar-brand-copy"><strong>VFN</strong><span>Relatórios 26/27</span></div></div>
+  <div class="sidebar-brand"><img id="clubLogo" src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves"><div id="logoPlaceholder" class="logo-placeholder" hidden>VFN</div><div class="sidebar-brand-copy"><strong>VFN</strong><span>Relatórios 26/27</span></div></div>
   <div class="sidebar-user"><span class="user-avatar">👤</span><span id="sidebarUserName">Utilizador</span></div>
   <nav class="sidebar-nav" id="tabNav" aria-label="Navegação principal">
     <button class="tab-btn nav-item active" data-tab="pre-jogo"><span class="nav-icon">📋</span><span class="nav-label">Pré-Jogo</span></button>
@@ -284,7 +286,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
-<script src="config.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="config.js?v=3"></script>
+<script src="shared.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
