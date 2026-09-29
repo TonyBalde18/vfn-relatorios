@@ -256,7 +256,7 @@ async function guardarRelatorioSupabase() {
 
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const rows = plantel.map(p => ({ id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
+  const rows = plantel.map(p => ({ id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (!rows.length) return;
   const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
   if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
@@ -340,7 +340,8 @@ function migrarJogador(p) {
   return {
     id: p.id,
     idBD: p.idBD || "",
-    nome: p.nome || "",
+    nome: p.nome || "", // nome curto (players.display_name)
+    nomeCompleto: p.nomeCompleto || "", // players.full_name
     posicao: p.posicao || "—",
     numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
     // os valores vindos do Supabase estão em players.stats com nomes curtos
@@ -386,7 +387,7 @@ async function carregarPlantelSupabase() {
     let id = /^\d+$/.test(texto) ? Number(texto) : Number(texto.split("-").pop()) || index + 1;
     while (usados.has(id)) id += 100000; // ids locais têm de ser únicos
     usados.add(id);
-    return migrarJogador({ id, idBD: texto, nome: p.name, posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
+    return migrarJogador({ id, idBD: texto, nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
   });
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   return true;
@@ -1422,11 +1423,12 @@ function initPlantel() {
   el("btnModalCancelar").addEventListener("click", fecharModalJogador);
   el("btnModalGuardar").addEventListener("click", async () => {
     const nome = el("modalNome").value.trim();
+    const nomeCompleto = el("modalNomeCompleto").value.trim();
     const posicao = el("modalPosicao").value.trim();
     const numero = el("modalNumero").value.trim();
     if (!nome) { el("modalNome").focus(); return; }
     const jogador = jogadorEmEdicao || jogadorBase(proximoIdPlantel(), nome, posicao || "—", numero);
-    jogador.nome = nome; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
+    jogador.nome = nome; jogador.nomeCompleto = nomeCompleto; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
     jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value;
@@ -1464,6 +1466,7 @@ function initPlantel() {
 function abrirModalJogador() {
   jogadorEmEdicao = null;
   el("modalNome").value = "";
+  el("modalNomeCompleto").value = "";
   el("modalPosicao").value = "";
   el("modalNumero").value = "";
   el("modalFoto").value = "";
@@ -1478,6 +1481,7 @@ function abrirModalJogador() {
 function abrirModalExistente(jogador) {
   jogadorEmEdicao = jogador;
   el("modalNome").value = jogador.nome;
+  el("modalNomeCompleto").value = jogador.nomeCompleto || "";
   el("modalPosicao").value = jogador.posicao;
   el("modalNumero").value = jogador.numero;
   el("modalFoto").value = jogador.fotoUrl || "";
@@ -1508,8 +1512,8 @@ function renderPlayerModalHeader(jogador) {
   const photo = el("playerModalPhoto");
   const numero = jogador ? jogador.numero : el("modalNumero").value;
   photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : generateJerseyAvatar(numero);
-  el("playerModalName").textContent = jogador ? jogador.nome : "Adicionar Jogador";
-  el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${jogador.nascimento}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
+  el("playerModalName").textContent = jogador ? (jogador.nomeCompleto || jogador.nome) : "Adicionar Jogador";
+  el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${VFN.dataDDMMAAAA(jogador.nascimento)}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
   el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }

@@ -14,7 +14,8 @@
     const s = p.stats || {};
     return {
       id: p.id,
-      nome: p.name || "",
+      nome: p.display_name || p.name || "", // cards
+      nomeCompleto: p.full_name || p.display_name || p.name || "", // ficha
       numero: p.number != null ? p.number : "",
       posicao: p.position || "—",
       fotoUrl: p.photo_url || "",
@@ -25,7 +26,7 @@
       cartoesV: Number(s.cartoesV) || 0,
       minutos: Number(s.minutos) || 0,
       attributes: p.attributes || {},
-      info: { nacionalidade: s.nacionalidade || "", nascimento: s.nascimento || "", pe: s.pePreferencial || "", altura: s.altura || "", peso: s.peso || "", notas: s.notas || "" }
+      info: { nascimento: p.date_of_birth || s.nascimento || "", pe: s.pePreferencial || "" }
     };
   }
 

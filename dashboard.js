@@ -196,13 +196,13 @@ function abrirJogador(id) {
   const j = jogadores.find(x => String(x.id) === String(id));
   if (!j) return;
   $("mjAvatar").innerHTML = j.fotoUrl ? `<img src="${esc(j.fotoUrl)}" alt="Fotografia de ${esc(j.nome)}">` : generateJerseyAvatar(j.numero);
-  $("mjNome").textContent = j.nome;
+  $("mjNome").textContent = j.nomeCompleto;
   $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
   $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 
   const p = presencaJogador(j.id);
-  const info = [["Nascimento", j.info.nascimento ? VFN.paraData(j.info.nascimento).toLocaleDateString("pt-PT") : ""], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]];
+  const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]];
   $("mjCorpo").innerHTML = `
     <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
   $("modalJogador").hidden = false;

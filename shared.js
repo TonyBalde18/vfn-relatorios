@@ -95,6 +95,12 @@
     return x ? `${String(x.getHours()).padStart(2, "0")}:${String(x.getMinutes()).padStart(2, "0")}` : "";
   }
 
+  /** "15/03/1998" */
+  function dataDDMMAAAA(valor) {
+    const d = paraData(valor);
+    return d ? `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}` : "";
+  }
+
   function dataCurta(valor) {
     const d = paraData(valor);
     return d ? `${d.getDate()} ${MESES_CURTOS[d.getMonth()]}` : "—";
@@ -338,7 +344,7 @@
     COMPETICOES, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
-    paraData, dataIso, horaIso, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
+    paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     eVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     chipForma, badgeEstado, categoriaPosicao,
     generateJerseyAvatar, avatarJogador,
