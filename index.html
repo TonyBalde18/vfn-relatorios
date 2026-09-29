@@ -44,8 +44,14 @@
     <button class="tab-btn nav-item" data-tab="jogo"><span class="nav-icon">⚽</span><span class="nav-label">Jogo</span><span id="eventCountBadge" class="tab-count">0</span></button>
     <button class="tab-btn nav-item" data-tab="analise"><span class="nav-icon">📊</span><span class="nav-label">Análise</span></button>
     <button class="tab-btn nav-item" data-tab="equipa"><span class="nav-icon">👥</span><span class="nav-label">Equipa</span></button>
+    <button class="tab-btn nav-item" data-tab="multas"><span class="nav-icon">💶</span><span class="nav-label">Multas</span></button>
+    <button class="tab-btn nav-item" data-tab="presencas"><span class="nav-icon">✅</span><span class="nav-label">Presenças</span></button>
+    <button class="tab-btn nav-item" data-tab="calendario"><span class="nav-icon">📅</span><span class="nav-label">Calendário</span></button>
+    <button class="tab-btn nav-item" data-tab="classificacao"><span class="nav-icon">🏆</span><span class="nav-label">Classificação</span></button>
+    <button class="tab-btn nav-item" data-tab="adversarios"><span class="nav-icon">🛡️</span><span class="nav-label">Adversários</span></button>
     <button class="nav-item nav-placeholder" type="button" title="Disponível numa versão futura"><span class="nav-icon">📁</span><span class="nav-label">Histórico</span></button>
   </nav>
+  <div class="sidebar-links"><a href="dashboard.html"><span class="nav-icon">📈</span>Dashboard equipa técnica</a><a href="public.html" target="_blank" rel="noopener"><span class="nav-icon">🌐</span>Página dos atletas</a></div>
   <button id="btnLogout" class="sidebar-logout"><span class="nav-icon">↪</span><span class="nav-label">Sair</span></button>
 </aside>
 
@@ -63,6 +69,7 @@
 </header>
 
 <main>
+  <p id="avisoPapel" class="admin-notice" role="status" hidden></p>
 
   <!-- TAB 1: PRÉ-JOGO -->
   <section id="tab-pre-jogo" class="tab-panel active">
@@ -254,6 +261,91 @@
     </div>
   </section>
 
+  <!-- TAB: MULTAS -->
+  <section id="tab-multas" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Multas</h2>
+        <button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Adicionar Multa</button>
+      </div>
+      <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select></div>
+      <p id="multasErro" class="form-error" role="alert"></p>
+      <div id="multasResumo" class="summary-tiles"></div>
+      <div class="table-wrap">
+        <table class="fines-table">
+          <thead><tr><th>Nome</th><th>Infracção</th><th class="num">Valor</th><th>Estado</th><th>Data</th><th>Acções</th></tr></thead>
+          <tbody id="multasBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: PRESENÇAS -->
+  <section id="tab-presencas" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Presenças</h2>
+        <button type="button" id="btnAddSessao" class="btn btn-accent btn-sm">+ Adicionar Sessão</button>
+      </div>
+      <div class="toolbar"><label class="toolbar-label" for="presencasMes">Mês</label><select id="presencasMes"></select><span class="muted">Clica numa célula para alternar: vazio → P → F → A → J</span></div>
+      <p id="presencasErro" class="form-error" role="alert"></p>
+      <div id="presencasGrelha"></div>
+      <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span><span>👟 Treino · ⚽ Jogo</span></div>
+    </div>
+  </section>
+
+  <!-- TAB: CALENDÁRIO -->
+  <section id="tab-calendario" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Calendário</h2>
+        <button type="button" id="btnAddJogo" class="btn btn-accent btn-sm">+ Adicionar Jogo</button>
+      </div>
+      <div class="toolbar"><div id="calendarioFiltros" class="filter-chips" role="group" aria-label="Filtrar competições"></div></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Data</th><th>Competição</th><th class="num">J.</th><th>Local</th><th>Adversário</th><th class="num">Resultado</th><th>Estado</th><th>Acções</th></tr></thead>
+          <tbody id="calendarioBody"></tbody>
+        </table>
+      </div>
+      <small class="muted">O próximo jogo (destacado) é o que aparece no Pré-Jogo, no Dashboard e na página pública.</small>
+    </div>
+  </section>
+
+  <!-- TAB: CLASSIFICAÇÃO -->
+  <section id="tab-classificacao" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Classificação</h2>
+        <div class="button-group">
+          <button type="button" id="btnAddEquipasClassificacao" class="btn btn-ghost btn-sm">Adicionar todas as equipas</button>
+          <button type="button" id="btnAddLinhaClassificacao" class="btn btn-accent btn-sm">+ Adicionar Linha</button>
+        </div>
+      </div>
+      <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select><span class="muted">J e Pts calculam-se a partir de V/E/D; Pts pode ser ajustado (ex.: castigos).</span></div>
+      <p id="classificacaoErro" class="form-error" role="alert"></p>
+      <div class="table-wrap">
+        <table class="standings-table data-table">
+          <thead><tr><th>Pos</th><th class="team-col">Equipa</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>DG</th><th>Pts</th><th></th></tr></thead>
+          <tbody id="classificacaoBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: ADVERSÁRIOS -->
+  <section id="tab-adversarios" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Equipas e Adversários</h2>
+        <button type="button" id="btnAddEquipa" class="btn btn-accent btn-sm">+ Adicionar Equipa</button>
+      </div>
+      <div class="toolbar"><input type="search" id="equipasPesquisa" placeholder="Pesquisar equipa..." aria-label="Pesquisar equipa"></div>
+      <p id="adversariosErro" class="form-error" role="alert"></p>
+      <div id="equipasGrid" class="teams-grid"></div>
+    </div>
+  </section>
+
 </main>
 
 <footer class="app-footer">
@@ -295,11 +387,105 @@
   </div>
 </div>
 
+<!-- MODAL: Multa -->
+<div id="modalMulta" class="modal-overlay" hidden>
+  <div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="modalMultaTitulo">
+    <h3 id="modalMultaTitulo" class="modal-title">Adicionar Multa</h3>
+    <div class="field"><label for="multaJogador">Jogador</label><select id="multaJogador"></select></div>
+    <div class="field"><label for="multaTipo">Tipo de infracção</label><select id="multaTipo"></select></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="multaValor">Valor (€)</label><input type="number" id="multaValor" min="0" step="0.5" inputmode="decimal" placeholder="Ex: 5"></div>
+      <div class="field"><label for="multaData">Data</label><input type="date" id="multaData"></div>
+    </div>
+    <div class="field"><label for="multaDescricao">Descrição</label><textarea id="multaDescricao" rows="3" placeholder="Detalhes (opcional)"></textarea></div>
+    <p id="multaErro" class="form-error" role="alert"></p>
+    <div class="modal-actions">
+      <button type="button" id="btnMultaCancelar" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnMultaGuardar" class="btn btn-accent">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Sessão de presenças -->
+<div id="modalSessao" class="modal-overlay" hidden>
+  <div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="modalSessaoTitulo">
+    <h3 id="modalSessaoTitulo" class="modal-title">Adicionar Sessão</h3>
+    <div class="grid grid-2">
+      <div class="field"><label for="sessaoData">Data</label><input type="date" id="sessaoData"></div>
+      <div class="field"><label for="sessaoTipo">Tipo</label><select id="sessaoTipo"><option value="treino">👟 Treino</option><option value="jogo">⚽ Jogo</option></select></div>
+    </div>
+    <div class="field"><label for="sessaoNotas">Notas</label><input type="text" id="sessaoNotas" placeholder="Opcional"></div>
+    <p id="sessaoErro" class="form-error" role="alert"></p>
+    <div class="modal-actions">
+      <button type="button" id="btnSessaoCancelar" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnSessaoGuardar" class="btn btn-accent">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Jogo do calendário -->
+<div id="modalJogo" class="modal-overlay" hidden>
+  <div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="modalJogoTitulo">
+    <h3 id="modalJogoTitulo" class="modal-title">Adicionar Jogo</h3>
+    <div class="field"><label for="jogoCompeticao">Competição</label><select id="jogoCompeticao"></select></div>
+    <div class="grid grid-3">
+      <div class="field"><label for="jogoData">Data</label><input type="date" id="jogoData"></div>
+      <div class="field"><label for="jogoHora">Hora</label><input type="time" id="jogoHora" value="15:00"></div>
+      <div class="field"><label for="jogoJornada">Jornada</label><input type="number" id="jogoJornada" min="1"></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label for="jogoCasaFora">Casa / Fora</label><select id="jogoCasaFora"><option>Casa</option><option>Fora</option></select></div>
+      <div class="field"><label for="jogoAdversarioEquipa">Adversário</label><select id="jogoAdversarioEquipa"></select></div>
+    </div>
+    <div class="field" id="jogoAdversarioNomeWrap" hidden><label for="jogoAdversarioNome">Nome do adversário</label><input type="text" id="jogoAdversarioNome" placeholder="Clube ainda não criado em Adversários"></div>
+    <div class="grid grid-3">
+      <div class="field"><label for="jogoEstado">Estado</label><select id="jogoEstado"><option value="agendado">Agendado</option><option value="jogado">Jogado</option><option value="adiado">Adiado</option><option value="cancelado">Cancelado</option></select></div>
+      <div class="field"><label for="jogoGolosVFN">Golos VFN</label><input type="number" id="jogoGolosVFN" min="0"></div>
+      <div class="field"><label for="jogoGolosAdv">Golos adversário</label><input type="number" id="jogoGolosAdv" min="0"></div>
+    </div>
+    <div class="field"><label for="jogoLocal">Campo</label><input type="text" id="jogoLocal" placeholder="Opcional"></div>
+    <p id="jogoErro" class="form-error" role="alert"></p>
+    <div class="modal-actions">
+      <button type="button" id="btnJogoCancelar" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnJogoGuardar" class="btn btn-accent">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Equipa / observação do adversário -->
+<div id="modalEquipa" class="modal-overlay" hidden>
+  <div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="modalEquipaTitulo">
+    <h3 id="modalEquipaTitulo" class="modal-title">Adicionar Equipa</h3>
+    <div class="field"><label for="equipaNome">Nome</label><input type="text" id="equipaNome" placeholder="Ex: SC Trancoso"></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="equipaLogo">Logo (URL)</label><input type="url" id="equipaLogo" placeholder="https://..."></div>
+      <div class="field"><label for="equipaLogoUpload">Ou carregar logo</label><input type="file" id="equipaLogoUpload" accept="image/*"></div>
+    </div>
+    <div id="equipaLogoPreview"></div>
+    <div id="equipaObservacao">
+      <div class="field"><label for="equipaFormacao">Formação habitual</label><input type="text" id="equipaFormacao" placeholder="Ex: 4-4-2"></div>
+      <div class="field"><label for="equipaEstilo">Estilo de jogo</label><textarea id="equipaEstilo" rows="3"></textarea></div>
+      <div class="grid grid-2">
+        <div class="field"><label for="equipaFortes">Pontos fortes</label><textarea id="equipaFortes" rows="3"></textarea></div>
+        <div class="field"><label for="equipaFracos">Pontos fracos</label><textarea id="equipaFracos" rows="3"></textarea></div>
+      </div>
+      <div class="field"><label for="equipaHistorico">Histórico / notas</label><textarea id="equipaHistorico" rows="3" placeholder="Resultados anteriores, jogadores a vigiar..."></textarea></div>
+    </div>
+    <p id="equipaErro" class="form-error" role="alert"></p>
+    <div class="modal-actions">
+      <span id="equipaApagarWrap" style="margin-right:auto" hidden><button type="button" id="btnEquipaApagar" class="btn btn-danger">Eliminar</button></span>
+      <button type="button" id="btnEquipaCancelar" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnEquipaGuardar" class="btn btn-accent">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 <script src="config.js?v=3"></script>
 <script src="shared.js?v=3"></script>
 <script src="app.js?v=3"></script>
+<script src="admin.js?v=3"></script>
 </body>
 </html>

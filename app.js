@@ -592,7 +592,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador
@@ -748,6 +748,7 @@ async function carregarCalendario() {
   }
   calendarioCarregado = true;
   renderProximoJogoPreJogo();
+  if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
 }
 
 /* ---- Sponsors no rodapé: AF Guarda + sponsor da competição do relatório ---- */
@@ -1455,6 +1456,7 @@ function initPlantel() {
     reader.onload = () => { el("modalFoto").value = reader.result; renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: reader.result, golos: 0, assistencias: 0, minutosTotais: 0 }); };
     reader.readAsDataURL(ficheiro);
   });
+  el("modalNumero").addEventListener("input", () => { if (!el("modalFoto").value) el("playerModalPhoto").innerHTML = generateJerseyAvatar(el("modalNumero").value); });
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
   el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {}); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
@@ -1529,8 +1531,8 @@ function renderPositionMap() {
 
 function renderPlayerModalHeader(jogador) {
   const photo = el("playerModalPhoto");
-  const svg = '<svg class="player-silhouette" viewBox="0 0 82 105" aria-label="Silhueta de jogador"><circle cx="41" cy="24" r="17" fill="#c7c7c4"/><path d="M12 101c2-29 15-43 29-43s27 14 29 43" fill="#c7c7c4"/></svg>';
-  photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : svg;
+  const numero = jogador ? jogador.numero : el("modalNumero").value;
+  photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : generateJerseyAvatar(numero);
   el("playerModalName").textContent = jogador ? jogador.nome : "Adicionar Jogador";
   el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nacionalidade ? ` · ${jogador.nacionalidade}` : ""}${jogador.nascimento ? ` · ${jogador.nascimento}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
@@ -1574,7 +1576,7 @@ function renderPlantel() {
     const tr = document.createElement("tr");
 
     const tdFoto = document.createElement("td");
-    tdFoto.innerHTML = j.fotoUrl ? `<img class="player-avatar" src="${escapeHtml(j.fotoUrl)}" alt="">` : "<span class=\"player-avatar silhouette\">○</span>";
+    tdFoto.innerHTML = VFN.avatarJogador(j, "avatar-sm");
     tr.appendChild(tdFoto);
 
     tr.appendChild(criarCelulaEditavel(j, "nome", "text", "col-nome"));
@@ -2171,6 +2173,8 @@ function initAplicacao() {
   initAnalise();
   initPlantel();
   initLimparFormulario();
+  if (typeof initAdmin === "function") initAdmin();
+  VFN.initAOS();
 
   renderTudo();
   renderSeasonStats({ jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 });
