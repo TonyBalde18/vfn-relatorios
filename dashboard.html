@@ -36,6 +36,7 @@
     <button class="nav-item active" data-view="hub"><span class="nav-icon">🏟️</span><span class="nav-label">Hub</span></button>
     <button class="nav-item" data-view="plantel"><span class="nav-icon">👥</span><span class="nav-label">Plantel</span></button>
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon">📊</span><span class="nav-label">Estatísticas</span></button>
+    <button class="nav-item" data-view="minutos"><span class="nav-icon">⏱️</span><span class="nav-label">Minutos</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon">📅</span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
@@ -105,6 +106,20 @@
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Estatísticas da época</h2>
       <div class="table-wrap"><table id="statsTabela" class="stats-table"></table></div>
+    </div>
+  </section>
+
+  <!-- MINUTOS -->
+  <section id="view-minutos" class="view">
+    <div class="minutes-grid">
+      <article class="card" data-aos="fade-up">
+        <h2 class="hub-card-title">Minutos jogados <small id="minutosInfo" class="muted"></small></h2>
+        <div id="minutosLista"></div>
+      </article>
+      <article class="card" data-aos="fade-up">
+        <h2 class="hub-card-title">11 mais utilizados</h2>
+        <div id="onzeCampo"></div>
+      </article>
     </div>
   </section>
 

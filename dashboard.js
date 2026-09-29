@@ -8,13 +8,13 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", minutos: "Minutos", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], opponents: [], attendance: [] };
+let dados = { players: [], teams: [], matches: [], opponents: [], attendance: [], match_reports: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -242,6 +242,118 @@ function renderTabelaStats() {
   }));
 }
 
+/* ---------- Minutos jogados (a partir dos relatórios de jogo) ---------- */
+
+/** Um relatório por jogo: o mais recente (o Word pode ter sido gerado várias vezes). */
+function relatoriosUnicos() {
+  const porJogo = new Map();
+  dados.match_reports.forEach(r => {
+    const m = r.match_data || {};
+    const pre = m.preJogo || {};
+    const chave = pre.matchId || `${pre.data || ""}|${pre.adversario || ""}|${r.id}`;
+    const quando = r.updated_at || r.created_at || "";
+    const atual = porJogo.get(chave);
+    if (!atual || String(quando) > String(atual.updated_at || atual.created_at || "")) porJogo.set(chave, r);
+  });
+  return [...porJogo.values()];
+}
+
+/** Minutos de cada jogador num relatório: titulares desde o 0', substituições por minuto. */
+function minutosDoRelatorio(matchData) {
+  const jogo = (matchData && matchData.jogo) || {};
+  const duracao = Number(jogo.duracaoJogo) || 90;
+  const periodos = {};
+  (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
+  (jogo.eventos || [])
+    .filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
+    .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+    .forEach(e => {
+      const minuto = Math.min(Number(e.minuto) || 0, duracao);
+      const aberto = (periodos[e.jogadorSaiId] || []).find(p => p.fim === null);
+      if (aberto) aberto.fim = minuto;
+      (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
+    });
+  const minutos = {};
+  Object.entries(periodos).forEach(([id, lista]) => {
+    const total = lista.reduce((s, p) => s + Math.max(0, (p.fim === null ? duracao : p.fim) - p.inicio), 0);
+    if (total > 0) minutos[id] = total;
+  });
+  return minutos;
+}
+
+/** Os relatórios guardam o id local do plantel; na tabela players pode ser "1014939" ou "<uid>-3". */
+function jogadorDoRelatorio(idLocal) {
+  const alvo = String(idLocal);
+  return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+}
+
+function calcularMinutosJogados() {
+  const totais = new Map();
+  const relatorios = relatoriosUnicos();
+  relatorios.forEach(r => {
+    Object.entries(minutosDoRelatorio(r.match_data)).forEach(([idLocal, min]) => {
+      const j = jogadorDoRelatorio(idLocal);
+      if (!j) return;
+      const t = totais.get(j.id) || { jogador: j, minutos: 0, jogos: 0 };
+      t.minutos += min;
+      t.jogos++;
+      totais.set(j.id, t);
+    });
+  });
+  return { lista: [...totais.values()].sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt")), relatorios: relatorios.length };
+}
+
+// Posições no campo (x, y em %; o ataque é em cima)
+const POSICOES_CAMPO = {
+  GR: [50, 89], DC: [50, 73], DD: [86, 68], DE: [14, 68],
+  MDEF: [50, 57], MCEN: [50, 45], MOFE: [50, 33],
+  ED: [84, 24], EE: [16, 24], PL: [50, 12]
+};
+const SINONIMOS_POSICAO = { MD: "MDEF", MC: "MCEN", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
+
+function posicaoNoCampo(posicao) {
+  const codigo = String(posicao || "").split("/")[0].trim().toUpperCase();
+  const chave = POSICOES_CAMPO[codigo] ? codigo : SINONIMOS_POSICAO[codigo];
+  return chave || "MCEN";
+}
+
+function renderMinutos() {
+  const { lista, relatorios } = calcularMinutosJogados();
+  $("minutosInfo").textContent = relatorios ? `${relatorios} relatório${relatorios === 1 ? "" : "s"} de jogo` : "";
+  if (!lista.length) {
+    const vazio = H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
+    $("minutosLista").innerHTML = vazio;
+    $("onzeCampo").innerHTML = vazio;
+    return;
+  }
+  const maximo = lista[0].minutos;
+  $("minutosLista").innerHTML = `<ol class="minutes-list">${lista.map((t, i) => `
+    <li>
+      <span class="minutes-pos">${i + 1}</span>
+      <span class="player-cell">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span>${esc(t.jogador.nome)}<small class="muted">${esc(t.jogador.posicao)} · ${t.jogos} jogo${t.jogos === 1 ? "" : "s"}</small></span></span>
+      <span class="minutes-bar" aria-hidden="true"><i style="width:${Math.max(2, t.minutos / maximo * 100)}%"></i></span>
+      <strong>${t.minutos}'</strong>
+    </li>`).join("")}</ol>`;
+
+  // 11 mais utilizados, colocados pela posição do perfil
+  const onze = lista.slice(0, 11);
+  const grupos = {};
+  onze.forEach(t => { (grupos[posicaoNoCampo(t.jogador.posicao)] || (grupos[posicaoNoCampo(t.jogador.posicao)] = [])).push(t); });
+  const marcadores = [];
+  Object.entries(grupos).forEach(([pos, jogadoresPos]) => {
+    const [x, y] = POSICOES_CAMPO[pos];
+    jogadoresPos.forEach((t, i) => {
+      const deslocamento = (i - (jogadoresPos.length - 1) / 2) * 24; // lado a lado quando há vários na mesma posição
+      marcadores.push({ t, x: Math.min(90, Math.max(10, x + deslocamento)), y });
+    });
+  });
+  $("onzeCampo").innerHTML = `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
+    <span class="mini-pitch-lines" aria-hidden="true"></span>
+    ${marcadores.map(({ t, x, y }) => `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`).join("")}
+  </div>
+  ${onze.length < 11 ? `<p class="muted readonly-note">Só ${onze.length} jogadores com minutos registados.</p>` : ""}`;
+}
+
 /* ---------- Calendário ---------- */
 
 function renderCalendario() {
@@ -256,6 +368,7 @@ function renderTudo() {
   renderHub();
   renderPlantel();
   renderEstatisticas();
+  renderMinutos();
   renderCalendario();
   VFN.renderSponsors($("sponsorFooter"), H.competicaoAtiva(dados));
   VFN.refreshAOS();

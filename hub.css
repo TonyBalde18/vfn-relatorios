@@ -186,3 +186,35 @@
 .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stats-grid dd { font-size: 1.25rem; }
 @media (max-width: 520px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Minutos jogados e 11 mais utilizados ---------- */
+.minutes-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.minutes-grid > .card { margin-bottom: 0; }
+.minutes-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.minutes-list li { display: grid; grid-template-columns: 22px minmax(0, 1.2fr) minmax(60px, 1fr) 48px; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: .84rem; }
+.minutes-list li:last-child { border-bottom: 0; }
+.minutes-list .player-cell { min-width: 0; font-weight: 600; }
+.minutes-list .player-cell small { display: block; font-weight: 400; font-size: .7rem; }
+.minutes-pos { color: var(--text-muted); font-weight: 700; font-size: .75rem; text-align: right; }
+.minutes-bar { height: 8px; border-radius: 4px; background: #EEF1F6; overflow: hidden; }
+.minutes-bar i { display: block; height: 100%; border-radius: 4px; background: #1d4ed8; }
+.minutes-list strong { text-align: right; color: var(--vfn-navy); font-variant-numeric: tabular-nums; }
+.mini-pitch { position: relative; width: 100%; max-width: 440px; margin: 0 auto; aspect-ratio: 3 / 4; border-radius: 10px; background: repeating-linear-gradient(180deg, #2f7d3b 0 12.5%, #2a7235 12.5% 25%); border: 2px solid rgba(255,255,255,.8); overflow: hidden; }
+.mini-pitch-lines { position: absolute; inset: 0; pointer-events: none; }
+.mini-pitch-lines::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid rgba(255,255,255,.55); }
+.mini-pitch-lines::after { content: ""; position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; border: 2px solid rgba(255,255,255,.55); border-radius: 50%; transform: translate(-50%, -50%); }
+.mini-pitch::before, .mini-pitch::after { content: ""; position: absolute; left: 30%; right: 30%; height: 11%; border: 2px solid rgba(255,255,255,.55); }
+.mini-pitch::before { top: -2px; border-top: 0; }
+.mini-pitch::after { bottom: -2px; border-bottom: 0; }
+.pitch-player { position: absolute; z-index: 1; display: grid; justify-items: center; gap: 1px; width: 84px; transform: translate(-50%, -50%); text-align: center; }
+.pitch-player-name { max-width: 84px; padding: 1px 6px; border-radius: 4px; background: rgba(10,22,40,.82); color: #fff; font-size: .68rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pitch-player-min { color: #FFD700; font-size: .66rem; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+@media (max-width: 960px) { .minutes-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .pitch-player { width: 64px; } .pitch-player-name { max-width: 64px; font-size: .6rem; } }
+@media (max-width: 520px) { .mini-pitch { aspect-ratio: 5 / 8; } .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 64px 42px; gap: 8px; } }
+.pitch-player-name b { color: #FFD700; font-weight: 800; }
+.pitch-player { width: 104px; } .pitch-player-name { max-width: 104px; }
+@media (max-width: 520px) { .pitch-player { width: 78px; } .pitch-player-name { max-width: 78px; } }
+.pitch-player-name { display: inline-flex; gap: 4px; }
+.pitch-player-name span { overflow: hidden; text-overflow: ellipsis; }
+.pitch-player-name b { flex: 0 0 auto; }
