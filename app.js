@@ -103,7 +103,7 @@ const SECCOES_TATICAS = [
 
 function jogadorBase(id, nome, posicao, numero) {
   return {
-    id, nome, posicao, numero: numero || "", fotoUrl: "", nacionalidade: "", nascimento: "", pePreferencial: "", altura: "", peso: "", notas: "", attributes: {}, stats: { jogos: 0 },
+    id, nome, posicao, numero: numero || "", jogos: 0, fotoUrl: "", nacionalidade: "", nascimento: "", pePreferencial: "", altura: "", peso: "", notas: "", attributes: {}, stats: { jogos: 0 },
     golos: 0, assistencias: 0, cartoesAmarelos: 0, cartoesVermelhos: 0, minutosTotais: 0
   };
 }
