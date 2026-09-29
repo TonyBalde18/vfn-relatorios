@@ -203,18 +203,6 @@ let filtroPosicaoEquipa = "";
 let posicoesModal = [];
 let posicaoPrincipalModal = "";
 const POSICOES_MAPA = { GR: [50, 88], DC: [38, 64], DD: [78, 64], DE: [18, 64], MDef: [50, 48], MCen: [50, 35], MOfe: [50, 22], ED: [82, 16], EE: [18, 16], PL: [50, 7] };
-const ATRIBUTOS_POR_POSICAO = {
-  GR: ["Reflexos", "Posicionamento", "Jogo com os pés", "Saídas", "Comunicação"],
-  DC: ["Marcação", "Cabeceamento", "Força", "Posicionamento", "Desarme"],
-  DD: ["Velocidade", "Cruzamento", "Marcação", "Resistência", "Posicionamento"],
-  DE: ["Velocidade", "Cruzamento", "Marcação", "Resistência", "Posicionamento"],
-  MDef: ["Recuperação", "Cobertura", "Passe", "Posicionamento", "Construção"],
-  MCen: ["Passe", "Movimentação", "Drible", "Resistência", "Remate"],
-  MOfe: ["Criatividade", "Drible", "Passe final", "Remate", "Velocidade"],
-  ED: ["Velocidade", "Movimentação", "Cruzamento", "Remate", "1v1"],
-  EE: ["Velocidade", "Movimentação", "Cruzamento", "Remate", "1v1"],
-  PL: ["Finalização", "Cabeceamento", "Movimentação", "Posicionamento", "Velocidade"]
-};
 let supabaseClient = null;
 let currentUser = null;
 let localMode = false;
@@ -1441,12 +1429,8 @@ function initPlantel() {
     jogador.nome = nome; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
-    jogador.notas = el("modalNotes").value;
-    jogador.nacionalidade = el("modalNacionalidade").value.trim(); jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value; jogador.altura = el("modalAltura").value; jogador.peso = el("modalPeso").value;
+    jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value;
     jogador.posicao = posicoesModal.join("/") || jogador.posicao;
-    try { jogador.stats = JSON.parse(el("modalStats").value || JSON.stringify(jogador.stats || { jogos: 0 })); } catch (e) { el("modalStats").focus(); return; }
-    jogador.attributes = {};
-    el("modalAttributes").querySelectorAll("input[data-attribute]").forEach(input => { jogador.attributes[input.dataset.attribute] = Number(input.value) || 0; });
     if (!jogadorEmEdicao) plantel.push(jogador);
     guardarPlantel();
     sincronizarPlantelSupabase();
@@ -1467,7 +1451,7 @@ function initPlantel() {
   });
   el("modalNumero").addEventListener("input", () => { if (!el("modalFoto").value) el("playerModalPhoto").innerHTML = generateJerseyAvatar(el("modalNumero").value); });
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
-  el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {}); });
+  el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
 
@@ -1484,11 +1468,8 @@ function abrirModalJogador() {
   el("modalNumero").value = "";
   el("modalFoto").value = "";
   el("modalFotoUpload").value = "";
-  el("modalNotes").value = "";
-  el("modalNacionalidade").value = ""; el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalAltura").value = ""; el("modalPeso").value = "";
+  el("modalNascimento").value = ""; el("modalPe").value = "";
   posicoesModal = []; posicaoPrincipalModal = "";
-  el("modalStats").value = '{"jogos":0,"golos":0,"assistencias":0,"cartoesA":0,"cartoesV":0,"minutos":0}';
-  renderModalAttributes({});
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
   el("modalNome").focus();
@@ -1501,25 +1482,10 @@ function abrirModalExistente(jogador) {
   el("modalNumero").value = jogador.numero;
   el("modalFoto").value = jogador.fotoUrl || "";
   el("modalFotoUpload").value = "";
-  el("modalNotes").value = jogador.notas || "";
-  el("modalNacionalidade").value = jogador.nacionalidade || ""; el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || ""; el("modalAltura").value = jogador.altura || ""; el("modalPeso").value = jogador.peso || "";
+  el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || "";
   posicoesModal = (jogador.posicao || "").split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || "";
-  el("modalStats").value = JSON.stringify(jogador.stats || {});
-  renderModalAttributes(jogador.attributes || {});
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
-}
-
-function renderModalAttributes(attributes) {
-  const container = el("modalAttributes");
-  const posicao = (el("modalPosicao").value || "").split("/")[0];
-  const nomes = ATRIBUTOS_POR_POSICAO[posicao] || ATRIBUTOS_POR_POSICAO.MCen;
-  container.innerHTML = nomes.map(nome => {
-    const raw = Number(attributes[nome]);
-    const value = raw > 10 ? Math.round(raw / 10) : (Number.isFinite(raw) ? raw : 5);
-    return `<label class="attribute-row"><span>${nome}</span><input type="range" min="0" max="10" value="${value}" data-attribute="${escapeHtml(nome)}"><span class="attribute-bar"><i style="width:${value * 10}%"></i></span><output>${value}/10</output></label>`;
-  }).join("");
-  container.querySelectorAll("input[type=range]").forEach(input => input.addEventListener("input", () => { input.nextElementSibling.querySelector("i").style.width = `${input.value * 10}%`; input.nextElementSibling.nextElementSibling.value = `${input.value}/10`; }));
 }
 
 function renderPositionMap() {
@@ -1534,7 +1500,7 @@ function renderPositionMap() {
     if (!posicoesModal.includes(posicao)) { posicoesModal.push(posicao); if (!posicaoPrincipalModal) posicaoPrincipalModal = posicao; }
     else if (posicao === posicaoPrincipalModal) { posicaoPrincipalModal = posicoesModal.find(item => item !== posicao) || ""; posicoesModal = posicoesModal.filter(item => item !== posicao); }
     else posicoesModal = posicoesModal.filter(item => item !== posicao);
-    el("modalPosicao").value = posicoesModal.join("/"); renderPositionMap(); renderModalAttributes(jogadorEmEdicao ? jogadorEmEdicao.attributes || {} : {});
+    el("modalPosicao").value = posicoesModal.join("/"); renderPositionMap();
   }));
 }
 
@@ -1543,7 +1509,7 @@ function renderPlayerModalHeader(jogador) {
   const numero = jogador ? jogador.numero : el("modalNumero").value;
   photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : generateJerseyAvatar(numero);
   el("playerModalName").textContent = jogador ? jogador.nome : "Adicionar Jogador";
-  el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nacionalidade ? ` · ${jogador.nacionalidade}` : ""}${jogador.nascimento ? ` · ${jogador.nascimento}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
+  el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${jogador.nascimento}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
   el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
@@ -1623,10 +1589,8 @@ function renderPlantel() {
 }
 
 function renderTeamQuickStats() {
-  const totalAtributos = plantel.flatMap(j => Object.values(j.attributes || {})).map(Number).filter(Number.isFinite);
-  const media = totalAtributos.length ? (totalAtributos.reduce((sum, value) => sum + Math.min(10, value > 10 ? value / 10 : value), 0) / totalAtributos.length).toFixed(1) : "—";
   const golos = plantel.reduce((sum, jogador) => sum + (Number(jogador.golos) || 0), 0);
-  el("teamQuickStats").innerHTML = `<span><strong>${plantel.length}</strong> jogadores</span><span><strong>${media}</strong> média atributos</span><span><strong>${golos}</strong> golos totais</span>`;
+  el("teamQuickStats").innerHTML = `<span><strong>${plantel.length}</strong> jogadores</span><span><strong>${golos}</strong> golos totais</span>`;
 }
 
 function criarStatCard(titulo, lista, formatador) {

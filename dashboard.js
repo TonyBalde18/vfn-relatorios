@@ -197,20 +197,14 @@ function abrirJogador(id) {
   if (!j) return;
   $("mjAvatar").innerHTML = j.fotoUrl ? `<img src="${esc(j.fotoUrl)}" alt="Fotografia de ${esc(j.nome)}">` : generateJerseyAvatar(j.numero);
   $("mjNome").textContent = j.nome;
-  $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.nacionalidade, j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
+  $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
   $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 
-  const atributos = Object.entries(j.attributes || {}).map(([nome, raw]) => {
-    const v = Number(raw) > 10 ? Math.round(Number(raw) / 10) : Number(raw) || 0;
-    return `<div class="attr-row"><span>${esc(nome)}</span><span class="attribute-bar"><i style="width:${v * 10}%"></i></span><strong>${v}</strong></div>`;
-  }).join("");
   const p = presencaJogador(j.id);
-  const info = [["Nascimento", j.info.nascimento ? VFN.paraData(j.info.nascimento).toLocaleDateString("pt-PT") : ""], ["Altura", j.info.altura ? j.info.altura + " cm" : ""], ["Peso", j.info.peso ? j.info.peso + " kg" : ""], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]];
+  const info = [["Nascimento", j.info.nascimento ? VFN.paraData(j.info.nascimento).toLocaleDateString("pt-PT") : ""], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]];
   $("mjCorpo").innerHTML = `
-    <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>
-    ${atributos ? `<h4>Atributos</h4><div class="attr-list">${atributos}</div>` : ""}
-    ${j.info.notas ? `<h4>Notas do treinador</h4><p class="coach-notes">${esc(j.info.notas).replace(/\n/g, "<br>")}</p>` : ""}`;
+    <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
 }

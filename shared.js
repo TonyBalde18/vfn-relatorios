@@ -71,8 +71,7 @@
     const sponsor = sponsorDaCompeticao(competicao);
     const logos = [AF_GUARDA, sponsor].filter(Boolean)
       .map(s => `<img src="${s.src}" alt="${escapeHtml(s.alt)}" title="${escapeHtml(s.alt)}" loading="lazy">`).join("");
-    const legenda = competicao ? nomeCurtoCompeticao(competicao) : "Época 2026/27";
-    container.innerHTML = `<span class="sponsor-caption">Parceiros · ${escapeHtml(legenda)}</span><div class="sponsor-logos">${logos}</div>`;
+    container.innerHTML = `<div class="sponsor-logos">${logos}</div>`;
   }
 
   /* ---------- Datas ---------- */

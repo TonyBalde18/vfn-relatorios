@@ -85,7 +85,7 @@
 
 /* ---------- Modal do jogador (leitura) ---------- */
 .player-readonly h4 { margin: 12px 0 8px; color: var(--vfn-navy); font-size: .85rem; }
-.info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
 .info-grid div { padding: 8px 10px; border-radius: 7px; background: #F7F8FA; }
 .info-grid dt { color: var(--text-muted); font-size: .7rem; }
 .info-grid dd { margin: 2px 0 0; font-weight: 700; color: var(--vfn-navy); }
