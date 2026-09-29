@@ -1,67 +1,56 @@
-# VFN — Relatórios de Jogo
+# VFN — Hub do ACD Vila Franca das Naves
 
-Aplicação web estática para relatórios táticos do ACD Vila Franca das Naves, com autenticação Supabase, rascunho sincronizado, equipa e exportação Word.
+Aplicação web estática (GitHub Pages + Supabase) do ACD Vila Franca das Naves, 2ª Distrital da Guarda: relatórios táticos, gestão do plantel, dashboard da equipa técnica e página pública para os atletas.
+
+## Páginas
+
+| Página | Quem usa | Acesso |
+|---|---|---|
+| `index.html` | Tony (admin) | Login. Relatório de jogo e gestão (multas, presenças, calendário, classificação, adversários) |
+| `dashboard.html` | Treinador e dirigentes | Login. Hub, plantel, estatísticas e calendário (só leitura) |
+| `public.html` | Atletas | Sem login. Próximo jogo, forma, plantel, classificação, calendário e marcadores |
 
 ## Ficheiros
 
-- `index.html` — login e interface das tabs Pré-Jogo, Jogo, Análise e Equipa.
-- `app.js` — estado, eventos, Supabase Auth, sincronização, equipa e Word.
-- `config.js` — URL e chave anon do projeto Supabase.
-- `styles.css` — layout, cores, estados e animações.
-- `logo.png` — logótipo VFN.
+- `index.html`, `app.js` — relatório de jogo (Pré-Jogo, Jogo, Análise, Equipa) e exportação Word.
+- `admin.js` — tabs de gestão do admin (Multas, Presenças, Calendário, Classificação, Adversários).
+- `dashboard.html`, `dashboard.js` — dashboard da equipa técnica (gráficos Chart.js).
+- `public.html`, `public.js` — página pública dos atletas.
+- `shared.js` — cliente Supabase com spinner, avatar `generateJerseyAvatar(number)`, patrocinadores por competição e utilitários.
+- `hub.js` — componentes de leitura partilhados pelo dashboard e pela página pública.
+- `styles.css` (base) e `hub.css` (dashboard e página pública).
+- `schema.sql` — tabelas, view pública e políticas RLS.
+- `config.js` — URL e chave **anon** do projeto Supabase.
+- `assets/` — `logo.png`, `logo-icon.ico` e `sponsors/` (AF Guarda, Zero Graus, FDM, Comunilog).
 
 ## Configuração Supabase
 
-1. Cria um projeto em [supabase.com](https://supabase.com).
-2. No SQL Editor, executa o SQL abaixo.
-3. Em Authentication > Users, cria os utilizadores com email/password.
-4. Copia Project URL e anon key de Settings > API para `config.js`:
+1. No SQL Editor, corre **todo** o `schema.sql`. É idempotente: completa as tabelas existentes, cria `profiles`, `opponents`, `sessions` e a view `players_public`, e substitui as políticas RLS destas tabelas.
+2. No fim do ficheiro, descomenta o bloco **1. ADMIN**, põe o teu email e corre-o. **Sem isto o `index.html` deixa de conseguir gravar.**
+3. Em Authentication > Users cria as contas do treinador e dos dirigentes e atribui-lhes o papel com o bloco **2** do `schema.sql`.
+4. Confirma que `config.js` tem o Project URL e a anon key (Settings > API):
 
 ```js
 const SUPABASE_URL = 'https://o-teu-projeto.supabase.co';
 const SUPABASE_ANON_KEY = 'a-tua-chave-anon';
 ```
 
-O campo `user_id` em `players` é adicional ao conjunto base pedido e é necessário para aplicar RLS por utilizador.
+### Papéis e permissões
 
-```sql
-create extension if not exists "pgcrypto";
+| | Anónimo (public) | Treinador / Dirigente | Admin |
+|---|---|---|---|
+| Jogos, classificação, equipas | lê | lê | lê e escreve |
+| Plantel | só `players_public` (sem atributos nem notas) | lê | lê e escreve |
+| Multas, presenças, sessões, observação de adversários | — | lê | lê e escreve |
+| Relatórios e rascunhos | — | lê relatórios | os seus |
 
-create table if not exists public.players (
-  id text primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null,
-  position text,
-  number integer,
-  photo_url text,
-  attributes jsonb not null default '{}'::jsonb,
-  stats jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
+### Patrocinadores por competição
 
-create table if not exists public.match_reports (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  match_data jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+A AF Guarda aparece sempre. Zero Graus → 2ª Liga · FDM → Taça 2ª Liga · Comunilog → Taça de Honra. O rodapé mostra o patrocinador da competição do relatório (admin) ou do próximo jogo (dashboard e página pública).
 
-create table if not exists public.draft (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique references auth.users(id) on delete cascade,
-  data jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
-);
+### Estatísticas dos jogadores
 
-alter table public.players enable row level security;
-alter table public.match_reports enable row level security;
-alter table public.draft enable row level security;
-
-create policy "players own rows" on public.players for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "reports own rows" on public.match_reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "draft own row" on public.draft for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-```
+As estatísticas vivem em `players.stats` (jsonb). No separador Jogo, golos, assistências e cartões atualizam o plantel automaticamente; jogos e minutos são somados ao gerar o relatório Word, que também grava o resultado no jogo do calendário associado ("Usar dados deste jogo" no Pré-Jogo).
 
 ### Fotografias dos jogadores
 
@@ -98,11 +87,14 @@ Sem credenciais reais em `config.js`, o botão **Entrar em modo local** permite 
 - Eventos com jogadores em campo, substituição única `Sai`/`Entra`, tempo acrescentado e scoreboard calculado automaticamente.
 - Linha do tempo horizontal na app e vertical no Word, com VFN à esquerda e adversário à direita.
 - Análise com cinco avaliações táticas e campos de texto livre para síntese e treino.
-- Tab Equipa com foto, dados biográficos, stats, atributos 0–10, mapa de posições, modal estilo Zerozero/FIFA e sumários.
+- Tab Equipa com foto (ou camisola com o número), dados biográficos, stats, atributos 0–10, mapa de posições, modal estilo Zerozero/FIFA e sumários.
+- Multas por mês com resumo pendente/arrecadado e marcação de pagamento; presenças numa grelha mensal (P/F/A/J) com totais.
+- Calendário, classificação e adversários (logos e observação) geridos no admin e mostrados no dashboard e na página pública.
+- O modo local (sem Supabase) guarda também multas, presenças, calendário, classificação e adversários no `localStorage`.
 
 ## GitHub Pages
 
-1. Faz commit de `index.html`, `app.js`, `styles.css`, `config.js`, `logo.png` e `README.md`.
+1. Faz commit de todos os ficheiros, incluindo a pasta `assets/`.
 2. Publica o ramo `main` em Settings > Pages > Deploy from branch.
 3. Usa HTTPS e confirma que `config.js` contém apenas a chave **anon**. Nunca publiques a service role key.
 
@@ -112,4 +104,4 @@ Abre o URL do GitHub Pages no browser do dispositivo e adiciona-o ao ecrã inici
 
 ## Backup
 
-No Supabase Dashboard, usa Table Editor > Export ou `pg_dump` para exportar `players`, `match_reports` e `draft`. Mantém também o botão de exportação JSON da equipa e o exportador de rascunho da app como cópia rápida.
+No Supabase Dashboard, usa Table Editor > Export ou `pg_dump` para exportar as tabelas (`players`, `teams`, `matches`, `standings`, `opponents`, `attendance`, `sessions`, `fines`, `match_reports`, `draft`). Mantém também o botão de exportação JSON da equipa e o exportador de rascunho da app como cópia rápida.
