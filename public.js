@@ -45,14 +45,31 @@ function mostrarVista(vista) {
 
 function renderPlantel() {
   $("pubPlantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicao);
-  // na página pública os cartões não abrem ficha
-  $("pubPlantel").innerHTML = H.plantelHTML(jogadores, filtroPosicao).replace(/<button type="button" class="player-card"/g, '<div class="player-card is-static"').replace(/<\/button>/g, "</div>");
+  $("pubPlantel").innerHTML = H.plantelHTML(jogadores, filtroPosicao);
   $("pubPlantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
+  $("pubPlantel").querySelectorAll(".player-card").forEach(c => c.addEventListener("click", () => abrirJogador(c.dataset.id)));
+}
+
+/** Ficha só de leitura: nome completo, camisola, posição, número e estatísticas. */
+function abrirJogador(id) {
+  const j = jogadores.find(x => String(x.id) === String(id));
+  if (!j) return;
+  $("pjAvatar").innerHTML = j.fotoUrl ? `<img src="${VFN.escapeHtml(j.fotoUrl)}" alt="Fotografia de ${VFN.escapeHtml(j.nomeCompleto)}">` : generateJerseyAvatar(j.numero);
+  $("pjNome").textContent = j.nomeCompleto;
+  $("pjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ");
+  $("pjStats").innerHTML = [["Jogos", j.jogos], ["Minutos", j.minutos], ["Golos", j.golos], ["Assistências", j.assistencias], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV]]
+    .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  $("modalJogador").hidden = false;
+  $("btnFecharJogador").focus();
+}
+
+function fecharJogador() {
+  $("modalJogador").hidden = true;
 }
 
 function renderCalendario() {
   $("pubCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
-  $("pubCalendario").innerHTML = H.calendarioHTML(dados, filtroCalendario);
+  $("pubCalendario").innerHTML = H.calendarioDivididoHTML(dados, filtroCalendario);
   $("pubCalendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));
 }
 
@@ -78,6 +95,9 @@ function renderTudo() {
 async function iniciar() {
   VFN.initAOS();
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
+  $("btnFecharJogador").addEventListener("click", fecharJogador);
+  $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") fecharJogador(); });
   $("pubCompeticao").addEventListener("change", e => { competicao = e.target.value; $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao); });
   renderTudo(); // estados vazios enquanto carrega
   await carregarDados();

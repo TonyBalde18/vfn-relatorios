@@ -191,10 +191,32 @@
     return FILTROS_CALENDARIO.map(([v, t]) => `<button type="button" class="filter-chip ${v === ativo ? "active" : ""}" data-filtro="${v}">${t}</button>`).join("");
   }
 
-  function calendarioHTML(dados, filtro) {
-    const lista = VFN.jogosDoVFN(dados.matches)
+  function jogosFiltrados(dados, filtro) {
+    return VFN.jogosDoVFN(dados.matches)
       .filter(j => filtro === "todos" || VFN.categoriaCompeticao(j.competition) === filtro)
       .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+  }
+
+  function itemJogoHTML(dados, j, proximo) {
+    const d = VFN.paraData(j.date);
+    const nome = nomeAdversario(dados, j);
+    const g = VFN.golosJogo(j);
+    const estado = VFN.estadoJogo(j) || "agendado";
+    const hora = VFN.horaIso(j.date);
+    const eProximo = proximo && proximo.id === j.id;
+    return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}">
+        <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
+        <div class="match-main">
+          <div class="match-line">${tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
+          <div class="match-opponent">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
+        </div>
+        <div class="match-side">${estado === "jogado" && g ? `<span class="result-score">${g.vfn}–${g.adv}</span>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
+      </article>`;
+  }
+
+  /** Calendário por meses (dashboard). */
+  function calendarioHTML(dados, filtro) {
+    const lista = jogosFiltrados(dados, filtro);
     if (!lista.length) return vazio("Sem jogos nesta competição.");
     const proximo = VFN.proximoJogo(dados.matches);
     let mesAtual = "";
@@ -203,19 +225,19 @@
       const mes = d ? `${VFN.MESES_LONGOS[d.getMonth()]} ${d.getFullYear()}` : "Sem data";
       const cabecalho = mes !== mesAtual ? `<h3 class="calendar-month">${esc(mes)}</h3>` : "";
       mesAtual = mes;
-      const nome = nomeAdversario(dados, j);
-      const g = VFN.golosJogo(j);
-      const estado = VFN.estadoJogo(j) || "agendado";
-      const hora = VFN.horaIso(j.date);
-      return `${cabecalho}<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${proximo && proximo.id === j.id ? " is-next" : ""}">
-        <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
-        <div class="match-main">
-          <div class="match-line">${tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${proximo && proximo.id === j.id ? '<small class="next-flag">Próximo</small>' : ""}</div>
-          <div class="match-opponent">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
-        </div>
-        <div class="match-side">${estado === "jogado" && g ? `<span class="result-score">${g.vfn}–${g.adv}</span>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
-      </article>`;
+      return cabecalho + itemJogoHTML(dados, j, proximo);
     }).join("");
+  }
+
+  /** Dois blocos: próximos jogos (data, adversário, logo) e jogos anteriores (resultado, logo). */
+  function calendarioDivididoHTML(dados, filtro) {
+    const lista = jogosFiltrados(dados, filtro);
+    if (!lista.length) return vazio("Sem jogos nesta competição.");
+    const proximo = VFN.proximoJogo(dados.matches);
+    const futuros = lista.filter(j => VFN.estadoJogo(j) === "agendado");
+    const anteriores = lista.filter(j => VFN.estadoJogo(j) !== "agendado").reverse(); // mais recente primeiro
+    const bloco = (titulo, jogos, textoVazio) => `<h3 class="calendar-month">${titulo} <span class="muted">· ${jogos.length}</span></h3>${jogos.length ? jogos.map(j => itemJogoHTML(dados, j, proximo)).join("") : vazio(textoVazio)}`;
+    return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
   }
 
   /* ---------- Rodapé ---------- */
@@ -232,6 +254,6 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, competicaoAtiva
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva
   };
 })();

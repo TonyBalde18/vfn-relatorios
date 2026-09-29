@@ -76,6 +76,18 @@
   <p>ACD Vila Franca das Naves · Época 2026/27</p>
 </footer>
 
+<!-- MODAL: ficha do jogador (só leitura) -->
+<div id="modalJogador" class="modal-overlay" hidden>
+  <div class="modal-box player-modal-box" role="dialog" aria-modal="true" aria-labelledby="pjNome">
+    <div class="player-modal-profile">
+      <div id="pjAvatar" class="player-modal-photo"></div>
+      <div><h3 id="pjNome"></h3><p id="pjMeta"></p></div>
+    </div>
+    <dl id="pjStats" class="info-grid stats-grid"></dl>
+    <div class="modal-actions"><button type="button" id="btnFecharJogador" class="btn btn-accent">Fechar</button></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 <script src="config.js?v=3"></script>
