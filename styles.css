@@ -799,3 +799,5 @@ body.tab-gestao .app-content .header-actions { display: none; }
 .skeleton-hero { height: 220px; border-radius: 10px; }
 @media (prefers-reduced-motion: reduce) { .skeleton::after { animation: none; } }
 .position-point.secondary { background: rgba(255,215,0,.45); }
+.app-sidebar > * { flex-shrink: 0; }
+.sidebar-nav .nav-item { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
