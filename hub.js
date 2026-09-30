@@ -139,8 +139,8 @@
     // calculada a partir dos resultados em matches (não usa a tabela standings)
     const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
-    return `<div class="table-wrap"><table class="standings-compact">
-      <thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Equipa</th><th scope="col">J</th><th scope="col">V</th><th scope="col">E</th><th scope="col">D</th><th scope="col" class="hide-xs">GM</th><th scope="col" class="hide-xs">GS</th><th scope="col">Pts</th></tr></thead>
+    return `<div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
+      <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
       <tbody>${linhas.map((s, i) => {
         const t = equipa(dados, s.team_id);
         const nome = (t && t.name) || s.team_name || "—";
@@ -189,13 +189,20 @@
   const FILTROS_CALENDARIO = [["todos", "Todos"], ["liga", "Liga"], ["taca", "Taça"], ["amigavel", "Amigáveis"]];
 
   function filtrosCalendarioHTML(ativo) {
-    return FILTROS_CALENDARIO.map(([v, t]) => `<button type="button" class="filter-chip ${v === ativo ? "active" : ""}" data-filtro="${v}">${t}</button>`).join("");
+    return FILTROS_CALENDARIO.map(([v, t]) => `<button type="button" class="filter-chip ${v === ativo ? "active" : ""}" data-filtro="${v}">${t}</button>`).join("") + botaoOrdemCalendarioHTML();
+  }
+
+  // ordem do calendário (dashboard e página pública): "asc" ou "desc" por data
+  let ordemCalendario = "asc";
+  function alternarOrdemCalendario() { ordemCalendario = ordemCalendario === "asc" ? "desc" : "asc"; return ordemCalendario; }
+  function botaoOrdemCalendarioHTML() {
+    return `<button type="button" class="btn btn-ghost btn-sm" data-ordem-calendario>${VFN.icone("arrow-up-down", 16)} Data ${ordemCalendario === "asc" ? "↑" : "↓"}</button>`;
   }
 
   function jogosFiltrados(dados, filtro) {
     return VFN.jogosDoVFN(dados.matches)
       .filter(j => filtro === "todos" || VFN.categoriaCompeticao(j.competition) === filtro)
-      .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+      .sort((a, b) => ((VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0)) * (ordemCalendario === "asc" ? 1 : -1));
   }
 
   function itemJogoHTML(dados, j, proximo) {
@@ -236,7 +243,7 @@
     if (!lista.length) return vazio("Sem jogos nesta competição.");
     const proximo = VFN.proximoJogo(dados.matches);
     const futuros = lista.filter(j => VFN.estadoJogo(j) === "agendado");
-    const anteriores = lista.filter(j => VFN.estadoJogo(j) !== "agendado").reverse(); // mais recente primeiro
+    const anteriores = lista.filter(j => VFN.estadoJogo(j) !== "agendado");
     const bloco = (titulo, jogos, textoVazio) => `<h3 class="calendar-month">${titulo} <span class="muted">· ${jogos.length}</span></h3>${jogos.length ? jogos.map(j => itemJogoHTML(dados, j, proximo)).join("") : vazio(textoVazio)}`;
     return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
   }
@@ -322,7 +329,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva, esqueleto,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
     jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML
   };
 })();

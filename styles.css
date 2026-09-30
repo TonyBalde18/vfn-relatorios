@@ -908,3 +908,10 @@ body {
 .nota-percentagem { display: block; margin: 4px 0 0; padding: 4px 8px; border-radius: 6px; background: #FFF4CC; color: #7A5A00; font-size: .74rem; font-weight: 600; }
 .valor-a-definir { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #FFF4CC; color: #7A5A00; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .valor-a-definir-nota { display: block; margin-top: 2px; color: #7A5A00; font-size: .72rem; font-weight: 600; }
+
+/* ---------- Ordenação por coluna ---------- */
+table[data-ordenar] th[data-tipo] { cursor: pointer; user-select: none; white-space: nowrap; }
+table[data-ordenar] th[data-tipo]:hover, table[data-ordenar] th[data-tipo]:focus-visible { background-image: linear-gradient(rgba(255,215,0,.35), rgba(255,215,0,.35)); outline: none; }
+table[data-ordenar] th[data-tipo]::after { content: "↕"; margin-left: 4px; opacity: .35; font-size: .85em; }
+table[data-ordenar] th[aria-sort="ascending"]::after { content: "▲"; opacity: .9; }
+table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity: .9; }

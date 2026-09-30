@@ -236,18 +236,18 @@
       <div class="team-toolbar"><input type="search" id="teamSearch" placeholder="Pesquisar jogador..."><select id="teamPositionFilter"><option value="">Todas as posições</option><option value="GR">GR</option><option value="Def">Defesa</option><option value="Meio">Meio-campo</option><option value="Ata">Ataque</option></select></div>
       <div id="teamQuickStats" class="team-quick-stats"></div>
       <div class="table-wrap">
-        <table class="plantel-table" id="plantelTable">
+        <table class="plantel-table" id="plantelTable" data-ordenar="plantel">
           <thead>
             <tr>
-              <th>Foto</th><th>Nome</th>
-              <th>Posição</th>
-              <th>Nº</th>
-              <th>Jogos</th>
-              <th>Golos</th>
-              <th>Assist.</th>
-              <th>C.A.</th>
-              <th>C.V.</th>
-              <th>Minutos</th>
+              <th>Foto</th><th data-tipo="texto">Nome</th>
+              <th data-tipo="texto">Posição</th>
+              <th data-tipo="numero">Nº</th>
+              <th data-tipo="numero">Jogos</th>
+              <th data-tipo="numero">Golos</th>
+              <th data-tipo="numero">Assist.</th>
+              <th data-tipo="numero">C.A.</th>
+              <th data-tipo="numero">C.V.</th>
+              <th data-tipo="numero">Minutos</th>
               <th></th>
             </tr>
           </thead>
@@ -272,12 +272,12 @@
         <h2 class="section-title">Multas</h2>
         <button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Adicionar Multa</button>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select></div>
+      <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select><label class="sr-only" for="multasFiltroJogador">Jogador</label><select id="multasFiltroJogador"></select><label class="sr-only" for="multasFiltroTipo">Tipo</label><select id="multasFiltroTipo"></select><label class="sr-only" for="multasFiltroEstado">Estado</label><select id="multasFiltroEstado"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select></div>
       <p id="multasErro" class="form-error" role="alert"></p>
       <div id="multasResumo" class="summary-tiles"></div>
       <div class="table-wrap">
-        <table class="fines-table">
-          <thead><tr><th>Nome</th><th>Infracção</th><th class="num">Valor</th><th>Estado</th><th>Data</th><th>Acções</th></tr></thead>
+        <table class="fines-table" data-ordenar="multas-admin">
+          <thead><tr><th data-tipo="texto">Nome</th><th data-tipo="texto">Infracção</th><th class="num" data-tipo="numero">Valor</th><th data-tipo="texto">Estado</th><th data-tipo="data">Data</th><th>Acções</th></tr></thead>
           <tbody id="multasBody"></tbody>
         </table>
       </div>
@@ -291,7 +291,7 @@
         <h2 class="section-title">Presenças</h2>
         <button type="button" id="btnAddSessao" class="btn btn-accent btn-sm">+ Adicionar Sessão</button>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="presencasMes">Mês</label><select id="presencasMes"></select><span class="muted">Clica numa célula para alternar: vazio → P → F → A → J</span></div>
+      <div class="toolbar"><label class="toolbar-label" for="presencasMes">Mês</label><select id="presencasMes"></select><label class="sr-only" for="presencasFiltroJogador">Jogador</label><select id="presencasFiltroJogador"></select><span class="muted">Clica numa célula para alternar: vazio → P → F → A → J</span></div>
       <p id="presencasErro" class="form-error" role="alert"></p>
       <div id="presencasGrelha"></div>
       <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span><span><i data-icon="footprints" data-size="16"></i> Treino · <i data-icon="goal" data-size="16"></i> Jogo</span></div>
@@ -305,10 +305,10 @@
         <h2 class="section-title">Calendário</h2>
         <button type="button" id="btnAddJogo" class="btn btn-accent btn-sm">+ Adicionar Jogo</button>
       </div>
-      <div class="toolbar"><div id="calendarioFiltros" class="filter-chips" role="group" aria-label="Filtrar competições"></div></div>
+      <div class="toolbar"><div id="calendarioFiltros" class="filter-chips" role="group" aria-label="Filtrar competições"></div><label class="sr-only" for="calendarioCompeticaoFiltro">Competição</label><select id="calendarioCompeticaoFiltro"></select></div>
       <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Data</th><th>Competição</th><th class="num">J.</th><th>Local</th><th>Adversário</th><th class="num">Resultado</th><th>Estado</th><th>Acções</th></tr></thead>
+        <table class="data-table" data-ordenar="calendario-admin">
+          <thead><tr><th data-tipo="data">Data</th><th data-tipo="texto">Competição</th><th class="num" data-tipo="numero">J.</th><th data-tipo="texto">Local</th><th data-tipo="texto">Adversário</th><th class="num">Resultado</th><th data-tipo="texto">Estado</th><th>Acções</th></tr></thead>
           <tbody id="calendarioBody"></tbody>
         </table>
       </div>
@@ -366,8 +366,8 @@
       </div>
       <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select><span class="muted">Calculada em tempo real a partir dos jogos do VFN (Resultados) e dos jogos entre as outras equipas (Jornadas AF Guarda). Pts = V×3 + E.</span></div>
       <div class="table-wrap">
-        <table class="standings-table data-table">
-          <thead><tr><th>Pos</th><th class="team-col">Equipa</th><th title="Jogos">P</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>DG</th><th>Pts</th></tr></thead>
+        <table class="standings-table data-table" data-ordenar="classificacao-admin">
+          <thead><tr><th data-tipo="numero">Pos</th><th class="team-col" data-tipo="texto">Equipa</th><th title="Jogos" data-tipo="numero">P</th><th data-tipo="numero">V</th><th data-tipo="numero">E</th><th data-tipo="numero">D</th><th data-tipo="numero">GM</th><th data-tipo="numero">GS</th><th data-tipo="numero">DG</th><th data-tipo="numero">Pts</th></tr></thead>
           <tbody id="classificacaoBody"></tbody>
         </table>
       </div>

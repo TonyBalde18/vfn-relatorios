@@ -434,8 +434,8 @@ function renderPresencasDash() {
     const celulas = sessoes.map((s, i) => { const e = estado(j.id, s); if (e) { t[e]++; totaisSessao[i][e]++; } return `<td><span class="att-cell" data-status="${e}" title="${NOMES_PRESENCA[e] || "Sem registo"}">${e}</span></td>`; }).join("");
     return `<tr><th scope="row" class="col-player" data-v="${esc(j.nome)}"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span></th>${celulas}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${t[k]}</td>`).join("")}</tr>`;
   }).join("");
-  $("dbPresencasGrelha").innerHTML = `<div class="attendance-wrap"><table class="attendance-table leitura">
-    <thead><tr><th scope="col" class="col-player">Jogador</th>${sessoes.map(s => `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${esc(VFN.dataDDMMAAAA(s.data))}"><span class="session-day">${esc(VFN.dataCurta(s.data))}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${VFN.icone(s.tipo === "jogo" ? "goal" : "footprints", 16)}</span></th>`).join("")}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
+  $("dbPresencasGrelha").innerHTML = `<div class="attendance-wrap"><table class="attendance-table leitura" data-ordenar="presencas-dash">
+    <thead><tr><th scope="col" class="col-player" data-tipo="texto">Jogador</th>${sessoes.map(s => `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${esc(VFN.dataDDMMAAAA(s.data))}"><span class="session-day">${esc(VFN.dataCurta(s.data))}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${VFN.icone(s.tipo === "jogo" ? "goal" : "footprints", 16)}</span></th>`).join("")}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" data-tipo="numero" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
     <tbody>${linhas}</tbody>
     <tfoot><tr><td class="col-player">Presentes (P+A)</td>${totaisSessao.map(t => `<td>${t.P + t.A}</td>`).join("")}<td colspan="4"></td></tr></tfoot>
   </table></div>`;
@@ -480,6 +480,7 @@ function renderCalendario() {
   $("calendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
   $("calendarioLista").innerHTML = H.calendarioHTML(dados, filtroCalendario);
   $("calendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));
+  $("calendarioFiltros").querySelector("[data-ordem-calendario]").addEventListener("click", () => { H.alternarOrdemCalendario(); renderCalendario(); });
 }
 
 /* ---------- Arranque ---------- */

@@ -428,6 +428,74 @@
     observarModais();
   });
 
+  /* ---------- Ordenação de tabelas por coluna ----------
+     <table data-ordenar="chave"> e <th data-tipo="texto|numero|data"> nas colunas ordenáveis.
+     Valor da célula: data-v, senão o valor do input, senão o texto. A ordem escolhida
+     fica guardada por chave e volta a aplicar-se quando a tabela é redesenhada. */
+
+  const estadoOrdenacao = new Map(); // chave -> { col, dir }
+
+  function valorCelula(celula, tipo) {
+    if (!celula) return tipo === "texto" ? "" : 0;
+    const campo = celula.querySelector("input, select");
+    const bruto = celula.dataset.v !== undefined ? celula.dataset.v : campo ? campo.value : celula.textContent.trim();
+    if (tipo === "numero") { const n = parseFloat(String(bruto).replace(",", ".").replace(/[^\d.-]/g, "")); return Number.isFinite(n) ? n : -Infinity; }
+    return String(bruto);
+  }
+
+  function ordenarTabela(tabela) {
+    const chave = tabela.dataset.ordenar;
+    const est = estadoOrdenacao.get(chave);
+    const cabecalho = tabela.tHead && tabela.tHead.rows[0];
+    if (!cabecalho) return;
+    [...cabecalho.cells].forEach((th, i) => {
+      if (!th.dataset.tipo) return;
+      th.tabIndex = 0;
+      th.setAttribute("aria-sort", est && est.col === i ? (est.dir === "asc" ? "ascending" : "descending") : "none");
+    });
+    const tbody = tabela.tBodies[0];
+    if (!est || !tbody) return;
+    const tipo = cabecalho.cells[est.col] && cabecalho.cells[est.col].dataset.tipo || "texto";
+    const linhas = [...tbody.rows].filter(r => r.cells.length > 1); // ignora linhas de "sem dados"
+    const ordenadas = [...linhas].sort((a, b) => {
+      const x = valorCelula(a.cells[est.col], tipo), y = valorCelula(b.cells[est.col], tipo);
+      const r = tipo === "numero" ? x - y : String(x).localeCompare(String(y), "pt", { numeric: true, sensitivity: "base" });
+      return est.dir === "asc" ? r : -r;
+    });
+    // só mexe no DOM se a ordem mudar (evita ciclos com o observador)
+    if (ordenadas.every((l, i) => l === linhas[i])) return;
+    const frag = document.createDocumentFragment();
+    ordenadas.forEach(l => frag.appendChild(l));
+    tbody.appendChild(frag);
+  }
+
+  function alternarOrdenacao(th) {
+    const tabela = th.closest("table[data-ordenar]");
+    const chave = tabela.dataset.ordenar;
+    const atual = estadoOrdenacao.get(chave);
+    const col = th.cellIndex;
+    const dir = atual && atual.col === col ? (atual.dir === "asc" ? "desc" : "asc") : (th.dataset.tipo === "texto" ? "asc" : "desc");
+    estadoOrdenacao.set(chave, { col, dir });
+    ordenarTabela(tabela);
+  }
+
+  document.addEventListener("click", e => {
+    const th = e.target.closest && e.target.closest("table[data-ordenar] thead th[data-tipo]");
+    if (th && !e.target.closest("input, select, button:not(.sort-btn)")) alternarOrdenacao(th);
+  });
+  document.addEventListener("keydown", e => {
+    const th = e.target.closest && e.target.closest("table[data-ordenar] thead th[data-tipo]");
+    if (th && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); alternarOrdenacao(th); }
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    let pendente = false;
+    new MutationObserver(() => {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(() => { pendente = false; document.querySelectorAll("table[data-ordenar]").forEach(ordenarTabela); });
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+
   /* ---------- Logos das equipas ---------- */
 
   const BASE_SITE = "https://tonybalde18.github.io/vfn-relatorios/";
@@ -607,7 +675,7 @@
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
-    escapeHtml, novoId, slug, icone, hidratarIcones, anim,
+    escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,

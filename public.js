@@ -76,6 +76,7 @@ function renderCalendario() {
   $("pubCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
   $("pubCalendario").innerHTML = H.calendarioDivididoHTML(dados, filtroCalendario);
   $("pubCalendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));
+  $("pubCalendarioFiltros").querySelector("[data-ordem-calendario]").addEventListener("click", () => { H.alternarOrdemCalendario(); renderCalendario(); });
 }
 
 function mostrarEsqueletos() {

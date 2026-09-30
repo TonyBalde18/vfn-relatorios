@@ -93,20 +93,33 @@ function celulaJogadorHTML(playerId) {
 function initMultas() {
   el("multasMes").innerHTML = opcoesMesesHTML(mesDaEpocaOuAtual(), true);
   el("multasMes").addEventListener("change", renderMultas);
+  ["multasFiltroJogador", "multasFiltroTipo", "multasFiltroEstado"].forEach(id => el(id).addEventListener("change", renderMultas));
   el("multaTipo").addEventListener("change", () => aplicarTipoMulta(true));
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
 }
 
+function renderFiltrosMultas() {
+  const manter = (id, html) => { const s = el(id); const v = s.value; s.innerHTML = html; if ([...s.options].some(o => o.value === v)) s.value = v; };
+  manter("multasFiltroJogador", opcoesPlantelHTML("").replace("— Selecionar jogador —", "Todos os jogadores"));
+  const tipos = [...new Set([...VFN.TIPOS_MULTA.map(t => t.tipo), ...cacheAdmin.fines.map(f => f.infraction_type)])];
+  manter("multasFiltroTipo", '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(rotuloInfraccao(t))}</option>`).join(""));
+}
+
 function multasDoPeriodo() {
   const mes = el("multasMes").value;
+  const jogador = el("multasFiltroJogador").value, tipo = el("multasFiltroTipo").value, estado = el("multasFiltroEstado").value;
   return cacheAdmin.fines
     .filter(f => mes === "epoca" || String(f.match_date || "").startsWith(mes))
+    .filter(f => !jogador || String(f.player_id) === jogador)
+    .filter(f => !tipo || f.infraction_type === tipo)
+    .filter(f => !estado || (estado === "pago" ? f.paid : !f.paid))
     .sort((a, b) => String(b.match_date || "").localeCompare(String(a.match_date || "")));
 }
 
 function renderMultas() {
+  renderFiltrosMultas();
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
@@ -123,11 +136,11 @@ function renderMultas() {
   }
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
-      <td>${celulaJogadorHTML(f.player_id)}</td>
+      <td data-v="${escapeHtml((jogadorPorIdBD(f.player_id) || {}).nome || "")}">${celulaJogadorHTML(f.player_id)}</td>
       <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${escapeHtml(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
-      <td class="num">${VFN.valorMultaHTML(f)}</td>
+      <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
-      <td>${dataPt(f.match_date)}</td>
+      <td data-v="${escapeHtml(f.match_date || "")}">${dataPt(f.match_date)}</td>
       <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar multa" aria-label="Editar multa">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar multa" aria-label="Eliminar multa">${VFN.icone("trash-2", 16)}</button></div></td>
     </tr>`).join("");
 
@@ -234,6 +247,7 @@ async function apagarMulta(multa) {
 function initPresencas() {
   el("presencasMes").innerHTML = opcoesMesesHTML(mesDaEpocaOuAtual(), false);
   el("presencasMes").addEventListener("change", renderPresencas);
+  el("presencasFiltroJogador").addEventListener("change", renderPresencas);
   el("btnAddSessao").addEventListener("click", () => {
     el("sessaoData").value = hojeIso();
     el("sessaoTipo").value = "treino";
@@ -275,7 +289,10 @@ function registoPresenca(playerId, sessao) {
 function renderPresencas() {
   const mes = el("presencasMes").value;
   const sessoes = sessoesDoMes(mes);
-  const jogadores = [...plantel].sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  const filtroJogador = el("presencasFiltroJogador");
+  const escolhido = filtroJogador.value;
+  filtroJogador.innerHTML = opcoesPlantelHTML(escolhido).replace("— Selecionar jogador —", "Todos os jogadores");
+  const jogadores = [...plantel].filter(j => !escolhido || idJogadorBD(j) === escolhido).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
   const container = el("presencasGrelha");
   // a grelha é redesenhada a cada clique: guardar scroll (da grelha e da página) e foco
   const grelhaAntiga = container.querySelector(".attendance-wrap");
@@ -311,8 +328,8 @@ function renderPresencas() {
 
   container.innerHTML = `
     <div class="attendance-wrap">
-      <table class="attendance-table">
-        <thead><tr><th scope="col" class="col-player">Jogador</th>${cabecalho}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
+      <table class="attendance-table" data-ordenar="presencas-admin">
+        <thead><tr><th scope="col" class="col-player" data-tipo="texto">Jogador</th>${cabecalho}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" data-tipo="numero" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
         <tbody>${linhas}</tbody>
         <tfoot><tr><td class="col-player">Presentes (P+A)</td>${rodape}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${totaisGerais[k]}</td>`).join("")}</tr></tfoot>
       </table>
@@ -433,6 +450,7 @@ function initCalendarioAdmin() {
     renderCalendarioAdmin();
   }));
   el("jogoCompeticao").innerHTML = COMPETICOES.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  el("calendarioCompeticaoFiltro").addEventListener("change", renderCalendarioAdmin);
   el("jogoAdversarioEquipa").addEventListener("change", () => { el("jogoAdversarioNomeWrap").hidden = el("jogoAdversarioEquipa").value !== ""; });
   el("btnAddJogo").addEventListener("click", () => abrirModalJogo(null));
   el("btnJogoCancelar").addEventListener("click", () => fecharModalAdmin("modalJogo"));
@@ -442,7 +460,13 @@ function initCalendarioAdmin() {
 function renderCalendarioAdmin() {
   const tbody = el("calendarioBody");
   if (!tbody) return;
+  const filtroComp = el("calendarioCompeticaoFiltro");
+  const comps = [...new Set(VFN.jogosDoVFN(jogosCalendario).map(j => j.competition).filter(Boolean))].sort((x, y) => x.localeCompare(y, "pt"));
+  const compEscolhida = comps.includes(filtroComp.value) ? filtroComp.value : "";
+  filtroComp.innerHTML = '<option value="">Todas as competições</option>' + comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  filtroComp.value = compEscolhida;
   const lista = VFN.jogosDoVFN(jogosCalendario)
+    .filter(j => !compEscolhida || j.competition === compEscolhida)
     .filter(j => filtroCalendarioAdmin === "todos" || VFN.categoriaCompeticao(j.competition) === filtroCalendarioAdmin)
     .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
   if (!lista.length) {
@@ -454,7 +478,7 @@ function renderCalendarioAdmin() {
     const nome = nomeAdversarioJogo(j);
     const g = VFN.golosJogo(j);
     return `<tr data-id="${escapeHtml(j.id)}" class="${proximo && proximo.id === j.id ? "is-vfn-row" : ""}">
-      <td>${escapeHtml(VFN.dataLonga(j.date, true))}</td>
+      <td data-v="${escapeHtml(VFN.paraData(j.date) ? VFN.paraData(j.date).toISOString() : "")}">${escapeHtml(VFN.dataLonga(j.date, true))}</td>
       <td><span class="comp-tag comp-${VFN.categoriaCompeticao(j.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(j.competition))}</span></td>
       <td class="num">${j.jornada != null ? escapeHtml(j.jornada) : "—"}</td>
       <td>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</td>
