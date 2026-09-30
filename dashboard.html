@@ -37,6 +37,7 @@
     <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
     <button class="nav-item" data-view="minutos"><span class="nav-icon"><i data-icon="timer"></i></span><span class="nav-label">Minutos</span></button>
+    <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
@@ -120,6 +121,20 @@
         <h2 class="hub-card-title">11 mais utilizados</h2>
         <div id="onzeCampo"></div>
       </article>
+    </div>
+  </section>
+
+<!-- JORNADAS AF GUARDA -->
+  <section id="view-jornadas" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Jornadas AF Guarda</h2>
+      <div class="toolbar">
+        <label class="sr-only" for="dbJornCompeticao">Competição</label><select id="dbJornCompeticao" class="compact-select"></select>
+        <label class="sr-only" for="dbJornJornada">Jornada</label><select id="dbJornJornada" class="compact-select"></select>
+        <label class="sr-only" for="dbJornEquipa">Equipa</label><select id="dbJornEquipa" class="compact-select"></select>
+        <button type="button" id="dbJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
+      </div>
+      <div id="dbJornLista" class="jornadas-lista"></div>
     </div>
   </section>
 

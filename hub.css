@@ -156,7 +156,7 @@
 .public-header img { width: 40px; height: 40px; object-fit: contain; }
 .public-header strong { display: block; color: var(--vfn-yellow); font-size: 1rem; line-height: 1.1; }
 .public-header span { color: var(--silver); font-size: .72rem; }
-.public-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--vfn-navy); border-top: 1px solid rgba(255,255,255,.08); padding-bottom: env(safe-area-inset-bottom); }
+.public-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); background: var(--vfn-navy); border-top: 1px solid rgba(255,255,255,.08); padding-bottom: env(safe-area-inset-bottom); }
 .public-nav button { display: grid; justify-items: center; gap: 2px; min-height: 58px; padding: 8px 2px; border: 0; background: transparent; color: var(--silver); font-family: inherit; font-size: .66rem; font-weight: 600; cursor: pointer; }
 .public-nav button span { font-size: 1.15rem; line-height: 1; }
 .public-nav button.active { color: var(--vfn-yellow); box-shadow: inset 0 3px 0 var(--vfn-yellow); }

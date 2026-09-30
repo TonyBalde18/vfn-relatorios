@@ -879,3 +879,29 @@ body {
 .player-modal-photo .vfn-avatar { width: 100%; height: 100%; border: 0; border-radius: 50%; }
 .player-modal-photo .vfn-avatar svg { width: 112px; height: 126px; margin: auto; }
 .player-modal-photo .vfn-avatar.has-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Jornadas AF Guarda ---------- */
+.jornadas-lista { display: grid; gap: 18px; margin-bottom: 10px; }
+.jornada-titulo { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; color: var(--vfn-navy); font-size: .95rem; }
+.jornada-jogo { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 72px; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: rgba(255, 255, 255, .7); border: 1px solid var(--border-color); }
+.jornada-jogo + .jornada-jogo { margin-top: 6px; }
+.jornada-jogo.is-vfn-game { background: rgba(255, 215, 0, .16); border-color: rgba(255, 215, 0, .55); }
+.jj-equipa { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; color: var(--vfn-navy); font-size: .88rem; }
+.jj-equipa span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jj-casa { justify-content: flex-end; text-align: right; }
+.jj-resultado { min-width: 64px; padding: 4px 10px; border-radius: 6px; background: var(--vfn-navy); color: #fff; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.jj-resultado.por-jogar { background: #E2E6EE; color: var(--text-muted); font-weight: 600; font-size: .8rem; }
+.jj-acoes { display: flex; justify-content: flex-end; }
+.jj-tag { padding: 2px 8px; border-radius: 999px; background: var(--vfn-navy); color: var(--vfn-yellow); font-size: .68rem; font-weight: 800; }
+.jj-marcadores { grid-column: 1 / -1; margin: 2px 0 0; color: var(--text-muted); font-size: .78rem; text-align: center; }
+.jornada-form { display: grid; grid-template-columns: 90px minmax(0, 1.3fr) 90px 90px minmax(0, 1.3fr) minmax(0, 1.6fr) auto; gap: 10px; align-items: end; padding: 14px; margin-bottom: 8px; border-radius: 10px; background: rgba(10, 22, 40, .04); border: 1px dashed var(--border-color); }
+.jf-acoes { display: flex; gap: 6px; }
+.toolbar-inline { margin: 0; }
+@media (max-width: 1100px) { .jornada-form { grid-template-columns: 90px 1fr 90px; } .jf-fora { grid-column: 2; } .jf-marcadores, .jf-acoes { grid-column: 1 / -1; } }
+@media (max-width: 520px) {
+  .jornada-jogo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 8px; gap: 6px; }
+  .jj-acoes { grid-column: 1 / -1; justify-content: center; }
+  .jj-equipa { font-size: .78rem; }
+  .jj-equipa .team-logo, .jj-equipa .team-logo-placeholder { width: 22px; height: 22px; }
+  .jornada-form { grid-template-columns: 1fr 1fr; } .jf-casa, .jf-fora, .jf-marcadores, .jf-acoes { grid-column: 1 / -1; }
+}

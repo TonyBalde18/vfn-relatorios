@@ -199,6 +199,32 @@ alter table public.players add column if not exists date_of_birth date;
 alter table public.matches add column if not exists home_team_id text;
 alter table public.matches add column if not exists away_team_id text;
 
+-- ---------------------------------------------------------------------
+-- ATUALIZAÇÃO 01/10/2026 — Jornadas AF Guarda: resultados entre outras
+-- equipas (a classificação combina league_results + matches do VFN)
+-- ---------------------------------------------------------------------
+create table if not exists public.league_results (
+  id uuid primary key default gen_random_uuid(),
+  competition text not null,
+  jornada integer not null,
+  home_team_id text references public.teams(id),
+  home_team_name text,
+  away_team_id text references public.teams(id),
+  away_team_name text,
+  score_home integer,
+  score_away integer,
+  scorers text,
+  created_at timestamptz not null default now()
+);
+create index if not exists league_results_comp_idx on public.league_results (competition, jornada);
+
+alter table public.league_results enable row level security;
+drop policy if exists "league_results public read" on public.league_results;
+drop policy if exists "league_results admin write" on public.league_results;
+create policy "league_results public read" on public.league_results for select to anon, authenticated using (true);
+create policy "league_results admin write" on public.league_results for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
+
 -- Logos das equipas com o caminho absoluto do GitHub Pages
 update public.teams
 set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url

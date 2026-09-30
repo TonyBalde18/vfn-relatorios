@@ -17,7 +17,7 @@ const TIPOS_INFRACCAO = [
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
-const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "classificacao", "adversarios"];
+const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "jornadas", "classificacao", "adversarios"];
 
 const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [] };
 const tabelasCarregadas = new Set();
@@ -549,9 +549,6 @@ const temporizadoresResultados = {};
 function initResultados() {
   el("resultadosCompeticao").addEventListener("change", renderResultados);
   el("classificacaoCompeticao").addEventListener("change", renderClassificacaoAdmin);
-  el("btnAddResultadoOutro").addEventListener("click", abrirModalOutroJogo);
-  el("btnOutroCancelar").addEventListener("click", () => fecharModalAdmin("modalOutroJogo"));
-  el("btnOutroGuardar").addEventListener("click", guardarOutroJogo);
 }
 
 function competicoesDoCalendario() {
@@ -645,56 +642,6 @@ async function apagarOutroJogo(jogo) {
   }
 }
 
-/* ---- Jogos entre outras equipas da liga ---- */
-
-function abrirModalOutroJogo() {
-  const ligas = VFN.competicoesLiga(jogosCalendario);
-  const comps = ligas.length ? ligas : COMPETICOES.filter(c => VFN.categoriaCompeticao(c) === "liga");
-  const filtro = el("resultadosCompeticao").value;
-  el("outroCompeticao").innerHTML = comps.map(c => `<option ${c === filtro ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
-  const equipas = [...equipasCalendario].filter(t => !VFN.eVFN(t.name)).sort((a, b) => a.name.localeCompare(b.name, "pt"));
-  const opcoes = '<option value="">— Equipa —</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join("");
-  el("outroCasa").innerHTML = opcoes;
-  el("outroFora").innerHTML = opcoes;
-  ["outroJornada", "outroGolosCasa", "outroGolosFora"].forEach(id => { el(id).value = ""; });
-  el("outroData").value = hojeIso();
-  el("outroErro").textContent = "";
-  abrirModalAdmin("modalOutroJogo");
-}
-
-async function guardarOutroJogo() {
-  const casa = el("outroCasa").value, fora = el("outroFora").value;
-  const gc = el("outroGolosCasa").value, gf = el("outroGolosFora").value;
-  const erro = !casa || !fora ? "Escolhe as duas equipas." : casa === fora ? "As equipas têm de ser diferentes." : !el("outroData").value ? "Indica a data." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum)." : "";
-  el("outroErro").textContent = erro;
-  if (erro) return;
-  const temResultado = gc !== "";
-  const linha = {
-    competition: el("outroCompeticao").value,
-    jornada: el("outroJornada").value ? Number(el("outroJornada").value) : null,
-    date: new Date(`${el("outroData").value}T15:00`).toISOString(),
-    home_team_id: casa,
-    away_team_id: fora,
-    home_away: null,
-    opponent: null,
-    opponent_team_id: null,
-    score_home: temResultado ? Number(gc) : null,
-    score_away: temResultado ? Number(gf) : null,
-    status: temResultado ? "jogado" : "agendado"
-  };
-  const botao = el("btnOutroGuardar");
-  botao.disabled = true;
-  try {
-    jogosCalendario.push(await dadosClube.guardar("matches", linha));
-    fecharModalAdmin("modalOutroJogo");
-    renderResultados();
-  } catch (e) {
-    el("outroErro").textContent = mensagemErro(e);
-  } finally {
-    botao.disabled = false;
-  }
-}
-
 /* ---- Classificação (só leitura, calculada) ---- */
 
 function renderClassificacaoAdmin() {
@@ -707,7 +654,7 @@ function renderClassificacaoAdmin() {
   select.hidden = !comps.length;
 
   const tbody = el("classificacaoBody");
-  const linhas = select.value ? VFN.calcularClassificacao(jogosCalendario, equipasCalendario, select.value) : [];
+  const linhas = select.value ? VFN.calcularClassificacao(jogosCalendario, equipasCalendario, select.value, resultadosLiga) : [];
   if (!linhas.length) {
     tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sem jogos de liga no calendário.</td></tr>';
     return;
@@ -722,6 +669,128 @@ function renderClassificacaoAdmin() {
       <td>${dg > 0 ? "+" + dg : dg}</td><td class="pts-col">${s.points}</td>
     </tr>`;
   }).join("");
+}
+
+/* =========================================================
+   JORNADAS AF GUARDA (league_results)
+   Resultados de todos os jogos da liga entre as outras equipas;
+   os jogos do VFN vêm do Calendário (matches).
+   ========================================================= */
+
+const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+let resultadoEmEdicao = null;
+
+function dadosJornadas() {
+  return { matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga };
+}
+
+function initJornadas() {
+  el("jornadasCompeticao").innerHTML = VFN.COMPETICOES_CLASSIFICACAO.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  el("jornadasCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadasAdmin(); });
+  el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
+  el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
+  el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
+  el("btnGuardarResultadoLiga").addEventListener("click", guardarResultadoLiga);
+  el("btnCancelarResultadoLiga").addEventListener("click", () => limparFormJornada());
+  el("jornadasLista").addEventListener("click", e => {
+    const botao = e.target.closest("[data-acao]");
+    if (!botao) return;
+    const registo = resultadosLiga.find(r => String(r.id) === botao.dataset.id);
+    if (!registo) return;
+    if (botao.dataset.acao === "editar") editarResultadoLiga(registo);
+    else if (botao.dataset.acao === "apagar") apagarResultadoLiga(registo);
+  });
+}
+
+function opcoesEquipasLiga(selecionada) {
+  return '<option value="">— Equipa —</option>' + [...equipasCalendario]
+    .filter(t => !VFN.eVFN(t.name))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt"))
+    .map(t => `<option value="${escapeHtml(t.id)}" ${String(t.id) === String(selecionada) ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("");
+}
+
+function renderJornadasAdmin() {
+  if (!el("jornadasLista")) return;
+  const dados = dadosJornadas();
+  el("jornadasCompeticao").value = filtrosJornadas.competicao;
+  const jornadas = VFNHub.jornadasDisponiveis(dados, filtrosJornadas.competicao);
+  el("jornadasFiltroJornada").innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${n ? "Jornada " + n : "Sem jornada"}</option>`).join("");
+  el("jornadasFiltroJornada").value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
+  const equipas = VFNHub.equipasDasJornadas(dados, filtrosJornadas.competicao);
+  el("jornadasFiltroEquipa").innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.nome)}</option>`).join("");
+  el("jornadasFiltroEquipa").value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
+  el("btnOrdemJornadas").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
+  if (!el("jornadaCasa").options.length) limparFormJornada();
+  el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
+}
+
+function limparFormJornada(manterJornada) {
+  resultadoEmEdicao = null;
+  const jornada = manterJornada ? el("jornadaNumero").value : "";
+  el("jornadaNumero").value = jornada;
+  el("jornadaCasa").innerHTML = opcoesEquipasLiga("");
+  el("jornadaFora").innerHTML = opcoesEquipasLiga("");
+  ["jornadaGolosCasa", "jornadaGolosFora", "jornadaMarcadores"].forEach(id => { el(id).value = ""; });
+  el("btnGuardarResultadoLiga").textContent = "Adicionar resultado";
+  el("btnCancelarResultadoLiga").hidden = true;
+  mostrarErroAdmin("jornadasErro", null);
+}
+
+function editarResultadoLiga(r) {
+  resultadoEmEdicao = r;
+  filtrosJornadas.competicao = r.competition;
+  el("jornadaNumero").value = r.jornada;
+  el("jornadaCasa").innerHTML = opcoesEquipasLiga(r.home_team_id);
+  el("jornadaFora").innerHTML = opcoesEquipasLiga(r.away_team_id);
+  el("jornadaGolosCasa").value = r.score_home ?? "";
+  el("jornadaGolosFora").value = r.score_away ?? "";
+  el("jornadaMarcadores").value = r.scorers || "";
+  el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
+  el("btnCancelarResultadoLiga").hidden = false;
+  el("jornadaNumero").focus();
+}
+
+async function guardarResultadoLiga() {
+  const jornada = Number(el("jornadaNumero").value);
+  const casa = equipaPorId(el("jornadaCasa").value), fora = equipaPorId(el("jornadaFora").value);
+  const gc = el("jornadaGolosCasa").value, gf = el("jornadaGolosFora").value;
+  const erro = !(jornada > 0) ? "Indica o número da jornada." : !casa || !fora ? "Escolhe a equipa da casa e a de fora." : casa.id === fora.id ? "As equipas têm de ser diferentes." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum, se o jogo ainda não se realizou)." : "";
+  el("jornadasErro").textContent = erro;
+  if (erro) return;
+  const linha = {
+    ...(resultadoEmEdicao || {}),
+    competition: filtrosJornadas.competicao,
+    jornada,
+    home_team_id: casa.id, home_team_name: casa.name,
+    away_team_id: fora.id, away_team_name: fora.name,
+    score_home: gc === "" ? null : Number(gc),
+    score_away: gf === "" ? null : Number(gf),
+    scorers: el("jornadaMarcadores").value.trim() || null
+  };
+  const botao = el("btnGuardarResultadoLiga");
+  botao.disabled = true;
+  try {
+    const gravado = await dadosClube.guardar("league_results", linha);
+    resultadosLiga = resultadosLiga.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
+    limparFormJornada(true); // mantém a jornada para lançar os jogos seguintes
+    renderJornadasAdmin();
+  } catch (e) {
+    el("jornadasErro").textContent = mensagemErro(e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function apagarResultadoLiga(r) {
+  if (!confirm(`Eliminar ${r.home_team_name} – ${r.away_team_name} (jornada ${r.jornada})?`)) return;
+  try {
+    await dadosClube.remover("league_results", r.id);
+    resultadosLiga = resultadosLiga.filter(x => x !== r);
+    if (resultadoEmEdicao === r) limparFormJornada();
+    renderJornadasAdmin();
+  } catch (e) {
+    alert(mensagemErro(e));
+  }
 }
 
 /* =========================================================
@@ -879,6 +948,8 @@ async function abrirTabGestao(tab) {
     renderCalendarioAdmin();
   } else if (tab === "resultados") {
     renderResultados();
+  } else if (tab === "jornadas") {
+    renderJornadasAdmin();
   } else if (tab === "classificacao") {
     renderClassificacaoAdmin();
   } else if (tab === "adversarios") {
@@ -907,16 +978,17 @@ function initAdmin() {
   initPresencas();
   initCalendarioAdmin();
   initResultados();
+  initJornadas();
   initAdversarios();
 
   document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => btn.addEventListener("click", () => abrirTabGestao(btn.dataset.tab)));
   document.querySelectorAll("[data-fechar-modal]").forEach(b => b.addEventListener("click", () => fecharModalAdmin(b.dataset.fecharModal)));
-  ["modalMulta", "modalSessao", "modalJogo", "modalEquipa", "modalOutroJogo"].forEach(id => {
+  ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });
   });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    ["modalMulta", "modalSessao", "modalJogo", "modalEquipa", "modalOutroJogo"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
+    ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
   });
   verificarPapelAdmin();
 }

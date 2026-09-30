@@ -603,7 +603,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", classificacao: "Classificação", adversarios: "Adversários" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Jornadas AF Guarda", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador
@@ -810,6 +810,7 @@ async function registarResultadoNoCalendario() {
 
 let jogosCalendario = [];
 let equipasCalendario = [];
+let resultadosLiga = []; // league_results: jogos entre outras equipas (Jornadas AF Guarda)
 let calendarioCarregado = false;
 
 async function carregarCalendario() {
@@ -818,10 +819,16 @@ async function carregarCalendario() {
   } catch (e) {
     console.warn("Não foi possível carregar o calendário:", e.message || e);
   }
+  try {
+    resultadosLiga = await dadosClube.listar("league_results");
+  } catch (e) {
+    resultadosLiga = [];
+    console.warn("league_results indisponível (corre a atualização de 01/10 do schema.sql):", e.message || e);
+  }
   calendarioCarregado = true;
   renderProximoJogoPreJogo();
   if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
-  if (typeof renderResultados === "function") { renderResultados(); renderClassificacaoAdmin(); }
+  if (typeof renderResultados === "function") { renderResultados(); renderClassificacaoAdmin(); renderJornadasAdmin(); }
 }
 
 /* ---- Sponsors no rodapé: AF Guarda + sponsor da competição do relatório ---- */

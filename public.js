@@ -9,7 +9,7 @@
 const H = VFNHub;
 const $ = id => document.getElementById(id);
 
-let dados = { teams: [], matches: [], players: [] };
+let dados = { teams: [], matches: [], league_results: [], players: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -18,7 +18,7 @@ let competicao = "";
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
-  const pedidos = { teams: "teams", matches: "matches", players: "players_public" };
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", players: "players_public" };
   const chaves = Object.keys(pedidos);
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select("*")));
   let falhou = false;
@@ -88,6 +88,31 @@ function mostrarEsqueletos() {
   $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
 }
 
+/* ---------- Jornadas AF Guarda (só leitura) ---------- */
+
+const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+
+function renderJornadas() {
+  const comp = $("pubJornCompeticao"), jor = $("pubJornJornada"), eq = $("pubJornEquipa");
+  comp.innerHTML = VFN.COMPETICOES_CLASSIFICACAO.map(c => `<option value="${VFN.escapeHtml(c)}">${VFN.escapeHtml(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
+  comp.value = filtrosJornadas.competicao;
+  const jornadas = H.jornadasDisponiveis(dados, filtrosJornadas.competicao);
+  jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${n ? "Jornada " + n : "Sem jornada"}</option>`).join("");
+  jor.value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
+  const equipas = H.equipasDasJornadas(dados, filtrosJornadas.competicao);
+  eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${VFN.escapeHtml(t.id)}">${VFN.escapeHtml(t.nome)}</option>`).join("");
+  eq.value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
+  $("pubJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
+  $("pubJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
+}
+
+function initJornadas() {
+  $("pubJornCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadas(); });
+  $("pubJornJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadas(); });
+  $("pubJornEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadas(); });
+  $("pubJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
+}
+
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
@@ -100,6 +125,7 @@ function renderTudo() {
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
   renderPlantel();
+  renderJornadas();
   renderCalendario();
 
   // rodapé: AF Guarda + patrocinador da competição do próximo jogo
@@ -109,6 +135,7 @@ function renderTudo() {
 
 async function iniciar() {
   VFN.initAOS();
+  initJornadas();
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });

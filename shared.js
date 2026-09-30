@@ -8,6 +8,8 @@
 
 (function () {
   const COMPETICOES = ["2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES", "TAÇA 2ª LIGA - FDM", "TAÇA DE HONRA COMUNILOG", "Amigável"];
+  // Competições com classificação e jornadas AF Guarda (nomes usados em matches e league_results)
+  const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog"];
 
   const AF_GUARDA = { src: "assets/sponsors/af-guarda.png", alt: "Associação de Futebol da Guarda" };
   const SPONSORS = {
@@ -214,25 +216,45 @@
     return [...new Set((jogos || []).map(j => j.competition).filter(c => c && categoriaCompeticao(c) === "liga"))].sort();
   }
 
+  /** Equipas de uma linha de league_results, como { id, nome }. */
+  function equipasDoResultadoLiga(r, equipas) {
+    const porId = id => (equipas || []).find(t => String(t.id) === String(id));
+    const lado = (id, nome) => {
+      const t = id != null && id !== "" ? porId(id) : null;
+      return { id: t ? String(t.id) : (id ? String(id) : `nome:${nome || "?"}`), nome: t ? t.name : (nome || String(id || "?")) };
+    };
+    return { casa: lado(r.home_team_id, r.home_team_name), fora: lado(r.away_team_id, r.away_team_name) };
+  }
+
+  const temResultado = (a, b) => a != null && b != null && a !== "" && b !== "";
+
   /**
-   * Classificação calculada em tempo real a partir dos resultados em matches
-   * (não usa a tabela standings). Entram todas as equipas com jogos na competição.
+   * Classificação calculada em tempo real (não usa a tabela standings):
+   * jogos do VFN em matches + jogos entre as outras equipas em league_results.
+   * Entram todas as equipas com jogos na competição.
    */
-  function calcularClassificacao(jogos, equipas, competicao) {
+  function calcularClassificacao(jogos, equipas, competicao, resultadosLiga) {
     const linhas = new Map();
     const linha = eq => {
       if (!linhas.has(eq.id)) linhas.set(eq.id, { team_id: eq.id, team_name: eq.nome, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 });
       return linhas.get(eq.id);
     };
-    (jogos || []).filter(j => j.competition === competicao && estadoJogo(j) !== "cancelado").forEach(j => {
-      const { casa, fora } = equipasDoJogo(j, equipas);
+    const somar = (casa, fora, gc, gf) => {
       const lc = linha(casa), lf = linha(fora);
-      const gc = j.score_home, gf = j.score_away;
-      if (estadoJogo(j) !== "jogado" || gc == null || gf == null || gc === "" || gf === "") return;
+      if (!temResultado(gc, gf)) return;
       const [a, b] = [Number(gc), Number(gf)];
       lc.played++; lf.played++;
       lc.goals_for += a; lc.goals_against += b; lf.goals_for += b; lf.goals_against += a;
       if (a > b) { lc.won++; lf.lost++; } else if (a < b) { lf.won++; lc.lost++; } else { lc.drawn++; lf.drawn++; }
+    };
+    (jogos || []).filter(j => j.competition === competicao && estadoJogo(j) !== "cancelado").forEach(j => {
+      const { casa, fora } = equipasDoJogo(j, equipas);
+      if (estadoJogo(j) === "jogado") somar(casa, fora, j.score_home, j.score_away);
+      else { linha(casa); linha(fora); }
+    });
+    (resultadosLiga || []).filter(r => r.competition === competicao).forEach(r => {
+      const { casa, fora } = equipasDoResultadoLiga(r, equipas);
+      somar(casa, fora, r.score_home, r.score_away);
     });
     linhas.forEach(l => { l.points = l.won * 3 + l.drawn; });
     return ordenarClassificacao([...linhas.values()]);
@@ -543,13 +565,13 @@
   window.generateJerseyAvatar = generateJerseyAvatar;
 
   window.VFN = {
-    COMPETICOES, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
+    COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
-    jogosDoVFN, equipaVFN, equipasDoJogo, competicoesLiga, calcularClassificacao,
+    jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
     generateJerseyAvatar, avatarJogador, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,

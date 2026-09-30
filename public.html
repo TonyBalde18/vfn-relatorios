@@ -24,6 +24,7 @@
   <button type="button" class="active" data-view="hub"><span aria-hidden="true"><i data-icon="house"></i></span>Hub</button>
   <button type="button" data-view="plantel"><span aria-hidden="true"><i data-icon="users"></i></span>Plantel</button>
   <button type="button" data-view="classificacao"><span aria-hidden="true"><i data-icon="trophy"></i></span>Tabela</button>
+  <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="list-checks"></i></span>Jornadas</button>
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Jogos</button>
   <button type="button" data-view="marcadores"><span aria-hidden="true"><i data-icon="goal"></i></span>Marcadores</button>
 </nav>
@@ -54,6 +55,20 @@
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Classificação</h2><label class="sr-only" for="pubCompeticao">Competição</label><select id="pubCompeticao" class="compact-select"></select></div>
       <div id="pubClassificacao"></div>
+    </div>
+  </section>
+
+<!-- JORNADAS AF GUARDA -->
+  <section id="view-jornadas" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Jornadas AF Guarda</h2>
+      <div class="toolbar">
+        <label class="sr-only" for="pubJornCompeticao">Competição</label><select id="pubJornCompeticao" class="compact-select"></select>
+        <label class="sr-only" for="pubJornJornada">Jornada</label><select id="pubJornJornada" class="compact-select"></select>
+        <label class="sr-only" for="pubJornEquipa">Equipa</label><select id="pubJornEquipa" class="compact-select"></select>
+        <button type="button" id="pubJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
+      </div>
+      <div id="pubJornLista" class="jornadas-lista"></div>
     </div>
   </section>
 

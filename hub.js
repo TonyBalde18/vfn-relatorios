@@ -136,7 +136,7 @@
 
   function classificacaoHTML(dados, competicao) {
     // calculada a partir dos resultados em matches (não usa a tabela standings)
-    const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao);
+    const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
     return `<div class="table-wrap"><table class="standings-compact">
       <thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Equipa</th><th scope="col">J</th><th scope="col">V</th><th scope="col">E</th><th scope="col">D</th><th scope="col" class="hide-xs">GM</th><th scope="col" class="hide-xs">GS</th><th scope="col">Pts</th></tr></thead>
@@ -240,6 +240,66 @@
     return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
   }
 
+  /* ---------- Jornadas AF Guarda (league_results + jogos do VFN) ---------- */
+
+  /** Todos os jogos da competição: resultados entre outras equipas e jogos do VFN (não cancelados). */
+  function jogosDaJornada(dados, competicao) {
+    const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
+      const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
+      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: r.scorers || "", registo: r };
+    });
+    const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
+      const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
+      const jogado = VFN.estadoJogo(j) === "jogado";
+      return { origem: "vfn", id: j.id, jornada: Number(j.jornada) || 0, casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
+    });
+    return [...liga, ...vfn];
+  }
+
+  function jornadasDisponiveis(dados, competicao) {
+    return [...new Set(jogosDaJornada(dados, competicao).map(j => j.jornada))].sort((a, b) => a - b);
+  }
+
+  function equipasDasJornadas(dados, competicao) {
+    const mapa = new Map();
+    jogosDaJornada(dados, competicao).forEach(j => { mapa.set(j.casa.id, j.casa.nome); mapa.set(j.fora.id, j.fora.nome); });
+    return [...mapa.entries()].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  }
+
+  /**
+   * Jogos agrupados por jornada. opcoes: { competicao, jornada, equipa, ordem: "asc"|"desc", editavel }.
+   * Os jogos do VFN vêm do calendário e só se editam lá.
+   */
+  function jornadasHTML(dados, opcoes) {
+    const o = opcoes || {};
+    const jogos = jogosDaJornada(dados, o.competicao)
+      .filter(j => !o.jornada || String(j.jornada) === String(o.jornada))
+      .filter(j => !o.equipa || j.casa.id === o.equipa || j.fora.id === o.equipa);
+    if (!jogos.length) return vazio("Sem jogos registados para estes filtros.");
+    const porJornada = new Map();
+    jogos.forEach(j => { (porJornada.get(j.jornada) || porJornada.set(j.jornada, []).get(j.jornada)).push(j); });
+    const ordem = [...porJornada.keys()].sort((a, b) => o.ordem === "desc" ? b - a : a - b);
+    const lado = (eq, classe) => `<span class="jj-equipa ${classe}">${classe === "jj-casa" ? `<span>${esc(eq.nome)}</span>${logoEquipa(equipa(dados, eq.id), eq.nome)}` : `${logoEquipa(equipa(dados, eq.id), eq.nome)}<span>${esc(eq.nome)}</span>`}</span>`;
+    return ordem.map(n => `
+      <section class="jornada-grupo">
+        <h3 class="jornada-titulo">${n ? `Jornada ${n}` : "Sem jornada"} <small class="muted">${porJornada.get(n).length} jogo${porJornada.get(n).length === 1 ? "" : "s"}</small></h3>
+        ${porJornada.get(n).map(j => {
+          const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
+          const resultado = temRes ? `${Number(j.gc)} – ${Number(j.gf)}` : (j.data ? esc(VFN.dataCurta(j.data)) : "–");
+          const acoes = j.origem === "vfn"
+            ? '<span class="jj-tag" title="Jogo do VFN (vem do Calendário)">VFN</span>'
+            : o.editavel ? `<span class="row-actions"><button type="button" class="icon-btn" data-acao="editar" data-id="${esc(j.id)}" title="Editar resultado" aria-label="Editar resultado">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" data-id="${esc(j.id)}" title="Eliminar resultado" aria-label="Eliminar resultado">${VFN.icone("trash-2", 16)}</button></span>` : "";
+          return `<div class="jornada-jogo${j.origem === "vfn" ? " is-vfn-game" : ""}">
+            ${lado(j.casa, "jj-casa")}
+            <span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>
+            ${lado(j.fora, "jj-fora")}
+            <span class="jj-acoes">${acoes}</span>
+            ${j.marcadores ? `<p class="jj-marcadores">${VFN.icone("goal", 14)} ${esc(j.marcadores)}</p>` : ""}
+          </div>`;
+        }).join("")}
+      </section>`).join("");
+  }
+
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
 
   function esqueleto(tipo, n) {
@@ -261,6 +321,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva, esqueleto
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, competicaoAtiva, esqueleto,
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML
   };
 })();
