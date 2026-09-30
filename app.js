@@ -46,7 +46,7 @@ const FORMACOES_SLOTS = {
   ]
 };
 
-const COMPETICOES = ["2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES", "TAÇA 2ª LIGA - FDM", "TAÇA DE HONRA COMUNILOG", "Amigável"];
+const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
 const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Nota"];
 // emojis só para o Word e para as <option>; na interface usam-se ícones Lucide
 const ICONES_LUCIDE_EVENTO = {
@@ -453,6 +453,7 @@ function aplicarDadosEstado(dados) {
   const base = estadoInicial();
   state = base;
   state.preJogo = Object.assign(base.preJogo, dados.preJogo || {});
+  state.preJogo.competicao = VFN.normalizarCompeticao(state.preJogo.competicao); // rascunhos com o nome antigo
   state.preJogo.proximoJogo = Object.assign(base.preJogo.proximoJogo, dados.preJogo && dados.preJogo.proximoJogo || {});
   state.jogo = Object.assign(base.jogo, dados.jogo);
   state.jogo.eventos = (state.jogo.eventos || []).map(migrarEvento);
@@ -814,11 +815,12 @@ let calendarioCarregado = false;
 async function carregarCalendario() {
   try {
     [jogosCalendario, equipasCalendario] = await Promise.all([dadosClube.listar("matches"), dadosClube.listar("teams")]);
+    jogosCalendario = VFN.normalizarLinhas(jogosCalendario); // nomes antigos da competição → nome oficial
   } catch (e) {
     console.warn("Não foi possível carregar o calendário:", e.message || e);
   }
   try {
-    resultadosLiga = await dadosClube.listar("league_results");
+    resultadosLiga = VFN.normalizarLinhas(await dadosClube.listar("league_results"));
   } catch (e) {
     resultadosLiga = [];
     console.warn("league_results indisponível (corre a atualização de 01/10 do schema.sql):", e.message || e);

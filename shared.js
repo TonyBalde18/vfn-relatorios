@@ -7,7 +7,7 @@
    ========================================================= */
 
 (function () {
-  const COMPETICOES = ["2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES", "TAÇA 2ª LIGA - FDM", "TAÇA DE HONRA COMUNILOG", "Amigável"];
+  const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
   // Competições com classificação e jornadas AF Guarda (nomes usados em matches e league_results)
   const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog"];
 
@@ -82,6 +82,22 @@
   }
 
   /* ---------- Competições e sponsors ---------- */
+
+  /**
+   * Nome oficial da competição. Aliases antigos (ex.: "2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES",
+   * "AF Guarda Taça de Honra 2026/27") passam aos nomes usados na classificação e nas jornadas.
+   */
+  function normalizarCompeticao(competicao) {
+    const s = String(competicao || "").toUpperCase();
+    if (s.includes("ZERO") && s.includes("LIGA") && !s.includes("TAÇA")) return COMPETICOES_CLASSIFICACAO[0];
+    if (s.includes("HONRA")) return COMPETICOES_CLASSIFICACAO[1];
+    return competicao;
+  }
+
+  /** Aplica normalizarCompeticao a linhas de matches/league_results (devolve cópias). */
+  function normalizarLinhas(linhas) {
+    return (linhas || []).map(l => l && l.competition ? { ...l, competition: normalizarCompeticao(l.competition) } : l);
+  }
 
   function categoriaCompeticao(competicao) {
     const s = String(competicao || "").toUpperCase();
@@ -676,7 +692,7 @@
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
-    categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
+    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,

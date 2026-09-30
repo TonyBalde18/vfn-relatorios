@@ -23,6 +23,8 @@ async function carregarDados() {
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select("*")));
   let falhou = false;
   respostas.forEach((r, i) => { if (r.error) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
+  dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
+  dados.league_results = VFN.normalizarLinhas(dados.league_results);
   jogadores = dados.players.map(H.jogadorDeLinha);
   if (falhou) mostrarAviso("Alguns dados não estão disponíveis de momento.");
 }

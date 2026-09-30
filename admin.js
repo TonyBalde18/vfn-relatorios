@@ -498,7 +498,9 @@ function renderCalendarioAdmin() {
 function abrirModalJogo(jogo) {
   jogoEmEdicao = jogo;
   el("modalJogoTitulo").textContent = jogo ? "Editar Jogo" : "Adicionar Jogo";
-  el("jogoCompeticao").value = jogo && COMPETICOES.includes(jogo.competition) ? jogo.competition : COMPETICOES[0];
+  const comp = jogo ? VFN.normalizarCompeticao(jogo.competition) : COMPETICOES[0];
+  if (!COMPETICOES.includes(comp)) el("jogoCompeticao").add(new Option(comp, comp));
+  el("jogoCompeticao").value = comp;
   el("jogoJornada").value = jogo && jogo.jornada != null ? jogo.jornada : "";
   el("jogoData").value = jogo ? VFN.dataIso(jogo.date) : "";
   el("jogoHora").value = jogo ? VFN.horaIso(jogo.date) : "15:00";

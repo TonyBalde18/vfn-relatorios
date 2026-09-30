@@ -225,6 +225,22 @@ create policy "league_results public read" on public.league_results for select t
 create policy "league_results admin write" on public.league_results for all to authenticated
   using (public.vfn_is_admin()) with check (public.vfn_is_admin());
 
+-- ---------------------------------------------------------------------
+-- ATUALIZAÇÃO 02/10/2026 — nomes das competições e data nos resultados
+-- ---------------------------------------------------------------------
+-- Nomes antigos → nomes oficiais (ex.: J3 VFN–Casal Cinza estava como
+-- "2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES" e ficava fora das jornadas e da classificação)
+update public.matches set competition = '2ª Liga Zero Graus'
+where competition ilike '%zero graus%' and competition ilike '%liga%' and competition not ilike '%taça%'
+  and competition <> '2ª Liga Zero Graus';
+update public.matches set competition = 'Taça de Honra Comunilog'
+where competition ilike '%honra%' and competition <> 'Taça de Honra Comunilog';
+update public.matches set competition = 'Taça 2ª Liga FDM'
+where competition ilike '%fdm%' and competition <> 'Taça 2ª Liga FDM';
+
+-- Data de cada jogo nas Jornadas AF Guarda
+alter table public.league_results add column if not exists match_date date;
+
 -- Logos das equipas com o caminho absoluto do GitHub Pages
 update public.teams
 set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url

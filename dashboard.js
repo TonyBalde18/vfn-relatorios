@@ -33,6 +33,8 @@ async function carregarDados() {
     if (r.error) { falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
     else dados[tabelas[i]] = r.data || [];
   });
+  dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
+  dados.league_results = VFN.normalizarLinhas(dados.league_results);
   jogadores = dados.players.map(H.jogadorDeLinha);
   const aviso = $("avisoDados");
   aviso.hidden = !falhas.length;
