@@ -259,13 +259,26 @@
   }
 
   /** Categoria de posição a partir da posição principal ("DC/MDef" -> Def). */
+  // Códigos atuais (MDC, MC, MOC, AV) e antigos (MDef, MCen, MOfe, PL)
+  const CATEGORIA_CODIGO = {
+    GR: "GR",
+    DC: "Def", DD: "Def", DE: "Def", LD: "Def", LE: "Def",
+    MDC: "Meio", MC: "Meio", MOC: "Meio", MDEF: "Meio", MCEN: "Meio", MOFE: "Meio", MD: "Meio", MO: "Meio",
+    AV: "Ata", PL: "Ata", PA: "Ata", ATA: "Ata", EE: "Ata", ED: "Ata"
+  };
+
+  function codigosPosicao(posicao) {
+    return String(posicao || "").split("/").map(p => p.trim().toUpperCase()).filter(Boolean);
+  }
+
+  /** Categoria da posição principal ("MDC/DD" -> Meio). */
   function categoriaPosicao(posicao) {
-    const principal = String(posicao || "").split("/")[0].trim().toUpperCase();
-    if (principal === "GR") return "GR";
-    if (["DC", "DD", "DE"].includes(principal)) return "Def";
-    if (["MDEF", "MCEN", "MOFE"].includes(principal)) return "Meio";
-    if (["EE", "ED", "PL"].includes(principal)) return "Ata";
-    return "";
+    return CATEGORIA_CODIGO[codigosPosicao(posicao)[0]] || "";
+  }
+
+  /** O jogador entra no filtro se alguma das suas posições for da categoria ("MDC/DD" está em Meio e em Def). */
+  function posicaoNaCategoria(posicao, categoria) {
+    return !categoria || codigosPosicao(posicao).some(c => CATEGORIA_CODIGO[c] === categoria);
   }
 
   /* ---------- Ícones Lucide ---------- */
@@ -537,7 +550,7 @@
     BASE_SITE, LOGO_VFN, urlLogoEquipa,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, competicoesLiga, calcularClassificacao,
-    chipForma, badgeEstado, categoriaPosicao,
+    chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
     generateJerseyAvatar, avatarJogador, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel,

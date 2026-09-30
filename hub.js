@@ -172,7 +172,7 @@
 
   function plantelHTML(jogadores, filtro) {
     const lista = [...jogadores]
-      .filter(j => !filtro || VFN.categoriaPosicao(j.posicao) === filtro)
+      .filter(j => VFN.posicaoNaCategoria(j.posicao, filtro))
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
     return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}">

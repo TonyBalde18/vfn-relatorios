@@ -314,7 +314,7 @@ const POSICOES_CAMPO = {
   MDEF: [50, 57], MCEN: [50, 45], MOFE: [50, 33],
   ED: [84, 24], EE: [16, 24], PL: [50, 12]
 };
-const SINONIMOS_POSICAO = { MD: "MDEF", MC: "MCEN", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
+const SINONIMOS_POSICAO = { MDC: "MDEF", MD: "MDEF", MC: "MCEN", MOC: "MOFE", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
 
 function posicaoNoCampo(posicao) {
   const codigo = String(posicao || "").split("/")[0].trim().toUpperCase();

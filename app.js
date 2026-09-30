@@ -210,7 +210,10 @@ let filtroPosicaoEquipa = "";
 let posicoesModal = [];
 let posicaoPrincipalModal = "";
 // campo vertical (ataque em cima); DC centrado na mesma vertical do MDef
-const POSICOES_MAPA = { GR: [50, 92], DC: [50, 77], DD: [85, 70], DE: [15, 70], MDef: [50, 61], MCen: [50, 46], MOfe: [50, 31], ED: [84, 21], EE: [16, 21], PL: [50, 9] };
+const POSICOES_MAPA = { GR: [50, 92], DC: [50, 77], DD: [85, 70], DE: [15, 70], MDC: [50, 61], MC: [50, 46], MOC: [50, 31], ED: [84, 21], EE: [16, 21], AV: [50, 9] };
+// posições gravadas com os códigos antigos
+const CODIGOS_ANTIGOS = { MDEF: "MDC", MCEN: "MC", MOFE: "MOC", PL: "AV" };
+const normalizarCodigoPosicao = c => CODIGOS_ANTIGOS[String(c).toUpperCase()] || c;
 let supabaseClient = null;
 let currentUser = null;
 let localMode = false;
@@ -1517,10 +1520,17 @@ function initPlantel() {
   el("btnModalGuardar").addEventListener("click", async () => {
     const nome = el("modalNome").value.trim();
     const nomeCompleto = el("modalNomeCompleto").value.trim();
+    const idZerozero = el("modalIdZerozero").value.trim();
+    el("modalErro").textContent = "";
+    if (!jogadorEmEdicao) {
+      // o ID Zerozero é obrigatório na criação e passa a ser a chave primária em players
+      const erroId = !idZerozero ? "Indica o ID Zerozero do jogador." : !/^\d+$/.test(idZerozero) ? "O ID Zerozero só tem algarismos." : plantel.some(p => idJogadorBD(p) === idZerozero || p.id === Number(idZerozero)) ? "Já existe um jogador com este ID Zerozero." : "";
+      if (erroId) { el("modalErro").textContent = erroId; el("modalIdZerozero").focus(); return; }
+    }
     const posicao = el("modalPosicao").value.trim();
     const numero = el("modalNumero").value.trim();
-    if (!nome) { el("modalNome").focus(); return; }
-    const jogador = jogadorEmEdicao || jogadorBase(proximoIdPlantel(), nome, posicao || "—", numero);
+    if (!nome) { el("modalErro").textContent = "Indica o nome curto."; el("modalNome").focus(); return; }
+    const jogador = jogadorEmEdicao || Object.assign(jogadorBase(Number(idZerozero), nome, posicao || "—", numero), { idBD: idZerozero });
     jogador.nome = nome; jogador.nomeCompleto = nomeCompleto; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
@@ -1546,7 +1556,7 @@ function initPlantel() {
   });
   el("modalNumero").addEventListener("input", () => { if (!el("modalFoto").value) el("playerModalPhoto").innerHTML = generateJerseyAvatar(el("modalNumero").value); });
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
-  el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
+  el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
 
@@ -1558,6 +1568,9 @@ function initPlantel() {
 
 function abrirModalJogador() {
   jogadorEmEdicao = null;
+  el("modalIdZerozero").value = "";
+  el("modalIdZerozero").readOnly = false;
+  el("modalErro").textContent = "";
   el("modalNome").value = "";
   el("modalNomeCompleto").value = "";
   el("modalPosicao").value = "";
@@ -1568,11 +1581,14 @@ function abrirModalJogador() {
   posicoesModal = []; posicaoPrincipalModal = "";
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
-  el("modalNome").focus();
+  el("modalIdZerozero").focus();
 }
 
 function abrirModalExistente(jogador) {
   jogadorEmEdicao = jogador;
+  el("modalIdZerozero").value = idJogadorBD(jogador);
+  el("modalIdZerozero").readOnly = true; // chave primária: não se altera
+  el("modalErro").textContent = "";
   el("modalNome").value = jogador.nome;
   el("modalNomeCompleto").value = jogador.nomeCompleto || "";
   el("modalPosicao").value = jogador.posicao;
@@ -1580,7 +1596,7 @@ function abrirModalExistente(jogador) {
   el("modalFoto").value = jogador.fotoUrl || "";
   el("modalFotoUpload").value = "";
   el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || "";
-  posicoesModal = (jogador.posicao || "").split("/").filter(Boolean); posicaoPrincipalModal = posicoesModal[0] || "";
+  posicoesModal = (jogador.posicao || "").split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || "";
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
 }
@@ -1641,7 +1657,7 @@ function renderPlantel() {
   const ordenado = [...plantel].filter(j => {
     const matchesSearch = !pesquisaEquipa || j.nome.toLocaleLowerCase("pt-PT").includes(pesquisaEquipa);
     const posicao = (j.posicao || "").toUpperCase();
-    const matchesPosition = !filtroPosicaoEquipa || (filtroPosicaoEquipa === "Def" ? /DC|DD|DE/.test(posicao) : filtroPosicaoEquipa === "Meio" ? /MDEF|MCEN|MOFE|EE|ED/.test(posicao) : filtroPosicaoEquipa === "Ata" ? /PL|EE|ED/.test(posicao) : posicao.includes(filtroPosicaoEquipa.toUpperCase()));
+    const matchesPosition = VFN.posicaoNaCategoria(posicao, filtroPosicaoEquipa);
     return matchesSearch && matchesPosition;
   }).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
 
