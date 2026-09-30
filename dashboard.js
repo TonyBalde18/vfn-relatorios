@@ -89,6 +89,7 @@ function proximoAdversarioHTML() {
       <h2 class="hub-card-title">Próximo adversário</h2>
       <span class="team-inline">${H.logoEquipa(H.equipa(dados, jogo.opponent_team_id), nome)}<strong>${esc(nome)}</strong>${obs.formation ? `<span class="comp-tag comp-amigavel">${esc(obs.formation)}</span>` : ""}</span>
     </div>
+    ${jogo.opponent_team_id ? H.formaEquipaHTML(dados, jogo.opponent_team_id) : ""}
     <div class="scout-grid">
       ${bloco("Estilo de jogo", obs.style)}
       ${bloco("Pontos fortes", obs.strengths, "scout-strong")}

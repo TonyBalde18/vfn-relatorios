@@ -923,3 +923,15 @@ table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity:
   .jf-marcadores { grid-column: 1 / 7; }
   .jf-acoes { grid-column: 7; }
 }
+
+/* ---------- Forma atual da equipa (adversário) ---------- */
+.forma-equipa { display: grid; gap: 8px; margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; background: rgba(10, 22, 40, .04); border: 1px solid var(--border-color); }
+.forma-rotulo { display: inline-block; min-width: 96px; color: var(--text-muted); font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.ultimo-jogo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: .88rem; }
+.ultimo-jogo strong { color: var(--vfn-navy); }
+.forma-linha { display: flex; align-items: center; gap: 10px; font-size: .86rem; }
+.resultado-equipa { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.resultado-equipa.res-V { background: rgba(22,163,74,.14); color: #15803d; }
+.resultado-equipa.res-E { background: rgba(100,116,139,.15); color: #334155; }
+.resultado-equipa.res-D { background: rgba(220,38,38,.12); color: #b91c1c; }
+.forma-vazia { margin: 0; font-size: .85rem; }

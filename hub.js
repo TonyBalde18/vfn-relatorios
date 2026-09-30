@@ -310,6 +310,66 @@
       </section>`).join("");
   }
 
+  /* ---------- Forma atual de uma equipa (adversário) ---------- */
+
+  /**
+   * Jogos disputados por uma equipa, do mais recente para o mais antigo:
+   * contra o VFN (matches) e contra as outras equipas (league_results).
+   * Resultados sem data usam a data do jogo do VFN da mesma competição e jornada.
+   */
+  function jogosDaEquipa(dados, teamId) {
+    const id = String(teamId);
+    const vfn = VFN.jogosDoVFN(dados.matches);
+    const dataDaJornada = (comp, jornada) => { const j = vfn.find(m => m.competition === comp && String(m.jornada) === String(jornada)); return j ? j.date : null; };
+    const lista = [];
+    vfn.filter(j => String(j.opponent_team_id) === id && VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j)).forEach(j => {
+      const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
+      lista.push({ casa, fora, gc: Number(j.score_home), gf: Number(j.score_away), data: j.date, jornada: Number(j.jornada) || 0, competicao: j.competition, contraVFN: true });
+    });
+    (dados.league_results || []).filter(r => (String(r.home_team_id) === id || String(r.away_team_id) === id) && r.score_home != null && r.score_away != null && r.score_home !== "" && r.score_away !== "").forEach(r => {
+      const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
+      lista.push({ casa, fora, gc: Number(r.score_home), gf: Number(r.score_away), data: r.match_date || dataDaJornada(r.competition, r.jornada), jornada: Number(r.jornada) || 0, competicao: r.competition, contraVFN: false });
+    });
+    const tempo = j => (VFN.paraData(j.data) || new Date(0)).getTime();
+    return lista.sort((a, b) => tempo(b) - tempo(a) || b.jornada - a.jornada)
+      .map(j => {
+        const emCasa = j.casa.id === id;
+        const nossos = emCasa ? j.gc : j.gf, deles = emCasa ? j.gf : j.gc;
+        return { ...j, letra: nossos > deles ? "V" : nossos === deles ? "E" : "D" };
+      });
+  }
+
+  /** Último jogo, forma (últimos 5) e confrontos com o VFN, do ponto de vista da equipa. */
+  function formaEquipaHTML(dados, teamId) {
+    if (!teamId) return "";
+    const jogos = jogosDaEquipa(dados, teamId);
+    const nomeEq = (equipa(dados, teamId) || {}).name || "";
+    const texto = { V: "Vitória", E: "Empate", D: "Derrota" };
+    const icone = { V: "circle-check", E: "circle-minus", D: "circle-x" };
+    let html = `<div class="forma-equipa">`;
+    if (!jogos.length) {
+      html += `<p class="muted forma-vazia">Sem jogos com resultado registado${nomeEq ? " para " + esc(nomeEq) : ""}.</p>`;
+    } else {
+      const u = jogos[0];
+      html += `<div class="ultimo-jogo">
+        <span class="forma-rotulo">Último jogo</span>
+        <strong>${esc(u.casa.nome)} ${u.gc}–${u.gf} ${esc(u.fora.nome)}</strong>
+        <span class="muted">${u.data ? esc(VFN.dataDDMMAAAA(u.data)) + " · " : ""}${u.jornada ? "J" + u.jornada + " · " : ""}${esc(VFN.nomeCurtoCompeticao(u.competicao))}</span>
+        <span class="resultado-equipa res-${u.letra}">${VFN.icone(icone[u.letra], 16)} ${texto[u.letra]}</span>
+      </div>
+      <div class="forma-linha"><span class="forma-rotulo">Forma</span><div class="form-row" aria-label="Últimos ${Math.min(5, jogos.length)} jogos, mais recente à esquerda">${jogos.slice(0, 5).map(j => VFN.chipForma(j.letra).replace("<span ", `<span title="${esc(j.casa.nome)} ${j.gc}–${j.gf} ${esc(j.fora.nome)}" `)).join("")}</div></div>`;
+    }
+    // confrontos com o VFN (do ponto de vista do VFN)
+    const h2h = jogos.filter(j => j.contraVFN);
+    if (h2h.length) {
+      const inv = { V: "D", E: "E", D: "V" };
+      const b = { V: 0, E: 0, D: 0 };
+      h2h.forEach(j => b[inv[j.letra]]++);
+      html += `<div class="forma-linha"><span class="forma-rotulo">Contra o VFN</span><span><strong>${b.V}V · ${b.E}E · ${b.D}D</strong> <span class="muted">(VFN)</span></span></div>`;
+    }
+    return html + `</div>`;
+  }
+
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
 
   function esqueleto(tipo, n) {
@@ -332,6 +392,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML
   };
 })();

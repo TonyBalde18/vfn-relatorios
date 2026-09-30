@@ -909,6 +909,8 @@ function abrirModalEquipa(equipa) {
   el("equipaApagarWrap").hidden = !equipa;
   el("equipaErro").textContent = "";
   el("equipaObservacao").hidden = equipa ? VFN.eVFN(equipa.name) : false;
+  // forma atual: último jogo (contra o VFN ou outra equipa), últimos 5 e confrontos com o VFN
+  el("equipaForma").innerHTML = equipa && !VFN.eVFN(equipa.name) ? VFNHub.formaEquipaHTML({ matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga }, equipa.id) : "";
   abrirModalAdmin("modalEquipa");
 }
 
