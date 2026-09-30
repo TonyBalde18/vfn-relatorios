@@ -1873,6 +1873,37 @@ function calcularMinutosJogadores() {
    GERAÇÃO DO WORD (.docx)
    ========================================================= */
 
+/**
+ * Logo para o Word: fetch da imagem (base64 via data URL), dimensões lidas no browser e
+ * redução para caber na caixa (máx. 110 px). Devolve null se não existir.
+ */
+async function carregarLogoParaWord(urls) {
+  for (const url of urls.filter(Boolean)) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      const tipo = /png/i.test(blob.type) || /\.png(\?|$)/i.test(url) ? "png" : /jpe?g/i.test(blob.type) || /\.jpe?g(\?|$)/i.test(url) ? "jpg" : null;
+      if (!tipo) continue; // o docx só incorpora png/jpg
+      const base64 = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(blob); });
+      const dims = await new Promise(resolve => { const img = new Image(); img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight }); img.onerror = () => resolve(null); img.src = base64; });
+      if (!dims || !dims.w) continue;
+      const escala = Math.min(1, 110 / Math.max(dims.w, dims.h));
+      return { data: dataUrlParaArrayBuffer(base64), type: tipo, width: Math.round(dims.w * escala), height: Math.round(dims.h * escala) };
+    } catch (e) { /* tenta o seguinte */ }
+  }
+  return null;
+}
+
+/** Id do adversário na tabela teams: o escolhido no Pré-Jogo ou o do jogo associado. */
+function idAdversarioRelatorio() {
+  if (state.preJogo.adversarioId) return state.preJogo.adversarioId;
+  const jogo = jogosCalendario.find(j => j.id === state.preJogo.matchId);
+  if (jogo && jogo.opponent_team_id) return jogo.opponent_team_id;
+  const equipa = equipasCalendario.find(t => t.name === state.preJogo.adversario);
+  return equipa ? equipa.id : "";
+}
+
 async function carregarImagemComoArrayBuffer(url) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error("Não foi possível carregar: " + url);
@@ -1961,7 +1992,14 @@ async function gerarRelatorioWord() {
       children: [new TextRun({ text: "ACD VILA FRANCA DAS NAVES · RELATÓRIO DE JOGO · ÉPOCA 2026/27", bold: true, size: 18, color: COR_CHARCOAL })]
     }));
 
-    const caixaLogo = (texto) => new TableCell({
+    // Logos no cabeçalho: VFN e adversário (assets/opponents/{opponent_team_id}.png)
+    const idAdversario = idAdversarioRelatorio();
+    const [logoVFN, logoAdversario] = await Promise.all([
+      carregarLogoParaWord(["assets/logo.png", VFN.LOGO_VFN]),
+      idAdversario ? carregarLogoParaWord([`assets/opponents/${idAdversario}.png`, VFN.urlLogoEquipa(equipaPorId(idAdversario))]) : Promise.resolve(null)
+    ]);
+
+    const caixaLogo = (texto, logo) => new TableCell({
       width: { size: 34, type: WidthType.PERCENTAGE },
       borders: {
         top: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD },
@@ -1970,10 +2008,12 @@ async function gerarRelatorioWord() {
         right: { style: BorderStyle.DASHED, size: 6, color: COR_OLD_GOLD }
       },
       margins: { top: 500, bottom: 500 },
-      children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: texto, bold: true, size: 24, color: COR_CHARCOAL })] }),
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [new TextRun({ text: "(colar aqui)", italics: true, size: 16, color: COR_SILVER })] })
-      ]
+      children: logo
+        ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: logo.data, type: logo.type, transformation: { width: logo.width, height: logo.height } })] })]
+        : [
+          new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: texto, bold: true, size: 24, color: COR_CHARCOAL })] }),
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [new TextRun({ text: "(colar aqui)", italics: true, size: 16, color: COR_SILVER })] })
+        ]
     });
 
     const caixaResultado = new TableCell({
@@ -1986,7 +2026,7 @@ async function gerarRelatorioWord() {
     pagina1.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: SEM_BORDAS,
-      rows: [new TableRow({ children: [caixaLogo("Logo VFN"), caixaResultado, caixaLogo("Logo " + nomeAdversario)] })]
+      rows: [new TableRow({ children: [caixaLogo("Logo VFN", logoVFN), caixaResultado, caixaLogo("Logo " + nomeAdversario, logoAdversario)] })]
     }));
 
     pagina1.push(new Table({
