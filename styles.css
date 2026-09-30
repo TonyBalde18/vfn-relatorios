@@ -826,3 +826,51 @@ table .ic, .data-table .ic, .icon-btn .ic { width: 16px; height: 16px; }
 
 /* ---------- GSAP: com a biblioteca ativa, as animações CSS equivalentes ficam desligadas ---------- */
 .gsap-on .tab-panel.active, .gsap-on .view.active, .gsap-on .players-grid > *, .gsap-on .standings-compact tbody tr, .gsap-on .standings-table tbody tr, .gsap-on .modal-box { animation: none !important; }
+
+/* =========================================================
+   Glassmorphism (Tarefa 3)
+   Contrastes calculados no pior caso (mancha amarela/azul por trás):
+   texto navy ≥ 16:1, texto secundário ≥ 5.1:1; superfícies escuras:
+   texto claro ≥ 7.3:1.
+   ========================================================= */
+:root {
+  --glass-bg: rgba(255, 255, 255, .68);
+  --glass-borda: rgba(255, 255, 255, .75);
+  --glass-sombra: 0 8px 28px rgba(10, 22, 40, .10);
+  --glass-blur: blur(14px) saturate(140%);
+  --glass-escuro: rgba(10, 22, 40, .84);
+}
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 215, 0, .22), transparent 38%),
+    radial-gradient(circle at 95% 18%, rgba(5, 91, 208, .18), transparent 42%),
+    radial-gradient(circle at 45% 105%, rgba(10, 22, 40, .12), transparent 50%),
+    #EEF1F6;
+  background-attachment: fixed;
+}
+#appShell:not([hidden]) { background: transparent; }
+
+/* Cards de estatísticas (dashboard e Pré-Jogo), cards do plantel e modais */
+.hub-grid > .card:not(.hub-hero), .top-card, .summary-tile, .season-stats-card, .live-summary,
+.pre-game-layout .card, .player-card, .modal-box {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-borda);
+  box-shadow: var(--glass-sombra);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.season-stat { background: rgba(255, 215, 0, .20); }
+.player-card { background: linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .58)); }
+.modal-box { background: rgba(255, 255, 255, .9); }
+.modal-overlay { background: rgba(10, 22, 40, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.hub-hero { background: linear-gradient(135deg, rgba(10, 22, 40, .9), rgba(19, 41, 75, .84)); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid rgba(255, 255, 255, .12); }
+
+/* Sidebar: vidro escuro subtil */
+.app-sidebar { background: rgba(10, 22, 40, .9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-right: 1px solid rgba(255, 255, 255, .06); }
+
+/* Sem backdrop-filter: superfícies sólidas */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .hub-grid > .card:not(.hub-hero), .top-card, .summary-tile, .season-stats-card, .live-summary,
+  .pre-game-layout .card, .player-card, .modal-box { background: #fff; }
+  .app-sidebar { background: var(--vfn-navy); }
+}
