@@ -36,6 +36,8 @@
     <button class="nav-item active" data-view="hub"><span class="nav-icon"><i data-icon="house"></i></span><span class="nav-label">Hub</span></button>
     <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
+    <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
+    <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
@@ -129,6 +131,38 @@
         <button type="button" id="dbJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
       <div id="dbJornLista" class="jornadas-lista"></div>
+    </div>
+  </section>
+
+  <!-- MULTAS (dirigentes, só leitura) -->
+  <section id="view-multas" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Multas <small class="muted">só leitura</small></h2>
+      <div class="toolbar">
+        <label class="sr-only" for="dbMultasJogador">Jogador</label><select id="dbMultasJogador" class="compact-select"></select>
+        <label class="sr-only" for="dbMultasTipo">Tipo</label><select id="dbMultasTipo" class="compact-select"></select>
+        <label class="sr-only" for="dbMultasEstado">Estado</label><select id="dbMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select>
+      </div>
+      <div id="dbMultasResumo" class="summary-tiles"></div>
+      <div class="table-wrap">
+        <table id="dbMultasTabela" class="fines-table">
+          <thead><tr><th scope="col">Jogador</th><th scope="col">Infracção</th><th scope="col" class="num">Valor</th><th scope="col">Estado</th><th scope="col">Data</th></tr></thead>
+          <tbody id="dbMultasBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRESENÇAS (dirigentes, só leitura) -->
+  <section id="view-presencas" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Presenças <small class="muted">só leitura</small></h2>
+      <div class="toolbar">
+        <label class="sr-only" for="dbPresencasMes">Mês</label><select id="dbPresencasMes" class="compact-select"></select>
+        <label class="sr-only" for="dbPresencasJogador">Jogador</label><select id="dbPresencasJogador" class="compact-select"></select>
+      </div>
+      <div id="dbPresencasGrelha"></div>
+      <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span></div>
     </div>
   </section>
 

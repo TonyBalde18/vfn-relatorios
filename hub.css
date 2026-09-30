@@ -221,3 +221,6 @@
 .minutes-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
 .hub-grid .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 54px 42px; gap: 8px; }
 .hub-grid .mini-pitch { max-width: 380px; }
+.sidebar-nav .nav-item[hidden] { display: none; }
+.attendance-table.leitura .att-cell { display: grid; place-items: center; cursor: default; }
+.attendance-table.leitura .att-cell:hover { filter: none; }

@@ -8,13 +8,13 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", jornadas: "Jornadas AF Guarda", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], league_results: [], opponents: [], attendance: [], match_reports: [] };
+let dados = { players: [], teams: [], matches: [], league_results: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -360,6 +360,95 @@ function renderMinutos() {
 }
 
 
+/* ---------- Multas e Presenças (dirigentes; só leitura) ---------- */
+
+const filtrosMultas = { jogador: "", tipo: "", estado: "" };
+const filtrosPresencas = { mes: VFN.mesAtual(), jogador: "" };
+const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
+
+function jogadorPorIdDash(id) {
+  return jogadores.find(j => String(j.id) === String(id)) || null;
+}
+
+function celulaJogadorDash(id) {
+  const j = jogadorPorIdDash(id);
+  return j ? `<span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span>` : '<span class="player-cell muted">Jogador removido</span>';
+}
+
+function opcoesJogadoresDash(selecionado, rotulo) {
+  return `<option value="">${rotulo}</option>` + [...jogadores].sort((a, b) => a.nome.localeCompare(b.nome, "pt"))
+    .map(j => `<option value="${esc(j.id)}" ${String(j.id) === String(selecionado) ? "selected" : ""}>${esc(j.nome)}</option>`).join("");
+}
+
+function renderMultasDash() {
+  if (!$("dbMultasBody")) return;
+  const tipos = [...new Set([...VFN.TIPOS_MULTA.map(t => t.tipo), ...dados.fines.map(f => f.infraction_type)])];
+  $("dbMultasJogador").innerHTML = opcoesJogadoresDash(filtrosMultas.jogador, "Todos os jogadores");
+  $("dbMultasTipo").innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${esc(t)}" ${t === filtrosMultas.tipo ? "selected" : ""}>${esc(VFN.rotuloMulta(t))}</option>`).join("");
+  $("dbMultasEstado").value = filtrosMultas.estado;
+  const lista = dados.fines
+    .filter(f => !filtrosMultas.jogador || String(f.player_id) === filtrosMultas.jogador)
+    .filter(f => !filtrosMultas.tipo || f.infraction_type === filtrosMultas.tipo)
+    .filter(f => !filtrosMultas.estado || (filtrosMultas.estado === "pago" ? f.paid : !f.paid))
+    .sort((a, b) => String(b.match_date || "").localeCompare(String(a.match_date || "")));
+  const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const aDefinir = lista.filter(f => !f.paid && VFN.multaADefinir(f)).length;
+  $("dbMultasResumo").innerHTML = `
+    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${VFN.formatoEuro.format(pendente)}</strong>${aDefinir ? `<small class="valor-a-definir-nota">+ ${aDefinir} a definir (% do ordenado)</small>` : ""}</div>
+    <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${VFN.formatoEuro.format(pago)}</strong></div>
+    <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
+  $("dbMultasBody").innerHTML = lista.length ? lista.map(f => `
+    <tr>
+      <td data-v="${esc((jogadorPorIdDash(f.player_id) || {}).nome || "")}">${celulaJogadorDash(f.player_id)}</td>
+      <td class="fine-infraction">${esc(VFN.rotuloMulta(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${esc(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${esc(f.description)}</span>` : ""}</td>
+      <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
+      <td><span class="status-badge ${f.paid ? "status-jogado result-V" : "status-jogado result-D"}">${f.paid ? "Pago" : "Pendente"}</span>${f.paid && f.paid_date ? `<span class="fine-desc">em ${esc(VFN.dataDDMMAAAA(f.paid_date))}</span>` : ""}</td>
+      <td data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td>
+    </tr>`).join("") : `<tr><td colspan="5" class="empty-state">Sem multas com estes filtros.</td></tr>`;
+}
+
+/** Colunas do mês: sessões criadas + dias com presenças + jogos do VFN (como no admin). */
+function sessoesDoMesDash(mes) {
+  const mapa = new Map();
+  const juntar = (data, tipo) => { if (data && String(data).startsWith(mes)) mapa.set(`${data}|${tipo}`, { data, tipo }); };
+  dados.sessions.forEach(s => juntar(s.session_date, s.session_type));
+  dados.attendance.forEach(a => juntar(a.session_date, a.session_type));
+  VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) !== "cancelado").forEach(j => juntar(VFN.dataIso(j.date), "jogo"));
+  return [...mapa.values()].sort((a, b) => a.data.localeCompare(b.data) || (a.tipo === "treino" ? -1 : 1));
+}
+
+function renderPresencasDash() {
+  if (!$("dbPresencasGrelha")) return;
+  const meses = VFN.mesesDaEpoca(new Date());
+  if (!meses.some(m => m.valor === filtrosPresencas.mes)) filtrosPresencas.mes = meses[0].valor;
+  $("dbPresencasMes").innerHTML = meses.map(m => `<option value="${m.valor}" ${m.valor === filtrosPresencas.mes ? "selected" : ""}>${m.rotulo}</option>`).join("");
+  $("dbPresencasJogador").innerHTML = opcoesJogadoresDash(filtrosPresencas.jogador, "Todos os jogadores");
+  const sessoes = sessoesDoMesDash(filtrosPresencas.mes);
+  const lista = [...jogadores].filter(j => !filtrosPresencas.jogador || String(j.id) === filtrosPresencas.jogador).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  if (!sessoes.length) { $("dbPresencasGrelha").innerHTML = H.vazio("Sem sessões neste mês."); return; }
+  const estado = (id, s) => { const r = dados.attendance.find(a => String(a.player_id) === String(id) && a.session_date === s.data && a.session_type === s.tipo); return r && r.status || ""; };
+  const totaisSessao = sessoes.map(() => ({ P: 0, F: 0, A: 0, J: 0 }));
+  const linhas = lista.map(j => {
+    const t = { P: 0, F: 0, A: 0, J: 0 };
+    const celulas = sessoes.map((s, i) => { const e = estado(j.id, s); if (e) { t[e]++; totaisSessao[i][e]++; } return `<td><span class="att-cell" data-status="${e}" title="${NOMES_PRESENCA[e] || "Sem registo"}">${e}</span></td>`; }).join("");
+    return `<tr><th scope="row" class="col-player" data-v="${esc(j.nome)}"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span></th>${celulas}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${t[k]}</td>`).join("")}</tr>`;
+  }).join("");
+  $("dbPresencasGrelha").innerHTML = `<div class="attendance-wrap"><table class="attendance-table leitura">
+    <thead><tr><th scope="col" class="col-player">Jogador</th>${sessoes.map(s => `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${esc(VFN.dataDDMMAAAA(s.data))}"><span class="session-day">${esc(VFN.dataCurta(s.data))}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${VFN.icone(s.tipo === "jogo" ? "goal" : "footprints", 16)}</span></th>`).join("")}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
+    <tbody>${linhas}</tbody>
+    <tfoot><tr><td class="col-player">Presentes (P+A)</td>${totaisSessao.map(t => `<td>${t.P + t.A}</td>`).join("")}<td colspan="4"></td></tr></tfoot>
+  </table></div>`;
+}
+
+function initMultasPresencasDash() {
+  $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });
+  $("dbMultasTipo").addEventListener("change", e => { filtrosMultas.tipo = e.target.value; renderMultasDash(); });
+  $("dbMultasEstado").addEventListener("change", e => { filtrosMultas.estado = e.target.value; renderMultasDash(); });
+  $("dbPresencasMes").addEventListener("change", e => { filtrosPresencas.mes = e.target.value; renderPresencasDash(); });
+  $("dbPresencasJogador").addEventListener("change", e => { filtrosPresencas.jogador = e.target.value; renderPresencasDash(); });
+}
+
 /* ---------- Jornadas AF Guarda (só leitura) ---------- */
 
 const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
@@ -411,6 +500,8 @@ function renderTudo() {
   renderEstatisticas();
   renderMinutos();
   renderJornadas();
+  renderMultasDash();
+  renderPresencasDash();
   renderCalendario();
   VFN.renderSponsors($("sponsorFooter"), H.competicaoAtiva(dados));
   VFN.refreshAOS();
@@ -423,6 +514,9 @@ async function iniciarApp(perfil) {
   $("sidebarUserName").textContent = (perfil && perfil.full_name) || meta.full_name || meta.name || utilizador.email;
   $("sidebarUserRole").textContent = { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "";
   $("linkAdmin").hidden = !(perfil && (perfil.role === "admin" || perfil.role === "sem-tabela"));
+  // Multas e Presenças: só dirigentes (e admin), sem edição
+  const veMultas = !!perfil && ["dirigente", "admin", "sem-tabela"].includes(perfil.role);
+  document.querySelectorAll("[data-papel=dirigente]").forEach(b => { b.hidden = !veMultas; });
   if (appIniciada) return;
   appIniciada = true;
   mostrarEsqueletos();
@@ -451,6 +545,7 @@ async function iniciar() {
   VFN.initAOS();
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
+  initMultasPresencasDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
