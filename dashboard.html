@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
-<link rel="stylesheet" href="styles.css?v=3">
-<link rel="stylesheet" href="hub.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="hub.css?v=4">
 </head>
 <body class="hub-page">
 
@@ -31,26 +31,26 @@
 <div id="appShell" class="protected-ui" hidden>
 <aside id="appSidebar" class="app-sidebar">
   <div class="sidebar-brand"><img src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves"><div class="sidebar-brand-copy"><strong>VFN</strong><span>Dashboard 26/27</span></div></div>
-  <div class="sidebar-user"><span class="user-avatar">👤</span><span><span id="sidebarUserName">Utilizador</span><small id="sidebarUserRole" class="sidebar-role"></small></span></div>
+  <div class="sidebar-user"><span class="user-avatar"><i data-icon="user" data-size="16"></i></span><span><span id="sidebarUserName">Utilizador</span><small id="sidebarUserRole" class="sidebar-role"></small></span></div>
   <nav class="sidebar-nav" aria-label="Navegação principal">
-    <button class="nav-item active" data-view="hub"><span class="nav-icon">🏟️</span><span class="nav-label">Hub</span></button>
-    <button class="nav-item" data-view="plantel"><span class="nav-icon">👥</span><span class="nav-label">Plantel</span></button>
-    <button class="nav-item" data-view="estatisticas"><span class="nav-icon">📊</span><span class="nav-label">Estatísticas</span></button>
-    <button class="nav-item" data-view="minutos"><span class="nav-icon">⏱️</span><span class="nav-label">Minutos</span></button>
-    <button class="nav-item" data-view="calendario"><span class="nav-icon">📅</span><span class="nav-label">Calendário</span></button>
+    <button class="nav-item active" data-view="hub"><span class="nav-icon"><i data-icon="house"></i></span><span class="nav-label">Hub</span></button>
+    <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
+    <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
+    <button class="nav-item" data-view="minutos"><span class="nav-icon"><i data-icon="timer"></i></span><span class="nav-label">Minutos</span></button>
+    <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
-    <a id="linkAdmin" href="index.html" hidden><span class="nav-icon">🛠️</span>Área de administração</a>
-    <a href="public.html" target="_blank" rel="noopener"><span class="nav-icon">🌐</span>Página dos atletas</a>
+    <a id="linkAdmin" href="index.html" hidden><span class="nav-icon"><i data-icon="wrench"></i></span>Área de administração</a>
+    <a href="public.html" target="_blank" rel="noopener"><span class="nav-icon"><i data-icon="globe"></i></span>Página dos atletas</a>
   </div>
-  <button id="btnLogout" class="sidebar-logout"><span class="nav-icon">↪</span><span class="nav-label">Sair</span></button>
+  <button id="btnLogout" class="sidebar-logout"><span class="nav-icon"><i data-icon="log-out"></i></span><span class="nav-label">Sair</span></button>
 </aside>
 
 <div class="app-content">
 <header class="app-header">
-  <button id="btnSidebarToggle" class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">☰</button>
+  <button id="btnSidebarToggle" class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><i data-icon="menu" data-size="22"></i></button>
   <div class="header-title"><span class="header-kicker">ACD Vila Franca das Naves · 2ª Distrital da Guarda</span><h1 id="viewTitle">Hub</h1></div>
-  <div class="header-actions"><button id="btnAtualizar" class="btn btn-ghost btn-sm" type="button">↻ Atualizar</button></div>
+  <div class="header-actions"><button id="btnAtualizar" class="btn btn-ghost btn-sm" type="button"><i data-icon="refresh-cw" data-size="16"></i> Atualizar</button></div>
 </header>
 
 <main>
@@ -154,9 +154,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-<script src="config.js?v=3"></script>
-<script src="shared.js?v=3"></script>
-<script src="hub.js?v=3"></script>
-<script src="dashboard.js?v=3"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="config.js?v=4"></script>
+<script src="shared.js?v=4"></script>
+<script src="hub.js?v=4"></script>
+<script src="dashboard.js?v=4"></script>
 </body>
 </html>

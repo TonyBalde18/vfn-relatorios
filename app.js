@@ -48,6 +48,12 @@ const FORMACOES_SLOTS = {
 
 const COMPETICOES = ["2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES", "TAÇA 2ª LIGA - FDM", "TAÇA DE HONRA COMUNILOG", "Amigável"];
 const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Nota"];
+// emojis só para o Word e para as <option>; na interface usam-se ícones Lucide
+const ICONES_LUCIDE_EVENTO = {
+  "Golo": "goal", "Auto-golo": "goal", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
+  "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage",
+  "Substituição": "repeat", "Tempo Acrescentado": "timer", "Nota": "sticky-note"
+};
 const ICONES_EVENTO = {
   "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴",
   "Cartão Amarelo": "🟨", "Cartão Vermelho": "🟥", "Lesão": "🤕",
@@ -706,7 +712,7 @@ function renderProximoJogoPreJogo() {
       <span><span class="comp-tag comp-${VFN.categoriaCompeticao(jogo.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(jogo.competition))}</span>${jogo.jornada ? ` · Jornada ${escapeHtml(jogo.jornada)}` : ""} · ${casa ? "Casa" : "Fora"}</span>
       <span>Faltam <span class="countdown">${escapeHtml(VFN.contagemDecrescente(jogo.date))}</span></span>
     </div>
-    <button type="button" id="btnUsarProximoJogo" class="btn ${associado ? "btn-ghost" : "btn-accent"} btn-sm">${associado ? "✓ Associado a este relatório" : "Usar dados deste jogo"}</button>
+    <button type="button" id="btnUsarProximoJogo" class="btn ${associado ? "btn-ghost" : "btn-accent"} btn-sm">${associado ? `${VFN.icone("check", 16)} Associado a este relatório` : "Usar dados deste jogo"}</button>
     <p class="readonly-note">Calculado automaticamente a partir do Calendário.</p>`;
   el("btnUsarProximoJogo").addEventListener("click", () => usarJogoNoRelatorio(jogo));
 }
@@ -1109,7 +1115,7 @@ function renderTimeline() {
     marker.dataset.type = ev.tipo;
     marker.style.left = `${Math.min(100, Math.max(0, Number(ev.minuto) || 0) / duracao * 100)}%`;
     marker.title = `${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
-    marker.textContent = ICONES_EVENTO[ev.tipo] || "📝";
+    marker.innerHTML = VFN.icone(ICONES_LUCIDE_EVENTO[ev.tipo] || "sticky-note", 18);
     const label = document.createElement("span");
     label.textContent = formatarMinuto(ev);
     marker.appendChild(label);
@@ -1265,7 +1271,7 @@ function renderEventos(ordenar) {
 
     const tdTipo = document.createElement("td");
     const selectTipo = document.createElement("select");
-    selectTipo.innerHTML = TIPOS_EVENTO.map(t => `<option value="${t}" ${t === ev.tipo ? "selected" : ""}>${ICONES_EVENTO[t]} ${t}</option>`).join("");
+    selectTipo.innerHTML = TIPOS_EVENTO.map(t => `<option value="${t}" ${t === ev.tipo ? "selected" : ""}>${t}</option>`).join("");
     selectTipo.addEventListener("change", () => { ev.tipo = selectTipo.value; if (ev.tipo !== "Golo") ev.assistId = ""; renderEventos(false); });
     tdTipo.appendChild(selectTipo);
 
@@ -1296,7 +1302,7 @@ function renderEventos(ordenar) {
 
     const tdAcao = document.createElement("td");
     const btnRemover = document.createElement("button");
-    btnRemover.className = "remove-btn"; btnRemover.textContent = "×"; btnRemover.title = "Eliminar evento";
+    btnRemover.className = "remove-btn"; btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.title = "Eliminar evento"; btnRemover.setAttribute("aria-label", "Eliminar evento");
     btnRemover.addEventListener("click", () => { state.jogo.eventos = state.jogo.eventos.filter(e => e.id !== ev.id); renderEventos(false); });
     tdAcao.appendChild(btnRemover);
 
@@ -1333,9 +1339,9 @@ function initAnalise() {
       <div class="tatical-head">
         <h2 class="section-title" style="border:none;padding-left:0;margin-bottom:0;">${sec.titulo}</h2>
         <div class="avaliacao-group" data-key="${sec.key}">
-          <button type="button" class="avaliacao-btn" data-val="Bom">🟢 Bom</button>
-          <button type="button" class="avaliacao-btn" data-val="Medio">🟡 Médio</button>
-          <button type="button" class="avaliacao-btn" data-val="Mau">🔴 Mau</button>
+          <button type="button" class="avaliacao-btn" data-val="Bom">${VFN.icone("circle", 14, "dot dot-bom")} Bom</button>
+          <button type="button" class="avaliacao-btn" data-val="Medio">${VFN.icone("circle", 14, "dot dot-medio")} Médio</button>
+          <button type="button" class="avaliacao-btn" data-val="Mau">${VFN.icone("circle", 14, "dot dot-mau")} Mau</button>
         </div>
       </div>
       <details class="guia">
@@ -1384,7 +1390,7 @@ function renderBulletList(containerId, arr) {
     input.addEventListener("input", () => { arr[idx] = input.value; });
     const btnRemover = document.createElement("button");
     btnRemover.className = "remove-btn";
-    btnRemover.textContent = "×";
+    btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.setAttribute("aria-label", "Remover");
     btnRemover.addEventListener("click", () => { arr.splice(idx, 1); renderBulletList(containerId, arr); });
     row.appendChild(input);
     row.appendChild(btnRemover);
@@ -1422,7 +1428,7 @@ function renderJogadoresChave() {
 
     const btnRemover = document.createElement("button");
     btnRemover.className = "remove-btn";
-    btnRemover.textContent = "×";
+    btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.setAttribute("aria-label", "Remover");
     btnRemover.addEventListener("click", () => {
       state.analise.adversario.jogadoresChave.splice(idx, 1);
       renderJogadoresChave();
@@ -1452,7 +1458,7 @@ function renderTopicos() {
     input.addEventListener("input", () => { state.analise.topicosTreino[idx] = input.value; });
     const btnRemover = document.createElement("button");
     btnRemover.className = "remove-btn";
-    btnRemover.textContent = "×";
+    btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.setAttribute("aria-label", "Remover");
     btnRemover.addEventListener("click", () => {
       state.analise.topicosTreino.splice(idx, 1);
       renderTopicos();
@@ -1657,7 +1663,7 @@ function renderPlantel() {
     const tdAcao = document.createElement("td");
     const btnRemover = document.createElement("button");
     btnRemover.className = "remove-btn";
-    btnRemover.textContent = "×";
+    btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.setAttribute("aria-label", "Remover");
     btnRemover.title = "Remover jogador";
     btnRemover.addEventListener("click", () => {
       if (!confirm(`Remover "${j.nome}" do plantel?`)) return;
@@ -1683,11 +1689,11 @@ function renderTeamQuickStats() {
   el("teamQuickStats").innerHTML = `<span><strong>${plantel.length}</strong> jogadores</span><span><strong>${golos}</strong> golos totais</span>`;
 }
 
-function criarStatCard(titulo, lista, formatador) {
+function criarStatCard(titulo, icone, lista, formatador) {
   const card = document.createElement("div");
   card.className = "stat-card";
   const h4 = document.createElement("h4");
-  h4.textContent = titulo;
+  h4.innerHTML = `${VFN.icone(icone, 18)} ${escapeHtml(titulo)}`;
   card.appendChild(h4);
   if (lista.length === 0) {
     const p = document.createElement("p");
@@ -1716,9 +1722,9 @@ function renderPlantelSummary() {
   const totalAmarelos = plantel.reduce((s, p) => s + (Number(p.cartoesAmarelos) || 0), 0);
   const totalVermelhos = plantel.reduce((s, p) => s + (Number(p.cartoesVermelhos) || 0), 0);
 
-  container.appendChild(criarStatCard("⚽ Top 3 Golos", topGolos, p => `${p.nome} — ${p.golos}`));
-  container.appendChild(criarStatCard("🎯 Top 3 Assistências", topAssist, p => `${p.nome} — ${p.assistencias}`));
-  container.appendChild(criarStatCard("⏱️ Top 3 Minutos Jogados", topMinutos, p => `${p.nome} — ${p.minutosTotais}'`));
+  container.appendChild(criarStatCard("Top 3 Golos", "goal", topGolos, p => `${p.nome} — ${p.golos}`));
+  container.appendChild(criarStatCard("Top 3 Assistências", "target", topAssist, p => `${p.nome} — ${p.assistencias}`));
+  container.appendChild(criarStatCard("Top 3 Minutos Jogados", "timer", topMinutos, p => `${p.nome} — ${p.minutosTotais}'`));
 
   const cardCartoes = document.createElement("div");
   cardCartoes.className = "stat-card";

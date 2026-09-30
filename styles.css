@@ -801,3 +801,25 @@ body.tab-gestao .app-content .header-actions { display: none; }
 .position-point.secondary { background: rgba(255,215,0,.45); }
 .app-sidebar > * { flex-shrink: 0; }
 .sidebar-nav .nav-item { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
+
+/* ---------- Ícones Lucide ---------- */
+.ic { display: inline-block; flex-shrink: 0; vertical-align: -0.2em; }
+table .ic, .data-table .ic, .icon-btn .ic { width: 16px; height: 16px; }
+.nav-icon { display: inline-grid; place-items: center; }
+.nav-icon .ic { width: 20px; height: 20px; }
+.sidebar-toggle .ic { width: 24px; height: 24px; vertical-align: middle; }
+.user-avatar { color: var(--vfn-yellow); }
+.btn .ic { vertical-align: -0.2em; margin-right: 2px; }
+.remove-btn { display: inline-grid; place-items: center; }
+.timeline-event .ic { display: block; margin: 0 auto; }
+.timeline-event[data-type="Cartão Amarelo"] .ic { fill: #FACC15; stroke: #CA8A04; }
+.timeline-event[data-type="Cartão Vermelho"] .ic { fill: #DC2626; stroke: #991B1B; }
+.timeline-event[data-type="Auto-golo"] { color: var(--vermelho); }
+.avaliacao-btn .dot { stroke: none; }
+.dot-bom { fill: #16a34a; } .dot-medio { fill: #EAB308; } .dot-mau { fill: #DC2626; }
+.avaliacao-btn.active .dot { fill: #fff; }
+.ic.card-amarelo { fill: #FACC15; stroke: #CA8A04; }
+.stat-card h4 .ic, .hub-card-title .ic { vertical-align: -0.2em; }
+.hero-meta .ic { vertical-align: -0.25em; }
+.session-icon .ic { width: 16px; height: 16px; }
+.scouting-flag .ic { width: 12px; height: 12px; }

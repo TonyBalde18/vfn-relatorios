@@ -133,7 +133,7 @@ function renderMultas() {
       <td class="num">${formatoEuro.format(Number(f.amount) || 0)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
       <td>${dataPt(f.match_date)}</td>
-      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar multa" aria-label="Editar multa">✎</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar multa" aria-label="Eliminar multa">🗑</button></div></td>
+      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar multa" aria-label="Editar multa">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar multa" aria-label="Eliminar multa">${VFN.icone("trash-2", 16)}</button></div></td>
     </tr>`).join("");
 
   tbody.querySelectorAll("tr[data-id]").forEach(tr => {
@@ -282,7 +282,7 @@ function renderPresencas() {
 
   const cabecalho = sessoes.map((s, i) => {
     const podeRemover = s.sessao || cacheAdmin.attendance.some(a => a.session_date === s.data && a.session_type === s.tipo);
-    return `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${dataPt(s.data)}"><span class="session-day">${VFN.dataCurta(s.data)}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${s.tipo === "jogo" ? "⚽" : "👟"}</span>${podeRemover ? `<button type="button" class="session-remove" data-sessao="${i}" title="Remover sessão" aria-label="Remover sessão de ${dataPt(s.data)}">✕</button>` : ""}</th>`;
+    return `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${dataPt(s.data)}"><span class="session-day">${VFN.dataCurta(s.data)}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${VFN.icone(s.tipo === "jogo" ? "goal" : "footprints", 16)}</span>${podeRemover ? `<button type="button" class="session-remove" data-sessao="${i}" title="Remover sessão" aria-label="Remover sessão de ${dataPt(s.data)}">${VFN.icone("x", 14)}</button>` : ""}</th>`;
   }).join("");
 
   const totaisSessao = sessoes.map(() => ({ P: 0, F: 0, A: 0, J: 0 }));
@@ -452,7 +452,7 @@ function renderCalendarioAdmin() {
       <td><span class="team-inline">${logoEquipaHTML(equipaPorId(j.opponent_team_id), nome)}${escapeHtml(nome)}</span></td>
       <td class="num">${g ? `<strong>${g.vfn} – ${g.adv}</strong>` : "—"}</td>
       <td>${VFN.badgeEstado(j)}</td>
-      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar jogo" aria-label="Editar jogo">✎</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">🗑</button></div></td>
+      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar jogo" aria-label="Editar jogo">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button></div></td>
     </tr>`;
   }).join("");
   tbody.querySelectorAll("tr[data-id]").forEach(tr => {
@@ -576,7 +576,7 @@ function linhaResultadoHTML(j) {
     <td class="score-cell"><input type="number" min="0" data-campo="score_home" value="${valor(j.score_home)}" aria-label="Golos ${escapeHtml(casa.nome)}"><span>–</span><input type="number" min="0" data-campo="score_away" value="${valor(j.score_away)}" aria-label="Golos ${escapeHtml(fora.nome)}"></td>
     <td><span class="team-inline">${logoPorId(fora.id, fora.nome)}${escapeHtml(fora.nome)}</span></td>
     <td><select data-campo="status" aria-label="Estado do jogo">${ESTADOS_JOGO.map(([v, t]) => `<option value="${v}" ${v === estado ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-    <td>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : '<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">🗑</button>'}</td>
+    <td>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : '<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>'}</td>
   </tr>`;
 }
 
@@ -770,7 +770,7 @@ function renderAdversarios() {
     return `<button type="button" class="team-card" data-id="${escapeHtml(t.id)}">
       ${logoEquipaHTML(t, t.name)}
       <strong>${escapeHtml(t.name)}</strong>
-      ${VFN.eVFN(t.name) ? '<small>O nosso clube</small>' : `<small>Histórico: ${h.V}V ${h.E}E ${h.D}D</small>${temObs ? '<span class="scouting-flag">Observação ✓</span>' : ""}`}
+      ${VFN.eVFN(t.name) ? '<small>O nosso clube</small>' : `<small>Histórico: ${h.V}V ${h.E}E ${h.D}D</small>${temObs ? `<span class="scouting-flag">${VFN.icone("check", 14)} Observação</span>` : ""}`}
     </button>`;
   }).join("");
   grelha.querySelectorAll(".team-card").forEach(b => b.addEventListener("click", () => abrirModalEquipa(equipaPorId(b.dataset.id))));

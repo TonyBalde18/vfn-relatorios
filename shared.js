@@ -268,6 +268,34 @@
     return "";
   }
 
+  /* ---------- Ícones Lucide ---------- */
+
+  const nomeLucide = nome => String(nome).split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+
+  /**
+   * SVG de um ícone Lucide ("calendar-days", "trash-2"...). Gera o SVG a partir
+   * dos dados da biblioteca (não usa lucide.createIcons, que deixa data-lucide
+   * no SVG e voltaria a processá-lo). Tamanho: 20px; nas tabelas o CSS reduz a 16px.
+   */
+  function icone(nome, tamanho, classe) {
+    const no = window.lucide && window.lucide.icons && window.lucide.icons[nomeLucide(nome)];
+    if (!no) return "";
+    const filhos = no[2] || [];
+    const t = tamanho || 20;
+    const corpo = filhos.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${escapeHtml(v)}"`).join(" ")}/>`).join("");
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ic ic-${nome}${classe ? " " + classe : ""}" aria-hidden="true" focusable="false">${corpo}</svg>`;
+  }
+
+  /** Troca os <i data-icon="nome" data-size="16"> do HTML pelos SVG. */
+  function hidratarIcones(raiz) {
+    (raiz || document).querySelectorAll("i[data-icon]").forEach(el => {
+      const svg = icone(el.dataset.icon, Number(el.dataset.size) || 20, el.className);
+      if (svg) el.outerHTML = svg;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => hidratarIcones());
+
   /* ---------- Logos das equipas ---------- */
 
   const BASE_SITE = "https://tonybalde18.github.io/vfn-relatorios/";
@@ -421,7 +449,7 @@
 
   window.VFN = {
     COMPETICOES, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
-    escapeHtml, novoId, slug,
+    escapeHtml, novoId, slug, icone, hidratarIcones,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,
