@@ -1604,7 +1604,8 @@ function renderPositionMap() {
 function renderPlayerModalHeader(jogador) {
   const photo = el("playerModalPhoto");
   const numero = jogador ? jogador.numero : el("modalNumero").value;
-  photo.innerHTML = jogador && jogador.fotoUrl ? `<img src="${escapeHtml(jogador.fotoUrl)}" alt="Fotografia de ${escapeHtml(jogador.nome)}">` : generateJerseyAvatar(numero);
+  // foto real (photo_url ou assets/players/{id}) em destaque; senão a camisola
+  photo.innerHTML = VFN.avatarJogador(jogador ? jogador : { numero }, "avatar-modal");
   el("playerModalName").textContent = jogador ? (jogador.nomeCompleto || jogador.nome) : "Adicionar Jogador";
   el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${VFN.dataDDMMAAAA(jogador.nascimento)}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };

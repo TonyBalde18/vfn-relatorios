@@ -396,18 +396,43 @@
       `</svg>`;
   }
 
+  // Fotos em assets/players/{id}.jpg ou .png. Guarda o resultado para não repetir pedidos falhados.
+  const PASTA_FOTOS = "assets/players/";
+  const fotosConhecidas = new Map(); // id -> url encontrado | null (sem foto)
+
   /**
-   * Avatar de jogador: fotografia se existir, senão camisola com o número.
-   * Aceita jogadores do app.js (fotoUrl/numero/nome) e do Supabase (photo_url/number/name).
+   * Avatar de jogador: começa pela camisola e tenta a foto real em segundo plano
+   * (photo_url, depois assets/players/{id}.jpg e .png); se nenhuma existir, fica a camisola.
+   * Aceita jogadores do app.js (idBD/fotoUrl/numero/nome) e do Supabase (id/photo_url/number/name).
    */
   function avatarJogador(jogador, classe) {
     const j = jogador || {};
-    const foto = j.photo_url || j.fotoUrl || "";
     const numero = j.number != null && j.number !== "" ? j.number : j.numero;
     const nome = j.name || j.nome || "";
+    const id = String(j.idBD || j.id || "");
     const cls = `vfn-avatar ${classe || ""}`.trim();
-    if (foto) return `<span class="${cls} has-photo"><img src="${escapeHtml(foto)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
-    return `<span class="${cls}">${generateJerseyAvatar(numero)}</span>`;
+    const candidatos = [j.photo_url || j.fotoUrl, id && `${PASTA_FOTOS}${id}.jpg`, id && `${PASTA_FOTOS}${id}.png`].filter(Boolean);
+    const conhecida = fotosConhecidas.get(id);
+    if (conhecida) return `<span class="${cls} has-photo"><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
+    const camisola = generateJerseyAvatar(numero);
+    if (conhecida === null || !candidatos.length) return `<span class="${cls}">${camisola}</span>`;
+    return `<span class="${cls}">${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(nome)}" data-id="${escapeHtml(id)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
+  }
+
+  function fotoCarregou(img) {
+    const span = img.parentElement;
+    if (img.dataset.id) fotosConhecidas.set(img.dataset.id, img.getAttribute("src"));
+    img.classList.remove("foto-tentativa");
+    [...span.querySelectorAll("svg")].forEach(s => s.remove());
+    span.classList.add("has-photo");
+  }
+
+  function fotoFalhou(img) {
+    const candidatos = (img.dataset.candidatos || "").split("|").filter(Boolean);
+    const seguinte = candidatos[candidatos.indexOf(img.getAttribute("src")) + 1];
+    if (seguinte) { img.src = seguinte; return; }
+    if (img.dataset.id) fotosConhecidas.set(img.dataset.id, null);
+    img.remove(); // fica a camisola
   }
 
   /* ---------- Loading spinner (todos os pedidos Supabase) ---------- */
@@ -513,7 +538,7 @@
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao,
-    generateJerseyAvatar, avatarJogador,
+    generateJerseyAvatar, avatarJogador, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel,
     initSidebar, initAOS, refreshAOS

@@ -200,7 +200,7 @@ function presencaJogador(id) {
 function abrirJogador(id) {
   const j = jogadores.find(x => String(x.id) === String(id));
   if (!j) return;
-  $("mjAvatar").innerHTML = j.fotoUrl ? `<img src="${esc(j.fotoUrl)}" alt="Fotografia de ${esc(j.nome)}">` : generateJerseyAvatar(j.numero);
+  $("mjAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("mjNome").textContent = j.nomeCompleto;
   $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
   $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]

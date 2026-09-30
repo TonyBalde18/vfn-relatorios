@@ -874,3 +874,8 @@ body {
   .pre-game-layout .card, .player-card, .modal-box { background: #fff; }
   .app-sidebar { background: var(--vfn-navy); }
 }
+.vfn-avatar .foto-tentativa { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.vfn-avatar { position: relative; }
+.player-modal-photo .vfn-avatar { width: 100%; height: 100%; border: 0; border-radius: 50%; }
+.player-modal-photo .vfn-avatar svg { width: 112px; height: 126px; margin: auto; }
+.player-modal-photo .vfn-avatar.has-photo img { width: 100%; height: 100%; object-fit: cover; }

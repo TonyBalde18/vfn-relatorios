@@ -59,7 +59,7 @@ function renderPlantel() {
 function abrirJogador(id) {
   const j = jogadores.find(x => String(x.id) === String(id));
   if (!j) return;
-  $("pjAvatar").innerHTML = j.fotoUrl ? `<img src="${VFN.escapeHtml(j.fotoUrl)}" alt="Fotografia de ${VFN.escapeHtml(j.nomeCompleto)}">` : generateJerseyAvatar(j.numero);
+  $("pjAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("pjNome").textContent = j.nomeCompleto;
   $("pjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ");
   $("pjStats").innerHTML = [["Jogos", j.jogos], ["Minutos", j.minutos], ["Golos", j.golos], ["Assistências", j.assistencias], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV]]
