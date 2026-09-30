@@ -120,14 +120,15 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    return VFN.competicoesLiga(dados.matches);
+    // só as competições com classificação: 2ª Liga Zero Graus e Taça de Honra Comunilog
+    return VFN.COMPETICOES_CLASSIFICACAO;
   }
 
   function competicaoPreferida(dados) {
     const comps = competicoesComClassificacao(dados);
     const proximo = VFN.proximoJogo(dados.matches);
     if (proximo && comps.includes(proximo.competition)) return proximo.competition;
-    return comps.find(c => VFN.categoriaCompeticao(c) === "liga") || comps[0] || "";
+    return comps[0] || "";
   }
 
   function opcoesCompeticaoHTML(dados, selecionada) {
