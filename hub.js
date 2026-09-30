@@ -254,7 +254,7 @@
   function jogosDaJornada(dados, competicao) {
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
-      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: r.scorers || "", registo: r };
+      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: r.scorers || "", data: r.match_date || null, registo: r };
     });
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
@@ -286,6 +286,7 @@
     if (!jogos.length) return vazio("Sem jogos registados para estes filtros.");
     const porJornada = new Map();
     jogos.forEach(j => { (porJornada.get(j.jornada) || porJornada.set(j.jornada, []).get(j.jornada)).push(j); });
+    porJornada.forEach(lista => lista.sort((x, y) => String(x.data || "9999").localeCompare(String(y.data || "9999"))));
     const ordem = [...porJornada.keys()].sort((a, b) => o.ordem === "desc" ? b - a : a - b);
     const lado = (eq, classe) => `<span class="jj-equipa ${classe}">${classe === "jj-casa" ? `<span>${esc(eq.nome)}</span>${logoEquipa(equipa(dados, eq.id), eq.nome)}` : `${logoEquipa(equipa(dados, eq.id), eq.nome)}<span>${esc(eq.nome)}</span>`}</span>`;
     return ordem.map(n => `
@@ -293,13 +294,14 @@
         <h3 class="jornada-titulo">${n ? `Jornada ${n}` : "Sem jornada"} <small class="muted">${porJornada.get(n).length} jogo${porJornada.get(n).length === 1 ? "" : "s"}</small></h3>
         ${porJornada.get(n).map(j => {
           const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
-          const resultado = temRes ? `${Number(j.gc)} – ${Number(j.gf)}` : (j.data ? esc(VFN.dataCurta(j.data)) : "–");
+          const resultado = temRes ? `${Number(j.gc)} – ${Number(j.gf)}` : "–";
+          const data = j.data ? `${esc(VFN.dataCurta(j.data))}${VFN.horaIso(j.data) && VFN.horaIso(j.data) !== "00:00" ? " · " + esc(VFN.horaIso(j.data)) : ""}` : "";
           const acoes = j.origem === "vfn"
             ? '<span class="jj-tag" title="Jogo do VFN (vem do Calendário)">VFN</span>'
             : o.editavel ? `<span class="row-actions"><button type="button" class="icon-btn" data-acao="editar" data-id="${esc(j.id)}" title="Editar resultado" aria-label="Editar resultado">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" data-id="${esc(j.id)}" title="Eliminar resultado" aria-label="Eliminar resultado">${VFN.icone("trash-2", 16)}</button></span>` : "";
           return `<div class="jornada-jogo${j.origem === "vfn" ? " is-vfn-game" : ""}">
             ${lado(j.casa, "jj-casa")}
-            <span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>
+            <span class="jj-centro"><span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>${data ? `<small class="jj-data">${data}</small>` : ""}</span>
             ${lado(j.fora, "jj-fora")}
             <span class="jj-acoes">${acoes}</span>
             ${j.marcadores ? `<p class="jj-marcadores">${VFN.icone("goal", 14)} ${esc(j.marcadores)}</p>` : ""}

@@ -726,6 +726,12 @@ function initJornadas() {
   el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
   el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
   el("btnGuardarResultadoLiga").addEventListener("click", guardarResultadoLiga);
+  // sugere a data do jogo do VFN da mesma jornada (as jornadas jogam-se no mesmo fim de semana)
+  el("jornadaNumero").addEventListener("change", () => {
+    if (el("jornadaData").value) return;
+    const jogo = VFN.jogosDoVFN(jogosCalendario).find(j => j.competition === filtrosJornadas.competicao && String(j.jornada) === el("jornadaNumero").value);
+    if (jogo) el("jornadaData").value = VFN.dataIso(jogo.date);
+  });
   el("btnCancelarResultadoLiga").addEventListener("click", () => limparFormJornada());
   el("jornadasLista").addEventListener("click", e => {
     const botao = e.target.closest("[data-acao]");
@@ -763,6 +769,7 @@ function limparFormJornada(manterJornada) {
   resultadoEmEdicao = null;
   const jornada = manterJornada ? el("jornadaNumero").value : "";
   el("jornadaNumero").value = jornada;
+  if (!manterJornada) el("jornadaData").value = ""; // ao lançar a mesma jornada mantém a data
   el("jornadaCasa").innerHTML = opcoesEquipasLiga("");
   el("jornadaFora").innerHTML = opcoesEquipasLiga("");
   ["jornadaGolosCasa", "jornadaGolosFora", "jornadaMarcadores"].forEach(id => { el(id).value = ""; });
@@ -775,6 +782,7 @@ function editarResultadoLiga(r) {
   resultadoEmEdicao = r;
   filtrosJornadas.competicao = r.competition;
   el("jornadaNumero").value = r.jornada;
+  el("jornadaData").value = r.match_date || "";
   el("jornadaCasa").innerHTML = opcoesEquipasLiga(r.home_team_id);
   el("jornadaFora").innerHTML = opcoesEquipasLiga(r.away_team_id);
   el("jornadaGolosCasa").value = r.score_home ?? "";
@@ -802,6 +810,10 @@ async function guardarResultadoLiga() {
     score_away: gf === "" ? null : Number(gf),
     scorers: el("jornadaMarcadores").value.trim() || null
   };
+  // match_date só vai no pedido quando há data (ou já existia), para funcionar antes de a coluna ser criada
+  const data = el("jornadaData").value;
+  if (data) linha.match_date = data;
+  else if (resultadoEmEdicao && "match_date" in resultadoEmEdicao) linha.match_date = null;
   const botao = el("btnGuardarResultadoLiga");
   botao.disabled = true;
   try {
