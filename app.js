@@ -239,24 +239,21 @@ async function carregarRascunhoSupabase() {
   return { savedAt: data.updated_at, data: data.data };
 }
 
-async function carregarEstatisticasEpocaSupabase() {
-  const vazio = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 };
-  if (!supabaseClient || !currentUser) { renderSeasonStats(vazio); return; }
-  const { data, error } = await supabaseClient.from("match_reports").select("match_data").eq("user_id", currentUser.id);
-  if (error || !data) { renderSeasonStats(vazio); return; }
-  const stats = data.reduce((acc, row) => {
-    const jogo = row.match_data || {}; const pre = jogo.preJogo || {}; const jogoData = jogo.jogo || {};
-    const eventos = jogoData.eventos || []; let vfn = Number(jogoData.golosVFN) || 0; let adv = Number(jogoData.golosAdversario) || 0;
-    if (eventos.length) { vfn = 0; adv = 0; eventos.forEach(evento => { if (evento.tipo !== "Golo" && evento.tipo !== "Auto-golo") return; const vfnMarca = evento.tipo === "Golo" ? evento.equipa === "VFN" : evento.equipa !== "VFN"; if (vfnMarca) vfn++; else adv++; }); }
-    acc.jogos++; acc.marcados += vfn; acc.sofridos += adv; if (vfn > adv) acc.vitorias++; else if (vfn === adv) acc.empates++; else acc.derrotas++; return acc;
-  }, vazio);
+/** Estatísticas da época a partir de matches: jogos do VFN com status 'jogado' e resultado. */
+function atualizarEstatisticasEpoca() {
+  const stats = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 };
+  VFN.ultimosJogos(jogosCalendario, Infinity).forEach(j => {
+    const g = VFN.golosJogo(j);
+    stats.jogos++; stats.marcados += g.vfn; stats.sofridos += g.adv;
+    if (g.vfn > g.adv) stats.vitorias++; else if (g.vfn === g.adv) stats.empates++; else stats.derrotas++;
+  });
   renderSeasonStats(stats);
 }
 
 function renderSeasonStats(stats) {
   const container = el("seasonStatsCard");
   if (!container) return;
-  container.innerHTML = `<h2 class="section-title">Estatísticas Rápidas da Época</h2><div class="season-stats-grid">${[["Jogos", stats.jogos], ["Vitórias", stats.vitorias], ["Empates", stats.empates], ["Derrotas", stats.derrotas], ["Golos marcados", stats.marcados], ["Golos sofridos", stats.sofridos]].map(([label, value]) => `<div class="season-stat"><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>${stats.jogos === 0 ? '<small class="season-empty">Ainda não existem relatórios guardados.</small>' : ""}`;
+  container.innerHTML = `<h2 class="section-title">Estatísticas Rápidas da Época</h2><div class="season-stats-grid">${[["Jogos", stats.jogos], ["Vitórias", stats.vitorias], ["Empates", stats.empates], ["Derrotas", stats.derrotas], ["Golos marcados", stats.marcados], ["Golos sofridos", stats.sofridos]].map(([label, value]) => `<div class="season-stat"><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>${stats.jogos === 0 ? '<small class="season-empty">Ainda não há jogos do VFN com resultado no calendário.</small>' : '<small class="season-empty">Calculado a partir dos jogos do VFN com estado "jogado".</small>'}`;
 }
 
 async function guardarRelatorioSupabase() {
@@ -697,6 +694,7 @@ function renderProximoJogoPreJogo() {
   const container = el("nextMatchBody");
   if (!container) return;
   renderOpcoesPreJogo(); // o calendário ou as equipas podem ter mudado
+  atualizarEstatisticasEpoca();
   const jogo = VFN.proximoJogo(jogosCalendario);
   if (!jogo) {
     state.preJogo.proximoJogo = { data: "", adversario: "" };
@@ -2271,8 +2269,7 @@ function initAplicacao() {
   VFN.initAOS();
 
   renderTudo();
-  renderSeasonStats({ jogos: 0, vitorias: 0, empates: 0, derrotas: 0, marcados: 0, sofridos: 0 });
-  carregarEstatisticasEpocaSupabase();
+  atualizarEstatisticasEpoca(); // volta a calcular quando o calendário carrega
 
   initRascunho();
   atualizarSponsorsAdmin();
