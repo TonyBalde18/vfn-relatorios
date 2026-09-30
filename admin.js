@@ -712,6 +712,7 @@ function renderClassificacaoAdmin() {
     tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sem jogos de liga no calendário.</td></tr>';
     return;
   }
+  setTimeout(() => VFN.anim.linhas(tbody.querySelectorAll("tr")), 0);
   tbody.innerHTML = linhas.map((s, i) => {
     const dg = s.goals_for - s.goals_against;
     return `<tr class="${VFN.eVFN(s.team_name) ? "is-vfn-row" : ""}">

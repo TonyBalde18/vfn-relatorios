@@ -45,6 +45,8 @@ function mostrarVista(vista) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === vista));
   $("viewTitle").textContent = TITULOS_VISTA[vista] || vista;
+  VFN.anim.tab($(`view-${vista}`));
+  if (vista === "plantel") VFN.anim.cascata($("plantelGrid").children);
   VFN.refreshAOS();
   if (vista === "hub") Object.values(graficos).forEach(g => g && g.resize());
 }
@@ -60,8 +62,10 @@ function renderHub() {
   $("hubCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicaoHub);
   $("hubCompeticao").hidden = !competicaoHub;
   $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub);
+  VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr"));
 
   $("hubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
+  VFN.anim.contar($("hubMarcadores"));
   $("cardAdversario").innerHTML = proximoAdversarioHTML();
   renderGraficos();
 }
@@ -183,6 +187,7 @@ function renderPlantel() {
   $("plantelTotal").textContent = `· ${jogadores.length} jogadores`;
   $("plantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
   $("plantelGrid").querySelectorAll(".player-card").forEach(c => c.addEventListener("click", () => abrirJogador(c.dataset.id)));
+  if ($("view-plantel").classList.contains("active")) VFN.anim.cascata($("plantelGrid").children);
 }
 
 function presencaJogador(id) {
@@ -419,7 +424,7 @@ async function iniciar() {
   VFN.initAOS();
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
-  $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); });
+  $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
   $("btnFecharJogador").addEventListener("click", () => { $("modalJogador").hidden = true; });
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });

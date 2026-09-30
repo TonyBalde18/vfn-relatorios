@@ -823,3 +823,6 @@ table .ic, .data-table .ic, .icon-btn .ic { width: 16px; height: 16px; }
 .hero-meta .ic { vertical-align: -0.25em; }
 .session-icon .ic { width: 16px; height: 16px; }
 .scouting-flag .ic { width: 12px; height: 12px; }
+
+/* ---------- GSAP: com a biblioteca ativa, as animações CSS equivalentes ficam desligadas ---------- */
+.gsap-on .tab-panel.active, .gsap-on .view.active, .gsap-on .players-grid > *, .gsap-on .standings-compact tbody tr, .gsap-on .standings-table tbody tr, .gsap-on .modal-box { animation: none !important; }

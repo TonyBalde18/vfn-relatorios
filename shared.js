@@ -296,6 +296,63 @@
 
   document.addEventListener("DOMContentLoaded", () => hidratarIcones());
 
+  /* ---------- Animações (GSAP) ---------- */
+
+  const semMovimento = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const temGsap = () => !!window.gsap && !semMovimento();
+  const lista = alvo => (!alvo ? [] : alvo.length !== undefined && !(alvo instanceof Element) ? [...alvo] : [alvo]).filter(Boolean);
+
+  const anim = {
+    /** Cards a entrar em cascata (fade-in + slide-up). */
+    cascata(elementos) {
+      const els = lista(elementos);
+      if (!temGsap() || !els.length) return;
+      window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.035, clearProps: "opacity,transform" });
+    },
+    /** Mudança de tab: fade-in de 200ms. */
+    tab(painel) {
+      if (!temGsap() || !painel) return;
+      window.gsap.fromTo(painel, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out", clearProps: "opacity" });
+    },
+    /** Modal ao abrir: scale 0.95 → 1 com fade-in. */
+    modal(caixa) {
+      if (!temGsap() || !caixa) return;
+      window.gsap.fromTo(caixa, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.22, ease: "power2.out", clearProps: "opacity,transform" });
+    },
+    /** Linhas de tabela a entrar da esquerda em cascata. */
+    linhas(linhas) {
+      const els = lista(linhas);
+      if (!temGsap() || !els.length) return;
+      window.gsap.fromTo(els, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out", stagger: 0.04, clearProps: "opacity,transform" });
+    },
+    /** Números com data-contar="N" contam de 0 até N. */
+    contar(raiz) {
+      const els = [...(raiz || document).querySelectorAll("[data-contar]")];
+      if (!temGsap()) return;
+      els.forEach(el => {
+        const fim = Number(el.dataset.contar) || 0;
+        if (!fim) return;
+        const obj = { v: 0 };
+        el.textContent = "0";
+        window.gsap.to(obj, { v: fim, duration: 0.9, ease: "power2.out", onUpdate: () => { el.textContent = Math.round(obj.v); }, onComplete: () => { el.textContent = fim; } });
+      });
+    }
+  };
+
+  // Todos os modais (.modal-overlay) animam ao perder o atributo hidden
+  function observarModais() {
+    if (!window.MutationObserver) return;
+    new MutationObserver(mudancas => mudancas.forEach(m => {
+      const el = m.target;
+      if (el.classList && el.classList.contains("modal-overlay") && !el.hidden && m.oldValue !== null) anim.modal(el.querySelector(".modal-box"));
+    })).observe(document.body, { attributes: true, attributeFilter: ["hidden"], attributeOldValue: true, subtree: true });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (temGsap()) document.documentElement.classList.add("gsap-on");
+    observarModais();
+  });
+
   /* ---------- Logos das equipas ---------- */
 
   const BASE_SITE = "https://tonybalde18.github.io/vfn-relatorios/";
@@ -449,7 +506,7 @@
 
   window.VFN = {
     COMPETICOES, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
-    escapeHtml, novoId, slug, icone, hidratarIcones,
+    escapeHtml, novoId, slug, icone, hidratarIcones, anim,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,

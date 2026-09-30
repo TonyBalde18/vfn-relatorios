@@ -159,7 +159,7 @@
     const top = marcadores(jogadores, n);
     if (!top.length) return vazio("Ainda sem golos registados.");
     return `<table class="scorers-table"><thead><tr><th scope="col"></th><th scope="col" class="team-col">Jogador</th><th scope="col" title="Golos">G</th><th scope="col" title="Assistências">Ass</th><th scope="col" title="Jogos">J</th></tr></thead>
-      <tbody>${top.map((j, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span></span></td><td class="pts-col">${j.golos}</td><td>${j.assistencias}</td><td>${j.jogos}</td></tr>`).join("")}</tbody></table>`;
+      <tbody>${top.map((j, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span></span></td><td class="pts-col" data-contar="${j.golos}">${j.golos}</td><td data-contar="${j.assistencias}">${j.assistencias}</td><td data-contar="${j.jogos}">${j.jogos}</td></tr>`).join("")}</tbody></table>`;
   }
 
   /* ---------- Plantel ---------- */
@@ -175,7 +175,7 @@
       .filter(j => !filtro || VFN.categoriaPosicao(j.posicao) === filtro)
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
-    return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}" data-aos="fade-up">
+    return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}">
       ${VFN.avatarJogador(j)}
       <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
       <strong>${esc(j.nome)}</strong>

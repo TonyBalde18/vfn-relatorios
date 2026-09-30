@@ -40,6 +40,10 @@ function mostrarVista(vista) {
     if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   window.scrollTo({ top: 0 });
+  VFN.anim.tab($(`view-${vista}`));
+  if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
+  if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
+  if (vista === "marcadores") VFN.anim.contar($("pubMarcadores"));
   VFN.refreshAOS();
 }
 
@@ -48,6 +52,7 @@ function renderPlantel() {
   $("pubPlantel").innerHTML = H.plantelHTML(jogadores, filtroPosicao);
   $("pubPlantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
   $("pubPlantel").querySelectorAll(".player-card").forEach(c => c.addEventListener("click", () => abrirJogador(c.dataset.id)));
+  if ($("view-plantel").classList.contains("active")) VFN.anim.cascata($("pubPlantel").children);
 }
 
 /** Ficha só de leitura: nome completo, camisola, posição, número e estatísticas. */
@@ -108,7 +113,7 @@ async function iniciar() {
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") fecharJogador(); });
-  $("pubCompeticao").addEventListener("change", e => { competicao = e.target.value; $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao); });
+  $("pubCompeticao").addEventListener("change", e => { competicao = e.target.value; $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao); VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr")); });
   mostrarEsqueletos();
   await carregarDados();
   renderTudo();
