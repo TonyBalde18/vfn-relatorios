@@ -7,13 +7,7 @@
    equipasCalendario, el, escapeHtml, idJogadorBD, jogadorPorIdBD...
    ========================================================= */
 
-const TIPOS_INFRACCAO = [
-  "Atraso treino", "Atraso jogo", "Falta treino sem aviso", "Falta jogo sem aviso",
-  "Uso telemóvel treino", "Uso telemóvel balneário", "Linguagem imprópria",
-  "Falta respeito colega", "Falta respeito treinador", "Comportamento anti-desportivo",
-  "Não entregar equipamento", "Atraso pagamento quota", "Recusa cumprir ordem",
-  "Abandono treino", "Cartão vermelho evitável", "Problema balneário", "Outro"
-];
+// tipos e valores em VFN.TIPOS_MULTA (shared.js)
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
@@ -99,7 +93,7 @@ function celulaJogadorHTML(playerId) {
 function initMultas() {
   el("multasMes").innerHTML = opcoesMesesHTML(mesDaEpocaOuAtual(), true);
   el("multasMes").addEventListener("change", renderMultas);
-  el("multaTipo").innerHTML = TIPOS_INFRACCAO.map(t => `<option>${escapeHtml(t)}</option>`).join("");
+  el("multaTipo").addEventListener("change", () => aplicarTipoMulta(true));
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
@@ -116,8 +110,9 @@ function renderMultas() {
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const aDefinir = lista.filter(f => !f.paid && VFN.multaADefinir(f)).length;
   el("multasResumo").innerHTML = `
-    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(pendente)}</strong></div>
+    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(pendente)}</strong>${aDefinir ? `<small class="valor-a-definir-nota">+ ${aDefinir} a definir (% do ordenado)</small>` : ""}</div>
     <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${formatoEuro.format(pago)}</strong></div>
     <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
 
@@ -129,8 +124,8 @@ function renderMultas() {
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
       <td>${celulaJogadorHTML(f.player_id)}</td>
-      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
-      <td class="num">${formatoEuro.format(Number(f.amount) || 0)}</td>
+      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${escapeHtml(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
+      <td class="num">${VFN.valorMultaHTML(f)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
       <td>${dataPt(f.match_date)}</td>
       <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar multa" aria-label="Editar multa">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar multa" aria-label="Eliminar multa">${VFN.icone("trash-2", 16)}</button></div></td>
@@ -145,17 +140,27 @@ function renderMultas() {
 }
 
 function rotuloInfraccao(tipo) {
-  return tipo === MULTA_FALTA_TREINO.infraction_type ? "Falta treino (automática)" : tipo;
+  return VFN.rotuloMulta(tipo);
+}
+
+/** Ao escolher o tipo, preenche o valor da tabela; nas multas em % do ordenado o valor fica 0 e mostra a nota. */
+function aplicarTipoMulta(preencherValor) {
+  const tipo = VFN.tipoMulta(el("multaTipo").value);
+  const percentagem = !!tipo && tipo.valor === null;
+  el("multaNotaPercentagem").hidden = !percentagem;
+  if (preencherValor && tipo) el("multaValor").value = percentagem ? 0 : tipo.valor;
 }
 
 function abrirModalMulta(multa) {
   multaEmEdicao = multa;
   el("modalMultaTitulo").textContent = multa ? "Editar Multa" : "Adicionar Multa";
   el("multaJogador").innerHTML = opcoesPlantelHTML(multa ? multa.player_id : "");
-  el("multaTipo").innerHTML = TIPOS_INFRACCAO.map(t => `<option>${escapeHtml(t)}</option>`).join("");
-  if (multa && !TIPOS_INFRACCAO.includes(multa.infraction_type)) el("multaTipo").add(new Option(rotuloInfraccao(multa.infraction_type), multa.infraction_type));
-  el("multaTipo").value = multa ? multa.infraction_type : TIPOS_INFRACCAO[0];
+  el("multaTipo").innerHTML = VFN.TIPOS_MULTA.map((t, n) => `<option value="${escapeHtml(t.tipo)}">${n + 1}. ${escapeHtml(t.tipo)} — ${t.valor === null ? "% do ordenado" : formatoEuro.format(t.valor)}</option>`).join("");
+  // multas antigas com tipos que já não existem continuam a abrir
+  if (multa && !VFN.tipoMulta(multa.infraction_type)) el("multaTipo").add(new Option(rotuloInfraccao(multa.infraction_type), multa.infraction_type));
+  el("multaTipo").value = multa ? multa.infraction_type : VFN.TIPOS_MULTA[0].tipo;
   el("multaValor").value = multa ? multa.amount : "";
+  aplicarTipoMulta(!multa);
   el("multaDescricao").value = multa ? multa.description || "" : "";
   el("multaData").value = multa ? multa.match_date || "" : hojeIso();
   el("multaErro").textContent = "";
@@ -164,7 +169,9 @@ function abrirModalMulta(multa) {
 
 async function guardarMulta() {
   const valor = Number(String(el("multaValor").value).replace(",", "."));
-  const erro = !el("multaJogador").value ? "Escolhe o jogador." : !(valor > 0) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
+  const tipo = VFN.tipoMulta(el("multaTipo").value);
+  const percentagem = !!tipo && tipo.valor === null; // pode ficar a 0 até os dirigentes definirem
+  const erro = !el("multaJogador").value ? "Escolhe o jogador." : !(valor >= 0) || (!percentagem && !(valor > 0)) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
   el("multaErro").textContent = erro;
   if (erro) return;
   const linha = {
@@ -210,7 +217,7 @@ async function alternarPagamento(multa, pago) {
 }
 
 async function apagarMulta(multa) {
-  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}" de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
+  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}"${VFN.multaADefinir(multa) ? "" : " de " + formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
   try {
     await dadosClube.remover("fines", multa.id);
     cacheAdmin.fines = cacheAdmin.fines.filter(f => f !== multa);
@@ -324,10 +331,12 @@ function renderPresencas() {
   container.querySelectorAll(".session-remove").forEach(btn => btn.addEventListener("click", () => removerSessao(sessoes[Number(btn.dataset.sessao)])));
 }
 
-const MULTA_FALTA_TREINO = { infraction_type: "falta_treino", amount: 5.00 };
+const MULTA_FALTA_TREINO = { infraction_type: "Falta ao treino injustificada", amount: 0 };
+const DESCRICAO_MULTA_AUTOMATICA = "Criada automaticamente (falta no treino)";
 
 function multaAutomatica(playerId, data) {
-  return cacheAdmin.fines.find(f => String(f.player_id) === String(playerId) && f.infraction_type === MULTA_FALTA_TREINO.infraction_type && f.match_date === data) || null;
+  // só as criadas pela grelha (as antigas usavam o tipo 'falta_treino')
+  return cacheAdmin.fines.find(f => String(f.player_id) === String(playerId) && f.match_date === data && (f.infraction_type === "falta_treino" || (f.infraction_type === MULTA_FALTA_TREINO.infraction_type && f.description === DESCRICAO_MULTA_AUTOMATICA))) || null;
 }
 
 /** Falta num treino cria a multa automática; ao sair de F, a multa é retirada se ainda não estiver paga. */
@@ -336,7 +345,7 @@ async function sincronizarMultaFalta(playerId, sessao, anterior, seguinte) {
   if (!tabelasCarregadas.has("fines")) await carregarTabelaAdmin("fines", "presencasErro");
   const existente = multaAutomatica(playerId, sessao.data);
   if (seguinte === "F" && !existente) {
-    const multa = await dadosClube.guardar("fines", { player_id: playerId, ...MULTA_FALTA_TREINO, match_date: sessao.data, description: "Criada automaticamente (falta no treino)", paid: false, paid_date: null });
+    const multa = await dadosClube.guardar("fines", { player_id: playerId, ...MULTA_FALTA_TREINO, match_date: sessao.data, description: DESCRICAO_MULTA_AUTOMATICA, paid: false, paid_date: null });
     cacheAdmin.fines.push(multa);
   } else if (anterior === "F" && seguinte !== "F" && existente && !existente.paid) {
     await dadosClube.remover("fines", existente.id);

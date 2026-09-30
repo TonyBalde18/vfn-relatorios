@@ -18,6 +18,46 @@
     comunilog: { src: "assets/sponsors/comunilog.png", alt: "Comunilog" }
   };
 
+  /* Tabela de multas do plantel. valor null = percentagem do ordenado (amount 0 até os dirigentes definirem). */
+  const TIPOS_MULTA = [
+    { tipo: "Atraso ao treino", valor: null },
+    { tipo: "Atraso ao jogo até 5 min", valor: 1 },
+    { tipo: "Atraso ao jogo mais de 5 min", valor: 2 },
+    { tipo: "Falta ao treino justificada", valor: 2 },
+    { tipo: "Falta ao treino injustificada", valor: null },
+    { tipo: "Falta ao jogo justificada", valor: 2 },
+    { tipo: "Falta ao jogo injustificada", valor: 5 },
+    { tipo: "Cartão amarelo justificado", valor: 0.5 },
+    { tipo: "Cartão amarelo injustificado", valor: 1 },
+    { tipo: "Cartão vermelho justificado", valor: 2 },
+    { tipo: "Cartão vermelho injustificado", valor: 5 },
+    { tipo: "Falta de respeito", valor: 5 },
+    { tipo: "Falta de material", valor: 2.5 },
+    { tipo: "Falta de uso de caneleiras no treino", valor: 1.5 },
+    { tipo: "Uso de telemóvel no balneário", valor: 1 }
+  ];
+  const NOTA_PERCENTAGEM = "Percentagem do ordenado — valor a definir pelos dirigentes";
+  const formatoEuro = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
+
+  function tipoMulta(nome) {
+    return TIPOS_MULTA.find(t => t.tipo === nome) || null;
+  }
+
+  /** Multa em percentagem do ordenado ainda sem valor (inclui as automáticas antigas 'falta_treino'). */
+  function multaADefinir(f) {
+    const t = tipoMulta(f.infraction_type);
+    return (!!t && t.valor === null || f.infraction_type === "falta_treino") && !(Number(f.amount) > 0);
+  }
+
+  function rotuloMulta(tipo) {
+    return tipo === "falta_treino" ? "Falta ao treino injustificada" : tipo;
+  }
+
+  /** Valor da multa para mostrar: euros, ou "% ordenado" enquanto não estiver definido. */
+  function valorMultaHTML(f) {
+    return multaADefinir(f) ? '<span class="valor-a-definir" title="' + NOTA_PERCENTAGEM + '">% ordenado</span>' : formatoEuro.format(Number(f.amount) || 0);
+  }
+
   const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const MESES_LONGOS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -565,7 +605,8 @@
   window.generateJerseyAvatar = generateJerseyAvatar;
 
   window.VFN = {
-    COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA, SPONSORS, MESES_CURTOS, MESES_LONGOS,
+    COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
+    TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim,
     categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,

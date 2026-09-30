@@ -905,3 +905,6 @@ body {
   .jj-equipa .team-logo, .jj-equipa .team-logo-placeholder { width: 22px; height: 22px; }
   .jornada-form { grid-template-columns: 1fr 1fr; } .jf-casa, .jf-fora, .jf-marcadores, .jf-acoes { grid-column: 1 / -1; }
 }
+.nota-percentagem { display: block; margin: 4px 0 0; padding: 4px 8px; border-radius: 6px; background: #FFF4CC; color: #7A5A00; font-size: .74rem; font-weight: 600; }
+.valor-a-definir { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #FFF4CC; color: #7A5A00; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.valor-a-definir-nota { display: block; margin-top: 2px; color: #7A5A00; font-size: .72rem; font-weight: 600; }
