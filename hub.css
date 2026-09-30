@@ -218,3 +218,6 @@
 .pitch-player-name { display: inline-flex; gap: 4px; }
 .pitch-player-name span { overflow: hidden; text-overflow: ellipsis; }
 .pitch-player-name b { flex: 0 0 auto; }
+.minutes-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.hub-grid .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 54px 42px; gap: 8px; }
+.hub-grid .mini-pitch { max-width: 380px; }
