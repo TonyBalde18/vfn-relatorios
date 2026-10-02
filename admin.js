@@ -94,6 +94,11 @@ function initMultas() {
   el("multasMes").innerHTML = opcoesMesesHTML(mesDaEpocaOuAtual(), true);
   el("multasMes").addEventListener("change", renderMultas);
   ["multasFiltroJogador", "multasFiltroTipo", "multasFiltroEstado"].forEach(id => el(id).addEventListener("change", renderMultas));
+  el("btnExportarMultas").addEventListener("click", () => {
+    const mes = el("multasMes").value;
+    const folha = VFN.folhaMultas(multasDoPeriodo(), id => (jogadorPorIdBD(id) || {}).nome);
+    VFN.exportarXlsx(`multas_vfn_${mes}.xlsx`, [{ nome: "Multas " + el("multasMes").selectedOptions[0].textContent, ...folha }]);
+  });
   el("multaTipo").addEventListener("change", () => aplicarTipoMulta(true));
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
@@ -248,6 +253,11 @@ function initPresencas() {
   el("presencasMes").innerHTML = opcoesMesesHTML(mesDaEpocaOuAtual(), false);
   el("presencasMes").addEventListener("change", renderPresencas);
   el("presencasFiltroJogador").addEventListener("change", renderPresencas);
+  el("btnExportarPresencas").addEventListener("click", () => {
+    const mes = el("presencasMes").value;
+    const folha = VFN.folhaPresencas(sessoesDoMes(mes), plantel, (j, s) => (registoPresenca(idJogadorBD(j), s) || {}).status);
+    VFN.exportarXlsx(`presencas_vfn_${mes}.xlsx`, [{ nome: "Presenças " + el("presencasMes").selectedOptions[0].textContent, ...folha }]);
+  });
   el("btnAddSessao").addEventListener("click", () => {
     el("sessaoData").value = hojeIso();
     el("sessaoTipo").value = "treino";

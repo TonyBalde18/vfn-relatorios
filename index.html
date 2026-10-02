@@ -272,7 +272,7 @@
         <h2 class="section-title">Multas</h2>
         <button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Adicionar Multa</button>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select><label class="sr-only" for="multasFiltroJogador">Jogador</label><select id="multasFiltroJogador"></select><label class="sr-only" for="multasFiltroTipo">Tipo</label><select id="multasFiltroTipo"></select><label class="sr-only" for="multasFiltroEstado">Estado</label><select id="multasFiltroEstado"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select></div>
+      <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select><label class="sr-only" for="multasFiltroJogador">Jogador</label><select id="multasFiltroJogador"></select><label class="sr-only" for="multasFiltroTipo">Tipo</label><select id="multasFiltroTipo"></select><label class="sr-only" for="multasFiltroEstado">Estado</label><select id="multasFiltroEstado"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select><button type="button" id="btnExportarMultas" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar Excel</button></div>
       <p id="multasErro" class="form-error" role="alert"></p>
       <div id="multasResumo" class="summary-tiles"></div>
       <div class="table-wrap">
@@ -291,7 +291,7 @@
         <h2 class="section-title">Presenças</h2>
         <button type="button" id="btnAddSessao" class="btn btn-accent btn-sm">+ Adicionar Sessão</button>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="presencasMes">Mês</label><select id="presencasMes"></select><label class="sr-only" for="presencasFiltroJogador">Jogador</label><select id="presencasFiltroJogador"></select><span class="muted">Clica numa célula para alternar: vazio → P → F → A → J</span></div>
+      <div class="toolbar"><label class="toolbar-label" for="presencasMes">Mês</label><select id="presencasMes"></select><label class="sr-only" for="presencasFiltroJogador">Jogador</label><select id="presencasFiltroJogador"></select><button type="button" id="btnExportarPresencas" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar Excel</button><span class="muted">Clica numa célula para alternar: vazio → P → F → A → J</span></div>
       <p id="presencasErro" class="form-error" role="alert"></p>
       <div id="presencasGrelha"></div>
       <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span><span><i data-icon="footprints" data-size="16"></i> Treino · <i data-icon="goal" data-size="16"></i> Jogo</span></div>
@@ -539,6 +539,7 @@
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>

@@ -378,7 +378,7 @@ function renderMinutos() {
 
 /* ---------- Multas e Presenças (dirigentes; só leitura) ---------- */
 
-const filtrosMultas = { jogador: "", tipo: "", estado: "" };
+const filtrosMultas = { mes: "epoca", jogador: "", tipo: "", estado: "" };
 const filtrosPresencas = { mes: VFN.mesAtual(), jogador: "" };
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
 
@@ -402,11 +402,22 @@ function renderMultasDash() {
   $("dbMultasJogador").innerHTML = opcoesJogadoresDash(filtrosMultas.jogador, "Todos os jogadores");
   $("dbMultasTipo").innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${esc(t)}" ${t === filtrosMultas.tipo ? "selected" : ""}>${esc(VFN.rotuloMulta(t))}</option>`).join("");
   $("dbMultasEstado").value = filtrosMultas.estado;
-  const lista = dados.fines
+  $("dbMultasMes").innerHTML = '<option value="epoca">Época inteira</option>' + VFN.mesesDaEpoca(new Date()).map(m => `<option value="${m.valor}" ${m.valor === filtrosMultas.mes ? "selected" : ""}>${m.rotulo}</option>`).join("");
+  $("dbMultasMes").value = filtrosMultas.mes;
+  const lista = multasFiltradasDash();
+  renderTabelaMultasDash(lista);
+}
+
+function multasFiltradasDash() {
+  return dados.fines
+    .filter(f => filtrosMultas.mes === "epoca" || String(f.match_date || "").startsWith(filtrosMultas.mes))
     .filter(f => !filtrosMultas.jogador || String(f.player_id) === filtrosMultas.jogador)
     .filter(f => !filtrosMultas.tipo || f.infraction_type === filtrosMultas.tipo)
     .filter(f => !filtrosMultas.estado || (filtrosMultas.estado === "pago" ? f.paid : !f.paid))
     .sort((a, b) => String(b.match_date || "").localeCompare(String(a.match_date || "")));
+}
+
+function renderTabelaMultasDash(lista) {
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const aDefinir = lista.filter(f => !f.paid && VFN.multaADefinir(f)).length;
@@ -459,6 +470,16 @@ function renderPresencasDash() {
 
 function initMultasPresencasDash() {
   $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });
+  $("dbMultasMes").addEventListener("change", e => { filtrosMultas.mes = e.target.value; renderMultasDash(); });
+  $("dbExportarMultas").addEventListener("click", () => {
+    const rotulo = $("dbMultasMes").selectedOptions[0].textContent;
+    VFN.exportarXlsx(`multas_vfn_${filtrosMultas.mes}.xlsx`, [{ nome: "Multas " + rotulo, ...VFN.folhaMultas(multasFiltradasDash(), id => (jogadorPorIdDash(id) || {}).nome) }]);
+  });
+  $("dbExportarPresencas").addEventListener("click", () => {
+    const estado = (j, s) => { const r = dados.attendance.find(a => String(a.player_id) === String(j.id) && a.session_date === s.data && a.session_type === s.tipo); return r && r.status; };
+    const rotulo = $("dbPresencasMes").selectedOptions[0].textContent;
+    VFN.exportarXlsx(`presencas_vfn_${filtrosPresencas.mes}.xlsx`, [{ nome: "Presenças " + rotulo, ...VFN.folhaPresencas(sessoesDoMesDash(filtrosPresencas.mes), jogadores, estado) }]);
+  });
   $("dbMultasTipo").addEventListener("change", e => { filtrosMultas.tipo = e.target.value; renderMultasDash(); });
   $("dbMultasEstado").addEventListener("change", e => { filtrosMultas.estado = e.target.value; renderMultasDash(); });
   $("dbPresencasMes").addEventListener("change", e => { filtrosPresencas.mes = e.target.value; renderPresencasDash(); });

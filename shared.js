@@ -535,6 +535,86 @@
     }).observe(document.body, { childList: true, subtree: true });
   });
 
+  /* ---------- Exportação para Excel (SheetJS) ---------- */
+
+  const ORDEM_CATEGORIA = { GR: 0, Def: 1, Meio: 2, Ata: 3 };
+
+  /** Ordena jogadores por posição (GR, defesas, médios, avançados) e depois pelo número. */
+  function ordenarPorPosicao(lista) {
+    return [...lista].sort((a, b) =>
+      (ORDEM_CATEGORIA[categoriaPosicao(a.posicao)] ?? 9) - (ORDEM_CATEGORIA[categoriaPosicao(b.posicao)] ?? 9) ||
+      (Number(a.numero) || 999) - (Number(b.numero) || 999) || String(a.nome).localeCompare(String(b.nome), "pt"));
+  }
+
+  /**
+   * Folha de presenças: Nº | Nome | uma coluna por sessão | Total Presenças | Total Faltas | % Frequência.
+   * Presenças = P + A (atraso conta como presente); faltas = F + J.
+   */
+  function folhaPresencas(sessoes, jogadores, estado) {
+    const cab = ["Nº", "Nome", ...sessoes.map(s => `${dataDDMMAAAA(s.data)}${s.tipo === "jogo" ? " (jogo)" : ""}`), "Total Presenças", "Total Faltas", "% Frequência"];
+    const linhas = ordenarPorPosicao(jogadores).map(j => {
+      const estados = sessoes.map(s => estado(j, s) || "");
+      const presentes = estados.filter(e => e === "P" || e === "A").length;
+      const faltas = estados.filter(e => e === "F" || e === "J").length;
+      const registos = presentes + faltas;
+      return [j.numero === "" || j.numero == null ? "" : Number(j.numero), j.nome, ...estados, presentes, faltas, registos ? Math.round(presentes / registos * 100) / 100 : ""];
+    });
+    return { linhas: [cab, ...linhas], larguras: [5, 24, ...sessoes.map(() => 11), 15, 12, 12], percentagem: cab.length - 1, paisagem: true };
+  }
+
+  /** Folha de multas: Nome | Tipo de Multa | Data | Valor (ou "% salário") | Notas, com total no rodapé. */
+  function folhaMultas(multas, nomeJogador) {
+    const cab = ["Nome", "Tipo de Multa", "Data", "Valor (€)", "Notas"];
+    const ordenadas = [...multas].sort((a, b) => String(a.match_date || "").localeCompare(String(b.match_date || "")));
+    const linhas = ordenadas.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), dataDDMMAAAA(f.match_date), multaADefinir(f) ? "% salário" : Number(f.amount) || 0, [f.paid ? "Paga" : "Pendente", f.description].filter(Boolean).join(" · ")]);
+    const total = ordenadas.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+    const aDefinir = ordenadas.filter(multaADefinir).length;
+    return { linhas: [cab, ...linhas, [], ["Total acumulado", "", "", total, aDefinir ? `+ ${aDefinir} multa(s) em % do salário por definir` : ""]], larguras: [24, 34, 12, 12, 40], euros: 3, paisagem: true };
+  }
+
+  /** Gera o .xlsx (várias folhas) e descarrega-o. As folhas com paisagem: true ficam em orientação horizontal. */
+  function exportarXlsx(nomeFicheiro, folhas) {
+    const X = window.XLSX;
+    if (!X) { alert("A biblioteca de Excel não carregou. Verifica a ligação à internet."); return; }
+    const wb = X.utils.book_new();
+    folhas.forEach(f => {
+      const ws = X.utils.aoa_to_sheet(f.linhas);
+      ws["!cols"] = (f.larguras || []).map(wch => ({ wch }));
+      ws["!margins"] = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+      // formatos: percentagem e euros
+      const intervalo = X.utils.decode_range(ws["!ref"]);
+      for (let r = 1; r <= intervalo.e.r; r++) {
+        [[f.percentagem, "0%"], [f.euros, '#,##0.00 "€"']].forEach(([c, z]) => {
+          if (c == null) return;
+          const cel = ws[X.utils.encode_cell({ r, c })];
+          if (cel && typeof cel.v === "number") cel.z = z;
+        });
+      }
+      X.utils.book_append_sheet(wb, ws, f.nome.slice(0, 31));
+    });
+    const bruto = X.write(wb, { type: "array", bookType: "xlsx" });
+    // a versão gratuita do SheetJS não escreve a orientação: acrescenta-a ao XML de cada folha
+    const zip = X.CFB.read(new Uint8Array(bruto), { type: "array" });
+    folhas.forEach((f, i) => {
+      if (!f.paisagem) return;
+      const n = zip.FullPaths.findIndex(p => p.endsWith(`xl/worksheets/sheet${i + 1}.xml`));
+      if (n < 0) return;
+      const ent = zip.FileIndex[n];
+      let xml = new TextDecoder().decode(ent.content);
+      if (!/<sheetPr/.test(xml)) xml = xml.replace(/(<worksheet[^>]*>)/, "$1<sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr>");
+      xml = xml.replace(/(<pageMargins[^>]*\/>)/, "$1<pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/>");
+      ent.content = new TextEncoder().encode(xml);
+      ent.size = ent.content.length;
+    });
+    const final = X.CFB.write(zip, { fileType: "zip", type: "array" });
+    const blob = new Blob([final], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = nomeFicheiro;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /* ---------- Logos das equipas ---------- */
 
   const BASE_SITE = "https://tonybalde18.github.io/vfn-relatorios/";
@@ -717,6 +797,7 @@
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
+    ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,

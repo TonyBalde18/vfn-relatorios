@@ -143,9 +143,11 @@
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Multas <small class="muted">só leitura</small></h2>
       <div class="toolbar">
+        <label class="sr-only" for="dbMultasMes">Mês</label><select id="dbMultasMes" class="compact-select"></select>
         <label class="sr-only" for="dbMultasJogador">Jogador</label><select id="dbMultasJogador" class="compact-select"></select>
         <label class="sr-only" for="dbMultasTipo">Tipo</label><select id="dbMultasTipo" class="compact-select"></select>
         <label class="sr-only" for="dbMultasEstado">Estado</label><select id="dbMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select>
+        <button type="button" id="dbExportarMultas" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar Excel</button>
       </div>
       <div id="dbMultasResumo" class="summary-tiles"></div>
       <div class="table-wrap">
@@ -164,6 +166,7 @@
       <div class="toolbar">
         <label class="sr-only" for="dbPresencasMes">Mês</label><select id="dbPresencasMes" class="compact-select"></select>
         <label class="sr-only" for="dbPresencasJogador">Jogador</label><select id="dbPresencasJogador" class="compact-select"></select>
+        <button type="button" id="dbExportarPresencas" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar Excel</button>
       </div>
       <div id="dbPresencasGrelha"></div>
       <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span></div>
@@ -219,6 +222,7 @@
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>
