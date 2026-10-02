@@ -299,6 +299,94 @@
     return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
   }
 
+  /* ---------- Onze mais utilizado e minutos ---------- */
+
+  // Posições no campo (x, y em %; o ataque é em cima)
+  const POSICOES_CAMPO = {
+    GR: [50, 89], DC: [50, 73], DD: [86, 68], DE: [14, 68],
+    MDEF: [50, 57], MCEN: [50, 45], MOFE: [50, 33],
+    ED: [84, 24], EE: [16, 24], PL: [50, 12]
+  };
+  const SINONIMOS_POSICAO = { MDC: "MDEF", MD: "MDEF", MC: "MCEN", MOC: "MOFE", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
+
+  function posicaoNoCampo(posicao) {
+    const codigo = String(posicao || "").split("/")[0].trim().toUpperCase();
+    const chave = POSICOES_CAMPO[codigo] ? codigo : SINONIMOS_POSICAO[codigo];
+    return chave || "MCEN";
+  }
+
+  /** Lista de minutos: [{ jogador, minutos, jogos }], já ordenada. */
+  function minutosListaHTML(lista) {
+    if (!lista.length) return vazio("Ainda não há minutos registados.");
+    const maximo = lista[0].minutos || 1;
+    return `<ol class="minutes-list">${lista.map((t, i) => `
+      <li>
+        <span class="minutes-pos">${i + 1}</span>
+        <span class="player-cell">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span>${esc(t.jogador.nome)}<small class="muted">${esc(t.jogador.posicao)} · ${t.jogos} jogo${t.jogos === 1 ? "" : "s"}</small></span></span>
+        <span class="minutes-bar" aria-hidden="true"><i style="width:${Math.max(2, t.minutos / maximo * 100)}%"></i></span>
+        <strong>${t.minutos}'</strong>
+      </li>`).join("")}</ol>`;
+  }
+
+  /** Os 11 com mais minutos, colocados no campo pela posição do perfil. */
+  function onzeCampoHTML(lista) {
+    if (!lista.length) return vazio("Ainda não há minutos registados.");
+    const onze = lista.slice(0, 11);
+    const grupos = {};
+    onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
+    const marcadores = [];
+    Object.entries(grupos).forEach(([pos, doGrupo]) => {
+      const [x, y] = POSICOES_CAMPO[pos];
+      doGrupo.forEach((t, i) => {
+        const desvio = (i - (doGrupo.length - 1) / 2) * 24; // lado a lado quando há vários na mesma posição
+        marcadores.push({ t, x: Math.min(90, Math.max(10, x + desvio)), y });
+      });
+    });
+    return `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
+      <span class="mini-pitch-lines" aria-hidden="true"></span>
+      ${marcadores.map(({ t, x, y }) => `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`).join("")}
+    </div>
+    ${onze.length < 11 ? `<p class="muted readonly-note">Só ${onze.length} jogadores com minutos registados.</p>` : ""}`;
+  }
+
+  /* ---------- Desempenho por competição ---------- */
+
+  function desempenhoPorCompeticaoHTML(dados) {
+    const jogados = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j));
+    if (!jogados.length) return vazio("Ainda não há jogos disputados.");
+    const grupos = [["liga", "Liga"], ["taca", "Taças"], ["amigavel", "Amigáveis"], ["", "Total"]].map(([cat, rotulo]) => {
+      const t = { rotulo, total: !cat, J: 0, V: 0, E: 0, D: 0, GM: 0, GS: 0 };
+      jogados.filter(j => !cat || VFN.categoriaCompeticao(j.competition) === cat).forEach(j => { const g = VFN.golosJogo(j); t.J++; t[VFN.letraResultado(j)]++; t.GM += g.vfn; t.GS += g.adv; });
+      return t;
+    }).filter(t => t.J);
+    const media = (a, b) => b ? (a / b).toFixed(1).replace(".", ",") : "—";
+    return `<div class="table-wrap"><table class="stats-table comp-table">
+      <thead><tr><th scope="col">Competição</th><th scope="col">J</th><th scope="col">V</th><th scope="col">E</th><th scope="col">D</th><th scope="col">GM</th><th scope="col">GS</th><th scope="col" title="Golos marcados por jogo">GM/J</th><th scope="col" title="Golos sofridos por jogo">GS/J</th><th scope="col" title="Pontos por jogo (3 por vitória)">Pts/J</th><th scope="col">% Vit.</th></tr></thead>
+      <tbody>${grupos.map(t => `<tr class="${t.total ? "linha-total" : ""}"><th scope="row">${esc(t.rotulo)}</th><td>${t.J}</td><td>${t.V}</td><td>${t.E}</td><td>${t.D}</td><td>${t.GM}</td><td>${t.GS}</td><td>${media(t.GM, t.J)}</td><td>${media(t.GS, t.J)}</td><td>${media(t.V * 3 + t.E, t.J)}</td><td><span class="barra-pct"><i style="width:${Math.round(t.V / t.J * 100)}%"></i></span>${Math.round(t.V / t.J * 100)}%</td></tr>`).join("")}</tbody>
+    </table></div>`;
+  }
+
+  /* ---------- Disponibilidade pré-jogo ---------- */
+
+  const ORDEM_POSICAO = { GR: 0, Def: 1, Meio: 2, Ata: 3 };
+
+  function disponibilidadeHTML(dados, jogadores) {
+    const jogo = VFN.proximoJogo(dados.matches);
+    const ordenar = l => [...l].sort((a, b) => (ORDEM_POSICAO[VFN.categoriaPosicao(a.posicao)] ?? 9) - (ORDEM_POSICAO[VFN.categoriaPosicao(b.posicao)] ?? 9) || a.nome.localeCompare(b.nome, "pt"));
+    const risco = j => VFN.alertaSuspensao(j.cartoesA, j.disponibilidade);
+    const convocaveis = ordenar(jogadores.filter(j => (!j.disponibilidade || j.disponibilidade === "disponivel" || j.disponibilidade === "em_duvida") && !risco(j)));
+    const fora = ordenar(jogadores.filter(j => !convocaveis.includes(j)));
+    const linha = (j, extra) => `<li data-jogador="${esc(j.id)}">${VFN.avatarJogador(j, "avatar-xs")}<span class="disp-nome">${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span>${extra || ""}</li>`;
+    const porCategoria = lista => ["GR", "Def", "Meio", "Ata"].map(c => [c, lista.filter(j => VFN.categoriaPosicao(j.posicao) === c).length]).filter(([, n]) => n).map(([c, n]) => `<span>${{ GR: "GR", Def: "Defesas", Meio: "Médios", Ata: "Avançados" }[c]} <b>${n}</b></span>`).join("");
+    return `${jogo ? `<p class="disp-jogo">${VFN.icone("calendar-days", 16)} ${esc(VFN.jogoEmCasa(jogo) ? "VFN vs " + nomeAdversario(dados, jogo) : nomeAdversario(dados, jogo) + " vs VFN")} · ${esc(VFN.dataLonga(jogo.date, true))}</p>` : ""}
+      <div class="disp-colunas">
+        <section class="disp-coluna ok"><h3>${VFN.icone("circle-check", 18)} Convocáveis <b>${convocaveis.length}</b></h3><div class="disp-resumo">${porCategoria(convocaveis)}</div>
+          <ul>${convocaveis.map(j => linha(j, j.disponibilidade === "em_duvida" ? VFN.badgeDisponibilidade("em_duvida") : "")).join("") || "<li class=\"muted\">Nenhum jogador.</li>"}</ul></section>
+        <section class="disp-coluna nao"><h3>${VFN.icone("circle-off", 18)} Indisponíveis <b>${fora.length}</b></h3>
+          <ul>${fora.map(j => linha(j, risco(j) ? `<span class="disp-badge disp-suspenso">${VFN.icone("triangle-alert", 14)} ${j.cartoesA} amarelos</span>` : VFN.badgeDisponibilidade(j.disponibilidade))).join("") || "<li class=\"muted\">Todo o plantel disponível.</li>"}</ul></section>
+      </div>`;
+  }
+
   /* ---------- Posição do VFN por jornada ---------- */
 
   /** Posição do VFN na classificação no fim de cada jornada com resultados. */
@@ -644,6 +732,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao, posicaoNoCampo, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

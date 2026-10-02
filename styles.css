@@ -1108,3 +1108,49 @@ html.vfn-splash-on body { visibility: hidden; }
 .link-btn { border: 0; background: none; padding: 0; color: var(--vfn-navy); font: inherit; font-size: .8rem; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .chart-posicao { height: 220px; margin-bottom: 8px; }
 .banner-nota { margin: 8px 0 0; max-width: 520px; font-size: .75rem; color: rgba(255,255,255,.65); }
+
+/* ---------- Radar do jogador (admin) ---------- */
+.player-radar { margin: 4px 0 14px; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; }
+.player-radar h4 { margin: 0 0 6px; font-size: .9rem; color: var(--vfn-navy); }
+.radar-box { position: relative; height: 260px; max-width: 360px; margin: 0 auto; }
+
+/* ---------- Desempenho por competição ---------- */
+.comp-table th[scope="row"] { text-align: left; white-space: nowrap; }
+.comp-table .linha-total { font-weight: 800; background: rgba(10,22,40,.04); }
+.barra-pct { display: inline-block; width: 48px; height: 6px; margin-right: 6px; border-radius: 999px; background: rgba(10,22,40,.1); vertical-align: middle; overflow: hidden; }
+.barra-pct i { display: block; height: 100%; background: #16a34a; }
+.barra-euro i { background: #FFD700; }
+
+/* ---------- Disponibilidade pré-jogo ---------- */
+.disp-jogo { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; color: var(--text-muted); font-size: .88rem; }
+.disp-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.disp-coluna { border-radius: 10px; padding: 12px; border: 1px solid var(--border-color); }
+.disp-coluna.ok { border-top: 4px solid #16a34a; }
+.disp-coluna.nao { border-top: 4px solid #dc2626; }
+.disp-coluna h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: .95rem; color: var(--vfn-navy); }
+.disp-coluna h3 b { margin-left: auto; font-size: 1.2rem; }
+.disp-resumo { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 8px; font-size: .75rem; color: var(--text-muted); }
+.disp-coluna ul { list-style: none; margin: 0; padding: 0; }
+.disp-coluna li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+.disp-coluna li:last-child { border-bottom: 0; }
+.disp-nome { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: .86rem; flex: 1; }
+.disp-nome small { font-weight: 400; font-size: .72rem; }
+
+/* ---------- Resumo financeiro (multas) ---------- */
+.fin-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
+.fin-table th[scope="row"] { text-align: left; white-space: nowrap; }
+.fin-table tfoot th, .fin-table tfoot td { font-weight: 800; border-top: 2px solid var(--border-color); }
+.txt-ok { color: #15803d; }
+.txt-mau { color: #b91c1c; }
+.fin-abertos { list-style: none; margin: 0; padding: 0; }
+.fin-abertos li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+.fin-abertos li:last-child { border-bottom: 0; }
+.fin-abertos .fin-nome { display: flex; flex-direction: column; flex: 1; min-width: 0; font-weight: 600; font-size: .86rem; }
+.fin-abertos small { font-weight: 400; font-size: .72rem; }
+.fin-abertos strong { color: #b91c1c; }
+#alertaAmarelos p { margin: 2px 0; }
+@media (max-width: 760px) {
+  .disp-colunas, .fin-grid { grid-template-columns: 1fr; }
+}
+.comp-table tbody th[scope="row"], .fin-table tbody th[scope="row"], .fin-table tfoot th { background: transparent; color: var(--vfn-navy); text-transform: none; letter-spacing: 0; padding-right: 14px; }
+.fin-table th, .fin-table td, .comp-table th, .comp-table td { padding-left: 8px; padding-right: 8px; }

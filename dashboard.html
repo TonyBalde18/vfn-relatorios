@@ -36,6 +36,7 @@
   <nav class="sidebar-nav" aria-label="Navegação principal">
     <button class="nav-item active" data-view="hub"><span class="nav-icon"><i data-icon="house"></i></span><span class="nav-label">Hub</span></button>
     <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
+    <button class="nav-item" data-view="disponibilidade"><span class="nav-icon"><i data-icon="clipboard-check"></i></span><span class="nav-label">Disponibilidade</span></button>
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
     <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
@@ -116,9 +117,20 @@
   </section>
 
   <!-- ESTATÍSTICAS -->
+  <section id="view-disponibilidade" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Disponibilidade pré-jogo <small class="muted">convocáveis vs indisponíveis</small></h2>
+      <div id="dbDisponibilidade"></div>
+    </div>
+  </section>
+
   <section id="view-estatisticas" class="view">
     <div id="statsEquipa" class="summary-tiles" data-aos="fade-up"></div>
     <div id="statsTop" class="top-grid"></div>
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Desempenho por competição <small class="muted">liga, taças e amigáveis</small></h2>
+      <div id="statsCompeticoes"></div>
+    </div>
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Estatísticas da época</h2>
       <div class="table-wrap"><table id="statsTabela" class="stats-table"></table></div>
@@ -161,6 +173,16 @@
           <thead><tr><th scope="col" data-tipo="texto">Jogador</th><th scope="col" data-tipo="texto">Infracção</th><th scope="col" class="num" data-tipo="numero">Valor</th><th scope="col" data-tipo="texto">Estado</th><th scope="col" data-tipo="data">Data</th></tr></thead>
           <tbody id="dbMultasBody"></tbody>
         </table>
+      </div>
+    </div>
+    <div class="fin-grid">
+      <div class="card" data-aos="fade-up">
+        <h2 class="hub-card-title">Resumo financeiro <small class="muted">total por mês</small></h2>
+        <div id="dbFinanceiroMeses" class="table-wrap"></div>
+      </div>
+      <div class="card" data-aos="fade-up">
+        <h2 class="hub-card-title">Multas por pagar <small class="muted">por jogador</small></h2>
+        <div id="dbFinanceiroAbertos"></div>
       </div>
     </div>
   </section>

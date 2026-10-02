@@ -296,6 +296,74 @@ function registoPresenca(playerId, sessao) {
   return cacheAdmin.attendance.find(a => a.player_id === playerId && a.session_date === sessao.data && a.session_type === sessao.tipo);
 }
 
+/* =========================================================
+   PERFIL DO JOGADOR (radar) E ALERTA DE AMARELOS
+   ========================================================= */
+
+let graficoRadar = null;
+
+/** % de presenças (P + A sobre os registos) do jogador na época. */
+function percentagemPresencas(j) {
+  const registos = cacheAdmin.attendance.filter(r => r.player_id === idJogadorBD(j) && r.status);
+  return registos.length ? Math.round(registos.filter(r => r.status === "P" || r.status === "A").length / registos.length * 100) : 0;
+}
+
+/** Radar com 5 eixos, cada um em % do melhor valor do plantel (presenças em % real). */
+function renderRadarJogador(jogador) {
+  const caixa = el("playerModalRadar");
+  if (!caixa) return;
+  if (graficoRadar) { graficoRadar.destroy(); graficoRadar = null; }
+  caixa.hidden = !jogador || !window.Chart;
+  if (caixa.hidden) return;
+  const cartoes = j => (Number(j.cartoesAmarelos) || 0) + 2 * (Number(j.cartoesVermelhos) || 0);
+  const eixos = [
+    ["Golos", j => Number(j.golos) || 0],
+    ["Assistências", j => Number(j.assistencias) || 0],
+    ["Cartões", cartoes],
+    ["Minutos", j => Number(j.minutosTotais) || 0],
+    ["Presenças", percentagemPresencas]
+  ];
+  const valores = eixos.map(([, f]) => f(jogador));
+  const relativos = eixos.map(([nome, f], i) => {
+    if (nome === "Presenças") return valores[i];
+    const maximo = Math.max(...plantel.map(f));
+    return maximo ? Math.round(valores[i] / maximo * 100) : 0;
+  });
+  // o modal ainda pode estar escondido: cria o gráfico já com o canvas visível
+  requestAnimationFrame(() => {
+    if (graficoRadar) graficoRadar.destroy();
+    graficoRadar = new Chart(el("playerRadarCanvas"), {
+      type: "radar",
+      data: { labels: eixos.map(([n]) => n), datasets: [{ label: jogador.nome, data: relativos, backgroundColor: "rgba(255,215,0,.35)", borderColor: "#0A1628", borderWidth: 2, pointBackgroundColor: "#0A1628", pointRadius: 3 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const i = c.dataIndex; const v = valores[i]; return ` ${eixos[i][0]}: ${eixos[i][0] === "Presenças" ? v + "%" : eixos[i][0] === "Minutos" ? v + "'" : v}${eixos[i][0] === "Cartões" ? " (vermelho conta 2)" : ""} · ${relativos[i]}% do máximo`; } } } },
+        scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: { size: 12, weight: "600" }, color: "#0A1628" }, grid: { color: "rgba(10,22,40,.12)" }, angleLines: { color: "rgba(10,22,40,.12)" } } }
+      }
+    });
+  });
+}
+
+/**
+ * Alerta de amarelos (AF Guarda: suspensão ao 5.º): quem está a um amarelo
+ * da suspensão (4, 9, ...) e quem completou um ciclo de 5 e não está marcado como suspenso.
+ */
+function renderAlertaAmarelos() {
+  const alvo = el("alertaAmarelos");
+  if (!alvo) return;
+  const n = j => Number(j.cartoesAmarelos) || 0;
+  const N = VFN.AMARELOS_SUSPENSAO;
+  const suspensao = plantel.filter(j => VFN.alertaSuspensao(n(j), j.disponibilidade));
+  const aUm = plantel.filter(j => n(j) % N === N - 1);
+  alvo.hidden = !suspensao.length && !aUm.length;
+  if (alvo.hidden) { alvo.innerHTML = ""; return; }
+  const nomes = l => l.map(j => `<strong>${escapeHtml(j.nome)}</strong> (${n(j)})`).join(", ");
+  alvo.innerHTML = `${VFN.icone("triangle-alert", 20)}<div>
+    ${suspensao.length ? `<p><b>Suspensão:</b> ${nomes(suspensao)} — completou ${N} amarelos. Marca como <em>Suspenso</em> na ficha, se ainda não cumpriu o castigo.</p>` : ""}
+    ${aUm.length ? `<p><b>A um amarelo da suspensão:</b> ${nomes(aUm)}.</p>` : ""}
+  </div>`;
+}
+
 /** Mapa da época: toda a equipa, ou o jogador escolhido no filtro. */
 function renderHeatmapAdmin(escolhido) {
   if (!el("presencasHeatmap")) return;

@@ -98,6 +98,7 @@ function mostrarEsqueletos() {
   $("pubCalendario").innerHTML = H.esqueleto("jogos", 5);
   $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubHubMarcadores").innerHTML = H.esqueleto("linhas", 5);
+  $("pubMinutos").innerHTML = H.esqueleto("linhas", 6);
   $("pubHubMarcadoresCamp").innerHTML = H.esqueleto("linhas", 5);
 }
 
@@ -164,6 +165,11 @@ function renderTudo() {
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
   $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
+  // minutos da ficha de cada jogador (players.stats, atualizados no admin)
+  const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
+    .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
+  $("pubOnze").innerHTML = H.onzeCampoHTML(minutos);
+  $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 5);
   $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 10);
   renderPlantel();

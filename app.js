@@ -1702,6 +1702,7 @@ function renderPlayerModalHeader(jogador) {
   el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${VFN.dataDDMMAAAA(jogador.nascimento)}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
   el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+  if (typeof renderRadarJogador === "function") renderRadarJogador(jogador);
 }
 
 function fecharModalJogador() {
@@ -1782,6 +1783,7 @@ function renderPlantel() {
 function renderTeamQuickStats() {
   const golos = plantel.reduce((sum, jogador) => sum + (Number(jogador.golos) || 0), 0);
   el("teamQuickStats").innerHTML = `<span><strong>${plantel.length}</strong> jogadores</span><span><strong>${golos}</strong> golos totais</span>`;
+  if (typeof renderAlertaAmarelos === "function") renderAlertaAmarelos();
 }
 
 function criarStatCard(titulo, icone, lista, formatador) {

@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", historico: "Histórico de relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -239,6 +239,7 @@ function renderEstatisticas() {
   const jogados = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j));
   const t = { J: jogados.length, V: 0, E: 0, D: 0, GM: 0, GS: 0 };
   jogados.forEach(j => { const g = VFN.golosJogo(j); t[VFN.letraResultado(j)]++; t.GM += g.vfn; t.GS += g.adv; });
+  $("statsCompeticoes").innerHTML = H.desempenhoPorCompeticaoHTML(dados);
   $("statsEquipa").innerHTML = [["Jogos", t.J], ["Vitórias", t.V], ["Empates", t.E], ["Derrotas", t.D], ["Golos marcados", t.GM], ["Golos sofridos", t.GS]]
     .map(([l, v]) => `<div class="summary-tile"><span>${l}</span><strong>${v}</strong></div>`).join("");
 
@@ -408,20 +409,6 @@ function initHistorico() {
   $("btnExportarWord").addEventListener("click", exportarWordRelatorio);
 }
 
-// Posições no campo (x, y em %; o ataque é em cima)
-const POSICOES_CAMPO = {
-  GR: [50, 89], DC: [50, 73], DD: [86, 68], DE: [14, 68],
-  MDEF: [50, 57], MCEN: [50, 45], MOFE: [50, 33],
-  ED: [84, 24], EE: [16, 24], PL: [50, 12]
-};
-const SINONIMOS_POSICAO = { MDC: "MDEF", MD: "MDEF", MC: "MCEN", MOC: "MOFE", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
-
-function posicaoNoCampo(posicao) {
-  const codigo = String(posicao || "").split("/")[0].trim().toUpperCase();
-  const chave = POSICOES_CAMPO[codigo] ? codigo : SINONIMOS_POSICAO[codigo];
-  return chave || "MCEN";
-}
-
 function renderMinutos() {
   const { lista, relatorios } = calcularMinutosJogados();
   $("minutosInfo").textContent = relatorios ? `${relatorios} relatório${relatorios === 1 ? "" : "s"} de jogo` : "";
@@ -431,34 +418,37 @@ function renderMinutos() {
     $("onzeCampo").innerHTML = vazio;
     return;
   }
-  const maximo = lista[0].minutos;
-  $("minutosLista").innerHTML = `<ol class="minutes-list">${lista.map((t, i) => `
-    <li>
-      <span class="minutes-pos">${i + 1}</span>
-      <span class="player-cell">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span>${esc(t.jogador.nome)}<small class="muted">${esc(t.jogador.posicao)} · ${t.jogos} jogo${t.jogos === 1 ? "" : "s"}</small></span></span>
-      <span class="minutes-bar" aria-hidden="true"><i style="width:${Math.max(2, t.minutos / maximo * 100)}%"></i></span>
-      <strong>${t.minutos}'</strong>
-    </li>`).join("")}</ol>`;
-
-  // 11 mais utilizados, colocados pela posição do perfil
-  const onze = lista.slice(0, 11);
-  const grupos = {};
-  onze.forEach(t => { (grupos[posicaoNoCampo(t.jogador.posicao)] || (grupos[posicaoNoCampo(t.jogador.posicao)] = [])).push(t); });
-  const marcadores = [];
-  Object.entries(grupos).forEach(([pos, jogadoresPos]) => {
-    const [x, y] = POSICOES_CAMPO[pos];
-    jogadoresPos.forEach((t, i) => {
-      const deslocamento = (i - (jogadoresPos.length - 1) / 2) * 24; // lado a lado quando há vários na mesma posição
-      marcadores.push({ t, x: Math.min(90, Math.max(10, x + deslocamento)), y });
-    });
-  });
-  $("onzeCampo").innerHTML = `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
-    <span class="mini-pitch-lines" aria-hidden="true"></span>
-    ${marcadores.map(({ t, x, y }) => `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`).join("")}
-  </div>
-  ${onze.length < 11 ? `<p class="muted readonly-note">Só ${onze.length} jogadores com minutos registados.</p>` : ""}`;
+  $("minutosLista").innerHTML = H.minutosListaHTML(lista);
+  $("onzeCampo").innerHTML = H.onzeCampoHTML(lista);
 }
 
+/* ---------- Disponibilidade pré-jogo e resumo financeiro ---------- */
+
+function renderDisponibilidade() {
+  $("dbDisponibilidade").innerHTML = H.disponibilidadeHTML(dados, jogadores);
+}
+
+/** Total de multas por mês (época) e jogadores com multas por pagar. */
+function renderResumoFinanceiro() {
+  const euro = v => VFN.formatoEuro.format(v);
+  const porMes = VFN.mesesDaEpoca(new Date()).map(m => {
+    const doMes = dados.fines.filter(f => String(f.match_date || "").startsWith(m.valor));
+    const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+    return { ...m, n: doMes.length, total: soma(doMes), pago: soma(doMes.filter(f => f.paid)), pendente: soma(doMes.filter(f => !f.paid)) };
+  }).filter(m => m.n);
+  const maximo = Math.max(1, ...porMes.map(m => m.total));
+  $("dbFinanceiroMeses").innerHTML = porMes.length ? `<table class="stats-table fin-table"><thead><tr><th scope="col">Mês</th><th scope="col">Multas</th><th scope="col">Total</th><th scope="col">Pago</th><th scope="col">Por pagar</th></tr></thead>
+    <tbody>${porMes.map(m => `<tr><th scope="row">${esc(m.rotulo)}</th><td>${m.n}</td><td><span class="barra-pct barra-euro"><i style="width:${Math.round(m.total / maximo * 100)}%"></i></span>${euro(m.total)}</td><td class="txt-ok">${euro(m.pago)}</td><td class="txt-mau">${euro(m.pendente)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><th scope="row">Época</th><td>${porMes.reduce((s, m) => s + m.n, 0)}</td><td>${euro(porMes.reduce((s, m) => s + m.total, 0))}</td><td class="txt-ok">${euro(porMes.reduce((s, m) => s + m.pago, 0))}</td><td class="txt-mau">${euro(porMes.reduce((s, m) => s + m.pendente, 0))}</td></tr></tfoot></table>` : H.vazio("Ainda não há multas registadas.");
+  const abertos = new Map();
+  dados.fines.filter(f => !f.paid).forEach(f => {
+    const a = abertos.get(f.player_id) || { jogador: jogadorPorIdDash(f.player_id), n: 0, valor: 0, aDefinir: 0 };
+    a.n++; a.valor += Number(f.amount) || 0; if (VFN.multaADefinir(f)) a.aDefinir++;
+    abertos.set(f.player_id, a);
+  });
+  const lista = [...abertos.values()].sort((a, b) => b.valor - a.valor || b.n - a.n);
+  $("dbFinanceiroAbertos").innerHTML = lista.length ? `<ul class="fin-abertos">${lista.map(a => `<li${a.jogador ? ` data-jogador="${esc(a.jogador.id)}"` : ""}>${a.jogador ? VFN.avatarJogador(a.jogador, "avatar-xs") : ""}<span class="fin-nome">${esc(a.jogador ? a.jogador.nome : "Jogador removido")}<small class="muted">${a.n} multa${a.n === 1 ? "" : "s"}${a.aDefinir ? ` · ${a.aDefinir} em % do ordenado` : ""}</small></span><strong>${euro(a.valor)}</strong></li>`).join("")}</ul>` : H.vazio("Nenhuma multa por pagar.");
+}
 
 /* ---------- Multas e Presenças (dirigentes; só leitura) ---------- */
 
@@ -683,6 +673,8 @@ function mostrarEsqueletos() {
 
 function renderTudo() {
   renderBannerProximoJogo();
+  renderDisponibilidade();
+  renderResumoFinanceiro();
   renderHub();
   renderPlantel();
   renderEstatisticas();
