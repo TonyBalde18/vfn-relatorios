@@ -60,6 +60,7 @@
 
   <!-- HUB -->
   <section id="view-hub" class="view active">
+    <div id="alertasSuspensao" class="alerta-suspensao" role="status" hidden></div>
     <div class="hub-grid">
       <article id="cardProximoJogo" class="card hub-hero span-2" data-aos="fade-up"></article>
       <article class="card" data-aos="fade-up">
@@ -105,7 +106,7 @@
   <section id="view-plantel" class="view">
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Plantel <small id="plantelTotal" class="muted"></small></h2></div>
-      <div id="plantelFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar por posição"></div>
+      <div class="toolbar"><div id="plantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div><label class="sr-only" for="plantelEstado">Disponibilidade</label><select id="plantelEstado" class="compact-select"><option value="">Todos os estados</option><option value="disponivel">Disponível</option><option value="em_duvida">Em dúvida</option><option value="lesionado">Lesionado</option><option value="suspenso">Suspenso</option><option value="indisponivel">Indisponível</option></select></div>
       <div id="plantelGrid" class="players-grid"></div>
     </div>
   </section>

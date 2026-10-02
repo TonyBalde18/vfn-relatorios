@@ -26,6 +26,7 @@
       cartoesV: Number(s.cartoesV) || 0,
       minutos: Number(s.minutos) || 0,
       attributes: p.attributes || {},
+      disponibilidade: p.availability || "", // vazio na página pública (a view não tem esta coluna)
       info: { nascimento: p.date_of_birth || s.nascimento || "", pe: s.pePreferencial || "" }
     };
   }
@@ -171,9 +172,11 @@
     return GRUPOS_POSICAO.map(([v, t]) => `<button type="button" class="filter-chip ${v === ativo ? "active" : ""}" data-posicao="${v}">${t}</button>`).join("");
   }
 
-  function plantelHTML(jogadores, filtro) {
+  function plantelHTML(jogadores, filtro, opcoes) {
+    const o = opcoes || {};
     const lista = [...jogadores]
       .filter(j => VFN.posicaoNaCategoria(j.posicao, filtro))
+      .filter(j => !o.estado || (j.disponibilidade || "disponivel") === o.estado)
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
     return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}">
@@ -181,6 +184,7 @@
       <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
       <strong>${esc(j.nome)}</strong>
       <small>${esc(j.posicao)}</small>
+      ${o.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
     </button>`).join("");
   }
 

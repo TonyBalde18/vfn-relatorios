@@ -17,6 +17,7 @@ let utilizador = null;
 let dados = { players: [], teams: [], matches: [], league_results: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [] };
 let jogadores = [];
 let filtroPosicao = "";
+let filtroEstado = "";
 let filtroCalendario = "todos";
 let competicaoHub = "";
 let ordenacaoStats = { campo: "golos", desc: true };
@@ -67,6 +68,7 @@ function renderHub() {
   VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr"));
 
   $("hubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
+  renderAlertasSuspensao();
   VFN.anim.contar($("hubMarcadores"));
   $("cardAdversario").innerHTML = proximoAdversarioHTML();
   renderGraficos();
@@ -101,6 +103,14 @@ function proximoAdversarioHTML() {
         ${obs.history ? `<p>${esc(obs.history).replace(/\n/g, "<br>")}</p>` : ""}
       </div>
     </div>`;
+}
+
+/** Alerta automático: 5.º amarelo acumulado (AF Guarda) sem o jogador estar marcado como suspenso. */
+function renderAlertasSuspensao() {
+  const alvo = $("alertasSuspensao");
+  const lista = jogadores.filter(j => j.disponibilidade && VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
+  alvo.hidden = !lista.length;
+  alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Possível suspensão</strong><p>${lista.map(j => `${esc(j.nome)} — ${j.cartoesA} amarelos`).join(" · ")}. Na AF Guarda a suspensão é ao ${VFN.AMARELOS_SUSPENSAO}.º amarelo: sugere-se marcar como <em>Suspenso</em> na ficha do jogador (admin), se ainda não cumpriu o castigo.</p></div>` : "";
 }
 
 /* ---------- Gráficos ---------- */
@@ -186,9 +196,11 @@ function renderGraficos() {
 
 function renderPlantel() {
   $("plantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicao);
-  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao);
+  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao, { disponibilidade: true, estado: filtroEstado });
   $("plantelTotal").textContent = `· ${jogadores.length} jogadores`;
   $("plantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
+  const selEstado = $("plantelEstado");
+  if (selEstado && !selEstado.dataset.ligado) { selEstado.dataset.ligado = "1"; selEstado.addEventListener("change", e => { filtroEstado = e.target.value; renderPlantel(); }); }
   $("plantelGrid").querySelectorAll(".player-card").forEach(c => c.addEventListener("click", () => abrirJogador(c.dataset.id)));
   if ($("view-plantel").classList.contains("active")) VFN.anim.cascata($("plantelGrid").children);
 }
@@ -206,6 +218,7 @@ function abrirJogador(id) {
   $("mjAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("mjNome").textContent = j.nomeCompleto;
   $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
+  if (j.disponibilidade) $("mjMeta").insertAdjacentHTML("beforeend", " " + VFN.badgeDisponibilidade(j.disponibilidade));
   $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 

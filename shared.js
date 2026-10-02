@@ -58,6 +58,28 @@
     return multaADefinir(f) ? '<span class="valor-a-definir" title="' + NOTA_PERCENTAGEM + '">% ordenado</span>' : formatoEuro.format(Number(f.amount) || 0);
   }
 
+  /* Disponibilidade dos jogadores (players.availability). Suspensão ao 5.º amarelo (AF Guarda). */
+  const DISPONIBILIDADE = {
+    disponivel: { rotulo: "Disponível", icone: "circle-check" },
+    em_duvida: { rotulo: "Em dúvida", icone: "circle-help" },
+    lesionado: { rotulo: "Lesionado", icone: "bandage" },
+    suspenso: { rotulo: "Suspenso", icone: "ban" },
+    indisponivel: { rotulo: "Indisponível", icone: "circle-off" }
+  };
+  const AMARELOS_SUSPENSAO = 5;
+
+  function badgeDisponibilidade(estado, compacto) {
+    const e = DISPONIBILIDADE[estado] ? estado : "disponivel";
+    const d = DISPONIBILIDADE[e];
+    return `<span class="disp-badge disp-${e}" title="${d.rotulo}">${icone(d.icone, 14)}${compacto ? '<span class="sr-only">' + d.rotulo + "</span>" : " " + d.rotulo}</span>`;
+  }
+
+  /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
+  function alertaSuspensao(amarelos, estado) {
+    const n = Number(amarelos) || 0;
+    return n > 0 && n % AMARELOS_SUSPENSAO === 0 && estado !== "suspenso";
+  }
+
   const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const MESES_LONGOS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -691,6 +713,7 @@
 
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,

@@ -207,6 +207,7 @@ let plantel = [];
 let jogadorEmEdicao = null;
 let pesquisaEquipa = "";
 let filtroPosicaoEquipa = "";
+let filtroDisponibilidadeEquipa = "";
 let posicoesModal = [];
 let posicaoPrincipalModal = "";
 // campo vertical (ataque em cima); DC centrado na mesma vertical do MDef
@@ -264,13 +265,14 @@ async function guardarRelatorioSupabase() {
 
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const rows = plantel.map(p => ({ id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
+  const rows = plantel.map(p => ({ ...(colunaDisponibilidade ? { availability: p.disponibilidade || "disponivel" } : {}), id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (!rows.length) return;
   const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
   if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
 }
 
 let temporizadorPlantel = null;
+let colunaDisponibilidade = false; // players.availability já existe no Supabase?
 function sincronizarPlantelDiferido() {
   clearTimeout(temporizadorPlantel);
   temporizadorPlantel = setTimeout(sincronizarPlantelSupabase, 1500);
@@ -366,6 +368,7 @@ function migrarJogador(p) {
     nacionalidade: p.nacionalidade || stats.nacionalidade || "",
     nascimento: p.nascimento || stats.nascimento || "",
     pePreferencial: p.pePreferencial || stats.pePreferencial || "",
+    disponibilidade: p.disponibilidade || "disponivel",
     altura: p.altura || stats.altura || "",
     peso: p.peso || stats.peso || "",
     notas: p.notas || stats.notas || "",
@@ -398,7 +401,8 @@ async function carregarPlantelSupabase() {
     let id = /^\d+$/.test(texto) ? Number(texto) : Number(texto.split("-").pop()) || index + 1;
     while (usados.has(id)) id += 100000; // ids locais têm de ser únicos
     usados.add(id);
-    return migrarJogador({ id, idBD: texto, nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
+    if ("availability" in p) colunaDisponibilidade = true;
+    return migrarJogador({ id, idBD: texto, disponibilidade: p.availability || "disponivel", nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
   });
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   return true;
@@ -1543,6 +1547,7 @@ function initPlantel() {
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
     jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value;
+    jogador.disponibilidade = el("modalDisponibilidade").value;
     jogador.posicao = posicoesModal.join("/") || jogador.posicao;
     if (!jogadorEmEdicao) plantel.push(jogador);
     guardarPlantel();
@@ -1567,6 +1572,7 @@ function initPlantel() {
   el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
+  el("teamAvailabilityFilter").addEventListener("change", event => { filtroDisponibilidadeEquipa = event.target.value; renderPlantel(); });
 
   el("btnExportarPlantel").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(plantel, null, 2)], { type: "application/json" });
@@ -1585,7 +1591,7 @@ function abrirModalJogador() {
   el("modalNumero").value = "";
   el("modalFoto").value = "";
   el("modalFotoUpload").value = "";
-  el("modalNascimento").value = ""; el("modalPe").value = "";
+  el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalDisponibilidade").value = "disponivel";
   posicoesModal = []; posicaoPrincipalModal = "";
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
@@ -1603,7 +1609,7 @@ function abrirModalExistente(jogador) {
   el("modalNumero").value = jogador.numero;
   el("modalFoto").value = jogador.fotoUrl || "";
   el("modalFotoUpload").value = "";
-  el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || "";
+  el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || ""; el("modalDisponibilidade").value = jogador.disponibilidade || "disponivel";
   posicoesModal = (jogador.posicao || "").split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || "";
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
@@ -1665,7 +1671,7 @@ function renderPlantel() {
   const ordenado = [...plantel].filter(j => {
     const matchesSearch = !pesquisaEquipa || j.nome.toLocaleLowerCase("pt-PT").includes(pesquisaEquipa);
     const posicao = (j.posicao || "").toUpperCase();
-    const matchesPosition = VFN.posicaoNaCategoria(posicao, filtroPosicaoEquipa);
+    const matchesPosition = VFN.posicaoNaCategoria(posicao, filtroPosicaoEquipa) && (!filtroDisponibilidadeEquipa || (j.disponibilidade || "disponivel") === filtroDisponibilidadeEquipa);
     return matchesSearch && matchesPosition;
   }).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
 
@@ -1673,7 +1679,8 @@ function renderPlantel() {
     const tr = document.createElement("tr");
 
     const tdFoto = document.createElement("td");
-    tdFoto.innerHTML = VFN.avatarJogador(j, "avatar-sm");
+    tdFoto.innerHTML = `<span class="avatar-com-estado">${VFN.avatarJogador(j, "avatar-sm")}${VFN.badgeDisponibilidade(j.disponibilidade, true)}</span>`;
+    tdFoto.dataset.v = j.disponibilidade || "disponivel";
     tr.appendChild(tdFoto);
 
     tr.appendChild(criarCelulaEditavel(j, "nome", "text", "col-nome"));

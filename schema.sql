@@ -245,6 +245,10 @@ alter table public.league_results add column if not exists match_date date;
 -- ATUALIZAÇÃO v3 (02/10/2026) — correr esta secção antes do deploy v3
 -- ---------------------------------------------------------------------
 
+-- [Tarefa 5] Disponibilidade dos jogadores (só admin e dashboard; fora da view pública)
+alter table public.players add column if not exists availability text default 'disponivel'
+  check (availability in ('disponivel', 'em_duvida', 'lesionado', 'suspenso', 'indisponivel'));
+
 -- [Tarefa 9] Segurança do plantel público: mantém-se a view players_public
 -- (id, name, display_name, full_name, position, number, photo_url e stats de jogo).
 -- A tabela players continua sem leitura anónima; a disponibilidade (availability)

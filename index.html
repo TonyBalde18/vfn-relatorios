@@ -233,7 +233,7 @@
         <h2 class="section-title">Plantel</h2>
         <button type="button" id="btnOpenAddJogador" class="btn btn-accent btn-sm">+ Adicionar Jogador</button>
       </div>
-      <div class="team-toolbar"><input type="search" id="teamSearch" placeholder="Pesquisar jogador..."><select id="teamPositionFilter"><option value="">Todas as posições</option><option value="GR">GR</option><option value="Def">Defesa</option><option value="Meio">Meio-campo</option><option value="Ata">Ataque</option></select></div>
+      <div class="team-toolbar"><input type="search" id="teamSearch" placeholder="Pesquisar jogador..."><select id="teamPositionFilter"><option value="">Todas as posições</option><option value="GR">GR</option><option value="Def">Defesa</option><option value="Meio">Meio-campo</option><option value="Ata">Ataque</option></select><select id="teamAvailabilityFilter" aria-label="Filtrar por disponibilidade"><option value="">Todos os estados</option><option value="disponivel">Disponível</option><option value="em_duvida">Em dúvida</option><option value="lesionado">Lesionado</option><option value="suspenso">Suspenso</option><option value="indisponivel">Indisponível</option></select></div>
       <div id="teamQuickStats" class="team-quick-stats"></div>
       <div class="table-wrap">
         <table class="plantel-table" id="plantelTable" data-ordenar="plantel">
@@ -410,6 +410,7 @@
     <div class="field"><label for="modalFoto">Foto (URL opcional)</label><input type="url" id="modalFoto" placeholder="https://..."></div>
     <div class="field"><label for="modalFotoUpload">Ou carregar fotografia</label><input type="file" id="modalFotoUpload" accept="image/*"></div>
     <div class="grid grid-2"><div class="field"><label for="modalNascimento">Data de nascimento</label><input type="date" id="modalNascimento"></div><div class="field"><label for="modalPe">Pé preferencial</label><select id="modalPe"><option value="">Não indicado</option><option>Direito</option><option>Esquerdo</option><option>Ambos</option></select></div></div>
+    <div class="field"><label for="modalDisponibilidade">Disponibilidade</label><select id="modalDisponibilidade"><option value="disponivel">Disponível</option><option value="em_duvida">Em dúvida</option><option value="lesionado">Lesionado</option><option value="suspenso">Suspenso</option><option value="indisponivel">Indisponível</option></select></div>
     <div class="position-map"><span>Mapa de posições</span><div class="position-pitch"><svg viewBox="0 0 130 180" preserveAspectRatio="none" aria-hidden="true"><rect x="1" y="1" width="128" height="178" rx="4"></rect><line x1="0" y1="90" x2="130" y2="90"></line><circle cx="65" cy="90" r="15"></circle><rect x="35" y="1" width="60" height="24"></rect><rect x="35" y="155" width="60" height="24"></rect></svg><div id="positionPoints"></div></div><small>Clica nos pontos para definir posição principal e secundárias.</small></div>
     <div class="field">
       <label for="modalPosicao">Posição</label>
