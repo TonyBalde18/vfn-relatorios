@@ -817,6 +817,7 @@ async function registarResultadoNoCalendario() {
 let jogosCalendario = [];
 let equipasCalendario = [];
 let resultadosLiga = []; // league_results: jogos entre outras equipas (Jornadas AF Guarda)
+let relatoriosAdmin = []; // match_reports (eventos para o detalhe do jogo)
 let calendarioCarregado = false;
 
 async function carregarCalendario() {
@@ -832,6 +833,7 @@ async function carregarCalendario() {
     resultadosLiga = [];
     console.warn("league_results indisponível (corre a atualização de 01/10 do schema.sql):", e.message || e);
   }
+  try { relatoriosAdmin = await dadosClube.listar("match_reports"); } catch (e) { relatoriosAdmin = []; }
   calendarioCarregado = true;
   renderProximoJogoPreJogo();
   if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();

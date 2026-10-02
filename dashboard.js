@@ -588,6 +588,10 @@ async function iniciar() {
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
   initEquipas();
+  H.ligarDetalheJogo(() => dados, {
+    nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
+    verRelatorio: id => { if (typeof abrirRelatorio === "function") abrirRelatorio(id); }
+  });
   // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
   document.addEventListener("click", e => {
     const avatar = e.target.closest("[data-jogador]");

@@ -103,7 +103,7 @@
       return `<li>
         ${VFN.chipForma(VFN.letraResultado(j))}
         <span class="result-teams">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<span><strong>${esc(nome)}</strong><small>${esc(VFN.dataCurta(j.date))} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"} · ${esc(VFN.nomeCurtoCompeticao(j.competition))}</small></span></span>
-        <span class="result-score">${g.vfn}–${g.adv}</span>
+        <button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>
       </li>`;
     }).join("")}</ul>`;
   }
@@ -261,7 +261,7 @@
           <div class="match-line">${tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
           <div class="match-opponent">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
         </div>
-        <div class="match-side">${estado === "jogado" && g ? `<span class="result-score">${g.vfn}–${g.adv}</span>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
+        <div class="match-side">${estado === "jogado" && g ? `<button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
       </article>`;
   }
 
@@ -345,7 +345,7 @@
             : o.editavel ? `<span class="row-actions"><button type="button" class="icon-btn" data-acao="editar" data-id="${esc(j.id)}" title="Editar resultado" aria-label="Editar resultado">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" data-id="${esc(j.id)}" title="Eliminar resultado" aria-label="Eliminar resultado">${VFN.icone("trash-2", 16)}</button></span>` : "";
           return `<div class="jornada-jogo${j.origem === "vfn" ? " is-vfn-game" : ""}">
             ${lado(j.casa, "jj-casa")}
-            <span class="jj-centro"><span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>${data ? `<small class="jj-data">${data}</small>` : ""}</span>
+            <button type="button" class="jj-centro" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo"><span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>${data ? `<small class="jj-data">${data}</small>` : ""}</button>
             ${lado(j.fora, "jj-fora")}
             <span class="jj-acoes">${acoes}</span>
             ${j.marcadores ? `<p class="jj-marcadores">${VFN.icone("goal", 14)} ${esc(j.marcadores)}</p>` : ""}
@@ -474,6 +474,107 @@
       ${jogadores.length ? `<ul class="perfil-jogadores">${jogadores.map(p => `<li><span>${esc(p.name)}</span><small class="muted">ID ${esc(p.id)}</small>${golosPorJogador.get(String(p.id)) ? `<strong>${golosPorJogador.get(String(p.id))} golo${golosPorJogador.get(String(p.id)) === 1 ? "" : "s"}</strong>` : ""}</li>`).join("")}</ul>` : vazio("Ainda sem jogadores registados (os marcadores das Jornadas aparecem aqui).")}`;
   }
 
+  /* ---------- Detalhe do jogo (modal) ---------- */
+
+  const ICONE_EVENTO = { "Golo": "goal", "Auto-golo": "goal", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x", "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat", "Nota": "sticky-note" };
+
+  /** Relatório associado a um jogo do VFN (o publicado mais recente; senão o mais recente). */
+  function relatorioDoJogo(dados, matchId) {
+    const lista = (dados.match_reports || []).filter(r => r.match_id === matchId || ((r.match_data || {}).preJogo || {}).matchId === matchId);
+    const recente = l => [...l].sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))[0] || null;
+    return recente(lista.filter(r => r.status === "published")) || recente(lista);
+  }
+
+  function eventosDoRelatorio(relatorio, nomeJogador) {
+    const jogo = ((relatorio || {}).match_data || {}).jogo || {};
+    const nome = id => (id && nomeJogador ? nomeJogador(id) : "") || "";
+    return (jogo.eventos || []).filter(e => e.tipo !== "Tempo Acrescentado").map(e => {
+      let texto;
+      if (e.tipo === "Substituição") texto = `${nome(e.jogadorSaiId) || "—"} ↘ / ${nome(e.jogadorId) || "—"} ↗`;
+      else if (e.equipa === "VFN") texto = (nome(e.jogadorId) || e.detalhe || "") + (e.tipo === "Golo" && e.assistId ? ` (assist. ${nome(e.assistId)})` : "");
+      else texto = e.detalhe || "";
+      return { minuto: Number(e.minuto) || 0, acrescimo: Number(e.acrescimo) || 0, tipo: e.tipo, vfn: e.equipa === "VFN", texto };
+    }).sort((a, b) => a.minuto - b.minuto || a.acrescimo - b.acrescimo);
+  }
+
+  /**
+   * HTML do detalhe. ref = "vfn:<matches.id>" ou "liga:<league_results.id>".
+   * opcoes.nomeJogador(idLocal) resolve nomes dos relatórios; opcoes.verRelatorio(relatorio) mostra o botão.
+   */
+  function detalheJogoHTML(dados, ref, opcoes) {
+    const o = opcoes || {};
+    const [tipo, id] = String(ref).split(/:(.+)/);
+    let casa, fora, gc = null, gf = null, data = null, comp = "", local = "", jornada = null, eventos = [], relatorio = null, estado = "jogado";
+    if (tipo === "vfn") {
+      const j = (dados.matches || []).find(m => String(m.id) === id);
+      if (!j) return vazio("Jogo não encontrado.");
+      ({ casa, fora } = VFN.equipasDoJogo(j, dados.teams));
+      estado = VFN.estadoJogo(j) || "agendado";
+      if (estado === "jogado") { gc = j.score_home; gf = j.score_away; }
+      data = j.date; comp = j.competition; local = j.venue || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = j.jornada;
+      relatorio = relatorioDoJogo(dados, j.id);
+      eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
+      // sem eventos no relatório, os golos do VFN não são conhecidos; o lado VFN fica à esquerda/direita conforme casa/fora
+      eventos.forEach(e => { e.lado = (e.vfn === VFN.jogoEmCasa(j)) ? "casa" : "fora"; });
+    } else {
+      const r = (dados.league_results || []).find(x => String(x.id) === id);
+      if (!r) return vazio("Jogo não encontrado.");
+      ({ casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams));
+      gc = r.score_home; gf = r.score_away; data = r.match_date; comp = r.competition; jornada = r.jornada;
+      estado = gc != null && gf != null ? "jogado" : "agendado";
+      eventos = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ minuto: null, tipo: "Golo", texto: `${s.player_name}${Number(s.count) > 1 ? " ×" + s.count : ""}`, lado: String(s.team_id) === String(fora.id) ? "fora" : "casa" }));
+      if (r.scorers) eventos.push({ minuto: null, tipo: "Nota", texto: r.scorers, lado: "centro" });
+    }
+    const temRes = gc != null && gf != null && gc !== "" && gf !== "";
+    const lado = (eq) => `<div class="dj-equipa">${logoEquipa(equipa(dados, eq.id) || { id: eq.id, name: eq.nome }, eq.nome, "dj-logo")}<strong>${esc(eq.nome)}</strong></div>`;
+    const linhaEvento = e => `<li class="dj-evento lado-${e.lado || "centro"} tipo-${esc(String(e.tipo).toLowerCase().replace(/[^a-z]+/g, "-"))}">
+        <span class="dj-min">${e.minuto != null ? `${e.minuto}${e.acrescimo ? "+" + e.acrescimo : ""}'` : ""}</span>
+        <span class="dj-ico" data-type="${esc(e.tipo)}">${VFN.icone(ICONE_EVENTO[e.tipo] || "sticky-note", 16)}</span>
+        <span class="dj-texto"><small>${esc(e.tipo)}</small> ${esc(e.texto)}</span>
+      </li>`;
+    return `
+      <div class="dj-placar">
+        ${lado(casa)}
+        <div class="dj-resultado"><span class="dj-golos">${temRes ? `${Number(gc)}<span class="dj-sep">–</span>${Number(gf)}` : `<span class="dj-vs">vs</span>`}</span>${tipo === "vfn" ? VFN.badgeEstado((dados.matches || []).find(m => String(m.id) === id)) : ""}</div>
+        ${lado(fora)}
+      </div>
+      <div class="dj-meta">
+        ${data ? `<span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(data, true))}</span>` : ""}
+        <span>${VFN.icone("trophy", 16)} ${esc(comp || "—")}${jornada ? ` · J${esc(jornada)}` : ""}</span>
+        ${local ? `<span>${VFN.icone("map-pin", 16)} ${esc(local)}</span>` : ""}
+      </div>
+      <h4 class="perfil-subtitulo">Eventos</h4>
+      ${eventos.length ? `<ol class="dj-timeline">${eventos.map(linhaEvento).join("")}</ol>` : vazio(estado === "jogado" ? (tipo === "vfn" ? "Sem eventos registados (ainda não há relatório deste jogo)." : "Sem marcadores registados.") : "O jogo ainda não se realizou.")}
+      ${relatorio && relatorio.status === "published" && o.verRelatorio ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
+  }
+
+  /** Cria o modal (uma vez) e liga os cliques em [data-jogo] da página. */
+  function ligarDetalheJogo(obterDados, opcoes) {
+    const o = opcoes || {};
+    let modal = document.getElementById("modalDetalheJogo");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "modalDetalheJogo";
+      modal.className = "modal-overlay";
+      modal.hidden = true;
+      modal.innerHTML = `<div class="modal-box modal-md detalhe-jogo" role="dialog" aria-modal="true" aria-label="Detalhe do jogo"><div id="detalheJogoCorpo"></div><div class="modal-actions"><button type="button" class="btn btn-accent" data-fechar-detalhe>Fechar</button></div></div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", e => {
+        if (e.target === modal || e.target.closest("[data-fechar-detalhe]")) modal.hidden = true;
+        const b = e.target.closest("[data-ver-relatorio]");
+        if (b && o.verRelatorio) { modal.hidden = true; o.verRelatorio(b.dataset.verRelatorio); }
+      });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") modal.hidden = true; });
+    }
+    document.addEventListener("click", e => {
+      const alvo = e.target.closest("[data-jogo]");
+      if (!alvo || e.target.closest("input, select, [data-equipa], [data-jogador], .row-actions") || alvo.closest("#modalDetalheJogo")) return;
+      document.getElementById("detalheJogoCorpo").innerHTML = detalheJogoHTML(obterDados(), alvo.dataset.jogo, o);
+      modal.hidden = false;
+      modal.querySelector("[data-fechar-detalhe]").focus();
+    });
+  }
+
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
 
   function esqueleto(tipo, n) {
@@ -496,6 +597,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo
   };
 })();

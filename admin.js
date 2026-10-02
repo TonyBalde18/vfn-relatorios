@@ -608,7 +608,7 @@ function linhaResultadoHTML(j) {
     <td class="score-cell"><input type="number" min="0" data-campo="score_home" value="${valor(j.score_home)}" aria-label="Golos ${escapeHtml(casa.nome)}"><span>–</span><input type="number" min="0" data-campo="score_away" value="${valor(j.score_away)}" aria-label="Golos ${escapeHtml(fora.nome)}"></td>
     <td><span class="team-inline">${logoPorId(fora.id, fora.nome)}${escapeHtml(fora.nome)}</span></td>
     <td><select data-campo="status" aria-label="Estado do jogo">${ESTADOS_JOGO.map(([v, t]) => `<option value="${v}" ${v === estado ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-    <td>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : '<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>'}</td>
+    <td><div class="row-actions-livre"><button type="button" class="icon-btn" data-jogo="vfn:${escapeHtml(j.id)}" title="Ver detalhe do jogo" aria-label="Ver detalhe do jogo">${VFN.icone("eye", 16)}</button>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : `<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>`}</div></td>
   </tr>`;
 }
 
@@ -1148,6 +1148,12 @@ function initAdmin() {
     ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
   });
   verificarPapelAdmin();
+
+  // detalhe do jogo ao clicar no resultado (Resultados e Jornadas)
+  VFNHub.ligarDetalheJogo(() => ({ matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga, match_reports: relatoriosAdmin }), {
+    nomeJogador: id => nomeJogador(id),
+    verRelatorio: id => { if (typeof abrirRelatorioPublicado === "function") abrirRelatorioPublicado(id); }
+  });
 
   // perfis clicáveis: logo → ficha da equipa; avatar → ficha do jogador
   document.addEventListener("click", e => {

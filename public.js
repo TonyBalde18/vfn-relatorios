@@ -169,6 +169,7 @@ async function iniciar() {
   VFN.initAOS();
   initJornadas();
   initEquipas();
+  H.ligarDetalheJogo(() => dados); // os relatórios não são públicos: só resultado e marcadores
   // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
   document.addEventListener("click", e => {
     const avatar = e.target.closest("[data-jogador]");

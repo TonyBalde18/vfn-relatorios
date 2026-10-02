@@ -983,3 +983,35 @@ table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity:
 @media (max-width: 520px) { .teams-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .team-card { padding: 14px 8px; } .team-card img, .team-card .team-logo-placeholder { width: 48px; height: 48px; } }
 [data-jogador] { cursor: pointer; }
 .team-logo[data-equipa]:hover, .team-logo-placeholder[data-equipa]:hover, [data-jogador]:hover { filter: brightness(1.06); }
+
+/* ---------- Detalhe do jogo ---------- */
+button.jj-centro, button.result-score { border: 0; background: transparent; padding: 2px 4px; border-radius: 6px; font: inherit; cursor: pointer; }
+button.result-score { font-weight: 800; color: var(--vfn-navy); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+button.jj-centro:hover .jj-resultado, button.result-score:hover { box-shadow: 0 0 0 2px var(--vfn-yellow); }
+button.jj-centro:focus-visible, button.result-score:focus-visible { outline: 2px solid var(--vfn-navy); outline-offset: 2px; }
+.row-actions-livre { display: flex; align-items: center; gap: 6px; }
+.dj-placar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 18px 12px; border-radius: 12px; background: linear-gradient(135deg, #0A1628, #13294B); color: #fff; text-align: center; }
+.dj-equipa { display: grid; justify-items: center; gap: 6px; min-width: 0; }
+.dj-equipa strong { font-size: .9rem; overflow-wrap: anywhere; }
+.detalhe-jogo .team-logo.dj-logo, .detalhe-jogo .team-logo-placeholder.dj-logo { width: 56px; height: 56px; }
+.dj-resultado { display: grid; justify-items: center; gap: 6px; font-size: 2.2rem; font-weight: 800; color: var(--vfn-yellow); font-variant-numeric: tabular-nums; }
+.dj-resultado > span:not(.status-badge) { display: inline; }
+.dj-resultado { grid-auto-flow: row; }
+.dj-sep, .dj-vs { color: var(--silver); font-size: 1.2rem; }
+.dj-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 12px 0 4px; color: var(--text-muted); font-size: .84rem; }
+.dj-meta .ic { vertical-align: -0.2em; }
+.dj-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.dj-evento { display: grid; grid-template-columns: 52px 24px 1fr; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: #F7F8FA; font-size: .86rem; }
+.dj-evento.lado-fora { background: #F1F5F9; direction: rtl; }
+.dj-evento.lado-fora > * { direction: ltr; }
+.dj-evento.lado-fora .dj-texto { text-align: right; }
+.dj-min { font-weight: 800; color: var(--vfn-navy); font-variant-numeric: tabular-nums; }
+.dj-texto small { color: var(--text-muted); font-weight: 600; }
+.dj-ico[data-type="Cartão Amarelo"] .ic { fill: #FACC15; stroke: #CA8A04; }
+.dj-ico[data-type="Cartão Vermelho"] .ic { fill: #DC2626; stroke: #991B1B; }
+.dj-ico[data-type="Golo"] .ic { color: #15803d; }
+.dj-golos { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.dj-placar .status-badge { background: rgba(255,255,255,.14); color: #fff; }
+.dj-placar .status-badge.result-V { background: rgba(34,197,94,.28); color: #DCFCE7; }
+.dj-placar .status-badge.result-D { background: rgba(239,68,68,.28); color: #FEE2E2; }
+.dj-golos .dj-sep { margin: 0 6px; }
