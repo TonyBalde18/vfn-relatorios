@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -491,6 +491,29 @@ function initJornadas() {
   $("dbJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 
+
+/* ---------- Equipas (só leitura) ---------- */
+
+function renderEquipas() {
+  $("dbEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("dbEquipasPesquisa").value);
+}
+
+function abrirEquipa(teamId) {
+  if (!teamId || VFN.eVFN((H.equipa(dados, teamId) || {}).name)) return;
+  $("equipaPerfilCorpo").innerHTML = H.perfilEquipaHTML(dados, teamId);
+  $("modalEquipaPerfil").hidden = false;
+  $("btnFecharEquipaPerfil").focus();
+}
+
+function initEquipas() {
+  $("dbEquipasPesquisa").addEventListener("input", renderEquipas);
+  // qualquer elemento com data-equipa abre a ficha
+  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo) abrirEquipa(alvo.dataset.equipa); });
+  $("btnFecharEquipaPerfil").addEventListener("click", () => { $("modalEquipaPerfil").hidden = true; });
+  $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
+}
+
 /* ---------- Calendário ---------- */
 
 function renderCalendario() {
@@ -518,6 +541,7 @@ function renderTudo() {
   renderEstatisticas();
   renderMinutos();
   renderJornadas();
+  renderEquipas();
   renderMultasDash();
   renderPresencasDash();
   renderCalendario();
@@ -563,6 +587,7 @@ async function iniciar() {
   VFN.initAOS();
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
+  initEquipas();
   initMultasPresencasDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });

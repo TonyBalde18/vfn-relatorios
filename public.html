@@ -25,6 +25,7 @@
   <button type="button" data-view="plantel"><span aria-hidden="true"><i data-icon="users"></i></span>Plantel</button>
   <button type="button" data-view="classificacao"><span aria-hidden="true"><i data-icon="trophy"></i></span>Tabela</button>
   <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="list-checks"></i></span>Jornadas</button>
+  <button type="button" data-view="equipas"><span aria-hidden="true"><i data-icon="shield"></i></span>Equipas</button>
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Jogos</button>
   <button type="button" data-view="marcadores"><span aria-hidden="true"><i data-icon="goal"></i></span>Marcadores</button>
 </nav>
@@ -74,6 +75,14 @@
     </div>
   </section>
 
+<!-- EQUIPAS -->
+  <section id="view-equipas" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Equipas</h2><label class="sr-only" for="pubEquipasPesquisa">Pesquisar equipa</label><input type="search" id="pubEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="pubEquipasGrid" class="teams-grid"></div>
+    </div>
+  </section>
+
   <section id="view-calendario" class="view">
     <h2 class="public-section-title">Calendário</h2>
     <div id="pubCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
@@ -96,6 +105,14 @@
   <div id="sponsorFooter" class="sponsor-footer"></div>
   <p>ACD Vila Franca das Naves · Época 2026/27</p>
 </footer>
+
+<!-- MODAL: ficha da equipa (só leitura) -->
+<div id="modalEquipaPerfil" class="modal-overlay" hidden>
+  <div class="modal-box modal-md perfil-equipa" role="dialog" aria-modal="true" aria-label="Ficha da equipa">
+    <div id="equipaPerfilCorpo"></div>
+    <div class="modal-actions"><button type="button" id="btnFecharEquipaPerfil" class="btn btn-accent">Fechar</button></div>
+  </div>
+</div>
 
 <!-- MODAL: ficha do jogador (só leitura) -->
 <div id="modalJogador" class="modal-overlay" hidden>

@@ -412,6 +412,66 @@
     return html + `</div>`;
   }
 
+  /* ---------- Equipas adversárias: cards com forma e ficha completa ---------- */
+
+  function chipsForma(dados, teamId, n) {
+    const jogos = jogosDaEquipa(dados, teamId).slice(0, n || 5);
+    if (!jogos.length) return '<span class="muted forma-sem-jogos">Sem jogos</span>';
+    return `<span class="form-row form-row-sm" aria-label="Forma: últimos ${jogos.length} jogos, mais recente à esquerda">${jogos.map(j => VFN.chipForma(j.letra)).join("")}</span>`;
+  }
+
+  /** Cards de todas as equipas (exceto o VFN) com logo, nome, cidade e forma recente. */
+  function cardsEquipasHTML(dados, termo) {
+    const t = String(termo || "").toLocaleLowerCase("pt-PT");
+    const lista = [...(dados.teams || [])].filter(x => !VFN.eVFN(x.name))
+      .filter(x => !t || x.name.toLocaleLowerCase("pt-PT").includes(t) || String(x.city || "").toLocaleLowerCase("pt-PT").includes(t))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt"));
+    if (!lista.length) return vazio("Sem equipas.");
+    return lista.map(x => `<button type="button" class="team-card" data-equipa="${esc(x.id)}">
+      ${logoEquipa(x, x.name)}
+      <strong>${esc(x.name)}</strong>
+      ${x.city ? `<small>${esc(x.city)}</small>` : ""}
+      ${chipsForma(dados, x.id, 5)}
+    </button>`).join("");
+  }
+
+  /**
+   * Ficha da equipa: forma, confrontos com o VFN (V/E/D, golos), todos os jogos contra
+   * o VFN (passados e futuros) e jogadores conhecidos (external_players).
+   */
+  function perfilEquipaHTML(dados, teamId) {
+    const t = equipa(dados, teamId) || { id: teamId, name: "Equipa" };
+    const jogosVFN = VFN.jogosDoVFN(dados.matches)
+      .filter(j => String(j.opponent_team_id) === String(teamId) && VFN.estadoJogo(j) !== "cancelado")
+      .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+    const b = { V: 0, E: 0, D: 0, gm: 0, gs: 0, n: 0 };
+    jogosVFN.forEach(j => { const g = VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j); if (!g) return; b.n++; b.gm += g.vfn; b.gs += g.adv; b[VFN.letraResultado(j)]++; });
+    const jogadores = (dados.external_players || []).filter(p => String(p.team_id) === String(teamId)).sort((x, y) => x.name.localeCompare(y.name, "pt"));
+    const golosPorJogador = new Map();
+    (dados.league_results || []).forEach(r => (Array.isArray(r.scorer_list) ? r.scorer_list : []).forEach(s => { if (s.player_id) golosPorJogador.set(String(s.player_id), (golosPorJogador.get(String(s.player_id)) || 0) + (Number(s.count) || 1)); }));
+    return `
+      <div class="perfil-equipa-cab">
+        ${logoEquipa(t, t.name, "perfil-logo")}
+        <div><h3>${esc(t.name)}</h3>${t.city ? `<p class="muted">${VFN.icone("map-pin", 14)} ${esc(t.city)}</p>` : ""}</div>
+      </div>
+      ${formaEquipaHTML(dados, teamId)}
+      <div class="perfil-stats">
+        <div><span>Jogos c/ VFN</span><strong>${b.n}</strong></div>
+        <div><span>Vitórias VFN</span><strong>${b.V}</strong></div>
+        <div><span>Empates</span><strong>${b.E}</strong></div>
+        <div><span>Derrotas VFN</span><strong>${b.D}</strong></div>
+        <div><span>Golos VFN</span><strong>${b.gm}</strong></div>
+        <div><span>Golos sofridos</span><strong>${b.gs}</strong></div>
+      </div>
+      <h4 class="perfil-subtitulo">Jogos contra o VFN</h4>
+      ${jogosVFN.length ? `<ul class="perfil-jogos">${jogosVFN.map(j => {
+        const g = VFN.estadoJogo(j) === "jogado" ? VFN.golosJogo(j) : null;
+        return `<li>${g ? VFN.chipForma(VFN.letraResultado(j)) : VFN.badgeEstado(j)}<span>${esc(VFN.dataDDMMAAAA(j.date))}</span><span class="muted">${esc(VFN.nomeCurtoCompeticao(j.competition))}${j.jornada ? " · J" + esc(j.jornada) : ""} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</span><strong>${g ? `VFN ${g.vfn}–${g.adv}` : esc(VFN.horaIso(j.date) !== "00:00" ? VFN.horaIso(j.date) : "")}</strong></li>`;
+      }).join("")}</ul>` : vazio("Sem jogos com o VFN no calendário.")}
+      <h4 class="perfil-subtitulo">Jogadores conhecidos</h4>
+      ${jogadores.length ? `<ul class="perfil-jogadores">${jogadores.map(p => `<li><span>${esc(p.name)}</span><small class="muted">ID ${esc(p.id)}</small>${golosPorJogador.get(String(p.id)) ? `<strong>${golosPorJogador.get(String(p.id))} golo${golosPorJogador.get(String(p.id)) === 1 ? "" : "s"}</strong>` : ""}</li>`).join("")}</ul>` : vazio("Ainda sem jogadores registados (os marcadores das Jornadas aparecem aqui).")}`;
+  }
+
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
 
   function esqueleto(tipo, n) {
@@ -434,6 +494,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML
   };
 })();

@@ -961,10 +961,14 @@ function historicoContra(teamId) {
   return r;
 }
 
+function dadosEquipasAdmin() {
+  return { matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga, external_players: jogadoresExternos };
+}
+
 function renderAdversarios() {
   const termo = el("equipasPesquisa").value.trim().toLocaleLowerCase("pt-PT");
   const equipas = [...equipasCalendario]
-    .filter(t => !termo || t.name.toLocaleLowerCase("pt-PT").includes(termo))
+    .filter(t => !termo || t.name.toLocaleLowerCase("pt-PT").includes(termo) || String(t.city || "").toLocaleLowerCase("pt-PT").includes(termo))
     .sort((a, b) => a.name.localeCompare(b.name, "pt"));
   const grelha = el("equipasGrid");
   if (!equipas.length) {
@@ -978,7 +982,8 @@ function renderAdversarios() {
     return `<button type="button" class="team-card" data-id="${escapeHtml(t.id)}">
       ${logoEquipaHTML(t, t.name)}
       <strong>${escapeHtml(t.name)}</strong>
-      ${VFN.eVFN(t.name) ? '<small>O nosso clube</small>' : `<small>Histórico: ${h.V}V ${h.E}E ${h.D}D</small>${temObs ? `<span class="scouting-flag">${VFN.icone("check", 14)} Observação</span>` : ""}`}
+      ${t.city ? `<small>${escapeHtml(t.city)}</small>` : ""}
+      ${VFN.eVFN(t.name) ? '<small>O nosso clube</small>' : `${VFNHub.chipsForma(dadosEquipasAdmin(), t.id, 5)}<small>Contra o VFN: ${h.V}V ${h.E}E ${h.D}D</small>${temObs ? `<span class="scouting-flag">${VFN.icone("check", 14)} Observação</span>` : ""}`}
     </button>`;
   }).join("");
   grelha.querySelectorAll(".team-card").forEach(b => b.addEventListener("click", () => abrirModalEquipa(equipaPorId(b.dataset.id))));
@@ -989,6 +994,9 @@ function abrirModalEquipa(equipa) {
   const obs = equipa ? observacaoDaEquipa(equipa.id) : null;
   el("modalEquipaTitulo").textContent = equipa ? equipa.name : "Adicionar Equipa";
   el("equipaNome").value = equipa ? equipa.name : "";
+  el("equipaIdZerozero").value = equipa ? equipa.id : "";
+  el("equipaIdZerozero").readOnly = !!equipa; // chave da tabela teams
+  el("equipaCidade").value = equipa ? equipa.city || "" : "";
   el("equipaLogo").value = equipa && equipa.logo_url && !equipa.logo_url.startsWith("data:") ? equipa.logo_url : "";
   el("equipaLogoUpload").value = "";
   el("equipaLogoPreview").innerHTML = equipa ? logoEquipaHTML(equipa, equipa.name) : "";
@@ -1001,7 +1009,8 @@ function abrirModalEquipa(equipa) {
   el("equipaErro").textContent = "";
   el("equipaObservacao").hidden = equipa ? VFN.eVFN(equipa.name) : false;
   // forma atual: último jogo (contra o VFN ou outra equipa), últimos 5 e confrontos com o VFN
-  el("equipaForma").innerHTML = equipa && !VFN.eVFN(equipa.name) ? VFNHub.formaEquipaHTML({ matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga }, equipa.id) : "";
+  // ficha completa (forma, confrontos, jogos com o VFN e jogadores conhecidos), só de leitura
+  el("equipaForma").innerHTML = equipa && !VFN.eVFN(equipa.name) ? `<div class="perfil-equipa">${VFNHub.perfilEquipaHTML(dadosEquipasAdmin(), equipa.id)}</div>` : "";
   abrirModalAdmin("modalEquipa");
 }
 
@@ -1025,15 +1034,21 @@ function idEquipaNovo(nome) {
 
 async function guardarEquipa() {
   const nome = el("equipaNome").value.trim();
+  const idZerozero = el("equipaIdZerozero").value.trim();
+  if (!equipaEmEdicaoAdmin) {
+    const erroId = !idZerozero ? "Indica o ID Zerozero da equipa (obrigatório)." : !/^\d+$/.test(idZerozero) ? "O ID Zerozero só tem algarismos." : equipaPorId(idZerozero) ? "Já existe uma equipa com este ID Zerozero." : "";
+    if (erroId) { el("equipaErro").textContent = erroId; el("equipaIdZerozero").focus(); return; }
+  }
   if (!nome) { el("equipaErro").textContent = "Indica o nome da equipa."; return; }
   const botao = el("btnEquipaGuardar");
   botao.disabled = true;
   try {
-    const id = equipaEmEdicaoAdmin ? equipaEmEdicaoAdmin.id : idEquipaNovo(nome);
-    let logo = el("equipaLogo").value.trim() || (equipaEmEdicaoAdmin ? equipaEmEdicaoAdmin.logo_url : null) || null;
+    const id = equipaEmEdicaoAdmin ? equipaEmEdicaoAdmin.id : idZerozero;
+    // sem logo indicado, usa assets/opponents/{id}.png
+    let logo = el("equipaLogo").value.trim() || (equipaEmEdicaoAdmin ? equipaEmEdicaoAdmin.logo_url : null) || `${VFN.BASE_SITE}assets/opponents/${id}.png`;
     const carregado = await carregarLogoEquipa(el("equipaLogoUpload").files[0], id);
     if (carregado) logo = carregado;
-    const equipa = await dadosClube.guardar("teams", { ...(equipaEmEdicaoAdmin || {}), id, name: nome, logo_url: logo });
+    const equipa = await dadosClube.guardar("teams", { ...(equipaEmEdicaoAdmin || {}), id, name: nome, city: el("equipaCidade").value.trim() || null, logo_url: logo });
     equipasCalendario = equipasCalendario.filter(t => String(t.id) !== String(equipa.id)).concat(equipa);
 
     if (!VFN.eVFN(nome)) {

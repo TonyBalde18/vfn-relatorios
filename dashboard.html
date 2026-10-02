@@ -39,6 +39,7 @@
     <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
+    <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
@@ -169,6 +170,14 @@
     </div>
   </section>
 
+<!-- EQUIPAS -->
+  <section id="view-equipas" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Equipas</h2><label class="sr-only" for="dbEquipasPesquisa">Pesquisar equipa</label><input type="search" id="dbEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="dbEquipasGrid" class="teams-grid"></div>
+    </div>
+  </section>
+
   <!-- CALENDÁRIO -->
   <section id="view-calendario" class="view">
     <div class="card" data-aos="fade-up">
@@ -183,6 +192,14 @@
   <p>ACD Vila Franca das Naves · Época 2026/27</p>
 </footer>
 </div>
+</div>
+
+<!-- MODAL: ficha da equipa (só leitura) -->
+<div id="modalEquipaPerfil" class="modal-overlay" hidden>
+  <div class="modal-box modal-md perfil-equipa" role="dialog" aria-modal="true" aria-label="Ficha da equipa">
+    <div id="equipaPerfilCorpo"></div>
+    <div class="modal-actions"><button type="button" id="btnFecharEquipaPerfil" class="btn btn-accent">Fechar</button></div>
+  </div>
 </div>
 
 <!-- MODAL: Jogador (só leitura) -->

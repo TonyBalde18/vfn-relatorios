@@ -121,6 +121,28 @@ function initJornadas() {
   $("pubJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 
+/* ---------- Equipas (só leitura) ---------- */
+
+function renderEquipas() {
+  $("pubEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("pubEquipasPesquisa").value);
+}
+
+function abrirEquipa(teamId) {
+  if (!teamId || VFN.eVFN((H.equipa(dados, teamId) || {}).name)) return;
+  $("equipaPerfilCorpo").innerHTML = H.perfilEquipaHTML(dados, teamId);
+  $("modalEquipaPerfil").hidden = false;
+  $("btnFecharEquipaPerfil").focus();
+}
+
+function initEquipas() {
+  $("pubEquipasPesquisa").addEventListener("input", renderEquipas);
+  // qualquer elemento com data-equipa abre a ficha
+  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo) abrirEquipa(alvo.dataset.equipa); });
+  $("btnFecharEquipaPerfil").addEventListener("click", () => { $("modalEquipaPerfil").hidden = true; });
+  $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
+}
+
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
@@ -135,6 +157,7 @@ function renderTudo() {
   $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 10);
   renderPlantel();
   renderJornadas();
+  renderEquipas();
   renderCalendario();
 
   // rodapé: AF Guarda + patrocinador da competição do próximo jogo
@@ -145,6 +168,7 @@ function renderTudo() {
 async function iniciar() {
   VFN.initAOS();
   initJornadas();
+  initEquipas();
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });

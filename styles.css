@@ -960,3 +960,24 @@ table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity:
 .subsecao-titulo { margin: 22px 0 10px; color: var(--vfn-navy); font-size: .98rem; }
 .nota-marcadores { margin: 8px 0 0; font-size: .74rem; }
 @media (max-width: 640px) { .marcador-linha { grid-template-columns: 1fr 1fr; } .marcador-linha [data-campo=player_name] { grid-column: 1 / -1; } }
+
+/* ---------- Equipas: cards com forma e ficha ---------- */
+.form-row-sm .form-chip { width: 20px; height: 20px; font-size: .62rem; border-radius: 5px; }
+.forma-sem-jogos { font-size: .72rem; }
+.team-card .form-row { justify-content: center; }
+.perfil-equipa-cab { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.perfil-equipa-cab h3 { margin: 0; color: var(--vfn-navy); font-size: 1.25rem; }
+.perfil-equipa-cab p { margin: 2px 0 0; font-size: .85rem; }
+.perfil-equipa .team-logo.perfil-logo, .perfil-equipa .team-logo-placeholder.perfil-logo { width: 64px; height: 64px; }
+.perfil-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 4px 0 14px; }
+.perfil-stats div { padding: 8px; border-radius: 8px; background: #F7F8FA; text-align: center; }
+.perfil-stats span { display: block; color: var(--text-muted); font-size: .66rem; }
+.perfil-stats strong { color: var(--vfn-navy); font-size: 1.1rem; }
+.perfil-subtitulo { margin: 14px 0 8px; color: var(--vfn-navy); font-size: .88rem; }
+.perfil-jogos, .perfil-jogadores { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.perfil-jogos li { display: grid; grid-template-columns: auto 90px 1fr auto; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--border-color); font-size: .84rem; }
+.perfil-jogadores li { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--border-color); font-size: .86rem; }
+.perfil-jogadores li strong { margin-left: auto; color: var(--vfn-navy); }
+@media (max-width: 520px) { .perfil-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .perfil-jogos li { grid-template-columns: auto 1fr auto; } .perfil-jogos li > span.muted { display: none; } }
+[data-equipa] { cursor: pointer; }
+@media (max-width: 520px) { .teams-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .team-card { padding: 14px 8px; } .team-card img, .team-card .team-logo-placeholder { width: 48px; height: 48px; } }
