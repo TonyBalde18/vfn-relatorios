@@ -761,8 +761,10 @@ function renderJornadasAdmin() {
   el("jornadasFiltroEquipa").innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.nome)}</option>`).join("");
   el("jornadasFiltroEquipa").value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
   el("btnOrdemJornadas").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
-  if (!el("jornadaCasa").options.length) limparFormJornada();
+  // as equipas podem chegar depois do primeiro render: reconstrói os menus mantendo a escolha
+  ["jornadaCasa", "jornadaFora"].forEach(id => { const v = el(id).value; el(id).innerHTML = opcoesEquipasLiga(v); });
   el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
+  el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 })), filtrosJornadas.competicao, 15);
 }
 
 function limparFormJornada(manterJornada) {
@@ -773,6 +775,8 @@ function limparFormJornada(manterJornada) {
   el("jornadaCasa").innerHTML = opcoesEquipasLiga("");
   el("jornadaFora").innerHTML = opcoesEquipasLiga("");
   ["jornadaGolosCasa", "jornadaGolosFora", "jornadaMarcadores"].forEach(id => { el(id).value = ""; });
+  marcadoresForm = [];
+  renderMarcadoresForm();
   el("btnGuardarResultadoLiga").textContent = "Adicionar resultado";
   el("btnCancelarResultadoLiga").hidden = true;
   mostrarErroAdmin("jornadasErro", null);
@@ -788,6 +792,8 @@ function editarResultadoLiga(r) {
   el("jornadaGolosCasa").value = r.score_home ?? "";
   el("jornadaGolosFora").value = r.score_away ?? "";
   el("jornadaMarcadores").value = r.scorers || "";
+  marcadoresForm = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ lado: String(s.team_id) === String(r.away_team_id) ? "fora" : "casa", player_id: s.player_id || "", player_name: s.player_name || "", count: s.count || 1 }));
+  renderMarcadoresForm();
   el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
   el("btnCancelarResultadoLiga").hidden = false;
   el("jornadaNumero").focus();
@@ -817,6 +823,10 @@ async function guardarResultadoLiga() {
   const botao = el("btnGuardarResultadoLiga");
   botao.disabled = true;
   try {
+    const listaMarcadores = await gravarMarcadoresForm(casa, fora);
+    // scorer_list só vai no pedido quando há marcadores (ou já existia), para funcionar antes do SQL v3
+    if (listaMarcadores.length) linha.scorer_list = listaMarcadores;
+    else if (resultadoEmEdicao && "scorer_list" in resultadoEmEdicao) linha.scorer_list = null;
     const gravado = await dadosClube.guardar("league_results", linha);
     resultadosLiga = resultadosLiga.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
     limparFormJornada(true); // mantém a jornada para lançar os jogos seguintes
@@ -838,6 +848,87 @@ async function apagarResultadoLiga(r) {
   } catch (e) {
     alert(mensagemErro(e));
   }
+}
+
+/* ---- Marcadores estruturados (league_results.scorer_list + external_players) ---- */
+
+let jogadoresExternos = [];
+let marcadoresForm = []; // [{ lado: "casa"|"fora", player_id, player_name, count }]
+
+async function carregarJogadoresExternos() {
+  try { jogadoresExternos = await dadosClube.listar("external_players"); }
+  catch (e) { jogadoresExternos = []; } // tabela ainda não criada (schema.sql v3)
+}
+
+function equipaDoLado(lado) {
+  return equipaPorId(el(lado === "fora" ? "jornadaFora" : "jornadaCasa").value);
+}
+
+function renderMarcadoresForm() {
+  const casa = equipaDoLado("casa"), fora = equipaDoLado("fora");
+  const ids = new Set([casa && String(casa.id), fora && String(fora.id)].filter(Boolean));
+  el("listaJogadoresExternos").innerHTML = jogadoresExternos.filter(p => !ids.size || ids.has(String(p.team_id)))
+    .map(p => `<option value="${escapeHtml(p.name)}" label="${escapeHtml(p.team_name || "")} · ID ${escapeHtml(p.id)}"></option>`).join("");
+  el("jornadaMarcadoresLista").innerHTML = marcadoresForm.map((m, i) => `
+    <div class="marcador-linha" data-i="${i}">
+      <select data-campo="lado" aria-label="Equipa do marcador"><option value="casa" ${m.lado === "casa" ? "selected" : ""}>${escapeHtml(casa ? casa.name : "Casa")}</option><option value="fora" ${m.lado === "fora" ? "selected" : ""}>${escapeHtml(fora ? fora.name : "Fora")}</option></select>
+      <input type="text" data-campo="player_name" list="listaJogadoresExternos" placeholder="Nome do jogador" value="${escapeHtml(m.player_name || "")}" aria-label="Nome do marcador">
+      <input type="text" data-campo="player_id" inputmode="numeric" placeholder="ID Zerozero" value="${escapeHtml(m.player_id || "")}" aria-label="ID Zerozero do marcador">
+      <input type="number" data-campo="count" min="1" value="${Number(m.count) || 1}" aria-label="Golos">
+      <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover marcador" aria-label="Remover marcador">${VFN.icone("x", 14)}</button>
+    </div>`).join("");
+}
+
+function initMarcadoresForm() {
+  el("btnAddMarcador").addEventListener("click", () => {
+    marcadoresForm.push({ lado: "casa", player_id: "", player_name: "", count: 1 });
+    renderMarcadoresForm();
+    const linhas = el("jornadaMarcadoresLista").querySelectorAll(".marcador-linha");
+    linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
+  });
+  ["jornadaCasa", "jornadaFora"].forEach(id => el(id).addEventListener("change", renderMarcadoresForm));
+  el("jornadaMarcadoresLista").addEventListener("click", e => {
+    const b = e.target.closest("[data-remover]");
+    if (b) { marcadoresForm.splice(Number(b.dataset.remover), 1); renderMarcadoresForm(); }
+  });
+  el("jornadaMarcadoresLista").addEventListener("change", e => {
+    const linha = e.target.closest(".marcador-linha");
+    if (!linha) return;
+    const m = marcadoresForm[Number(linha.dataset.i)];
+    const campo = e.target.dataset.campo;
+    m[campo] = e.target.value.trim();
+    // nome ou ID conhecidos: completa o outro campo e a equipa
+    const conhecido = campo === "player_id" ? jogadoresExternos.find(p => String(p.id) === m.player_id)
+      : campo === "player_name" ? jogadoresExternos.find(p => p.name.toLowerCase() === m.player_name.toLowerCase()) : null;
+    if (conhecido) {
+      m.player_id = String(conhecido.id);
+      m.player_name = conhecido.name;
+      const fora = equipaDoLado("fora");
+      if (fora && String(fora.id) === String(conhecido.team_id)) m.lado = "fora";
+      else if (equipaDoLado("casa") && String(equipaDoLado("casa").id) === String(conhecido.team_id)) m.lado = "casa";
+      renderMarcadoresForm();
+    }
+  });
+}
+
+/** Valida os marcadores, cria/atualiza external_players e devolve a scorer_list. */
+async function gravarMarcadoresForm(casa, fora) {
+  const lista = [];
+  for (const m of marcadoresForm) {
+    if (!m.player_name) continue;
+    if (m.player_id && !/^\d+$/.test(m.player_id)) throw new Error(`O ID Zerozero de ${m.player_name} só pode ter algarismos.`);
+    const equipaM = m.lado === "fora" ? fora : casa;
+    if (m.player_id) {
+      const existente = jogadoresExternos.find(p => String(p.id) === m.player_id);
+      // reaproveita o jogador; cria-o (ou associa-o ao clube) se for novo
+      if (!existente || existente.name !== m.player_name || String(existente.team_id) !== String(equipaM.id)) {
+        const gravado = await dadosClube.guardar("external_players", { ...(existente || {}), id: m.player_id, name: m.player_name, team_id: equipaM.id, team_name: equipaM.name });
+        jogadoresExternos = jogadoresExternos.filter(p => String(p.id) !== m.player_id).concat(gravado);
+      }
+    }
+    lista.push({ player_id: m.player_id || null, player_name: m.player_name, team_id: String(equipaM.id), count: Math.max(1, Number(m.count) || 1) });
+  }
+  return lista;
 }
 
 /* =========================================================
@@ -1028,6 +1119,8 @@ function initAdmin() {
   initCalendarioAdmin();
   initResultados();
   initJornadas();
+  initMarcadoresForm();
+  carregarJogadoresExternos().then(renderJornadasAdmin);
   initAdversarios();
 
   document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => btn.addEventListener("click", () => abrirTabGestao(btn.dataset.tab)));

@@ -342,7 +342,12 @@
         <div class="field jf-golos"><label for="jornadaGolosCasa">Golos casa</label><input type="number" id="jornadaGolosCasa" min="0"></div>
         <div class="field jf-golos"><label for="jornadaGolosFora">Golos fora</label><input type="number" id="jornadaGolosFora" min="0"></div>
         <div class="field jf-fora"><label for="jornadaFora">Equipa fora</label><select id="jornadaFora"></select></div>
-        <div class="field jf-marcadores"><label for="jornadaMarcadores">Goleadores (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: Silva 12', Costa 70'"></div>
+        <div class="field jf-marcadores"><label for="jornadaMarcadores">Notas (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: golo de penálti, expulsão aos 80'"></div>
+        <div class="jf-lista-marcadores">
+          <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><button type="button" id="btnAddMarcador" class="btn btn-ghost btn-sm">+ Marcador</button></div>
+          <div id="jornadaMarcadoresLista"></div>
+          <datalist id="listaJogadoresExternos"></datalist>
+        </div>
         <div class="jf-acoes">
           <button type="button" id="btnCancelarResultadoLiga" class="btn btn-ghost btn-sm" hidden>Cancelar</button>
           <button type="button" id="btnGuardarResultadoLiga" class="btn btn-accent btn-sm">Adicionar resultado</button>
@@ -355,6 +360,8 @@
         <button type="button" id="btnOrdemJornadas" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
       <div id="jornadasLista" class="jornadas-lista"></div>
+      <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
+      <div id="jornadasMarcadores"></div>
       <small class="muted">Os jogos do VFN (marcados como VFN) vêm do Calendário e editam-se no separador Resultados.</small>
     </div>
   </section>

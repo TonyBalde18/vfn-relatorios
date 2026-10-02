@@ -14,7 +14,7 @@ const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], league_results: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [] };
+let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroEstado = "";
@@ -31,7 +31,7 @@ async function carregarDados() {
   const respostas = await Promise.all(tabelas.map(t => cliente.from(t).select("*")));
   const falhas = [];
   respostas.forEach((r, i) => {
-    if (r.error) { falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
+    if (r.error) { if (!["external_players"].includes(tabelas[i])) falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
     else dados[tabelas[i]] = r.data || [];
   });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
@@ -481,6 +481,7 @@ function renderJornadas() {
   eq.value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
   $("dbJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   $("dbJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
+  $("dbJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
 }
 
 function initJornadas() {

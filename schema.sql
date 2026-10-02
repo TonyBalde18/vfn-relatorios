@@ -249,6 +249,25 @@ alter table public.league_results add column if not exists match_date date;
 alter table public.players add column if not exists availability text default 'disponivel'
   check (availability in ('disponivel', 'em_duvida', 'lesionado', 'suspenso', 'indisponivel'));
 
+-- [Tarefa 2] Jogadores das outras equipas (ID Zerozero evita duplicados)
+create table if not exists public.external_players (
+  id text primary key,
+  name text not null,
+  team_id text references public.teams(id),
+  team_name text,
+  created_at timestamptz not null default now()
+);
+alter table public.external_players enable row level security;
+drop policy if exists "Anyone reads external_players" on public.external_players;
+drop policy if exists "Admin manages external_players" on public.external_players;
+create policy "Anyone reads external_players" on public.external_players for select using (true);
+create policy "Admin manages external_players" on public.external_players for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
+
+-- Marcadores estruturados: [{"player_id": "12345", "player_name": "Nome", "team_id": "6846", "count": 1}]
+-- (a coluna de texto scorers mantém-se como notas)
+alter table public.league_results add column if not exists scorer_list jsonb;
+
 -- [Tarefa 9] Segurança do plantel público: mantém-se a view players_public
 -- (id, name, display_name, full_name, position, number, photo_url e stats de jogo).
 -- A tabela players continua sem leitura anónima; a disponibilidade (availability)

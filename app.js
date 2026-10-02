@@ -331,6 +331,7 @@ const dadosClube = {
 function mensagemErro(e) {
   const msg = (e && (e.message || e.error_description)) || String(e);
   if (/row-level security|permission denied/i.test(msg)) return "Sem permissão para gravar. Confirma que o teu utilizador tem o papel 'admin' na tabela profiles (ver schema.sql).";
+  if (/scorer_list|external_players/i.test(msg) && /does not exist|schema cache|could not find/i.test(msg)) return "Falta criar external_players / scorer_list no Supabase. Corre a secção ATUALIZAÇÃO v3 do schema.sql.";
   if (/match_date/i.test(msg) && /does not exist|schema cache|could not find/i.test(msg)) return "Falta a coluna match_date em league_results. Corre a secção ATUALIZAÇÃO 02/10/2026 do schema.sql.";
   if (/home_team_id|away_team_id|display_name|full_name|date_of_birth/i.test(msg) && /does not exist|schema cache|could not find/i.test(msg)) return "Falta uma coluna nova no Supabase. Corre a secção ATUALIZAÇÃO 30/09/2026 do schema.sql.";
   if (/violates not-null/i.test(msg)) return "O Supabase recusou: uma coluna obrigatória ficou vazia (" + msg + ").";

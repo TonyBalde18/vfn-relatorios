@@ -952,3 +952,11 @@ table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity:
 .alerta-suspensao p { margin: 2px 0 0; font-size: .86rem; }
 .alerta-suspensao .ic { color: #DC2626; flex-shrink: 0; margin-top: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Marcadores (jornadas e campeonato) ---------- */
+.jf-lista-marcadores { grid-column: 1 / -1; display: grid; gap: 6px; }
+.jf-marcadores-cab { display: flex; align-items: center; justify-content: space-between; }
+.marcador-linha { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) 130px 70px 32px; gap: 8px; align-items: center; }
+.subsecao-titulo { margin: 22px 0 10px; color: var(--vfn-navy); font-size: .98rem; }
+.nota-marcadores { margin: 8px 0 0; font-size: .74rem; }
+@media (max-width: 640px) { .marcador-linha { grid-template-columns: 1fr 1fr; } .marcador-linha [data-campo=player_name] { grid-column: 1 / -1; } }

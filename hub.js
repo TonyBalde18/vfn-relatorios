@@ -164,6 +164,43 @@
       <tbody>${top.map((j, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span></span></td><td class="pts-col" data-contar="${j.golos}">${j.golos}</td><td data-contar="${j.assistencias}">${j.assistencias}</td><td data-contar="${j.jogos}">${j.jogos}</td></tr>`).join("")}</tbody></table>`;
   }
 
+  /* ---------- Melhores marcadores do campeonato ---------- */
+
+  /**
+   * Golos por jogador numa competição: outras equipas a partir de league_results.scorer_list
+   * (jogadores externos) + jogadores do VFN a partir de players.stats (golos da época).
+   */
+  function marcadoresCampeonato(dados, jogadoresVFN, competicao) {
+    const mapa = new Map();
+    (dados.league_results || []).filter(r => r.competition === competicao && Array.isArray(r.scorer_list)).forEach(r => {
+      r.scorer_list.forEach(s => {
+        const chave = s.player_id ? `id:${s.player_id}` : `nome:${s.player_name}|${s.team_id}`;
+        const ext = (dados.external_players || []).find(p => String(p.id) === String(s.player_id));
+        const atual = mapa.get(chave) || { nome: (ext && ext.name) || s.player_name || "?", teamId: s.team_id || (ext && ext.team_id) || "", golos: 0, vfn: false };
+        atual.golos += Number(s.count) || 1;
+        mapa.set(chave, atual);
+      });
+    });
+    const vfn = VFN.equipaVFN(dados.teams);
+    (jogadoresVFN || []).filter(j => j.golos > 0).forEach(j => mapa.set(`vfn:${j.id}`, { nome: j.nome, teamId: String(vfn.id), golos: j.golos, vfn: true, jogador: j }));
+    return [...mapa.values()].sort((a, b) => b.golos - a.golos || a.nome.localeCompare(b.nome, "pt"));
+  }
+
+  function marcadoresCampeonatoHTML(dados, jogadoresVFN, competicao, n) {
+    const lista = marcadoresCampeonato(dados, jogadoresVFN, competicao).slice(0, n || 10);
+    if (!lista.length) return vazio("Ainda não há marcadores registados nesta competição.");
+    return `<table class="scorers-table" data-ordenar="marcadores-campeonato"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col" data-tipo="texto">Jogador</th><th scope="col" class="team-col" data-tipo="texto">Clube</th><th scope="col" data-tipo="numero">Golos</th></tr></thead>
+      <tbody>${lista.map((m, i) => {
+        const t = equipa(dados, m.teamId);
+        const clube = (t && t.name) || "—";
+        return `<tr class="${m.vfn ? "is-vfn-row" : ""}"><td class="pos-col">${i + 1}</td>
+          <td class="team-col">${m.vfn ? `<span class="player-cell">${VFN.avatarJogador(m.jogador, "avatar-xs")}<span>${esc(m.nome)}</span></span>` : esc(m.nome)}</td>
+          <td class="team-col"><span class="team-inline">${logoEquipa(t, clube)}<span>${esc(clube)}</span></span></td>
+          <td class="pts-col" data-contar="${m.golos}">${m.golos}</td></tr>`;
+      }).join("")}</tbody></table>
+      <p class="muted nota-marcadores">Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda.</p>`;
+  }
+
   /* ---------- Plantel ---------- */
 
   const GRUPOS_POSICAO = [["", "Todos"], ["GR", "Guarda-redes"], ["Def", "Defesas"], ["Meio", "Médios"], ["Ata", "Avançados"]];
@@ -258,7 +295,8 @@
   function jogosDaJornada(dados, competicao) {
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
-      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: r.scorers || "", data: r.match_date || null, registo: r };
+      const lista = Array.isArray(r.scorer_list) && r.scorer_list.length ? r.scorer_list.map(s => `${s.player_name}${Number(s.count) > 1 ? " (" + s.count + ")" : ""}`).join(", ") : "";
+      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
     });
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
@@ -396,6 +434,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML
   };
 })();
