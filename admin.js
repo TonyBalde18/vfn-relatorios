@@ -11,7 +11,7 @@
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
-const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "jornadas", "classificacao", "adversarios"];
+const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "jornadas", "historico", "classificacao", "adversarios"];
 
 const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [] };
 const tabelasCarregadas = new Set();
@@ -606,6 +606,12 @@ function logoPorId(id, nome) {
   return logoEquipaHTML(equipaPorId(id), nome);
 }
 
+function botaoRelatorio(j) {
+  const r = relatorioDoJogoAdmin(j.id);
+  const estado = r ? (estadoDoRelatorio(r) === "published" ? '<span class="estado-relatorio publicado">Publicado</span>' : '<span class="estado-relatorio rascunho">Rascunho</span>') : "";
+  return `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(j.id)}" title="${r ? "Abrir relatório" : "Fazer relatório"}">${VFN.icone(r ? "file-pen" : "file-plus", 16)} ${r ? "Relatório" : "Fazer Relatório"}</button>${estado}`;
+}
+
 function linhaResultadoHTML(j) {
   const { casa, fora } = VFN.equipasDoJogo(j, equipasCalendario);
   const doVFN = VFN.eJogoVFN(j);
@@ -618,7 +624,7 @@ function linhaResultadoHTML(j) {
     <td class="score-cell"><input type="number" min="0" data-campo="score_home" value="${valor(j.score_home)}" aria-label="Golos ${escapeHtml(casa.nome)}"><span>–</span><input type="number" min="0" data-campo="score_away" value="${valor(j.score_away)}" aria-label="Golos ${escapeHtml(fora.nome)}"></td>
     <td><span class="team-inline">${logoPorId(fora.id, fora.nome)}${escapeHtml(fora.nome)}</span></td>
     <td><select data-campo="status" aria-label="Estado do jogo">${ESTADOS_JOGO.map(([v, t]) => `<option value="${v}" ${v === estado ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-    <td><div class="row-actions-livre"><button type="button" class="icon-btn" data-jogo="vfn:${escapeHtml(j.id)}" title="Ver detalhe do jogo" aria-label="Ver detalhe do jogo">${VFN.icone("eye", 16)}</button>${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : `<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>`}</div></td>
+    <td><div class="row-actions-livre"><button type="button" class="icon-btn" data-jogo="vfn:${escapeHtml(j.id)}" title="Ver detalhe do jogo" aria-label="Ver detalhe do jogo">${VFN.icone("eye", 16)}</button>${doVFN ? botaoRelatorio(j) : ""}${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : `<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>`}</div></td>
   </tr>`;
 }
 
@@ -942,6 +948,173 @@ async function gravarMarcadoresForm(casa, fora) {
 }
 
 /* =========================================================
+   RELATÓRIOS DE JOGO (match_reports ligado a matches)
+   O relatório é o mesmo estado do Pré-Jogo/Jogo/Análise; fica
+   associado ao jogo (match_id), em rascunho até ser publicado.
+   ========================================================= */
+
+let colunasRelatorioV3 = true; // passa a false se a BD ainda não tiver as colunas novas
+let gravacaoRelatorio = Promise.resolve();
+
+function estadoDoRelatorio(r) {
+  return VFNRelatorio.estadoRelatorio(r);
+}
+
+function relatorioDoJogoAdmin(matchId) {
+  return VFNHub.relatorioDoJogo({ match_reports: relatoriosAdmin }, matchId);
+}
+
+function nomesJogadores(ids) {
+  return (ids || []).filter(Boolean).map(id => nomeJogador(id)).filter(Boolean);
+}
+
+/** Linha de match_reports a partir do estado atual (colunas novas preenchidas para consulta direta). */
+function linhaRelatorio() {
+  const ev = state.jogo.eventos;
+  const vfn = t => ev.filter(e => e.equipa === "VFN" && e.tipo === t);
+  const seccoes = SECCOES_TATICAS.map(s => { const d = state.analise.seccoes[s.key] || {}; return d.texto ? `${s.titulo}${d.avaliacao ? " (" + d.avaliacao + ")" : ""}: ${d.texto}` : ""; }).filter(Boolean).join("\n\n");
+  state._status = state.estadoRelatorio; // cópia no match_data (funciona antes do SQL v3)
+  const base = { id: state.relatorioId || VFN.novoId(), user_id: currentUser ? currentUser.id : null, match_data: state, updated_at: new Date().toISOString() };
+  if (!colunasRelatorioV3) return base;
+  return {
+    ...base,
+    match_id: state.preJogo.matchId || null,
+    status: state.estadoRelatorio,
+    competition: state.preJogo.competicao || null,
+    match_date: state.preJogo.data || null,
+    location: state.preJogo.local || null,
+    opponent: state.preJogo.adversario || null,
+    score_vfn: state.jogo.golosVFN,
+    score_opponent: state.jogo.golosAdversario,
+    squad: nomesJogadores([...state.jogo.titulares, ...state.jogo.suplentes]),
+    lineup: nomesJogadores(state.jogo.titulares),
+    formation: state.jogo.formacaoVFN || null,
+    substitutions: vfn("Substituição").map(e => ({ min: Number(e.minuto) || 0, out: nomeJogador(e.jogadorSaiId), in: nomeJogador(e.jogadorId) })),
+    scorers: ev.filter(e => e.equipa === "VFN" && e.tipo === "Golo").map(e => ({ name: nomeJogador(e.jogadorId), min: Number(e.minuto) || 0, assist: e.assistId ? nomeJogador(e.assistId) : null })),
+    yellow_cards: vfn("Cartão Amarelo").map(e => ({ name: nomeJogador(e.jogadorId), min: Number(e.minuto) || 0 })),
+    red_cards: vfn("Cartão Vermelho").map(e => ({ name: nomeJogador(e.jogadorId), min: Number(e.minuto) || 0 })),
+    tactical_notes: seccoes || null,
+    first_half_notes: state.analise.primeiroTempo || null,
+    second_half_notes: state.analise.segundoTempo || null,
+    highlights: state.analise.destaques || null,
+    areas_to_improve: state.analise.aMelhorar || null,
+    individual_notes: (state.analise.notasIndividuais || []).filter(n => n.jogadorId && n.nota).map(n => ({ player: nomeJogador(n.jogadorId), note: n.nota })),
+    created_by: currentUser ? currentUser.id : null
+  };
+}
+
+/** Grava o relatório do jogo associado (rascunho ou publicado). Sem jogo associado não faz nada. */
+function guardarRelatorioDoJogo() {
+  if (!state.preJogo.matchId) return Promise.resolve(null);
+  gravacaoRelatorio = gravacaoRelatorio.then(async () => {
+    try {
+      let gravado;
+      try {
+        gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
+      } catch (e) {
+        if (!colunasRelatorioV3 || !/does not exist|schema cache|could not find/i.test(e.message || "")) throw e;
+        colunasRelatorioV3 = false; // BD sem as colunas da v3: grava só o match_data
+        gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
+      }
+      state.relatorioId = gravado.id;
+      relatoriosAdmin = relatoriosAdmin.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
+      renderEstadoRelatorio();
+      return gravado;
+    } catch (e) {
+      console.warn("Não foi possível guardar o relatório:", mensagemErro(e));
+      return null;
+    }
+  });
+  return gravacaoRelatorio;
+}
+
+function renderEstadoRelatorio() {
+  const badge = el("estadoRelatorio"), botao = el("btnPublicar");
+  if (!badge) return;
+  const ligado = !!state.preJogo.matchId;
+  badge.hidden = !ligado;
+  botao.hidden = !ligado;
+  const publicado = state.estadoRelatorio === "published";
+  badge.className = `estado-relatorio ${publicado ? "publicado" : "rascunho"}`;
+  badge.textContent = publicado ? "Publicado" : "Rascunho";
+  botao.innerHTML = publicado ? `${VFN.icone("undo-2", 18)} Voltar a rascunho` : `${VFN.icone("send", 18)} Publicar`;
+  if (typeof renderResultados === "function" && el("resultadosLista")) renderResultados();
+  if (el("historicoBody")) renderHistoricoAdmin();
+}
+
+async function alternarPublicacao() {
+  if (!state.preJogo.matchId) return;
+  const publicar = state.estadoRelatorio !== "published";
+  if (publicar && !confirm("Publicar este relatório? Fica visível para o treinador e os dirigentes no Dashboard.")) return;
+  state.estadoRelatorio = publicar ? "published" : "draft";
+  const gravado = await guardarRelatorioDoJogo();
+  if (!gravado) { state.estadoRelatorio = publicar ? "draft" : "published"; alert("Não foi possível alterar o estado do relatório."); }
+  renderEstadoRelatorio();
+}
+
+/** Abre o relatório de um jogo (ou cria um rascunho novo para ele) e vai para o Pré-Jogo. */
+async function abrirRelatorioDoJogo(matchId) {
+  const jogo = jogosCalendario.find(j => String(j.id) === String(matchId));
+  if (!jogo) return;
+  const existente = relatorioDoJogoAdmin(matchId);
+  const temOutro = state.preJogo.matchId && state.preJogo.matchId !== matchId;
+  if (temOutro) await guardarRelatorioDoJogo(); // o relatório aberto fica guardado antes de mudar
+  else if (!state.preJogo.matchId && state.jogo.eventos.length && !confirm("O formulário tem dados que não estão associados a nenhum jogo. Substituir pelo relatório deste jogo?")) return;
+  if (existente) {
+    aplicarDadosEstado(existente.match_data || {});
+    state.relatorioId = existente.id;
+    state.estadoRelatorio = estadoDoRelatorio(existente);
+    state.preJogo.matchId = matchId;
+  } else {
+    state = estadoInicial();
+    usarJogoNoRelatorio(jogo);
+    await guardarRelatorioDoJogo(); // cria o rascunho
+  }
+  renderTudo();
+  renderEstadoRelatorio();
+  document.querySelector('.tab-btn[data-tab="pre-jogo"]').click();
+}
+
+function abrirRelatorioPublicado(relatorioId) {
+  const r = relatoriosAdmin.find(x => String(x.id) === String(relatorioId));
+  const matchId = r && (r.match_id || ((r.match_data || {}).preJogo || {}).matchId);
+  if (matchId) abrirRelatorioDoJogo(matchId);
+}
+
+function renderHistoricoAdmin() {
+  const tbody = el("historicoBody");
+  if (!tbody) return;
+  const lista = [...relatoriosAdmin].map(r => {
+    const matchId = r.match_id || ((r.match_data || {}).preJogo || {}).matchId;
+    const jogo = jogosCalendario.find(j => String(j.id) === String(matchId));
+    const completo = jogo ? VFNRelatorio.comJogo(r, jogo, nomeAdversarioJogo(jogo)) : r;
+    return { r, d: VFNRelatorio.extrair(completo, id => nomeJogador(id)), matchId };
+  })
+    .sort((a, b) => String(b.d.data || "").localeCompare(String(a.d.data || "")));
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Ainda não há relatórios. Abre um jogo em Resultados e clica em "Relatório".</td></tr>'; return; }
+  tbody.innerHTML = lista.map(({ r, d, matchId }) => {
+    const pub = estadoDoRelatorio(r) === "published";
+    return `<tr>
+      <td data-v="${escapeHtml(d.data || "")}">${escapeHtml(VFN.dataDDMMAAAA(d.data) || "—")}</td>
+      <td>${escapeHtml(d.adversario)}</td>
+      <td>${escapeHtml(VFN.nomeCurtoCompeticao(d.competicao))}</td>
+      <td class="num">${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN}</td>
+      <td><span class="estado-relatorio ${pub ? "publicado" : "rascunho"}">${pub ? "Publicado" : "Rascunho"}</span></td>
+      <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}">${VFN.icone("file-pen", 16)} Abrir</button>` : '<span class="muted">sem jogo associado</span>'}</td>
+    </tr>`;
+  }).join("");
+}
+
+function initRelatorios() {
+  el("btnPublicar").addEventListener("click", alternarPublicacao);
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-abrir-relatorio]");
+    if (b) abrirRelatorioDoJogo(b.dataset.abrirRelatorio);
+  });
+  renderEstadoRelatorio();
+}
+
+/* =========================================================
    ADVERSÁRIOS (teams + opponents)
    ========================================================= */
 
@@ -1115,6 +1288,8 @@ async function abrirTabGestao(tab) {
     renderResultados();
   } else if (tab === "jornadas") {
     renderJornadasAdmin();
+  } else if (tab === "historico") {
+    renderHistoricoAdmin();
   } else if (tab === "classificacao") {
     renderClassificacaoAdmin();
   } else if (tab === "adversarios") {
@@ -1144,6 +1319,7 @@ function initAdmin() {
   initCalendarioAdmin();
   initResultados();
   initJornadas();
+  initRelatorios();
   initMarcadoresForm();
   carregarJogadoresExternos().then(renderJornadasAdmin);
   initAdversarios();

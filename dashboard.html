@@ -40,6 +40,7 @@
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
     <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
+    <button class="nav-item" data-view="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
@@ -181,6 +182,20 @@
     </div>
   </section>
 
+  <!-- HISTÓRICO DE RELATÓRIOS (só leitura, publicados) -->
+  <section id="view-historico" class="view">
+    <div class="historico-grid">
+      <div class="card" data-aos="fade-up">
+        <div class="hub-card-head"><h2 class="hub-card-title">Relatórios publicados</h2><span id="historicoInfo" class="muted"></span></div>
+        <div id="historicoLista" class="historico-lista"></div>
+      </div>
+      <div class="card historico-detalhe" data-aos="fade-up">
+        <div class="hub-card-head"><h2 class="hub-card-title">Relatório</h2><button type="button" id="btnExportarWord" class="btn btn-accent btn-sm" hidden><i data-icon="file-down" data-size="16"></i> Exportar Word</button></div>
+        <div id="historicoDetalhe"><p class="muted">Escolhe um relatório da lista.</p></div>
+      </div>
+    </div>
+  </section>
+
   <!-- CALENDÁRIO -->
   <section id="view-calendario" class="view">
     <div class="card" data-aos="fade-up">
@@ -225,7 +240,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="hub.js?v=4"></script>
+<script src="relatorio.js?v=4"></script>
 <script src="dashboard.js?v=4"></script>
 </body>
 </html>

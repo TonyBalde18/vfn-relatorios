@@ -245,6 +245,44 @@ alter table public.league_results add column if not exists match_date date;
 -- ATUALIZAÇÃO v3 (02/10/2026) — correr esta secção antes do deploy v3
 -- ---------------------------------------------------------------------
 
+-- [Tarefa 1] Relatórios de jogo: evolui a tabela existente (o match_data mantém-se)
+alter table public.match_reports add column if not exists match_id uuid references public.matches(id) on delete set null;
+alter table public.match_reports add column if not exists status text not null default 'draft';
+alter table public.match_reports drop constraint if exists match_reports_status_check;
+alter table public.match_reports add constraint match_reports_status_check check (status in ('draft', 'published'));
+alter table public.match_reports add column if not exists competition text;
+alter table public.match_reports add column if not exists match_date date;
+alter table public.match_reports add column if not exists location text;
+alter table public.match_reports add column if not exists opponent text;
+alter table public.match_reports add column if not exists score_vfn integer;
+alter table public.match_reports add column if not exists score_opponent integer;
+alter table public.match_reports add column if not exists squad text[];
+alter table public.match_reports add column if not exists lineup text[];
+alter table public.match_reports add column if not exists formation text;
+alter table public.match_reports add column if not exists substitutions jsonb;
+alter table public.match_reports add column if not exists scorers jsonb;
+alter table public.match_reports add column if not exists yellow_cards jsonb;
+alter table public.match_reports add column if not exists red_cards jsonb;
+alter table public.match_reports add column if not exists tactical_notes text;
+alter table public.match_reports add column if not exists first_half_notes text;
+alter table public.match_reports add column if not exists second_half_notes text;
+alter table public.match_reports add column if not exists highlights text;
+alter table public.match_reports add column if not exists areas_to_improve text;
+alter table public.match_reports add column if not exists individual_notes jsonb;
+alter table public.match_reports add column if not exists created_by uuid references auth.users(id);
+create index if not exists match_reports_match_idx on public.match_reports (match_id);
+-- relatórios antigos (gerados antes da v3) ficam publicados
+update public.match_reports set status = coalesce(match_data->>'_status', 'published') where status = 'draft';
+-- treinador/dirigentes só leem os publicados; o admin gere todos
+drop policy if exists "reports staff read" on public.match_reports;
+drop policy if exists "reports own rows" on public.match_reports;
+drop policy if exists "Staff reads published" on public.match_reports;
+drop policy if exists "Admin manages all" on public.match_reports;
+create policy "Staff reads published" on public.match_reports for select to authenticated
+  using ((status = 'published' and public.vfn_is_staff()) or public.vfn_is_admin());
+create policy "Admin manages all" on public.match_reports for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
+
 -- [Tarefa 5] Disponibilidade dos jogadores (só admin e dashboard; fora da view pública)
 alter table public.players add column if not exists availability text default 'disponivel'
   check (availability in ('disponivel', 'em_duvida', 'lesionado', 'suspenso', 'indisponivel'));
@@ -385,9 +423,10 @@ create policy "fines admin write" on public.fines for all to authenticated
   using (public.vfn_is_admin()) with check (public.vfn_is_admin());
 
 -- Relatórios e rascunhos: cada utilizador gere os seus; staff lê relatórios
-create policy "reports own rows" on public.match_reports for all to authenticated
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "reports staff read" on public.match_reports for select to authenticated using (public.vfn_is_staff());
+create policy "Staff reads published" on public.match_reports for select to authenticated
+  using ((status = 'published' and public.vfn_is_staff()) or public.vfn_is_admin());
+create policy "Admin manages all" on public.match_reports for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
 
 create policy "draft own row" on public.draft for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);

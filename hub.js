@@ -482,7 +482,7 @@
   function relatorioDoJogo(dados, matchId) {
     const lista = (dados.match_reports || []).filter(r => r.match_id === matchId || ((r.match_data || {}).preJogo || {}).matchId === matchId);
     const recente = l => [...l].sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))[0] || null;
-    return recente(lista.filter(r => r.status === "published")) || recente(lista);
+    return recente(lista.filter(r => VFN.estadoRelatorio(r) === "published")) || recente(lista);
   }
 
   function eventosDoRelatorio(relatorio, nomeJogador) {
@@ -545,7 +545,7 @@
       </div>
       <h4 class="perfil-subtitulo">Eventos</h4>
       ${eventos.length ? `<ol class="dj-timeline">${eventos.map(linhaEvento).join("")}</ol>` : vazio(estado === "jogado" ? (tipo === "vfn" ? "Sem eventos registados (ainda não há relatório deste jogo)." : "Sem marcadores registados.") : "O jogo ainda não se realizou.")}
-      ${relatorio && relatorio.status === "published" && o.verRelatorio ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
+      ${relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.verRelatorio ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
   }
 
   /** Cria o modal (uma vez) e liga os cliques em [data-jogo] da página. */
@@ -592,7 +592,7 @@
   }
 
   window.VFNHub = {
-    jogadorDeLinha, equipa, nomeAdversario, logoEquipa, tagCompeticao, vazio,
+    jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, tagCompeticao, vazio,
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,

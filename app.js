@@ -165,6 +165,7 @@ function estadoInicial() {
       notasAdversario: "",
       matchId: "", // jogo do calendário (tabela matches) associado a este relatório
       adversarioId: "", // equipa (tabela teams)
+      local: "",
       proximoJogo: { data: "", adversario: "" }
     },
     jogo: {
@@ -197,8 +198,14 @@ function estadoInicial() {
         pontosFortes: "",
         vulnerabilidades: ""
       },
-      topicosTreino: ""
-    }
+      topicosTreino: "",
+      primeiroTempo: "",
+      segundoTempo: "",
+      destaques: "",
+      notasIndividuais: [] // [{ jogadorId, nota }]
+    },
+    relatorioId: "", // linha de match_reports deste relatório
+    estadoRelatorio: "draft" // draft | published
   };
 }
 
@@ -259,7 +266,10 @@ function renderSeasonStats(stats) {
 
 async function guardarRelatorioSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const { error } = await supabaseClient.from("match_reports").insert({ user_id: currentUser.id, match_data: state, updated_at: new Date().toISOString() });
+  // relatório sem jogo associado: fica publicado logo ao gerar o Word (como antes da v3)
+  const linha = { user_id: currentUser.id, match_data: { ...state, _status: "published" }, updated_at: new Date().toISOString() };
+  let { error } = await supabaseClient.from("match_reports").insert({ ...linha, status: "published" });
+  if (error && /does not exist|schema cache|could not find/i.test(error.message || "")) ({ error } = await supabaseClient.from("match_reports").insert(linha));
   if (error) console.warn("Não foi possível guardar o relatório:", error.message);
 }
 
@@ -437,6 +447,7 @@ function guardarRascunho() {
     } catch (e2) { /* ignora */ }
   }
   sincronizarRascunhoSupabase();
+  if (typeof guardarRelatorioDoJogo === "function") guardarRelatorioDoJogo(); // relatório ligado ao jogo (rascunho automático)
 }
 
 function lerRascunhoArmazenado() {
@@ -472,6 +483,9 @@ function aplicarDadosEstado(dados) {
   if (dados.analise && dados.analise.seccoes) {
     state.analise.seccoes = Object.assign(base.analise.seccoes, dados.analise.seccoes);
   }
+  if (!Array.isArray(state.analise.notasIndividuais)) state.analise.notasIndividuais = [];
+  state.relatorioId = dados.relatorioId || "";
+  state.estadoRelatorio = dados.estadoRelatorio || dados._status || "draft";
 }
 
 function carregarRascunho() {
@@ -607,7 +621,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Jornadas AF Guarda", classificacao: "Classificação", adversarios: "Adversários" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Jornadas AF Guarda", historico: "Histórico de relatórios", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador
@@ -640,6 +654,7 @@ function initPreJogo() {
   el("pjAdversario").addEventListener("change", e => escolherAdversario(e.target.value));
   el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
   el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
+  el("pjLocal").addEventListener("input", e => state.preJogo.local = e.target.value);
 
   el("coachpadInputPre").addEventListener("change", handleCoachpadUpload);
   el("btnRemoveCoachpadPre").addEventListener("click", () => {
@@ -664,6 +679,7 @@ function renderPreJogo() {
   el("pjCompeticao").value = state.preJogo.competicao;
   el("pjFormacaoPrevista").value = state.preJogo.formacaoPrevista;
   el("pjNotasAdversario").value = state.preJogo.notasAdversario;
+  el("pjLocal").value = state.preJogo.local || "";
 
   const grupoCasaFora = el("pjCasaFora");
   grupoCasaFora.querySelectorAll(".toggle-btn").forEach(b => {
@@ -780,6 +796,13 @@ function escolherAdversario(teamId) {
 }
 
 function usarJogoNoRelatorio(jogo) {
+  if (jogo.id !== state.preJogo.matchId) {
+    // outro jogo: se já tem relatório, abre-o; senão começa um rascunho novo
+    const existente = typeof relatorioDoJogoAdmin === "function" && relatorioDoJogoAdmin(jogo.id);
+    if (existente && confirm("Este jogo já tem um relatório. Abrir esse relatório?")) { abrirRelatorioDoJogo(jogo.id); return; }
+    state.relatorioId = "";
+    state.estadoRelatorio = "draft";
+  }
   state.preJogo.matchId = jogo.id;
   state.preJogo.jornada = jogo.jornada != null ? String(jogo.jornada) : "";
   state.preJogo.data = VFN.dataIso(jogo.date);
@@ -787,6 +810,7 @@ function usarJogoNoRelatorio(jogo) {
   state.preJogo.casaFora = VFN.jogoEmCasa(jogo) ? "Casa" : "Fora";
   state.preJogo.adversario = nomeAdversarioJogo(jogo);
   state.preJogo.adversarioId = jogo.opponent_team_id || "";
+  if (jogo.venue) state.preJogo.local = jogo.venue;
   renderPreJogo();
   atualizarSponsorsAdmin();
   guardarRascunho();
@@ -1391,6 +1415,10 @@ function initAnalise() {
   el("positivosText").addEventListener("input", e => state.analise.positivos = e.target.value);
   el("melhorarText").addEventListener("input", e => state.analise.aMelhorar = e.target.value);
   el("topicosText").addEventListener("input", e => state.analise.topicosTreino = e.target.value);
+  el("primeiroTempoText").addEventListener("input", e => state.analise.primeiroTempo = e.target.value);
+  el("segundoTempoText").addEventListener("input", e => state.analise.segundoTempo = e.target.value);
+  el("destaquesText").addEventListener("input", e => state.analise.destaques = e.target.value);
+  el("btnAddNotaIndividual").addEventListener("click", () => { state.analise.notasIndividuais.push({ jogadorId: "", nota: "" }); renderNotasIndividuais(); });
 
   el("advEstilo").addEventListener("input", e => state.analise.adversario.estilo = e.target.value);
   el("advPontosFortes").addEventListener("input", e => state.analise.adversario.pontosFortes = e.target.value);
@@ -1462,6 +1490,32 @@ function renderJogadoresChave() {
   });
 }
 
+/** Notas individuais por jogador (convocados primeiro, depois o resto do plantel). */
+function renderNotasIndividuais() {
+  const container = el("notasIndividuaisList");
+  if (!container) return;
+  container.innerHTML = "";
+  const convocados = new Set([...state.jogo.titulares, ...state.jogo.suplentes].filter(Boolean).map(Number));
+  state.analise.notasIndividuais.forEach((n, idx) => {
+    const row = document.createElement("div");
+    row.className = "dynamic-row nota-individual";
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", "Jogador");
+    const ordem = [...plantel].sort((x, y) => (convocados.has(y.id) - convocados.has(x.id)) || x.nome.localeCompare(y.nome, "pt"));
+    select.innerHTML = '<option value="">— Jogador —</option>' + ordem.map(j => `<option value="${j.id}" ${Number(n.jogadorId) === j.id ? "selected" : ""}>${escapeHtml(j.nome)}${convocados.has(j.id) ? "" : " (não convocado)"}</option>`).join("");
+    select.addEventListener("change", () => { n.jogadorId = select.value ? Number(select.value) : ""; });
+    const texto = document.createElement("textarea");
+    texto.rows = 2; texto.placeholder = "Ex: Boa exibição, forte nos duelos"; texto.value = n.nota || "";
+    texto.setAttribute("aria-label", "Nota");
+    texto.addEventListener("input", () => { n.nota = texto.value; });
+    const remover = document.createElement("button");
+    remover.type = "button"; remover.className = "remove-btn"; remover.innerHTML = VFN.icone("x", 16); remover.setAttribute("aria-label", "Remover nota");
+    remover.addEventListener("click", () => { state.analise.notasIndividuais.splice(idx, 1); renderNotasIndividuais(); });
+    row.append(select, texto, remover);
+    container.appendChild(row);
+  });
+}
+
 function renderTopicos() {
   const container = el("topicosList");
   container.innerHTML = "";
@@ -1506,6 +1560,10 @@ function renderAnalise() {
   el("positivosText").value = state.analise.positivos;
   el("melhorarText").value = state.analise.aMelhorar;
   el("topicosText").value = state.analise.topicosTreino;
+  el("primeiroTempoText").value = state.analise.primeiroTempo || "";
+  el("segundoTempoText").value = state.analise.segundoTempo || "";
+  el("destaquesText").value = state.analise.destaques || "";
+  renderNotasIndividuais();
 
   renderAnalysisSummary();
 
@@ -1810,6 +1868,7 @@ function initLimparFormulario() {
     state = estadoInicial();
     limparRascunhoStorage();
     renderTudo();
+    if (typeof renderEstadoRelatorio === "function") renderEstadoRelatorio();
   });
 }
 
@@ -2288,7 +2347,9 @@ async function gerarRelatorioWord() {
     state.jogo.presencasAplicadas = true;
     sincronizarStatsJogadores();
     guardarRascunho();
-    await guardarRelatorioSupabase();
+    // relatório ligado a um jogo: atualiza a mesma linha; sem jogo, mantém o registo antigo
+    if (state.preJogo.matchId && typeof guardarRelatorioDoJogo === "function") await guardarRelatorioDoJogo();
+    else await guardarRelatorioSupabase();
     await registarResultadoNoCalendario();
     const nomeFicheiro = `Relatorio_${sanitizarNomeFicheiro(state.preJogo.adversario)}_J${state.preJogo.jornada || "0"}_${state.preJogo.data || "sem-data"}.docx`;
     descarregarBlob(blob, nomeFicheiro);

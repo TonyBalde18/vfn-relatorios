@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", historico: "Histórico de relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -268,7 +268,7 @@ function renderTabelaStats() {
 /** Um relatório por jogo: o mais recente (o Word pode ter sido gerado várias vezes). */
 function relatoriosUnicos() {
   const porJogo = new Map();
-  dados.match_reports.forEach(r => {
+  dados.match_reports.filter(r => VFN.estadoRelatorio(r) === "published").forEach(r => {
     const m = r.match_data || {};
     const pre = m.preJogo || {};
     const chave = pre.matchId || `${pre.data || ""}|${pre.adversario || ""}|${r.id}`;
@@ -322,6 +322,89 @@ function calcularMinutosJogados() {
     });
   });
   return { lista: [...totais.values()].sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt")), relatorios: relatorios.length };
+}
+
+/* ---------- Histórico de relatórios (só os publicados) ---------- */
+
+let relatorioAberto = null;
+
+/** Relatório completado com os dados do jogo associado. */
+function relatorioCompleto(r) {
+  const matchId = r.match_id || ((r.match_data || {}).preJogo || {}).matchId;
+  const jogo = dados.matches.find(m => String(m.id) === String(matchId));
+  return jogo ? VFNRelatorio.comJogo(r, jogo, H.nomeAdversario(dados, jogo)) : r;
+}
+
+function relatoriosPublicados() {
+  return relatoriosUnicos()
+    .map(relatorioCompleto)
+    .map(r => ({ r, d: VFNRelatorio.extrair(r, id => (jogadorDoRelatorio(id) || {}).nome) }))
+    .sort((a, b) => String(b.d.data || "").localeCompare(String(a.d.data || "")));
+}
+
+function ctxRelatorio() {
+  return {
+    nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
+    logoVFN: `<img class="team-logo rel-logo" src="${esc(H.logoVFN ? H.logoVFN(dados) : VFN.LOGO_VFN)}" alt="Logótipo VFN">`,
+    logoEquipa: (id, nome) => H.logoEquipa(H.equipa(dados, id) || { id, name: nome }, nome, "rel-logo")
+  };
+}
+
+function renderHistorico() {
+  const lista = relatoriosPublicados();
+  $("historicoInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
+  if (!lista.length) {
+    $("historicoLista").innerHTML = H.vazio("Ainda não há relatórios publicados.");
+    return;
+  }
+  $("historicoLista").innerHTML = lista.map(({ r, d }) => {
+    const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
+    return `<button type="button" class="historico-item${relatorioAberto && String(relatorioAberto.id) === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
+      <span class="form-chip form-${v}">${v}</span>
+      <span class="historico-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
+      <small>${esc([VFN.dataDDMMAAAA(d.data), VFN.nomeCurtoCompeticao(d.competicao)].filter(Boolean).join(" · "))}</small></span>
+    </button>`;
+  }).join("");
+}
+
+/** Abre um relatório publicado na vista Histórico. */
+function abrirRelatorio(id) {
+  const r = dados.match_reports.find(x => String(x.id) === String(id));
+  if (!r || VFN.estadoRelatorio(r) !== "published") return;
+  relatorioAberto = relatorioCompleto(r);
+  document.querySelectorAll(".modal-overlay").forEach(m => { m.hidden = true; });
+  mostrarVista("historico");
+  renderHistorico();
+  $("historicoDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
+  $("btnExportarWord").hidden = false;
+  if (window.innerWidth < 900) $("historicoDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function exportarWordRelatorio() {
+  if (!relatorioAberto) return;
+  const d = VFNRelatorio.extrair(relatorioAberto, id => (jogadorDoRelatorio(id) || {}).nome);
+  const equipa = H.equipa(dados, d.adversarioId);
+  const botao = $("btnExportarWord");
+  botao.disabled = true;
+  try {
+    await VFNRelatorio.word(relatorioAberto, {
+      nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
+      urlsLogoAdversario: [d.adversarioId ? `assets/opponents/${d.adversarioId}.png` : "", VFN.urlLogoEquipa(equipa, d.adversario)].filter(Boolean)
+    });
+  } catch (e) {
+    console.error(e);
+    alert("Não foi possível gerar o Word. Verifica a ligação à internet.");
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function initHistorico() {
+  $("historicoLista").addEventListener("click", e => {
+    const b = e.target.closest("[data-relatorio]");
+    if (b) abrirRelatorio(b.dataset.relatorio);
+  });
+  $("btnExportarWord").addEventListener("click", exportarWordRelatorio);
 }
 
 // Posições no campo (x, y em %; o ataque é em cima)
@@ -566,6 +649,7 @@ function renderTudo() {
   renderMultasDash();
   renderPresencasDash();
   renderCalendario();
+  renderHistorico();
   VFN.renderSponsors($("sponsorFooter"), H.competicaoAtiva(dados));
   VFN.refreshAOS();
 }
@@ -609,9 +693,10 @@ async function iniciar() {
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
   initEquipas();
+  initHistorico();
   H.ligarDetalheJogo(() => dados, {
     nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
-    verRelatorio: id => { if (typeof abrirRelatorio === "function") abrirRelatorio(id); }
+    verRelatorio: id => abrirRelatorio(id)
   });
   // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
   document.addEventListener("click", e => {

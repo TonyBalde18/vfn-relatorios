@@ -75,6 +75,15 @@
   }
 
   /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
+  /**
+   * Estado de um relatório de jogo: coluna status (v3) ou cópia no match_data.
+   * Relatórios antigos (gerados antes da v3, sem estado) contam como publicados.
+   */
+  function estadoRelatorio(r) {
+    if (!r) return "draft";
+    return r.status || (r.match_data || {})._status || "published";
+  }
+
   function alertaSuspensao(amarelos, estado) {
     const n = Number(amarelos) || 0;
     return n > 0 && n % AMARELOS_SUSPENSAO === 0 && estado !== "suspenso";
@@ -794,7 +803,7 @@
 
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,

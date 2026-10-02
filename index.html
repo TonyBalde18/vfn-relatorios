@@ -51,7 +51,7 @@
     <button class="tab-btn nav-item" data-tab="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
     <button class="tab-btn nav-item" data-tab="classificacao"><span class="nav-icon"><i data-icon="trophy"></i></span><span class="nav-label">Classificação</span></button>
     <button class="tab-btn nav-item" data-tab="adversarios"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Adversários</span></button>
-    <button class="nav-item nav-placeholder" type="button" title="Disponível numa versão futura"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
+    <button class="tab-btn nav-item" data-tab="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
   </nav>
   <div class="sidebar-links"><a href="dashboard.html"><span class="nav-icon"><i data-icon="layout-dashboard"></i></span>Dashboard equipa técnica</a><a href="public.html" target="_blank" rel="noopener"><span class="nav-icon"><i data-icon="globe"></i></span>Página dos atletas</a></div>
   <button id="btnLogout" class="sidebar-logout"><span class="nav-icon"><i data-icon="log-out"></i></span><span class="nav-label">Sair</span></button>
@@ -66,6 +66,8 @@
     <label for="importRascunhoInput" class="btn btn-ghost file-btn" title="Carregar um ficheiro .json exportado anteriormente"><i data-icon="folder-open" data-size="18"></i> Carregar Rascunho</label>
     <input type="file" id="importRascunhoInput" accept=".json,application/json" hidden>
     <button id="btnClearForm" class="btn btn-ghost">Limpar Formulário</button>
+    <span id="estadoRelatorio" class="estado-relatorio" role="status" hidden></span>
+    <button id="btnPublicar" class="btn btn-ghost" type="button" hidden>Publicar</button>
     <button id="btnGenerateDocx" class="btn btn-accent">Gerar Relatório Word</button>
   </div>
 </header>
@@ -115,6 +117,7 @@
           <select id="pjFormacaoPrevista"></select>
         </div>
       </div>
+      <div class="field"><label for="pjLocal">Local</label><input type="text" id="pjLocal" placeholder="Ex: Campo Municipal de Vila Franca das Naves"></div>
       <div class="field"><label for="pjNotasAdversario">Notas do jogo</label><textarea id="pjNotasAdversario" rows="3" placeholder="Observações opcionais..."></textarea></div>
     </div>
     <div id="seasonStatsCard" class="card season-stats-card" data-aos="fade-up"></div>
@@ -198,6 +201,8 @@
     <div id="analysisSummary" class="card analysis-summary"></div>
     <div id="taticalSections"></div>
 
+    <div class="card"><h2 class="section-title">Observações do jogo</h2><div class="grid grid-2"><div class="field"><label for="primeiroTempoText">1.º tempo</label><textarea id="primeiroTempoText" rows="5"></textarea></div><div class="field"><label for="segundoTempoText">2.º tempo</label><textarea id="segundoTempoText" rows="5"></textarea></div></div><div class="field"><label for="destaquesText">Momentos de destaque</label><textarea id="destaquesText" rows="3"></textarea></div></div>
+
     <div class="card"><h2 class="section-title">Síntese</h2><div class="grid grid-2"><div class="field"><label for="positivosText">Pontos Positivos</label><textarea id="positivosText" rows="5"></textarea></div><div class="field"><label for="melhorarText">Pontos a Melhorar</label><textarea id="melhorarText" rows="5"></textarea></div></div></div>
 
     <div class="card">
@@ -224,6 +229,8 @@
     </div>
 
     <div class="card"><h2 class="section-title">Tópicos para o Treino</h2><textarea id="topicosText" rows="5"></textarea></div>
+
+    <div class="card"><h2 class="section-title">Notas individuais</h2><div id="notasIndividuaisList" class="dynamic-list"></div><button type="button" id="btnAddNotaIndividual" class="btn btn-ghost btn-sm">+ Adicionar nota</button></div>
   </section>
 
   <!-- TAB 4: EQUIPA -->
@@ -363,6 +370,20 @@
       <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
       <div id="jornadasMarcadores"></div>
       <small class="muted">Os jogos do VFN (marcados como VFN) vêm do Calendário e editam-se no separador Resultados.</small>
+    </div>
+  </section>
+
+  <!-- TAB: HISTÓRICO DE RELATÓRIOS -->
+  <section id="tab-historico" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row"><h2 class="section-title">Relatórios de jogo</h2></div>
+      <p class="muted">Rascunhos e relatórios publicados. Os publicados ficam visíveis para o treinador e os dirigentes no Dashboard.</p>
+      <div class="table-wrap">
+        <table class="data-table" data-ordenar="historico-admin">
+          <thead><tr><th data-tipo="data">Data</th><th data-tipo="texto">Adversário</th><th data-tipo="texto">Competição</th><th class="num">Resultado</th><th data-tipo="texto">Estado</th><th></th></tr></thead>
+          <tbody id="historicoBody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -543,6 +564,7 @@
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>
+<script src="relatorio.js?v=4"></script>
 <script src="app.js?v=4"></script>
 <script src="admin.js?v=4"></script>
 </body>
