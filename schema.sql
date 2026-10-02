@@ -241,6 +241,25 @@ where competition ilike '%fdm%' and competition <> 'Taça 2ª Liga FDM';
 -- Data de cada jogo nas Jornadas AF Guarda
 alter table public.league_results add column if not exists match_date date;
 
+-- ---------------------------------------------------------------------
+-- ATUALIZAÇÃO v3 (02/10/2026) — correr esta secção antes do deploy v3
+-- ---------------------------------------------------------------------
+
+-- [Tarefa 6] Taça 2ª Liga FDM — Pré-Eliminatória (jornada 1, 21/03/2027)
+-- Só insere os jogos que ainda não existem (pode ser corrido várias vezes)
+insert into public.league_results (competition, jornada, match_date, home_team_id, home_team_name, away_team_id, away_team_name)
+select v.competition, v.jornada, v.match_date, v.home_team_id, v.home_team_name, v.away_team_id, v.away_team_name
+from (values
+  ('Taça 2ª Liga FDM', 1, date '2027-03-21', '6846', 'GD Foz Côa', '11082', 'Freixo de Numão'),
+  ('Taça 2ª Liga FDM', 1, date '2027-03-21', '16479', 'Seia FC', '8063', 'Gonçalense'),
+  ('Taça 2ª Liga FDM', 1, date '2027-03-21', '11073', 'Paços da Serra', '6306', 'Mileu Guarda')
+) as v(competition, jornada, match_date, home_team_id, home_team_name, away_team_id, away_team_name)
+where not exists (
+  select 1 from public.league_results r
+  where r.competition = v.competition and r.jornada = v.jornada
+    and r.home_team_id = v.home_team_id and r.away_team_id = v.away_team_id
+);
+
 -- Logos das equipas com o caminho absoluto do GitHub Pages
 update public.teams
 set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url

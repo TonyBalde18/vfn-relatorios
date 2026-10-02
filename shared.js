@@ -9,7 +9,7 @@
 (function () {
   const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
   // Competições com classificação e jornadas AF Guarda (nomes usados em matches e league_results)
-  const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog"];
+  const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog", "Taça 2ª Liga FDM"];
 
   const AF_GUARDA = { src: "assets/sponsors/af-guarda.png", alt: "Associação de Futebol da Guarda" };
   const SPONSORS = {
@@ -89,6 +89,7 @@
    */
   function normalizarCompeticao(competicao) {
     const s = String(competicao || "").toUpperCase();
+    if (s.includes("FDM")) return COMPETICOES_CLASSIFICACAO[2];
     if (s.includes("ZERO") && s.includes("LIGA") && !s.includes("TAÇA")) return COMPETICOES_CLASSIFICACAO[0];
     if (s.includes("HONRA")) return COMPETICOES_CLASSIFICACAO[1];
     return competicao;
