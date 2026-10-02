@@ -223,7 +223,7 @@ function abrirJogador(id) {
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 
   const p = presencaJogador(j.id);
-  const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]];
+  const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Pé dominante", j.info.pe], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]].filter(([k, v]) => k !== "Pé dominante" || v);
   $("mjCorpo").innerHTML = `
     <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
   $("modalJogador").hidden = false;
@@ -588,6 +588,12 @@ async function iniciar() {
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
   initEquipas();
+  // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
+  document.addEventListener("click", e => {
+    const avatar = e.target.closest("[data-jogador]");
+    if (!avatar || e.target.closest(".modal-overlay, .player-card")) return;
+    if (jogadores.some(j => String(j.id) === avatar.dataset.jogador)) abrirJogador(avatar.dataset.jogador);
+  });
   initMultasPresencasDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });

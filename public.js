@@ -169,6 +169,12 @@ async function iniciar() {
   VFN.initAOS();
   initJornadas();
   initEquipas();
+  // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
+  document.addEventListener("click", e => {
+    const avatar = e.target.closest("[data-jogador]");
+    if (!avatar || e.target.closest(".modal-overlay, .player-card")) return;
+    if (jogadores.some(j => String(j.id) === avatar.dataset.jogador)) abrirJogador(avatar.dataset.jogador);
+  });
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });

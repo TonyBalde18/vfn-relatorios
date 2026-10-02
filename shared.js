@@ -593,12 +593,13 @@
     const nome = j.name || j.nome || "";
     const id = String(j.idBD || j.id || "");
     const cls = `vfn-avatar ${classe || ""}`.trim();
+    const attrJogador = id ? ` data-jogador="${escapeHtml(id)}"` : ""; // clicável: abre a ficha do jogador
     const candidatos = [j.photo_url || j.fotoUrl, id && `${PASTA_FOTOS}${id}.jpg`, id && `${PASTA_FOTOS}${id}.png`].filter(Boolean);
     const conhecida = fotosConhecidas.get(id);
-    if (conhecida) return `<span class="${cls} has-photo"><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
+    if (conhecida) return `<span class="${cls} has-photo"${attrJogador}><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
     const camisola = generateJerseyAvatar(numero);
-    if (conhecida === null || !candidatos.length) return `<span class="${cls}">${camisola}</span>`;
-    return `<span class="${cls}">${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(nome)}" data-id="${escapeHtml(id)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
+    if (conhecida === null || !candidatos.length) return `<span class="${cls}"${attrJogador}>${camisola}</span>`;
+    return `<span class="${cls}"${attrJogador}>${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(nome)}" data-id="${escapeHtml(id)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
   }
 
   function fotoCarregou(img) {

@@ -1148,4 +1148,13 @@ function initAdmin() {
     ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
   });
   verificarPapelAdmin();
+
+  // perfis clicáveis: logo → ficha da equipa; avatar → ficha do jogador
+  document.addEventListener("click", e => {
+    if (e.target.closest(".modal-overlay, select, input, .team-card")) return;
+    const logo = e.target.closest("[data-equipa]");
+    if (logo) { const t = equipaPorId(logo.dataset.equipa); if (t) abrirModalEquipa(t); return; }
+    const avatar = e.target.closest("[data-jogador]");
+    if (avatar && !e.target.closest("#plantelBody")) { const j = jogadorPorIdBD(avatar.dataset.jogador); if (j) abrirModalExistente(j); }
+  });
 }

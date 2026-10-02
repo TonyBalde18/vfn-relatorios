@@ -687,9 +687,10 @@ function equipaPorId(id) {
 
 function logoEquipaHTML(equipa, nome) {
   const url = VFN.urlLogoEquipa(equipa, nome);
-  if (url) return `<img class="team-logo" src="${escapeHtml(url)}" alt="Logótipo ${escapeHtml(nome)}">`;
+  const attr = equipa && equipa.id && !VFN.eVFN(equipa.name || nome) ? ` data-equipa="${escapeHtml(equipa.id)}" title="Ver ficha de ${escapeHtml(nome)}"` : "";
+  if (url) return `<img class="team-logo" src="${escapeHtml(url)}" alt="Logótipo ${escapeHtml(nome)}"${attr}>`;
   const iniciais = String(nome || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
-  return `<span class="team-logo-placeholder" aria-hidden="true">${escapeHtml(iniciais)}</span>`;
+  return `<span class="team-logo-placeholder" aria-hidden="true"${attr}>${escapeHtml(iniciais)}</span>`;
 }
 
 function nomeAdversarioJogo(jogo) {

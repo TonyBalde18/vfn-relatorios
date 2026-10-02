@@ -981,3 +981,5 @@ table[data-ordenar] th[aria-sort="descending"]::after { content: "▼"; opacity:
 @media (max-width: 520px) { .perfil-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .perfil-jogos li { grid-template-columns: auto 1fr auto; } .perfil-jogos li > span.muted { display: none; } }
 [data-equipa] { cursor: pointer; }
 @media (max-width: 520px) { .teams-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .team-card { padding: 14px 8px; } .team-card img, .team-card .team-logo-placeholder { width: 48px; height: 48px; } }
+[data-jogador] { cursor: pointer; }
+.team-logo[data-equipa]:hover, .team-logo-placeholder[data-equipa]:hover, [data-jogador]:hover { filter: brightness(1.06); }

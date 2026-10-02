@@ -47,9 +47,11 @@
 
   function logoEquipa(t, nome, classe) {
     const url = VFN.urlLogoEquipa(t, nome);
-    if (url) return `<img class="team-logo ${classe || ""}" src="${esc(url)}" alt="Logótipo ${esc(nome)}" loading="lazy">`;
+    // clicável: abre a ficha da equipa (o VFN não tem ficha de adversário)
+    const attr = t && t.id && !VFN.eVFN(t.name || nome) && !String(t.id).startsWith("nome:") ? ` data-equipa="${esc(t.id)}" title="Ver ficha de ${esc(nome)}"` : "";
+    if (url) return `<img class="team-logo ${classe || ""}" src="${esc(url)}" alt="Logótipo ${esc(nome)}" loading="lazy"${attr}>`;
     const iniciais = String(nome || "?").split(/\s+/).filter(w => w.length > 2 || /^[A-Z]{2,}$/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
-    return `<span class="team-logo-placeholder ${classe || ""}" aria-hidden="true">${esc(iniciais)}</span>`;
+    return `<span class="team-logo-placeholder ${classe || ""}" aria-hidden="true"${attr}>${esc(iniciais)}</span>`;
   }
 
   function tagCompeticao(comp) {
