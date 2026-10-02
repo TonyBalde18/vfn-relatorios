@@ -296,6 +296,15 @@ function registoPresenca(playerId, sessao) {
   return cacheAdmin.attendance.find(a => a.player_id === playerId && a.session_date === sessao.data && a.session_type === sessao.tipo);
 }
 
+/** Mapa da época: toda a equipa, ou o jogador escolhido no filtro. */
+function renderHeatmapAdmin(escolhido) {
+  if (!el("presencasHeatmap")) return;
+  const registos = cacheAdmin.attendance.filter(r => !escolhido || r.player_id === escolhido).map(r => ({ data: r.session_date, status: r.status }));
+  const j = escolhido ? jogadorPorIdBD(escolhido) : null;
+  el("presencasHeatmapInfo").textContent = j ? "· " + j.nome : "· % de presentes por dia";
+  el("presencasHeatmap").innerHTML = VFN.heatmapPresencasHTML(registos, { individual: !!escolhido });
+}
+
 function renderPresencas() {
   const mes = el("presencasMes").value;
   const sessoes = sessoesDoMes(mes);
@@ -303,6 +312,7 @@ function renderPresencas() {
   const escolhido = filtroJogador.value;
   filtroJogador.innerHTML = opcoesPlantelHTML(escolhido).replace("— Selecionar jogador —", "Todos os jogadores");
   const jogadores = [...plantel].filter(j => !escolhido || idJogadorBD(j) === escolhido).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  renderHeatmapAdmin(escolhido);
   const container = el("presencasGrelha");
   // a grelha é redesenhada a cada clique: guardar scroll (da grelha e da página) e foco
   const grelhaAntiga = container.querySelector(".attendance-wrap");

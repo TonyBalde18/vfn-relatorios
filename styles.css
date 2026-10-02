@@ -1060,3 +1060,51 @@ button.jj-centro:focus-visible, button.result-score:focus-visible { outline: 2px
   .dynamic-row.nota-individual { grid-template-columns: 1fr auto; }
   .dynamic-row.nota-individual textarea { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* ---------- Splash (primeira visita da sessão) ---------- */
+html.vfn-splash-on body { visibility: hidden; }
+.vfn-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--vfn-navy); color: #FFD700; visibility: visible; pointer-events: none; animation: splashEntrar .6s ease-out both; transition: opacity .4s ease; }
+.vfn-splash img { width: 120px; height: 120px; object-fit: contain; animation: splashLogo 1.1s ease-out both; }
+.vfn-splash span { font-weight: 800; letter-spacing: .04em; font-size: .95rem; opacity: 0; animation: splashEntrar .5s .5s ease-out forwards; }
+.vfn-splash.sair { opacity: 0; }
+@keyframes splashEntrar { from { opacity: 0; } to { opacity: 1; } }
+@keyframes splashLogo { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+
+/* ---------- Forma no calendário ---------- */
+.match-forma { margin-top: 2px; }
+
+/* ---------- Mapa de presenças (estilo GitHub) ---------- */
+.heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+.heatmap { --hm-tam: 13px; display: grid; grid-template-rows: 14px repeat(7, var(--hm-tam)); gap: 3px; width: max-content; font-size: .65rem; color: var(--text-muted); }
+.hm-dia { padding-right: 6px; line-height: var(--hm-tam); }
+.hm-mes { white-space: nowrap; }
+.hm-cel { display: inline-block; width: var(--hm-tam); height: var(--hm-tam); border-radius: 3px; background: #ebedf0; }
+.hm-1 { background: #c6e9cf; } .hm-2 { background: #86d39b; } .hm-3 { background: #3fb565; } .hm-4 { background: #1a7f3c; }
+.hm-P { background: var(--presente); } .hm-A { background: var(--atraso); } .hm-F { background: var(--falta); } .hm-J { background: var(--justificada); }
+.heatmap-legenda { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 8px; font-size: .72rem; color: var(--text-muted); }
+.heatmap-legenda .hm-cel { width: 11px; height: 11px; margin-left: 4px; }
+
+/* ---------- Banner do próximo jogo (dashboard) ---------- */
+.banner-proximo { margin-bottom: 18px; border-radius: 12px; background: var(--vfn-navy); color: #fff; box-shadow: 0 6px 18px rgba(10,22,40,.18); overflow: hidden; }
+.banner-proximo summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 12px 16px; cursor: pointer; list-style: none; }
+.banner-proximo summary::-webkit-details-marker { display: none; }
+.banner-titulo { display: inline-flex; align-items: center; gap: 6px; color: #FFD700; font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.banner-jogo { display: inline-flex; align-items: center; gap: 8px; }
+.banner-jogo .banner-logo { width: 26px; height: 26px; object-fit: contain; }
+.banner-jogo .team-logo-placeholder.banner-logo { display: inline-grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.15); font-size: .6rem; }
+.banner-quando { color: rgba(255,255,255,.75); font-size: .85rem; }
+.banner-quando strong { color: #FFD700; }
+.banner-contagem { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: #f97316; font-size: .75rem; font-weight: 800; }
+.banner-seta { margin-left: auto; display: inline-flex; transition: transform .2s; }
+.banner-proximo[open] .banner-seta { transform: rotate(180deg); }
+.banner-corpo { display: flex; flex-wrap: wrap; gap: 14px 32px; padding: 4px 16px 14px; border-top: 1px solid rgba(255,255,255,.12); }
+.banner-corpo h3 { margin: 10px 0 8px; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,.6); }
+.banner-corpo .muted { color: rgba(255,255,255,.7); margin: 0; }
+.banner-lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.banner-jogador { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: .82rem; cursor: pointer; }
+.banner-jogador .disp-badge { margin-left: 2px; }
+
+/* atalho "Ver todos" */
+.link-btn { border: 0; background: none; padding: 0; color: var(--vfn-navy); font: inherit; font-size: .8rem; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.chart-posicao { height: 220px; margin-bottom: 8px; }
+.banner-nota { margin: 8px 0 0; max-width: 520px; font-size: .75rem; color: rgba(255,255,255,.65); }

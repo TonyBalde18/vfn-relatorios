@@ -38,6 +38,9 @@ function mostrarAviso(texto) {
   $("avisoDados").hidden = false;
 }
 
+// atalhos "Ver todos" no hub
+document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
+
 function mostrarVista(vista) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
   document.querySelectorAll(".public-nav button").forEach(b => {
@@ -50,6 +53,7 @@ function mostrarVista(vista) {
   if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
   if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
   if (vista === "marcadores") VFN.anim.contar($("pubMarcadores"));
+  if (vista === "jornadas" && graficoPosicaoPub) graficoPosicaoPub.resize();
   VFN.refreshAOS();
 }
 
@@ -93,11 +97,15 @@ function mostrarEsqueletos() {
   $("pubClassificacao").innerHTML = H.esqueleto("linhas", 8);
   $("pubCalendario").innerHTML = H.esqueleto("jogos", 5);
   $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
+  $("pubHubMarcadores").innerHTML = H.esqueleto("linhas", 5);
+  $("pubHubMarcadoresCamp").innerHTML = H.esqueleto("linhas", 5);
 }
 
 /* ---------- Jornadas AF Guarda (só leitura) ---------- */
 
 const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+
+let graficoPosicaoPub = null;
 
 function renderJornadas() {
   const comp = $("pubJornCompeticao"), jor = $("pubJornJornada"), eq = $("pubJornEquipa");
@@ -112,6 +120,7 @@ function renderJornadas() {
   $("pubJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   $("pubJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
   $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
+  graficoPosicaoPub = H.graficoPosicao($("pubChartPosicao"), dados, filtrosJornadas.competicao, graficoPosicaoPub);
 }
 
 function initJornadas() {
@@ -154,6 +163,8 @@ function renderTudo() {
   $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao);
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
+  $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
+  $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 5);
   $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 10);
   renderPlantel();
   renderJornadas();

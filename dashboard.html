@@ -2,6 +2,7 @@
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
+<script>try{if(!sessionStorage.getItem("vfnSplash")){document.documentElement.classList.add("vfn-splash-on");setTimeout(function(){document.documentElement.classList.remove("vfn-splash-on")},3000)}}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VFN — Dashboard da Equipa Técnica</title>
 <link rel="icon" href="assets/logo-icon.ico">
@@ -62,6 +63,7 @@
 
   <!-- HUB -->
   <section id="view-hub" class="view active">
+    <details id="bannerProximoJogo" class="banner-proximo" hidden></details>
     <div id="alertasSuspensao" class="alerta-suspensao" role="status" hidden></div>
     <div class="hub-grid">
       <article id="cardProximoJogo" class="card hub-hero span-2" data-aos="fade-up"></article>
@@ -133,6 +135,9 @@
         <label class="sr-only" for="dbJornEquipa">Equipa</label><select id="dbJornEquipa" class="compact-select"></select>
         <button type="button" id="dbJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
+      <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
+      <div class="chart-box chart-posicao"><canvas id="chartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
+      <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
       <div id="dbJornLista" class="jornadas-lista"></div>
       <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
       <div id="dbJornMarcadores"></div>
@@ -171,6 +176,8 @@
       </div>
       <div id="dbPresencasGrelha"></div>
       <div class="att-legend"><span style="--c:var(--presente)">P · Presente</span><span style="--c:var(--falta)">F · Falta</span><span style="--c:var(--atraso)">A · Atraso</span><span style="--c:var(--justificada)">J · Justificada</span></div>
+      <h3 class="subsecao-titulo">Mapa da época <small id="dbHeatmapInfo" class="muted"></small></h3>
+      <div id="dbHeatmap"></div>
     </div>
   </section>
 

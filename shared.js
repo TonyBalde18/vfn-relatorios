@@ -74,7 +74,6 @@
     return `<span class="disp-badge disp-${e}" title="${d.rotulo}">${icone(d.icone, 14)}${compacto ? '<span class="sr-only">' + d.rotulo + "</span>" : " " + d.rotulo}</span>`;
   }
 
-  /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
   /**
    * Estado de um relatório de jogo: coluna status (v3) ou cópia no match_data.
    * Relatórios antigos (gerados antes da v3, sem estado) contam como publicados.
@@ -84,6 +83,7 @@
     return r.status || (r.match_data || {})._status || "published";
   }
 
+  /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
   function alertaSuspensao(amarelos, estado) {
     const n = Number(amarelos) || 0;
     return n > 0 && n % AMARELOS_SUSPENSAO === 0 && estado !== "suspenso";
@@ -544,6 +544,82 @@
     }).observe(document.body, { childList: true, subtree: true });
   });
 
+  /* ---------- Mapa de presenças (estilo GitHub) ---------- */
+
+  const PRESENTE = e => e === "P" || e === "A";
+
+  /**
+   * Mapa de calor da época: uma coluna por semana, uma linha por dia (Seg–Dom).
+   * registos: [{ data: "AAAA-MM-DD", status }]. Com um só jogador (opcoes.individual)
+   * cada dia mostra o estado (P/A/F/J); com a equipa, a % de presentes nesse dia.
+   */
+  function heatmapPresencasHTML(registos, opcoes) {
+    const o = opcoes || {};
+    const porDia = new Map();
+    (registos || []).forEach(r => {
+      if (!r.status || !r.data) return;
+      const d = porDia.get(r.data) || { P: 0, A: 0, F: 0, J: 0 };
+      if (d[r.status] != null) d[r.status]++;
+      porDia.set(r.data, d);
+    });
+    if (!porDia.size) return '<p class="empty-state">Ainda não há presenças registadas.</p>';
+    const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dias = [...porDia.keys()].sort();
+    const inicio = new Date(dias[0] + "T12:00:00");
+    inicio.setDate(inicio.getDate() - ((inicio.getDay() + 6) % 7)); // segunda-feira
+    const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
+    const ultimo = new Date(dias[dias.length - 1] + "T12:00:00");
+    const fim = ultimo > hoje ? ultimo : hoje;
+    const celulas = [], meses = [];
+    let semana = 0, mesAnterior = -1;
+    for (const d = new Date(inicio); d <= fim; d.setDate(d.getDate() + 1)) {
+      const linha = (d.getDay() + 6) % 7;
+      if (linha === 0 && d > inicio) semana++;
+      if (d.getMonth() !== mesAnterior && d.getDate() <= 7) { meses.push({ semana, rotulo: MESES_CURTOS[d.getMonth()] }); mesAnterior = d.getMonth(); }
+      const chave = iso(d);
+      const t = porDia.get(chave);
+      let classe = "hm-0", titulo = `${dataDDMMAAAA(chave)}: sem sessão`;
+      if (t) {
+        const presentes = t.P + t.A, total = presentes + t.F + t.J;
+        if (o.individual) {
+          const estado = ["P", "A", "J", "F"].find(k => t[k]) || "";
+          classe = "hm-" + estado;
+          titulo = `${dataDDMMAAAA(chave)}: ${{ P: "Presente", A: "Atraso", F: "Falta", J: "Falta justificada" }[estado] || ""}`;
+        } else {
+          const pct = total ? presentes / total : 0;
+          classe = pct >= 0.9 ? "hm-4" : pct >= 0.75 ? "hm-3" : pct >= 0.5 ? "hm-2" : "hm-1";
+          titulo = `${dataDDMMAAAA(chave)}: ${presentes}/${total} presentes (${Math.round(pct * 100)}%)`;
+        }
+      }
+      celulas.push(`<span class="hm-cel ${classe}" style="grid-column:${semana + 2};grid-row:${linha + 2}" title="${escapeHtml(titulo)}"></span>`);
+    }
+    const semanas = semana + 1;
+    const rotulosDias = ["Seg", "", "Qua", "", "Sex", "", "Dom"].map((t, i) => t ? `<span class="hm-dia" style="grid-column:1;grid-row:${i + 2}">${t}</span>` : "").join("");
+    const rotulosMeses = meses.map(m => `<span class="hm-mes" style="grid-column:${m.semana + 2} / span 3;grid-row:1">${m.rotulo}</span>`).join("");
+    const legenda = o.individual
+      ? '<span class="hm-cel hm-P"></span>Presente <span class="hm-cel hm-A"></span>Atraso <span class="hm-cel hm-J"></span>Justificada <span class="hm-cel hm-F"></span>Falta'
+      : 'Menos <span class="hm-cel hm-1"></span><span class="hm-cel hm-2"></span><span class="hm-cel hm-3"></span><span class="hm-cel hm-4"></span> Mais presentes';
+    return `<div class="heatmap-scroll"><div class="heatmap" style="grid-template-columns:auto repeat(${semanas}, var(--hm-tam))" role="img" aria-label="Mapa de presenças da época">${rotulosMeses}${rotulosDias}${celulas.join("")}</div></div>
+      <div class="heatmap-legenda">${legenda}</div>`;
+  }
+
+  /* ---------- Splash (primeira visita da sessão) ---------- */
+
+  function splash() {
+    const raiz = document.documentElement;
+    let primeira = false;
+    try { primeira = !sessionStorage.getItem("vfnSplash"); sessionStorage.setItem("vfnSplash", "1"); } catch (e) { /* sem storage: sem splash */ }
+    if (!primeira || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { raiz.classList.remove("vfn-splash-on"); return; }
+    const el = document.createElement("div");
+    el.className = "vfn-splash";
+    el.setAttribute("aria-hidden", "true");
+    el.innerHTML = `<img src="${LOGO_VFN}" alt=""><span>ACD Vila Franca das Naves</span>`;
+    document.body.appendChild(el);
+    raiz.classList.remove("vfn-splash-on");
+    setTimeout(() => el.classList.add("sair"), 1500);
+    setTimeout(() => el.remove(), 1900);
+  }
+
   /* ---------- Exportação para Excel (SheetJS) ---------- */
 
   const ORDEM_CATEGORIA = { GR: 0, Def: 1, Meio: 2, Ata: 3 };
@@ -801,9 +877,11 @@
 
   window.generateJerseyAvatar = generateJerseyAvatar;
 
+  if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
+
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, heatmapPresencasHTML,
     TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,

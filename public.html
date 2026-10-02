@@ -2,6 +2,7 @@
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
+<script>try{if(!sessionStorage.getItem("vfnSplash")){document.documentElement.classList.add("vfn-splash-on");setTimeout(function(){document.documentElement.classList.remove("vfn-splash-on")},3000)}}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0A1628">
 <title>ACD Vila Franca das Naves — Época 2026/27</title>
@@ -44,6 +45,16 @@
         </article>
       </div>
     </div>
+    <div class="public-stack two-col">
+      <article class="card" data-aos="fade-up">
+        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 marcadores do VFN</h2><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+        <div id="pubHubMarcadores"></div>
+      </article>
+      <article class="card" data-aos="fade-up">
+        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 do campeonato</h2><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+        <div id="pubHubMarcadoresCamp"></div>
+      </article>
+    </div>
   </section>
 
   <section id="view-plantel" class="view">
@@ -69,6 +80,9 @@
         <label class="sr-only" for="pubJornEquipa">Equipa</label><select id="pubJornEquipa" class="compact-select"></select>
         <button type="button" id="pubJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
+      <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
+      <div class="chart-box chart-posicao"><canvas id="pubChartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
+      <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
       <div id="pubJornLista" class="jornadas-lista"></div>
       <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
       <div id="pubJornMarcadores"></div>
@@ -130,6 +144,7 @@
 <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>

@@ -51,7 +51,7 @@ function mostrarVista(vista) {
   VFN.anim.tab($(`view-${vista}`));
   if (vista === "plantel") VFN.anim.cascata($("plantelGrid").children);
   VFN.refreshAOS();
-  if (vista === "hub") Object.values(graficos).forEach(g => g && g.resize());
+  if (vista === "hub" || vista === "jornadas") Object.values(graficos).forEach(g => g && g.resize());
 }
 
 /* ---------- Hub ---------- */
@@ -108,7 +108,8 @@ function proximoAdversarioHTML() {
 /** Alerta automático: 5.º amarelo acumulado (AF Guarda) sem o jogador estar marcado como suspenso. */
 function renderAlertasSuspensao() {
   const alvo = $("alertasSuspensao");
-  const lista = jogadores.filter(j => j.disponibilidade && VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
+  const comBanner = !!VFN.proximoJogo(dados.matches); // o banner do próximo jogo já mostra os jogadores em risco
+  const lista = comBanner ? [] : jogadores.filter(j => j.disponibilidade && VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
   alvo.hidden = !lista.length;
   alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Possível suspensão</strong><p>${lista.map(j => `${esc(j.nome)} — ${j.cartoesA} amarelos`).join(" · ")}. Na AF Guarda a suspensão é ao ${VFN.AMARELOS_SUSPENSAO}.º amarelo: sugere-se marcar como <em>Suspenso</em> na ficha do jogador (admin), se ainda não cumpriu o castigo.</p></div>` : "";
 }
@@ -534,6 +535,7 @@ function renderPresencasDash() {
   if (!meses.some(m => m.valor === filtrosPresencas.mes)) filtrosPresencas.mes = meses[0].valor;
   $("dbPresencasMes").innerHTML = meses.map(m => `<option value="${m.valor}" ${m.valor === filtrosPresencas.mes ? "selected" : ""}>${m.rotulo}</option>`).join("");
   $("dbPresencasJogador").innerHTML = opcoesJogadoresDash(filtrosPresencas.jogador, "Todos os jogadores");
+  renderHeatmapDash();
   const sessoes = sessoesDoMesDash(filtrosPresencas.mes);
   const lista = [...jogadores].filter(j => !filtrosPresencas.jogador || String(j.id) === filtrosPresencas.jogador).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
   if (!sessoes.length) { $("dbPresencasGrelha").innerHTML = H.vazio("Sem sessões neste mês."); return; }
@@ -551,7 +553,46 @@ function renderPresencasDash() {
   </table></div>`;
 }
 
+/** Mapa da época (estilo GitHub): equipa inteira, ou só o jogador escolhido no filtro. */
+function renderHeatmapDash() {
+  const id = filtrosPresencas.jogador;
+  const registos = dados.attendance.filter(a => !id || String(a.player_id) === String(id)).map(a => ({ data: a.session_date, status: a.status }));
+  const j = id ? jogadorPorIdDash(id) : null;
+  $("dbHeatmapInfo").textContent = j ? "· " + j.nome : "· % de presentes por dia";
+  $("dbHeatmap").innerHTML = VFN.heatmapPresencasHTML(registos, { individual: !!id });
+}
+
+/* ---------- Banner do próximo jogo (recolhível) ---------- */
+
+function renderBannerProximoJogo() {
+  const banner = $("bannerProximoJogo");
+  const jogo = VFN.proximoJogo(dados.matches);
+  banner.hidden = !jogo;
+  if (!jogo) return;
+  const nome = H.nomeAdversario(dados, jogo);
+  const casa = VFN.jogoEmCasa(jogo);
+  const fora = jogadores.filter(j => j.disponibilidade && j.disponibilidade !== "disponivel");
+  const risco = jogadores.filter(j => VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
+  const chip = (j, extra) => `<span class="banner-jogador" data-jogador="${esc(j.id)}">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span>${extra}</span>`;
+  // sem preferência guardada: aberto no computador, recolhido no telemóvel
+  let aberto = window.innerWidth > 640;
+  try { const guardado = localStorage.getItem("vfnBannerProximo"); if (guardado) aberto = guardado === "aberto"; } catch (e) { /* ignora */ }
+  banner.open = aberto;
+  banner.innerHTML = `<summary>
+      <span class="banner-titulo">${VFN.icone("calendar-days", 18)} Próximo jogo</span>
+      <span class="banner-jogo">${H.logoEquipa(H.equipa(dados, jogo.opponent_team_id), nome, "banner-logo")}<strong>${casa ? "VFN vs " + esc(nome) : esc(nome) + " vs VFN"}</strong></span>
+      <span class="banner-quando">${esc(VFN.dataLonga(jogo.date, true))} · <strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></span>
+      ${fora.length + risco.length ? `<span class="banner-contagem">${VFN.icone("triangle-alert", 16)} ${fora.length + risco.length}</span>` : ""}
+      <span class="banner-seta" aria-hidden="true">${VFN.icone("chevron-down", 18)}</span>
+    </summary>
+    <div class="banner-corpo">
+      <div><h3>Indisponíveis</h3>${fora.length ? `<div class="banner-lista">${fora.map(j => chip(j, VFN.badgeDisponibilidade(j.disponibilidade))).join("")}</div>` : '<p class="muted">Todo o plantel disponível.</p>'}</div>
+      ${risco.length ? `<div><h3>Em risco de suspensão</h3><div class="banner-lista">${risco.map(j => chip(j, `<span class="disp-badge disp-suspenso">${j.cartoesA} amarelos</span>`)).join("")}</div><p class="banner-nota">Na AF Guarda a suspensão é ao ${VFN.AMARELOS_SUSPENSAO}.º amarelo: marcar como <em>Suspenso</em> na ficha do jogador (admin), se ainda não cumpriu o castigo.</p></div>` : ""}
+    </div>`;
+}
+
 function initMultasPresencasDash() {
+  $("bannerProximoJogo").addEventListener("toggle", e => { try { localStorage.setItem("vfnBannerProximo", e.target.open ? "aberto" : "fechado"); } catch (err) { /* ignora */ } });
   $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });
   $("dbMultasMes").addEventListener("change", e => { filtrosMultas.mes = e.target.value; renderMultasDash(); });
   $("dbExportarMultas").addEventListener("click", () => {
@@ -586,6 +627,7 @@ function renderJornadas() {
   $("dbJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   $("dbJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
   $("dbJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
+  if (estiloGraficos()) graficos.posicao = H.graficoPosicao($("chartPosicao"), dados, filtrosJornadas.competicao, graficos.posicao);
 }
 
 function initJornadas() {
@@ -640,6 +682,7 @@ function mostrarEsqueletos() {
 }
 
 function renderTudo() {
+  renderBannerProximoJogo();
   renderHub();
   renderPlantel();
   renderEstatisticas();

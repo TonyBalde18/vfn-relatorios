@@ -248,6 +248,13 @@
       .sort((a, b) => ((VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0)) * (ordemCalendario === "asc" ? 1 : -1));
   }
 
+  /** Forma do VFN nos 5 jogos até este, inclusive (mais recente à esquerda). */
+  function formaAteJogo(dados, jogo, n) {
+    const limite = VFN.paraData(jogo.date);
+    if (!limite) return [];
+    return VFN.ultimosJogos(dados.matches, 999).filter(j => (VFN.paraData(j.date) || 0) <= limite).slice(0, n || 5);
+  }
+
   function itemJogoHTML(dados, j, proximo) {
     const d = VFN.paraData(j.date);
     const nome = nomeAdversario(dados, j);
@@ -260,6 +267,7 @@
         <div class="match-main">
           <div class="match-line">${tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
           <div class="match-opponent">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
+          ${estado === "jogado" && g ? (f => `<div class="form-row form-row-sm match-forma" title="Forma nos ${f.length} jogos até este (mais recente à esquerda)">${f.map(x => VFN.chipForma(VFN.letraResultado(x))).join("")}</div>`)(formaAteJogo(dados, j, 5)) : ""}
         </div>
         <div class="match-side">${estado === "jogado" && g ? `<button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
       </article>`;
@@ -289,6 +297,45 @@
     const anteriores = lista.filter(j => VFN.estadoJogo(j) !== "agendado");
     const bloco = (titulo, jogos, textoVazio) => `<h3 class="calendar-month">${titulo} <span class="muted">· ${jogos.length}</span></h3>${jogos.length ? jogos.map(j => itemJogoHTML(dados, j, proximo)).join("") : vazio(textoVazio)}`;
     return bloco("Próximos jogos", futuros, "Sem jogos agendados.") + bloco("Jogos anteriores", anteriores, "Ainda não há jogos disputados.");
+  }
+
+  /* ---------- Posição do VFN por jornada ---------- */
+
+  /** Posição do VFN na classificação no fim de cada jornada com resultados. */
+  function posicoesPorJornada(dados, competicao) {
+    const comResultado = (a, b) => a != null && b != null && a !== "" && b !== "";
+    const jornadas = [...new Set(jogosDaJornada(dados, competicao).filter(x => x.jornada && comResultado(x.gc, x.gf)).map(x => x.jornada))].sort((a, b) => a - b);
+    return jornadas.map(n => {
+      const jogos = (dados.matches || []).filter(j => j.competition !== competicao || (Number(j.jornada) || 0) <= n);
+      const liga = (dados.league_results || []).filter(r => r.competition !== competicao || (Number(r.jornada) || 0) <= n);
+      const tabela = VFN.calcularClassificacao(jogos, dados.teams, competicao, liga);
+      const i = tabela.findIndex(l => VFN.eVFN(l.team_name) || VFN.eVFN((equipa(dados, l.team_id) || {}).name));
+      return { jornada: n, posicao: i >= 0 ? i + 1 : null, equipas: tabela.length, pontos: i >= 0 ? tabela[i].points : null };
+    }).filter(p => p.posicao);
+  }
+
+  /** Gráfico de linha (Chart.js) da posição por jornada. Devolve o gráfico ou null. */
+  function graficoPosicao(canvas, dados, competicao, anterior) {
+    if (anterior) anterior.destroy();
+    const pontos = posicoesPorJornada(dados, competicao);
+    const caixa = canvas.closest(".chart-box");
+    const aviso = caixa && caixa.nextElementSibling && caixa.nextElementSibling.classList.contains("empty-state") ? caixa.nextElementSibling : null;
+    if (caixa) caixa.hidden = !pontos.length || !window.Chart;
+    if (aviso) aviso.hidden = !!pontos.length;
+    if (!pontos.length || !window.Chart) return null;
+    const total = Math.max(...pontos.map(p => p.equipas));
+    return new Chart(canvas, {
+      type: "line",
+      data: { labels: pontos.map(p => "J" + p.jornada), datasets: [{ label: "Posição", data: pontos.map(p => p.posicao), borderColor: "#0A1628", backgroundColor: "#FFD700", borderWidth: 2.5, pointRadius: 5, pointHoverRadius: 7, pointBorderColor: "#0A1628", pointBorderWidth: 2, tension: 0.25 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => "Jornada " + pontos[i[0].dataIndex].jornada, label: i => { const p = pontos[i.dataIndex]; return ` ${p.posicao}.º de ${p.equipas} · ${p.pontos} pts`; } } } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { reverse: true, min: 1, max: total, ticks: { stepSize: 1, precision: 0, callback: v => v + ".º" }, grid: { color: "rgba(10,22,40,.08)" } }
+        }
+      }
+    });
   }
 
   /* ---------- Jornadas AF Guarda (league_results + jogos do VFN) ---------- */
@@ -597,6 +644,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao
   };
 })();

@@ -224,3 +224,4 @@
 .sidebar-nav .nav-item[hidden] { display: none; }
 .attendance-table.leitura .att-cell { display: grid; place-items: center; cursor: default; }
 .attendance-table.leitura .att-cell:hover { filter: none; }
+#view-hub > .public-stack + .public-stack { margin-top: 16px; }
