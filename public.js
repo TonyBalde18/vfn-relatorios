@@ -20,7 +20,9 @@ async function carregarDados() {
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
   const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", players: "players_public" };
   const chaves = Object.keys(pedidos);
-  const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select("*")));
+  // do plantel só as colunas públicas da view (nunca a tabela players)
+  const colunas = { players: "id, name, display_name, full_name, position, number, photo_url, stats" };
+  const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   respostas.forEach((r, i) => { if (r.error) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial

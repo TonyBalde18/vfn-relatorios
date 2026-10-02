@@ -245,6 +245,12 @@ alter table public.league_results add column if not exists match_date date;
 -- ATUALIZAÇÃO v3 (02/10/2026) — correr esta secção antes do deploy v3
 -- ---------------------------------------------------------------------
 
+-- [Tarefa 9] Segurança do plantel público: mantém-se a view players_public
+-- (id, name, display_name, full_name, position, number, photo_url e stats de jogo).
+-- A tabela players continua sem leitura anónima; a disponibilidade (availability)
+-- fica fora da view de propósito: só admin e dashboard a veem.
+revoke all on public.players from anon;
+
 -- [Tarefa 6] Taça 2ª Liga FDM — Pré-Eliminatória (jornada 1, 21/03/2027)
 -- Só insere os jogos que ainda não existem (pode ser corrido várias vezes)
 insert into public.league_results (competition, jornada, match_date, home_team_id, home_team_name, away_team_id, away_team_name)
