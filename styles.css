@@ -1718,3 +1718,30 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .marcadores-duplos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
 .marcadores-duplos .subsecao-titulo { margin-top: 0; }
 @media (max-width: 760px) { .marcadores-duplos { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- v6: calendário expandido (estilo Google Calendar) ---------- */
+/* 6 semanas no máximo: as células dividem a altura disponível */
+.cal-mensal { --cal-altura: 80vh; }
+.cal-grelha { grid-auto-rows: auto; }
+.cal-dia, .cal-vazio { min-height: max(48px, calc((var(--cal-altura) - 120px) / 6)); }
+.cal-rotulos { display: none; }
+@media (max-width: 699px) {
+  /* telemóvel: quase todo o ecrã, letra e espaços mais pequenos, sem scroll horizontal */
+  .cal-mensal { --cal-altura: calc(100vh - 150px); }
+  .cal-mensal.card { padding: 8px 6px; margin-left: -4px; margin-right: -4px; }
+  .cal-grelha { gap: 2px; }
+  .cal-dia { padding: 2px 0; border-radius: 5px; }
+  .cal-num { font-size: .66rem; }
+  .cal-topo { margin-bottom: 4px; }
+  .cal-titulo { font-size: .95rem; }
+}
+@media (min-width: 900px) {
+  .cal-dia { align-items: stretch; padding: 4px 5px; text-align: left; }
+  .cal-dia .cal-num { align-self: flex-start; }
+  .cal-icones { justify-content: flex-start; }
+  .cal-rotulos { display: grid; gap: 2px; margin-top: 3px; width: 100%; }
+  .cal-rotulo { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 5px; border-radius: 4px; font-size: .68rem; font-weight: 600; text-align: left; }
+  .cal-rotulo.jogo { background: var(--vfn-navy); color: #fff; }
+  .cal-rotulo.treino { background: #FFEDD5; color: #9A3412; }
+  .cal-rotulo.aniv { background: #FCE7F3; color: #9D174D; }
+}

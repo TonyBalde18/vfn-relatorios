@@ -248,8 +248,21 @@
     const descricao = [jogo ? `Jogo ${VFN.jogoEmCasa(jogo) ? "em casa" : "fora"} com ${H().nomeAdversario(o.dados || {}, jogo)}` : "", eventos.treinos.length ? "Treino" : "",
       eventos.aniversarios.length ? "Aniversário de " + eventos.aniversarios.map(a => a.jogador.nome).join(", ") : ""].filter(Boolean).join(", ");
     return `<button type="button" class="${classes}" data-dia="${dia}" aria-label="${esc(VFN.dataLonga(dia + "T12:00:00") + (descricao ? ": " + descricao : ""))}"${o.selecionado ? ' aria-pressed="true"' : ""}>
-      <span class="cal-num">${data.getDate()}</span>${partes.length ? `<span class="cal-icones">${partes.join("")}</span>` : ""}
+      <span class="cal-num">${data.getDate()}</span>${partes.length ? `<span class="cal-icones">${partes.join("")}</span>` : ""}${rotulosDiaHTML(eventos, o.dados || {})}
     </button>`;
+  }
+
+  /** Etiquetas de texto (só em ecrãs largos, como no Google Calendar): jogo, treino e aniversários. */
+  function rotulosDiaHTML(eventos, dados) {
+    const r = [];
+    eventos.jogos.forEach(j => {
+      const hora = VFN.horaIso(j.date);
+      const g = VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j);
+      r.push(`<span class="cal-rotulo jogo">${g ? `${g.vfn}–${g.adv}` : hora && hora !== "00:00" ? esc(hora) : ""} ${VFN.jogoEmCasa(j) ? "vs" : "@"} ${esc(H().nomeAdversario(dados, j))}</span>`);
+    });
+    eventos.treinos.forEach(t => r.push(`<span class="cal-rotulo treino">Treino${t.start_time ? " " + esc(String(t.start_time).slice(0, 5)) : ""}</span>`));
+    eventos.aniversarios.forEach(a => r.push(`<span class="cal-rotulo aniv">🎂 ${esc(a.jogador.nome)}</span>`));
+    return r.length ? `<span class="cal-rotulos" aria-hidden="true">${r.join("")}</span>` : "";
   }
 
   /** Mês completo (semana a começar à segunda). */
