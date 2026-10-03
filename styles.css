@@ -1692,22 +1692,27 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .legenda-zonas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: .76rem; color: var(--text-muted); }
 .legenda-zonas li { display: flex; align-items: center; gap: 6px; padding-left: 8px; border-left: 4px solid transparent; }
 .legenda-zonas .zona-campeao { border-left-color: #E0B800; } .legenda-zonas .zona-promocao { border-left-color: #16a34a; } .legenda-zonas .zona-descida { border-left-color: #dc2626; }
-.classificacao-acoes { display: flex; justify-content: flex-end; margin-bottom: 6px; }
-.vfn-apresentacao { position: fixed; inset: 0; z-index: 1500; overflow: auto; padding: 4vh 4vw; background: radial-gradient(120% 80% at 50% 0%, #13294B 0%, #050B16 70%); color: #fff; }
-.vfn-apresentacao .ap-topo { display: flex; align-items: center; gap: 16px; margin-bottom: 3vh; }
-.vfn-apresentacao .ap-topo img { width: 64px; height: 64px; object-fit: contain; }
-.vfn-apresentacao .ap-topo h2 { flex: 1; margin: 0; font-size: clamp(1.4rem, 3vw, 2.4rem); color: #FFD700; }
-.vfn-apresentacao .ap-fechar { border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
-.vfn-apresentacao table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: clamp(.95rem, 1.6vw, 1.5rem); }
-.vfn-apresentacao th { color: rgba(255,255,255,.6); font-size: .7em; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border: 0; }
-.vfn-apresentacao td { padding: .55em .7em; background: rgba(255,255,255,.06); color: #fff; text-align: center; border: 0; }
-.vfn-apresentacao td.team-col { text-align: left; }
-.vfn-apresentacao .team-logo, .vfn-apresentacao .team-logo-placeholder { width: 1.6em; height: 1.6em; }
-.vfn-apresentacao .team-inline span { max-width: none; }
-.vfn-apresentacao tr.is-vfn-row td { background: rgba(255,215,0,.22); font-weight: 800; }
-.vfn-apresentacao .legenda-zonas { color: rgba(255,255,255,.75); font-size: .9rem; margin-top: 2vh; }
-.vfn-apresentacao .hide-xs { display: table-cell; }
-.vfn-apresentacao .dg-col.pos { color: #4ade80; } .vfn-apresentacao .dg-col.neg { color: #f87171; }
+/* tabela classificativa: sempre no estilo escuro (o antigo modo "Apresentar") */
+.tabela-escura { padding: 14px; border-radius: 14px; color: #fff; background: radial-gradient(120% 80% at 50% 0%, #13294B 0%, #050B16 75%); }
+.tabela-escura .table-wrap { background: transparent; border: 0; box-shadow: none; }
+.tabela-escura table { width: 100%; border-collapse: separate; border-spacing: 0 4px; background: transparent; }
+.tabela-escura th { color: rgba(255,255,255,.6); background: transparent; font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; border: 0; }
+.tabela-escura td { color: #fff; background: rgba(255,255,255,.06); border: 0; }
+.tabela-escura td:first-child { border-radius: 8px 0 0 8px; } .tabela-escura td:last-child { border-radius: 0 8px 8px 0; }
+.tabela-escura tbody tr:hover td { background: rgba(255,255,255,.11); }
+.tabela-escura .pos-col, .tabela-escura .pts-col { color: #FFD700; }
+.tabela-escura .team-col { text-align: left; }
+.tabela-escura tr.is-vfn-row td { background: rgba(255,215,0,.22); font-weight: 800; }
+.tabela-escura tr.zona-campeao, .tabela-escura tr.zona-promocao, .tabela-escura tr.zona-descida { background: transparent; }
+.tabela-escura .dg-col.pos { color: #4ade80; } .tabela-escura .dg-col.neg { color: #f87171; }
+.tabela-escura .legenda-zonas { color: rgba(255,255,255,.75); }
+.tabela-escura table[data-ordenar] th[data-tipo]:hover { background-image: none; color: #FFD700; }
+/* brackets das taças: o mesmo fundo escuro (os confrontos mantêm o estilo) */
+.bracket-scroll { padding: 12px; border-radius: 14px; background: radial-gradient(120% 80% at 50% 0%, #13294B 0%, #050B16 75%); }
+.bracket-scroll .br-fase { background: rgba(255,255,255,.04); }
+.bracket-scroll .br-fase h4 { color: #FFD700; background: rgba(255,255,255,.06); }
+.bracket-scroll .br-sorteio { color: rgba(255,255,255,.6); }
+.bracket-scroll .br-ligacao { stroke: #4ade80; }
 
 /* ---------- v6: segmented control (Classificação | Jornadas | Marcadores) ---------- */
 .seg-control { display: inline-flex; flex-wrap: wrap; gap: 2px; margin: 4px 0 14px; padding: 3px; border-radius: 10px; background: rgba(10, 22, 40, .07); }

@@ -189,15 +189,13 @@
 
   const comSinal = n => (n > 0 ? "+" : "") + n;
 
-  /** Tabela classificativa (taças: bracket). Com DG, zonas, legenda e botão "Apresentar" (o: { semApresentar }). */
-  function classificacaoHTML(dados, competicao, opcoes) {
-    const o = opcoes || {};
+  /** Tabela classificativa (taças: bracket), sempre no estilo escuro, com DG, zonas e legenda. */
+  function classificacaoHTML(dados, competicao) {
     if (VFN.eliminatorias(competicao)) return bracketHTML(dados, competicao);
     // calculada a partir dos resultados em matches (não usa a tabela standings)
     const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
-    return `<div class="classificacao-bloco" data-competicao="${esc(competicao)}">
-      ${o.semApresentar ? "" : `<div class="classificacao-acoes"><button type="button" class="btn btn-ghost btn-sm" data-apresentar title="Mostrar em ecrã inteiro (balneário)">${VFN.icone("presentation", 16)} Apresentar</button></div>`}
+    return `<div class="classificacao-bloco tabela-escura" data-competicao="${esc(competicao)}">
       <div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
       <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero" title="Diferença de golos">DG</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
       <tbody>${linhas.map((s, i) => {
