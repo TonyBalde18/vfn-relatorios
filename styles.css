@@ -1308,3 +1308,65 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .esc-grid h5 { margin: 0 0 4px; font-size: .75rem; text-transform: uppercase; color: var(--text-muted); }
 .esc-grid ol, .esc-grid ul { margin: 0; padding-left: 18px; font-size: .84rem; }
 .esc-grid li { padding: 2px 0; }
+
+/* ---------- v4: presenças no telemóvel ---------- */
+.att-lista { display: none; list-style: none; margin: 0 0 10px; padding: 0; }
+.att-linha { display: grid; grid-template-columns: auto 1fr auto 16px; align-items: center; gap: 10px; width: 100%; padding: 9px 4px; border: 0; border-bottom: 1px solid var(--border-color); background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.att-nome { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-weight: 700; font-size: .88rem; color: var(--vfn-navy); }
+.att-nome small { display: flex; flex-wrap: wrap; gap: 4px; font-weight: 400; }
+.att-chip { display: inline-block; padding: 1px 6px; border-radius: 999px; color: #fff; font-size: .66rem; font-weight: 800; background: #cbd5e1; }
+.att-chip[data-status="P"] { background: var(--presente); } .att-chip[data-status="A"] { background: var(--atraso); }
+.att-chip[data-status="F"] { background: var(--falta); } .att-chip[data-status="J"] { background: var(--justificada); }
+.att-chip[data-status=""] { color: var(--text-muted); background: rgba(10,22,40,.06); }
+.att-chip.grande { padding: 3px 10px; font-size: .74rem; }
+.att-pct { font-weight: 800; font-size: .9rem; color: var(--vfn-navy); }
+.att-resumo { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; margin-bottom: 12px; }
+.att-resumo strong { display: block; color: var(--vfn-navy); }
+.att-resumo span { font-size: .8rem; color: var(--text-muted); }
+.att-totais { grid-column: 1 / -1; display: flex; gap: 6px; }
+.att-historico { list-style: none; margin: 0; padding: 0; }
+.att-historico li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+.att-data { display: inline-flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; }
+.att-data small { display: block; font-weight: 400; font-size: .72rem; color: var(--text-muted); }
+.att-escolha { display: inline-flex; gap: 4px; }
+.att-op { width: 36px; height: 36px; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; font: inherit; font-weight: 800; color: var(--text-muted); cursor: pointer; }
+.att-op.ativo { color: #fff; border-color: transparent; }
+.att-op.ativo[data-status="P"] { background: var(--presente); } .att-op.ativo[data-status="A"] { background: var(--atraso); }
+.att-op.ativo[data-status="F"] { background: var(--falta); } .att-op.ativo[data-status="J"] { background: var(--justificada); }
+/* vertical no telemóvel: lista em vez da grelha */
+@media (max-width: 700px) and (orientation: portrait) {
+  .att-lista { display: block; }
+  .attendance-wrap { display: none; }
+}
+/* horizontal no telemóvel: grelha condensada, sem scroll horizontal */
+@media (max-width: 1000px) and (orientation: landscape) {
+  .attendance-wrap { overflow-x: hidden; max-height: none; }
+  .attendance-table { table-layout: fixed; width: 100%; min-width: 0; }
+  .attendance-table thead th { min-width: 0; padding: 4px 1px; font-size: .62rem; }
+  .attendance-table thead th .session-icon .ic { width: 12px; height: 12px; }
+  .attendance-table thead th .session-remove { display: none; }
+  .attendance-table .col-player { width: 110px; min-width: 0; max-width: 110px; padding: 3px 6px; font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .attendance-table .col-player .vfn-avatar { display: none; }
+  .attendance-table .col-total { width: 26px; min-width: 0; padding: 2px; font-size: .7rem; }
+  .att-cell { min-width: 0; height: 26px; font-size: .7rem; }
+  .attendance-table tfoot td { padding: 3px 1px; font-size: .62rem; }
+}
+@media (max-width: 1000px) and (orientation: landscape) {
+  .attendance-table thead th .session-day { white-space: normal; line-height: 1.1; font-size: .6rem; }
+}
+/* multas dos dirigentes no telemóvel (vertical): resumo compacto e cada multa em cartão */
+@media (max-width: 700px) and (orientation: portrait) {
+  #dbMultasResumo { grid-template-columns: 1fr 1fr; gap: 8px; }
+  #dbMultasResumo .summary-tile { padding: 10px 12px; }
+  #dbMultasResumo .summary-tile:first-child { grid-column: 1 / -1; }
+  #dbMultasResumo .summary-tile strong { font-size: 1.2rem; }
+  #dbMultasTabela thead { display: none; }
+  #dbMultasTabela, #dbMultasTabela tbody { display: block; width: 100%; }
+  #dbMultasTabela tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+  #dbMultasTabela td { display: block; padding: 0; border: 0; }
+  #dbMultasTabela td:nth-child(1) { grid-column: 1; grid-row: 1; }
+  #dbMultasTabela td:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; font-weight: 800; }
+  #dbMultasTabela td:nth-child(2) { grid-column: 1 / -1; font-size: .82rem; }
+  #dbMultasTabela td:nth-child(4) { grid-column: 1; }
+  #dbMultasTabela td:nth-child(5) { grid-column: 2; text-align: right; font-size: .78rem; color: var(--text-muted); }
+}

@@ -249,6 +249,42 @@
     return { render, irPara(ano, mes) { estado.ano = ano; estado.mes = mes; render(); } };
   }
 
+  /* ---------- Presenças no telemóvel ---------- */
+
+  const NOMES_ESTADO = { P: "Presente", A: "Atraso", F: "Falta", J: "Justificada" };
+  const pct = t => { const total = t.P + t.A + t.F + t.J; return total ? Math.round((t.P + t.A) / total * 100) : null; };
+
+  /** Lista de jogadores (vista vertical): resumo do mês e % de presença. linhas: [{ jogador, id, totais }] */
+  function listaPresencasHTML(linhas) {
+    if (!linhas.length) return "";
+    return `<ul class="att-lista">${linhas.map(l => {
+      const p = pct(l.totais);
+      return `<li><button type="button" class="att-linha" data-presencas-jogador="${esc(l.id)}">
+        ${VFN.avatarJogador(l.jogador, "avatar-xs")}
+        <span class="att-nome">${esc(l.jogador.nome)}<small>${["P", "A", "F", "J"].filter(k => l.totais[k]).map(k => `<b class="att-chip" data-status="${k}">${k} ${l.totais[k]}</b>`).join("") || '<span class="muted">sem registos</span>'}</small></span>
+        <span class="att-pct">${p === null ? "—" : p + "%"}</span>
+        ${VFN.icone("chevron-right", 16)}
+      </button></li>`;
+    }).join("")}</ul>`;
+  }
+
+  /**
+   * Histórico de presenças de um jogador (drawer).
+   * o: { jogador, sessoes: [{ data, tipo, estado }], epoca: { P, A, F, J }, editavel }
+   */
+  function renderAttendanceDrawer(o) {
+    const pe = pct(o.epoca);
+    const resumo = `<div class="att-resumo">${VFN.avatarJogador(o.jogador, "avatar-sm")}<div><strong>${esc(o.jogador.nome)}</strong><span>Época: ${pe === null ? "sem registos" : pe + "% de presença"}</span></div>
+      <div class="att-totais">${["P", "A", "F", "J"].map(k => `<span class="att-chip" data-status="${k}" title="${NOMES_ESTADO[k]}">${k} ${o.epoca[k]}</span>`).join("")}</div></div>`;
+    if (!o.sessoes.length) return resumo + '<p class="muted">Sem sessões neste mês.</p>';
+    return resumo + `<ol class="att-historico">${o.sessoes.map((s, i) => `<li>
+      <span class="att-data">${VFN.icone(s.tipo === "jogo" ? "goal" : "traffic-cone", 16)}<span>${esc(VFN.dataDDMMAAAA(s.data))}<small>${s.tipo === "jogo" ? "Jogo" : "Treino"}</small></span></span>
+      ${o.editavel
+        ? `<span class="att-escolha" role="group" aria-label="Estado em ${esc(VFN.dataDDMMAAAA(s.data))}">${["P", "A", "F", "J"].map(k => `<button type="button" class="att-op${s.estado === k ? " ativo" : ""}" data-status="${k}" data-definir="${k}" data-sessao="${i}" aria-pressed="${s.estado === k}" title="${NOMES_ESTADO[k]}">${k}</button>`).join("")}</span>`
+        : `<span class="att-chip grande" data-status="${s.estado}">${s.estado ? NOMES_ESTADO[s.estado] : "Sem registo"}</span>`}
+    </li>`).join("")}</ol>`;
+  }
+
   /** Alternância "Mês | Lista" (guarda a escolha neste dispositivo). */
   function ligarAlternanciaCalendario(botoes, vistaMes, vistaLista, chave) {
     let modo = "mes";
@@ -266,6 +302,7 @@
 
   window.VFNComp = {
     abrirDrawer, fecharDrawer,
+    listaPresencasHTML, renderAttendanceDrawer,
     eventosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

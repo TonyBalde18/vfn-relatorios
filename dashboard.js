@@ -545,7 +545,8 @@ function renderPresencasDash() {
     const celulas = sessoes.map((s, i) => { const e = estado(j.id, s); if (e) { t[e]++; totaisSessao[i][e]++; } return `<td><span class="att-cell" data-status="${e}" title="${NOMES_PRESENCA[e] || "Sem registo"}">${e}</span></td>`; }).join("");
     return `<tr><th scope="row" class="col-player" data-v="${esc(j.nome)}"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span></th>${celulas}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${t[k]}</td>`).join("")}</tr>`;
   }).join("");
-  $("dbPresencasGrelha").innerHTML = `<div class="attendance-wrap"><table class="attendance-table leitura" data-ordenar="presencas-dash">
+  const listaVertical = VFNComp.listaPresencasHTML(linhasListaPresencas(lista, sessoes, estado));
+  $("dbPresencasGrelha").innerHTML = `${listaVertical}<div class="attendance-wrap"><table class="attendance-table leitura" data-ordenar="presencas-dash">
     <thead><tr><th scope="col" class="col-player" data-tipo="texto">Jogador</th>${sessoes.map(s => `<th scope="col" title="${s.tipo === "jogo" ? "Jogo" : "Treino"} · ${esc(VFN.dataDDMMAAAA(s.data))}"><span class="session-day">${esc(VFN.dataCurta(s.data))}</span><span class="session-icon" aria-label="${s.tipo === "jogo" ? "Jogo" : "Treino"}">${VFN.icone(s.tipo === "jogo" ? "goal" : "footprints", 16)}</span></th>`).join("")}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" data-tipo="numero" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
     <tbody>${linhas}</tbody>
     <tfoot><tr><td class="col-player">Presentes (P+A)</td>${totaisSessao.map(t => `<td>${t.P + t.A}</td>`).join("")}<td colspan="4"></td></tr></tfoot>
@@ -590,7 +591,28 @@ function renderBannerProximoJogo() {
     </div>`;
 }
 
+/** Linhas da lista vertical: totais do mês por jogador. */
+function linhasListaPresencas(jogadoresMes, sessoes, estado) {
+  return jogadoresMes.map(j => {
+    const totais = { P: 0, A: 0, F: 0, J: 0 };
+    sessoes.forEach(s => { const e = estado(j.id, s); if (totais[e] !== undefined) totais[e]++; });
+    return { jogador: j, id: j.id, totais };
+  });
+}
+
+/** Drawer (só leitura) com as presenças do mês e o resumo da época. */
+function abrirPresencasJogadorDash(id) {
+  const j = jogadorPorIdDash(id);
+  if (!j) return;
+  const sessoes = sessoesDoMesDash(filtrosPresencas.mes);
+  const estado = s => { const r = dados.attendance.find(a => String(a.player_id) === String(id) && a.session_date === s.data && a.session_type === s.tipo); return r && r.status || ""; };
+  const epoca = { P: 0, A: 0, F: 0, J: 0 };
+  dados.attendance.filter(a => String(a.player_id) === String(id) && epoca[a.status] !== undefined).forEach(a => { epoca[a.status]++; });
+  VFNComp.abrirDrawer({ titulo: "Presenças · " + $("dbPresencasMes").selectedOptions[0].textContent, corpo: VFNComp.renderAttendanceDrawer({ jogador: j, epoca, editavel: false, sessoes: sessoes.map(s => ({ data: s.data, tipo: s.tipo, estado: estado(s) })) }) });
+}
+
 function initMultasPresencasDash() {
+  $("dbPresencasGrelha").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b) abrirPresencasJogadorDash(b.dataset.presencasJogador); });
   $("bannerProximoJogo").addEventListener("toggle", e => { try { localStorage.setItem("vfnBannerProximo", e.target.open ? "aberto" : "fechado"); } catch (err) { /* ignora */ } });
   $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });
   $("dbMultasMes").addEventListener("change", e => { filtrosMultas.mes = e.target.value; renderMultasDash(); });

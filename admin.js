@@ -505,6 +505,23 @@ function renderHeatmapAdmin(escolhido) {
   el("presencasHeatmap").innerHTML = VFN.heatmapPresencasHTML(registos, { individual: !!escolhido });
 }
 
+/** Drawer com as presenças do jogador no mês (editáveis) e o resumo da época. */
+function abrirPresencasJogador(idBD) {
+  const j = jogadorPorIdBD(idBD);
+  if (!j) return;
+  const sessoes = sessoesDoMes(el("presencasMes").value);
+  const epoca = { P: 0, A: 0, F: 0, J: 0 };
+  cacheAdmin.attendance.filter(a => a.player_id === idBD && epoca[a.status] !== undefined).forEach(a => { epoca[a.status]++; });
+  const corpo = VFNComp.abrirDrawer({
+    titulo: "Presenças · " + el("presencasMes").selectedOptions[0].textContent,
+    corpo: VFNComp.renderAttendanceDrawer({ jogador: j, epoca, editavel: true, sessoes: sessoes.map(s => ({ data: s.data, tipo: s.tipo, estado: (registoPresenca(idBD, s) || {}).status || "" })) })
+  });
+  corpo.querySelectorAll("[data-definir]").forEach(b => b.addEventListener("click", () => {
+    alternarPresenca(idBD, sessoes[Number(b.dataset.sessao)], b.dataset.definir);
+    abrirPresencasJogador(idBD);
+  }));
+}
+
 function renderPresencas() {
   const mes = el("presencasMes").value;
   const sessoes = sessoesDoMes(mes);
@@ -544,9 +561,15 @@ function renderPresencas() {
     return `<tr><th scope="row" class="col-player"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${escapeHtml(j.nome)}</span></span></th>${celulas}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${totais[k]}</td>`).join("")}</tr>`;
   }).join("");
 
+  const lista = VFNComp.listaPresencasHTML(jogadores.map(j => {
+    const idBD = idJogadorBD(j);
+    const totais = { P: 0, A: 0, F: 0, J: 0 };
+    sessoes.forEach(s => { const r = registoPresenca(idBD, s); if (r && totais[r.status] !== undefined) totais[r.status]++; });
+    return { jogador: j, id: idBD, totais };
+  }));
   const rodape = totaisSessao.map(t => `<td title="Presentes ${t.P} · Faltas ${t.F} · Atrasos ${t.A} · Justificadas ${t.J}">${t.P + t.A}/${jogadores.length}</td>`).join("");
 
-  container.innerHTML = `
+  container.innerHTML = `${lista}
     <div class="attendance-wrap">
       <table class="attendance-table" data-ordenar="presencas-admin">
         <thead><tr><th scope="col" class="col-player" data-tipo="texto">Jogador</th>${cabecalho}${["P", "F", "A", "J"].map(k => `<th scope="col" class="col-total" data-tipo="numero" title="${NOMES_PRESENCA[k]}">${k}</th>`).join("")}</tr></thead>
@@ -565,6 +588,7 @@ function renderPresencas() {
   if (window.scrollY !== scroll.pagina) window.scrollTo(0, scroll.pagina);
 
   container.querySelectorAll(".att-cell").forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); alternarPresenca(btn.dataset.jogador, sessoes[Number(btn.dataset.sessao)]); }));
+  container.querySelectorAll("[data-presencas-jogador]").forEach(btn => btn.addEventListener("click", () => abrirPresencasJogador(btn.dataset.presencasJogador)));
   container.querySelectorAll(".session-remove").forEach(btn => btn.addEventListener("click", () => removerSessao(sessoes[Number(btn.dataset.sessao)])));
 }
 
@@ -595,10 +619,11 @@ async function sincronizarMultaFalta(playerId, sessao, anterior, seguinte) {
   }
 }
 
-function alternarPresenca(playerId, sessao) {
+/** Sem `estado`: passa ao seguinte do ciclo (grelha). Com `estado`: define-o (tocar no mesmo limpa). */
+function alternarPresenca(playerId, sessao, estado) {
   const registo = registoPresenca(playerId, sessao);
   const atual = registo && registo.status || "";
-  const seguinte = CICLO_PRESENCA[(CICLO_PRESENCA.indexOf(atual) + 1) % CICLO_PRESENCA.length];
+  const seguinte = estado === undefined ? CICLO_PRESENCA[(CICLO_PRESENCA.indexOf(atual) + 1) % CICLO_PRESENCA.length] : (estado === atual ? "" : estado);
 
   // atualização otimista; as gravações seguem em fila para não se cruzarem
   if (!seguinte) {
