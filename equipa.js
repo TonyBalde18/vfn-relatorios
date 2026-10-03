@@ -314,6 +314,7 @@ function abrirRelatorio(id) {
     logoVFN: `<img class="team-logo rel-logo" src="${esc(H.logoVFN(dados))}" alt="Logótipo VFN">`,
     logoEquipa: (tid, nome) => H.logoEquipa(H.equipa(dados, tid) || { id: tid, name: nome }, nome, "rel-logo")
   });
+  VFNRelatorio.carregarSituacoes($("eqRelatorioDetalhe"), item.r, cliente);
   if (window.innerWidth < 900) $("eqRelatorioDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 

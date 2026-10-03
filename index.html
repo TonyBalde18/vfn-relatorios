@@ -237,6 +237,13 @@
     <div class="card"><h2 class="section-title">Tópicos para o Treino</h2><textarea id="topicosText" rows="5"></textarea></div>
 
     <div class="card"><h2 class="section-title">Notas individuais</h2><div id="notasIndividuaisList" class="dynamic-list"></div><button type="button" id="btnAddNotaIndividual" class="btn btn-ghost btn-sm">+ Adicionar nota</button></div>
+
+    <div class="card">
+      <div class="section-header-row"><h2 class="section-title">Situações de Jogo</h2><label for="situacaoUpload" class="btn btn-accent btn-sm file-btn">+ Adicionar Situação</label><input type="file" id="situacaoUpload" accept="image/png,image/jpeg,image/svg+xml" multiple hidden></div>
+      <p class="muted">Até 10 imagens (PNG, JPG ou SVG) com legenda. Arrasta para reordenar. Ficam no relatório (treinador e dirigentes) e no Word.</p>
+      <p id="situacoesErro" class="form-error" role="alert"></p>
+      <ol id="situacoesLista" class="situacoes-lista"></ol>
+    </div>
   </section>
 
   <!-- TAB 4: EQUIPA -->

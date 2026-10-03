@@ -822,6 +822,32 @@ from (values
 ) as v(id, lat, lng)
 where t.id = v.id and t.stadium_lat is null;
 
+-- [v6 Tarefa 6] Situações de jogo nos relatórios: imagens no bucket privado report-images.
+-- Formato: [{"path": "<match_id>/<ficheiro>", "caption": "Pressing alto no 1º tempo", "order": 1}]
+-- (o bucket é privado, por isso guarda-se o caminho e as páginas pedem URLs assinados de 1 hora;
+--  as situações ficam também em match_data.analise.situacoes)
+alter table public.match_reports add column if not exists situations jsonb;
+
+-- bucket privado (equivale a Storage → New bucket "report-images", sem "Public bucket")
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('report-images', 'report-images', false, 8388608, array['image/png', 'image/jpeg', 'image/svg+xml'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "report-images read" on storage.objects;
+drop policy if exists "report-images admin insert" on storage.objects;
+drop policy if exists "report-images admin update" on storage.objects;
+drop policy if exists "report-images admin delete" on storage.objects;
+-- lê: equipa técnica, dirigentes e jogadores com conta ligada (quem vê os relatórios)
+create policy "report-images read" on storage.objects for select to authenticated
+  using (bucket_id = 'report-images' and (public.vfn_is_staff() or public.vfn_is_player()));
+-- escreve: só o admin
+create policy "report-images admin insert" on storage.objects for insert to authenticated
+  with check (bucket_id = 'report-images' and public.vfn_is_admin());
+create policy "report-images admin update" on storage.objects for update to authenticated
+  using (bucket_id = 'report-images' and public.vfn_is_admin());
+create policy "report-images admin delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'report-images' and public.vfn_is_admin());
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

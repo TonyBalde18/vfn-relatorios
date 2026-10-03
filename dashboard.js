@@ -386,6 +386,7 @@ function abrirRelatorio(id) {
   mostrarVista("historico");
   renderHistorico();
   $("historicoDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
+  VFNRelatorio.carregarSituacoes($("historicoDetalhe"), relatorioAberto, cliente); // imagens do bucket privado (URLs assinados)
   $("btnExportarWord").hidden = false;
   if (window.innerWidth < 900) $("historicoDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -398,6 +399,7 @@ async function exportarWordRelatorio() {
   botao.disabled = true;
   try {
     await VFNRelatorio.word(relatorioAberto, {
+      cliente,
       nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
       urlsLogoAdversario: [d.adversarioId ? `assets/opponents/${d.adversarioId}.png` : "", VFN.urlLogoEquipa(equipa, d.adversario)].filter(Boolean)
     });

@@ -1653,6 +1653,7 @@ async function gravarMarcadoresForm(casa, fora) {
 
 let colunasRelatorioV3 = true; // passa a false se a BD ainda não tiver as colunas novas
 let colunaCapitao = true; // match_reports.captain_id (v4)
+let colunaSituacoes = true; // match_reports.situations (v6); sem ela ficam só no match_data
 let gravacaoRelatorio = Promise.resolve();
 
 function estadoDoRelatorio(r) {
@@ -1699,7 +1700,8 @@ function linhaRelatorio() {
     areas_to_improve: state.analise.aMelhorar || null,
     individual_notes: (state.analise.notasIndividuais || []).filter(n => n.jogadorId && n.nota).map(n => ({ player: nomeJogador(n.jogadorId), note: n.nota })),
     created_by: currentUser ? currentUser.id : null,
-    ...(colunaCapitao ? { captain_id: state.jogo.capitaoId ? idJogadorBD(plantel.find(p => p.id === Number(state.jogo.capitaoId)) || { id: state.jogo.capitaoId }) : null } : {})
+    ...(colunaCapitao ? { captain_id: state.jogo.capitaoId ? idJogadorBD(plantel.find(p => p.id === Number(state.jogo.capitaoId)) || { id: state.jogo.capitaoId }) : null } : {}),
+    ...(colunaSituacoes ? { situations: (state.analise.situacoes || []).map(({ path, caption, order }) => ({ path: path || null, caption: caption || "", order })) } : {})
   };
 }
 
@@ -1713,7 +1715,8 @@ function guardarRelatorioDoJogo() {
         gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
       } catch (e) {
         if (!colunasRelatorioV3 || !/does not exist|schema cache|could not find|foreign key/i.test(e.message || "")) throw e;
-        if (colunaCapitao && /captain_id/i.test(e.message || "")) colunaCapitao = false; // só falta a coluna da v4 (ou o capitão não está na BD)
+        if (colunaSituacoes && /situations/i.test(e.message || "")) colunaSituacoes = false; // falta a coluna da v6
+        else if (colunaCapitao && /captain_id/i.test(e.message || "")) colunaCapitao = false; // só falta a coluna da v4 (ou o capitão não está na BD)
         else colunasRelatorioV3 = false; // BD sem as colunas da v3: grava só o match_data
         gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
       }
@@ -1805,6 +1808,101 @@ function renderHistoricoAdmin() {
       <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}">${VFN.icone("file-pen", 16)} Abrir</button>` : '<span class="muted">sem jogo associado</span>'}</td>
     </tr>`;
   }).join("");
+}
+
+/* ---- Situações de jogo (imagens no bucket privado report-images) ---- */
+
+const TIPOS_SITUACAO = ["image/png", "image/jpeg", "image/svg+xml"];
+let situacaoArrastada = null;
+
+function situacoesAdmin() {
+  if (!Array.isArray(state.analise.situacoes)) state.analise.situacoes = [];
+  return state.analise.situacoes;
+}
+
+/** Depois de mudar as situações: ordem 1..n, rascunho local e relatório do jogo (se houver). */
+function situacoesMudaram() {
+  situacoesAdmin().forEach((s, i) => { s.order = i + 1; });
+  guardarRascunho();
+  guardarRelatorioDoJogo();
+  renderSituacoesAdmin();
+}
+
+async function renderSituacoesAdmin() {
+  const ol = el("situacoesLista");
+  if (!ol) return;
+  const lista = situacoesAdmin();
+  ol.innerHTML = lista.length ? lista.map((s, i) => `<li class="situacao-item" draggable="true" data-i="${i}">
+      <span class="situacao-pega" title="Arrastar para reordenar" aria-hidden="true">${VFN.icone("grip-vertical", 18)}</span>
+      <span class="situacao-num">${i + 1}</span>
+      <span class="situacao-thumb"><img alt="Situação ${i + 1}"></span>
+      <textarea data-legenda="${i}" rows="2" placeholder="Legenda (ex.: Pressing alto no 1.º tempo)" aria-label="Legenda da situação ${i + 1}">${escapeHtml(s.caption || "")}</textarea>
+      <span class="situacao-acoes"><button type="button" class="icon-btn" data-mover="-1" data-i="${i}" title="Subir" aria-label="Subir" ${i === 0 ? "disabled" : ""}>${VFN.icone("chevron-up", 16)}</button><button type="button" class="icon-btn" data-mover="1" data-i="${i}" title="Descer" aria-label="Descer" ${i === lista.length - 1 ? "disabled" : ""}>${VFN.icone("chevron-down", 16)}</button><button type="button" class="icon-btn danger" data-remover-situacao="${i}" title="Remover" aria-label="Remover situação ${i + 1}">${VFN.icone("trash-2", 16)}</button></span>
+    </li>`).join("") : '<li class="muted situacoes-vazio">Ainda sem situações.</li>';
+  if (!lista.length) return;
+  const urls = await VFNRelatorio.urlsSituacoes(lista, dadosClube.usaSupabase() ? supabaseClient : null).catch(() => []);
+  ol.querySelectorAll(".situacao-item").forEach(li => { const url = urls[Number(li.dataset.i)]; if (url) li.querySelector("img").src = url; });
+}
+
+async function adicionarSituacoes(ficheiros) {
+  const erro = m => { el("situacoesErro").textContent = m; };
+  erro("");
+  for (const f of ficheiros) {
+    if (situacoesAdmin().length >= VFNRelatorio.MAX_SITUACOES) { erro(`Máximo de ${VFNRelatorio.MAX_SITUACOES} situações por relatório.`); break; }
+    if (!TIPOS_SITUACAO.includes(f.type)) { erro(`${f.name}: só PNG, JPG ou SVG.`); continue; }
+    if (f.size > 8 * 1024 * 1024) { erro(`${f.name}: a imagem tem mais de 8 MB.`); continue; }
+    try {
+      if (dadosClube.usaSupabase()) {
+        const pasta = state.preJogo.matchId || state.relatorioId || "sem-jogo";
+        const caminho = `${pasta}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+        const { error } = await supabaseClient.storage.from(VFNRelatorio.BUCKET_SITUACOES).upload(caminho, f, { contentType: f.type, upsert: false });
+        if (error) throw error;
+        situacoesAdmin().push({ path: caminho, caption: "", order: situacoesAdmin().length + 1 });
+      } else {
+        // modo local: a imagem fica no rascunho (localStorage), por isso só imagens pequenas
+        if (f.size > 1.5 * 1024 * 1024) { erro(`${f.name}: em modo local só imagens até 1,5 MB.`); continue; }
+        const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+        situacoesAdmin().push({ data, caption: "", order: situacoesAdmin().length + 1 });
+      }
+    } catch (e) {
+      erro(/bucket/i.test(e.message || "") ? "Falta o bucket report-images no Supabase Storage (ver secção v6 do schema.sql)." : mensagemErro(e));
+    }
+  }
+  situacoesMudaram();
+}
+
+async function removerSituacao(i) {
+  const s = situacoesAdmin()[i];
+  if (!s || !confirm(`Remover a situação ${i + 1}${s.caption ? ` ("${s.caption}")` : ""}?`)) return;
+  situacoesAdmin().splice(i, 1);
+  if (s.path && dadosClube.usaSupabase()) supabaseClient.storage.from(VFNRelatorio.BUCKET_SITUACOES).remove([s.path]).catch(() => {});
+  situacoesMudaram();
+}
+
+function moverSituacao(de, para) {
+  const lista = situacoesAdmin();
+  if (para < 0 || para >= lista.length || de === para) return;
+  const [s] = lista.splice(de, 1);
+  lista.splice(para, 0, s);
+  situacoesMudaram();
+}
+
+function initSituacoes() {
+  const ol = el("situacoesLista");
+  el("situacaoUpload").addEventListener("change", e => { const f = [...e.target.files]; e.target.value = ""; if (f.length) adicionarSituacoes(f); });
+  ol.addEventListener("click", e => {
+    const mover = e.target.closest("[data-mover]");
+    if (mover) { const i = Number(mover.dataset.i); moverSituacao(i, i + Number(mover.dataset.mover)); return; }
+    const remover = e.target.closest("[data-remover-situacao]");
+    if (remover) removerSituacao(Number(remover.dataset.removerSituacao));
+  });
+  ol.addEventListener("change", e => { const t = e.target.closest("[data-legenda]"); if (!t) return; situacoesAdmin()[Number(t.dataset.legenda)].caption = t.value.trim(); situacoesMudaram(); });
+  // arrastar e largar para reordenar
+  ol.addEventListener("dragstart", e => { const li = e.target.closest(".situacao-item"); if (!li) return; situacaoArrastada = Number(li.dataset.i); li.classList.add("a-arrastar"); e.dataTransfer.effectAllowed = "move"; });
+  ol.addEventListener("dragend", e => { const li = e.target.closest(".situacao-item"); if (li) li.classList.remove("a-arrastar"); ol.querySelectorAll(".sobre").forEach(x => x.classList.remove("sobre")); });
+  ol.addEventListener("dragover", e => { const li = e.target.closest(".situacao-item"); if (!li || situacaoArrastada === null) return; e.preventDefault(); ol.querySelectorAll(".sobre").forEach(x => x.classList.remove("sobre")); li.classList.add("sobre"); });
+  ol.addEventListener("drop", e => { const li = e.target.closest(".situacao-item"); if (!li || situacaoArrastada === null) return; e.preventDefault(); const de = situacaoArrastada; situacaoArrastada = null; moverSituacao(de, Number(li.dataset.i)); });
+  renderSituacoesAdmin();
 }
 
 function initRelatorios() {
@@ -2139,6 +2237,7 @@ function initAdmin() {
   initResultados();
   initJornadas();
   initRelatorios();
+  initSituacoes();
   initMarcadoresForm();
   carregarJogadoresExternos().then(renderJornadasAdmin);
   initAdversarios();

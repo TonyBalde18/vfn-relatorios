@@ -1636,3 +1636,31 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .br-ligacao { fill: none; stroke: #16a34a; stroke-width: 2.5; stroke-linecap: round; opacity: .75; }
 .br-viajante { filter: drop-shadow(0 2px 3px rgba(10,22,40,.35)); }
 .bracket { gap: 28px; }
+
+/* ---------- v6: situações de jogo (admin, relatório e lightbox) ---------- */
+.situacoes-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.situacao-item { display: grid; grid-template-columns: 20px 22px 96px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border-color); border-radius: 10px; background: #fff; }
+.situacao-item.a-arrastar { opacity: .5; }
+.situacao-item.sobre { border-color: #FFD700; box-shadow: 0 0 0 2px rgba(255,215,0,.5); }
+.situacao-pega { cursor: grab; color: var(--text-muted); }
+.situacao-num { font-weight: 800; color: var(--vfn-navy); text-align: center; }
+.situacao-thumb { width: 96px; height: 64px; border-radius: 6px; overflow: hidden; background: #E2E8F0; }
+.situacao-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.situacao-item textarea { width: 100%; resize: vertical; font: inherit; font-size: .85rem; }
+.situacao-acoes { display: flex; gap: 4px; }
+@media (max-width: 640px) { .situacao-item { grid-template-columns: 22px 80px minmax(0, 1fr); } .situacao-pega { display: none; } .situacao-thumb { width: 80px; } .situacao-item textarea, .situacao-acoes { grid-column: 1 / -1; } .situacao-acoes { justify-content: flex-end; } }
+.rel-situacoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.rel-situacao { margin: 0; }
+.rel-situacao-img { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; background: #E2E8F0; cursor: zoom-in; }
+.rel-situacao-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+.rel-situacao-img:hover img { transform: scale(1.04); }
+.rel-situacao-img.sem-imagem { cursor: default; }
+.rel-situacao figcaption { margin-top: 4px; font-size: .8rem; color: var(--text-muted); }
+.vfn-lightbox { position: fixed; inset: 0; z-index: 1400; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; background: rgba(10,22,40,.92); }
+.vfn-lightbox figure { margin: 0; max-width: min(1100px, 100%); text-align: center; }
+.vfn-lightbox img { max-width: 100%; max-height: 80vh; border-radius: 8px; background: #fff; }
+.vfn-lightbox figcaption { margin-top: 8px; color: #fff; font-size: .9rem; }
+.vfn-lightbox button { border: 0; background: rgba(255,255,255,.12); color: #fff; font-size: 2rem; line-height: 1; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; }
+.vfn-lightbox button:hover { background: #FFD700; color: #0A1628; }
+.vfn-lightbox .lb-fechar { position: absolute; top: 14px; right: 14px; }
+@media (max-width: 640px) { .vfn-lightbox .lb-ant, .vfn-lightbox .lb-seg { position: absolute; bottom: 18px; } .vfn-lightbox .lb-ant { left: 24px; } .vfn-lightbox .lb-seg { right: 24px; } }

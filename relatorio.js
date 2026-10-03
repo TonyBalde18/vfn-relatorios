@@ -108,6 +108,7 @@
       ${blocoTexto("1.º tempo", d.primeiroTempo)}${blocoTexto("2.º tempo", d.segundoTempo)}
       ${d.seccoes.length ? `<section class="rel-bloco"><h4>Análise tática</h4>${d.seccoes.map(s => `<div class="rel-seccao"><h5>${esc(s.titulo)}${s.avaliacao ? ` <span class="rel-aval aval-${esc(s.avaliacao)}">${esc(s.avaliacao)}</span>` : ""}</h5>${paragrafos(s.texto).map(p => `<p>${esc(p)}</p>`).join("")}</div>`).join("")}</section>` : ""}
       ${blocoTexto("Momentos de destaque", d.destaques)}${blocoTexto("Pontos positivos", d.positivos)}${blocoTexto("Pontos a melhorar", d.aMelhorar)}${blocoTexto("Tópicos para o treino", d.topicos)}
+      ${situacoesHTML(r)}
       ${d.notasIndividuais.length ? `<section class="rel-bloco"><h4>Notas individuais</h4><table class="rel-notas"><tbody>${d.notasIndividuais.map(n => `<tr><th scope="row">${esc(n.jogador)}</th><td>${esc(n.nota)}</td></tr>`).join("")}</tbody></table></section>` : ""}`;
   }
 
@@ -171,6 +172,7 @@
       d.seccoes.forEach(s => { corpo.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: s.titulo, bold: true, size: 21, color: NAVY }), new TextRun({ text: s.avaliacao ? `  ·  ${s.avaliacao}` : "", bold: true, size: 20, color: s.avaliacao === "Bom" ? "15803D" : s.avaliacao === "Mau" ? "B91C1C" : "A16207" })] }), ...texto(s.texto)); });
     }
     [["Momentos de destaque", d.destaques], ["Pontos positivos", d.positivos], ["Pontos a melhorar", d.aMelhorar], ["Tópicos para o treino", d.topicos]].forEach(([t, v]) => { if (v) corpo.push(titulo(t), ...texto(v)); });
+    corpo.push(...await situacoesParaWord(r, ctx.cliente, titulo));
     if (d.notasIndividuais.length) {
       corpo.push(titulo("Notas individuais"));
       corpo.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: d.notasIndividuais.map(n => new TableRow({ children: [
@@ -190,5 +192,126 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word };
+  /* ---------- Situações de jogo (imagens no bucket privado report-images) ----------
+     Cada situação: { path (no bucket) | data (data URL, modo local), caption, order }.
+     O bucket é privado: as imagens mostram-se com URLs assinados (válidos 1 hora). */
+
+  const BUCKET_SITUACOES = "report-images";
+  const MAX_SITUACOES = 10;
+
+  function situacoesDe(r) {
+    const lista = (r && (r.situations || ((r.match_data || {}).analise || {}).situacoes)) || [];
+    return [...lista].filter(s => s && (s.path || s.data)).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+  }
+
+  const urlsAssinados = new Map(); // path -> { url, ate }
+
+  /** URL de cada situação (pela mesma ordem): data URL, ou URL assinado do bucket privado. */
+  async function urlsSituacoes(lista, cliente) {
+    const agora = Date.now();
+    const porAssinar = [...new Set(lista.filter(s => s.path && !(urlsAssinados.get(s.path) && urlsAssinados.get(s.path).ate > agora)).map(s => s.path))];
+    if (porAssinar.length && cliente) {
+      const { data } = await cliente.storage.from(BUCKET_SITUACOES).createSignedUrls(porAssinar, 3600);
+      (data || []).forEach(x => { if (x.signedUrl) urlsAssinados.set(x.path, { url: x.signedUrl, ate: agora + 55 * 60 * 1000 }); });
+    }
+    return lista.map(s => s.data || (urlsAssinados.get(s.path) || {}).url || "");
+  }
+
+  /** Galeria (só leitura). As imagens carregam depois com carregarSituacoes(contentor, r, cliente). */
+  function situacoesHTML(r) {
+    const lista = situacoesDe(r);
+    if (!lista.length) return "";
+    return `<section class="rel-bloco"><h4>Situações de jogo</h4><div class="rel-situacoes">${lista.map((s, i) => `
+      <figure class="rel-situacao"><button type="button" class="rel-situacao-img" data-situacao="${i}" aria-label="Ampliar situação ${i + 1}"><img alt="${esc(s.caption || "Situação " + (i + 1))}" loading="lazy"></button>
+        ${s.caption ? `<figcaption>${esc(s.caption)}</figcaption>` : ""}</figure>`).join("")}</div></section>`;
+  }
+
+  /** Preenche as imagens da galeria e liga a lightbox. */
+  async function carregarSituacoes(contentor, r, cliente) {
+    const lista = situacoesDe(r);
+    if (!contentor || !lista.length) return;
+    let urls = [];
+    try { urls = await urlsSituacoes(lista, cliente); } catch (e) { console.warn("Situações:", e.message || e); }
+    contentor.querySelectorAll("[data-situacao]").forEach(b => {
+      const i = Number(b.dataset.situacao);
+      const img = b.querySelector("img");
+      if (urls[i]) img.src = urls[i]; else b.classList.add("sem-imagem");
+      b.onclick = () => abrirLightbox(lista, urls, i);
+    });
+  }
+
+  /** Lightbox com setas (← →) e Esc para fechar. */
+  function abrirLightbox(lista, urls, inicio) {
+    let i = inicio;
+    let caixa = document.getElementById("vfnLightbox");
+    if (!caixa) {
+      caixa = document.createElement("div");
+      caixa.id = "vfnLightbox";
+      caixa.className = "vfn-lightbox";
+      caixa.setAttribute("role", "dialog");
+      caixa.setAttribute("aria-modal", "true");
+      caixa.innerHTML = `<button type="button" class="lb-fechar" aria-label="Fechar">×</button><button type="button" class="lb-ant" aria-label="Anterior">‹</button>
+        <figure><img alt=""><figcaption></figcaption></figure><button type="button" class="lb-seg" aria-label="Seguinte">›</button>`;
+      document.body.appendChild(caixa);
+    }
+    const mostrar = () => {
+      caixa.querySelector("img").src = urls[i] || "";
+      caixa.querySelector("img").alt = lista[i].caption || `Situação ${i + 1}`;
+      caixa.querySelector("figcaption").textContent = `${i + 1}/${lista.length}${lista[i].caption ? " · " + lista[i].caption : ""}`;
+      caixa.querySelector(".lb-ant").hidden = caixa.querySelector(".lb-seg").hidden = lista.length < 2;
+    };
+    const fechar = () => { caixa.hidden = true; document.removeEventListener("keydown", teclas); };
+    const mover = d => { i = (i + d + lista.length) % lista.length; mostrar(); };
+    const teclas = e => { if (e.key === "Escape") fechar(); else if (e.key === "ArrowLeft") mover(-1); else if (e.key === "ArrowRight") mover(1); };
+    caixa.onclick = e => {
+      if (e.target.closest(".lb-ant")) mover(-1);
+      else if (e.target.closest(".lb-seg")) mover(1);
+      else if (e.target === caixa || e.target.closest(".lb-fechar")) fechar();
+    };
+    document.addEventListener("keydown", teclas);
+    caixa.hidden = false;
+    mostrar();
+    caixa.querySelector(".lb-fechar").focus();
+  }
+
+  /** Imagem (PNG, JPG ou SVG) → PNG para o Word, reduzida a largura máxima. null se falhar. */
+  function imagemParaWord(url, larguraMax) {
+    return new Promise(resolve => {
+      if (!url) { resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const w0 = img.naturalWidth || 800, h0 = img.naturalHeight || 600;
+          const escala = Math.min(1, (larguraMax || 560) / w0);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(w0 * escala * 2); canvas.height = Math.round(h0 * escala * 2); // 2x para ficar nítida
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(b => b ? b.arrayBuffer().then(data => resolve({ data, width: Math.round(w0 * escala), height: Math.round(h0 * escala) })) : resolve(null), "image/png");
+        } catch (e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  /** Parágrafos do Word com as situações (imagem + legenda). titulo(texto) devolve o parágrafo do título. */
+  async function situacoesParaWord(r, cliente, titulo) {
+    const D = window.docx;
+    const lista = situacoesDe(r);
+    if (!D || !lista.length) return [];
+    const urls = await urlsSituacoes(lista, cliente).catch(() => []);
+    const imagens = await Promise.all(urls.map(u => imagemParaWord(u, 520)));
+    const blocos = [titulo("Situações de jogo")];
+    lista.forEach((s, i) => {
+      const im = imagens[i];
+      if (im) blocos.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 160 }, children: [new D.ImageRun({ data: im.data, type: "png", transformation: { width: im.width, height: im.height } })] }));
+      blocos.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 60, after: 120 }, children: [new D.TextRun({ text: `${i + 1}. ${s.caption || "Situação"}${im ? "" : " (imagem indisponível)"}`, italics: true, size: 18, color: "4F4847" })] }));
+    });
+    return blocos;
+  }
+
+  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesHTML, carregarSituacoes, abrirLightbox, situacoesParaWord };
 })();

@@ -206,7 +206,8 @@ function estadoInicial() {
       primeiroTempo: "",
       segundoTempo: "",
       destaques: "",
-      notasIndividuais: [] // [{ jogadorId, nota }]
+      notasIndividuais: [], // [{ jogadorId, nota }]
+      situacoes: [] // [{ path (bucket report-images) | data (modo local), caption, order }]
     },
     relatorioId: "", // linha de match_reports deste relatório
     estadoRelatorio: "draft" // draft | published
@@ -493,6 +494,7 @@ function aplicarDadosEstado(dados) {
     state.analise.seccoes = Object.assign(base.analise.seccoes, dados.analise.seccoes);
   }
   if (!Array.isArray(state.analise.notasIndividuais)) state.analise.notasIndividuais = [];
+  if (!Array.isArray(state.analise.situacoes)) state.analise.situacoes = [];
   state.relatorioId = dados.relatorioId || "";
   state.estadoRelatorio = dados.estadoRelatorio || dados._status || "draft";
 }
@@ -1618,6 +1620,7 @@ function renderTopicos() {
 }
 
 function renderAnalise() {
+  if (typeof renderSituacoesAdmin === "function") renderSituacoesAdmin(); // outro relatório aberto
   document.querySelectorAll(".avaliacao-group").forEach(group => {
     const key = group.dataset.key;
     const valorAtual = state.analise.seccoes[key].avaliacao;
@@ -2402,6 +2405,8 @@ async function gerarRelatorioWord() {
     }
 
     pagina4.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: "Pontos Fortes: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.pontosFortes || "—", size: 18 })] }));
+    // situações de jogo (imagens do bucket report-images, com legenda)
+    const situacoesWord = await VFNRelatorio.situacoesParaWord({ match_data: state }, supabaseClient, t => new Paragraph({ spacing: { before: 280, after: 100 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 22, color: "0A1628" })] }));
     pagina4.push(new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: "Vulnerabilidades a Explorar na 2ª Volta: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.vulnerabilidades || "—", size: 18 })] }));
 
     const footer = new Footer({
@@ -2422,7 +2427,7 @@ async function gerarRelatorioWord() {
       sections: [{
         properties: {},
         footers: { default: footer },
-        children: [...pagina1, ...pagina2, ...pagina3, ...pagina4]
+        children: [...pagina1, ...pagina2, ...pagina3, ...pagina4, ...situacoesWord]
       }]
     });
 
