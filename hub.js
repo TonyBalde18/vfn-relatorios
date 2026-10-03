@@ -659,14 +659,16 @@
    * Ficha da equipa: forma, confrontos com o VFN (V/E/D, golos), todos os jogos contra
    * o VFN (passados e futuros) e jogadores conhecidos (external_players).
    */
-  function perfilEquipaHTML(dados, teamId) {
+  function perfilEquipaHTML(dados, teamId, opcoes) {
+    const o = opcoes || {}; // { editavel: botões de editar/apagar nos jogadores conhecidos (admin) }
     const t = equipa(dados, teamId) || { id: teamId, name: "Equipa" };
     const jogosVFN = VFN.jogosDoVFN(dados.matches)
       .filter(j => String(j.opponent_team_id) === String(teamId) && VFN.estadoJogo(j) !== "cancelado")
       .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
     const b = { V: 0, E: 0, D: 0, gm: 0, gs: 0, n: 0 };
     jogosVFN.forEach(j => { const g = VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j); if (!g) return; b.n++; b.gm += g.vfn; b.gs += g.adv; b[VFN.letraResultado(j)]++; });
-    const jogadores = (dados.external_players || []).filter(p => String(p.team_id) === String(teamId)).sort((x, y) => x.name.localeCompare(y.name, "pt"));
+    const jogadores = (dados.external_players || []).filter(p => String(p.team_id) === String(teamId))
+      .sort((x, y) => (Number(x.number) || 999) - (Number(y.number) || 999) || x.name.localeCompare(y.name, "pt"));
     const golosPorJogador = new Map();
     (dados.league_results || []).forEach(r => (Array.isArray(r.scorer_list) ? r.scorer_list : []).forEach(s => { if (s.player_id) golosPorJogador.set(String(s.player_id), (golosPorJogador.get(String(s.player_id)) || 0) + (Number(s.count) || 1)); }));
     const cores = VFN.coresEquipa(t);
@@ -692,7 +694,13 @@
         return `<li>${g ? VFN.chipForma(VFN.letraResultado(j)) : VFN.badgeEstado(j)}<span>${esc(VFN.dataDDMMAAAA(j.date))}</span><span class="muted">${esc(VFN.nomeCurtoCompeticao(j.competition))}${j.jornada ? " · J" + esc(j.jornada) : ""} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</span><strong>${g ? `VFN ${g.vfn}–${g.adv}` : esc(VFN.horaIso(j.date) !== "00:00" ? VFN.horaIso(j.date) : "")}</strong></li>`;
       }).join("")}</ul>` : vazio("Sem jogos com o VFN no calendário.")}
       <h4 class="perfil-subtitulo">Jogadores conhecidos</h4>
-      ${jogadores.length ? `<ul class="perfil-jogadores">${jogadores.map(p => `<li><span>${esc(p.name)}</span><small class="muted">ID ${esc(p.id)}</small>${golosPorJogador.get(String(p.id)) ? `<strong>${golosPorJogador.get(String(p.id))} golo${golosPorJogador.get(String(p.id)) === 1 ? "" : "s"}</strong>` : ""}</li>`).join("")}</ul>` : vazio("Ainda sem jogadores registados (os marcadores das Jornadas aparecem aqui).")}`;
+      ${jogadores.length ? `<ul class="perfil-jogadores">${jogadores.map(p => {
+        const golos = golosPorJogador.get(String(p.id)) || 0;
+        return `<li${o.editavel ? ` data-externo="${esc(p.id)}"` : ""}>${VFN.avatarExterno(p, t, "avatar-sm")}
+          <span class="ext-nome">${p.number != null && p.number !== "" ? `<b class="ext-numero">${esc(p.number)}</b>` : ""}${esc(p.name)}<small class="muted">ID ${esc(p.id)}</small></span>
+          ${golos ? `<strong>${golos} golo${golos === 1 ? "" : "s"}</strong>` : "<span></span>"}
+          ${o.editavel ? `<span class="row-actions"><button type="button" class="icon-btn" data-acao-externo="editar" data-id="${esc(p.id)}" title="Editar jogador" aria-label="Editar ${esc(p.name)}">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao-externo="apagar" data-id="${esc(p.id)}" title="Eliminar jogador" aria-label="Eliminar ${esc(p.name)}">${VFN.icone("trash-2", 16)}</button></span>` : ""}</li>`;
+      }).join("")}</ul>` : vazio("Ainda sem jogadores registados (os marcadores das Jornadas aparecem aqui).")}`;
   }
 
   /* ---------- Detalhe do jogo (modal) ---------- */

@@ -945,6 +945,23 @@
     return `<span class="${cls}"${attrJogador}>${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(nome)}" data-id="${escapeHtml(id)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
   }
 
+  /**
+   * Avatar de um jogador externo (external_players): photo_url ou assets/external/{id}.jpg;
+   * sem foto fica a camisola da equipa com o número (avatar genérico).
+   */
+  function avatarExterno(p, equipa, classe) {
+    const j = p || {};
+    const id = String(j.id || "");
+    const camisola = camisolaEquipaSVG(equipa, { numero: j.number, tamanho: 40, rotulo: "Camisola " + (j.number ? "número " + j.number : "") });
+    const candidatos = [j.photo_url, /^\d+$/.test(id) && `assets/external/${id}.jpg`].filter(Boolean);
+    const chave = "ext:" + id;
+    const conhecida = fotosConhecidas.get(chave);
+    const cls = `vfn-avatar avatar-externo ${classe || ""}`.trim();
+    if (conhecida) return `<span class="${cls} has-photo"><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(j.name || "")}" loading="lazy"></span>`;
+    if (conhecida === null || !candidatos.length) return `<span class="${cls}">${camisola}</span>`;
+    return `<span class="${cls}">${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(j.name || "")}" data-id="${escapeHtml(chave)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
+  }
+
   function fotoCarregou(img) {
     const span = img.parentElement;
     if (img.dataset.id) fotosConhecidas.set(img.dataset.id, img.getAttribute("src"));
@@ -1069,7 +1086,7 @@
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
-    generateJerseyAvatar, avatarJogador, fotoCarregou, fotoFalhou,
+    generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel,
     initSidebar, initAOS, refreshAOS

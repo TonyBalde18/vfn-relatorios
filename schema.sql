@@ -578,7 +578,7 @@ create policy "draft own row" on public.draft for all to authenticated
 -- das tabelas principais e as políticas novas abaixo têm de sobreviver.
 -- =====================================================================
 
--- [Tarefa 1] Taças: o jogo tem fase; a jornada deixa de ser obrigatória (fica a null)
+-- [v5 Tarefa 1] Taças: o jogo tem fase; a jornada deixa de ser obrigatória (fica a null)
 alter table public.matches add column if not exists phase text;
 alter table public.matches drop constraint if exists matches_phase_check;
 alter table public.matches add constraint matches_phase_check
@@ -589,7 +589,7 @@ update public.matches
 set phase = (array['1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'])[jornada], jornada = null
 where competition = 'Taça 2ª Liga FDM' and phase is null and jornada between 1 and 5;
 
--- [Tarefa 1 · Bug 3] Vilar Formoso vs VFN na Taça 2ª Liga FDM: 1ª eliminatória
+-- [v5 Tarefa 1 · Bug 3] Vilar Formoso vs VFN na Taça 2ª Liga FDM: 1ª eliminatória
 -- (id Zerozero 6838; o jogo antigo pode só ter o nome do adversário escrito)
 update public.matches
 set phase = '1eliminatoria', jornada = null
@@ -597,7 +597,7 @@ where competition = 'Taça 2ª Liga FDM'
   and (opponent_team_id = '6838' or opponent ilike '%vilar formoso%')
   and phase is null;
 
--- [Tarefa 2] Taça de Honra Comunilog passa a eliminatórias (bracket, sem tabela classificativa).
+-- [v5 Tarefa 2] Taça de Honra Comunilog passa a eliminatórias (bracket, sem tabela classificativa).
 -- Fases: '1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'. Os jogos já existentes são da
 -- 1ª eliminatória; as equipas isentas entram nos oitavos quando o sorteio for lançado.
 update public.league_results set phase = '1eliminatoria', jornada = null
@@ -605,7 +605,7 @@ where competition = 'Taça de Honra Comunilog' and phase is null;
 update public.matches set phase = '1eliminatoria', jornada = null
 where competition = 'Taça de Honra Comunilog' and phase is null;
 
--- [Tarefa 3] Equipas: nome completo, cores (cards, camisola, bracket, forma) e estádio
+-- [v5 Tarefa 3] Equipas: nome completo, cores (cards, camisola, bracket, forma) e estádio
 alter table public.teams add column if not exists full_name text;
 alter table public.teams add column if not exists color_primary text;
 alter table public.teams add column if not exists color_secondary text;
@@ -646,6 +646,10 @@ on conflict (id) do update set
   color_primary = excluded.color_primary,
   color_secondary = excluded.color_secondary,
   logo_url = excluded.logo_url;
+
+-- [v5 Tarefa 5] Jogadores externos: foto (assets/external/<id>.jpg por omissão) e número da camisola
+alter table public.external_players add column if not exists photo_url text;
+alter table public.external_players add column if not exists number integer;
 
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias

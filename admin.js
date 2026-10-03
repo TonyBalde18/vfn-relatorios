@@ -1539,6 +1539,14 @@ function initAdversarios() {
   el("btnEquipaCancelar").addEventListener("click", () => fecharModalAdmin("modalEquipa"));
   el("btnEquipaGuardar").addEventListener("click", guardarEquipa);
   el("btnEquipaApagar").addEventListener("click", apagarEquipa);
+  el("btnExtGuardar").addEventListener("click", guardarExterno);
+  el("btnExtCancelar").addEventListener("click", limparFormExterno);
+  el("equipaForma").addEventListener("click", e => {
+    const b = e.target.closest("[data-acao-externo]");
+    if (!b) return;
+    if (b.dataset.acaoExterno === "editar") editarExterno(b.dataset.id);
+    else apagarExterno(b.dataset.id);
+  });
   el("equipaLogoUpload").addEventListener("change", () => {
     const ficheiro = el("equipaLogoUpload").files[0];
     if (!ficheiro) return;
@@ -1614,8 +1622,78 @@ function abrirModalEquipa(equipa) {
   el("equipaObservacao").hidden = equipa ? VFN.eVFN(equipa.name) : false;
   // forma atual: último jogo (contra o VFN ou outra equipa), últimos 5 e confrontos com o VFN
   // ficha completa (forma, confrontos, jogos com o VFN e jogadores conhecidos), só de leitura
-  el("equipaForma").innerHTML = equipa && !VFN.eVFN(equipa.name) ? `<div class="perfil-equipa">${VFNHub.perfilEquipaHTML(dadosEquipasAdmin(), equipa.id)}</div>` : "";
+  renderFichaEquipaAdmin();
+  limparFormExterno();
   abrirModalAdmin("modalEquipa");
+}
+
+function renderFichaEquipaAdmin() {
+  const equipa = equipaEmEdicaoAdmin;
+  const comFicha = !!equipa && !VFN.eVFN(equipa.name);
+  el("equipaForma").innerHTML = comFicha ? `<div class="perfil-equipa">${VFNHub.perfilEquipaHTML(dadosEquipasAdmin(), equipa.id, { editavel: true })}</div>` : "";
+  el("equipaExternosForm").hidden = !comFicha;
+}
+
+/* ---- Jogadores conhecidos da equipa (external_players: nome, número e foto) ---- */
+
+let externoEmEdicao = null;
+
+function limparFormExterno() {
+  externoEmEdicao = null;
+  ["extId", "extNome", "extNumero", "extFoto"].forEach(id => { el(id).value = ""; });
+  el("extId").readOnly = false;
+  el("extErro").textContent = "";
+  el("extFormTitulo").textContent = "Adicionar jogador conhecido";
+  el("btnExtGuardar").textContent = "+ Adicionar jogador";
+  el("btnExtCancelar").hidden = true;
+}
+
+function editarExterno(id) {
+  const p = jogadoresExternos.find(x => String(x.id) === String(id));
+  if (!p) return;
+  externoEmEdicao = p;
+  el("extId").value = p.id; el("extId").readOnly = true;
+  el("extNome").value = p.name || "";
+  el("extNumero").value = p.number ?? "";
+  el("extFoto").value = p.photo_url || "";
+  el("extFormTitulo").textContent = `Editar ${p.name}`;
+  el("btnExtGuardar").textContent = "Guardar jogador";
+  el("btnExtCancelar").hidden = false;
+  el("extNome").focus();
+}
+
+async function guardarExterno() {
+  const equipa = equipaEmEdicaoAdmin;
+  const id = el("extId").value.trim(), nome = el("extNome").value.trim(), numero = el("extNumero").value.trim();
+  const existente = jogadoresExternos.find(p => String(p.id) === id);
+  const erro = !/^\d+$/.test(id) ? "Indica o ID Zerozero (só algarismos)." : !nome ? "Indica o nome." : !externoEmEdicao && existente && String(existente.team_id) === String(equipa.id) ? "Este jogador já está registado nesta equipa." : "";
+  el("extErro").textContent = erro;
+  if (erro) return;
+  const linha = { ...(existente || {}), id, name: nome, team_id: equipa.id, team_name: equipa.name };
+  // colunas do SQL de 03/10: só vão no pedido quando preenchidas (ou já existentes)
+  const extra = { number: numero ? Number(numero) : null, photo_url: el("extFoto").value.trim() || null };
+  Object.entries(extra).forEach(([k, v]) => { if (v !== null || (existente && k in existente)) linha[k] = v; });
+  try {
+    const gravado = await dadosClube.guardar("external_players", linha);
+    jogadoresExternos = jogadoresExternos.filter(p => String(p.id) !== id).concat(gravado);
+    limparFormExterno();
+    renderFichaEquipaAdmin();
+  } catch (e) {
+    el("extErro").textContent = /number|photo_url/i.test(e.message || "") ? "Falta a foto/número em external_players: corre a secção de 03/10/2026 do schema.sql." : mensagemErro(e);
+  }
+}
+
+async function apagarExterno(id) {
+  const p = jogadoresExternos.find(x => String(x.id) === String(id));
+  if (!p || !confirm(`Eliminar ${p.name} dos jogadores conhecidos? Os golos já registados nas Jornadas mantêm o nome.`)) return;
+  try {
+    await dadosClube.remover("external_players", p.id);
+    jogadoresExternos = jogadoresExternos.filter(x => x !== p);
+    if (externoEmEdicao === p) limparFormExterno();
+    renderFichaEquipaAdmin();
+  } catch (e) {
+    el("extErro").textContent = mensagemErro(e);
+  }
 }
 
 async function carregarLogoEquipa(ficheiro, teamId) {

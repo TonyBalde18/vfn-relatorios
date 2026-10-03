@@ -606,6 +606,17 @@
     </div>
     <div id="equipaLogoPreview"></div>
     <div id="equipaForma"></div>
+    <div id="equipaExternosForm" class="externo-form" hidden>
+      <h4 class="perfil-subtitulo" id="extFormTitulo">Adicionar jogador conhecido</h4>
+      <div class="externo-grid">
+        <div class="field"><label for="extId">ID Zerozero</label><input type="text" id="extId" inputmode="numeric" placeholder="Ex: 512345"></div>
+        <div class="field"><label for="extNome">Nome</label><input type="text" id="extNome" placeholder="Nome do jogador"></div>
+        <div class="field"><label for="extNumero">Nº camisola</label><input type="number" id="extNumero" min="1" max="99"></div>
+        <div class="field"><label for="extFoto">Foto (URL, opcional)</label><input type="url" id="extFoto" placeholder="Por omissão: assets/external/{id}.jpg"></div>
+      </div>
+      <p id="extErro" class="form-error" role="alert"></p>
+      <div class="modal-actions"><button type="button" id="btnExtCancelar" class="btn btn-ghost btn-sm" hidden>Cancelar edição</button><button type="button" id="btnExtGuardar" class="btn btn-ghost btn-sm">+ Adicionar jogador</button></div>
+    </div>
     <div id="equipaObservacao">
       <div class="field"><label for="equipaFormacao">Formação habitual</label><input type="text" id="equipaFormacao" placeholder="Ex: 4-4-2"></div>
       <div class="field"><label for="equipaEstilo">Estilo de jogo</label><textarea id="equipaEstilo" rows="3"></textarea></div>
