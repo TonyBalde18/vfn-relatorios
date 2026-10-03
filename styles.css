@@ -1745,3 +1745,36 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
   .cal-rotulo.treino { background: #FFEDD5; color: #9A3412; }
   .cal-rotulo.aniv { background: #FCE7F3; color: #9D174D; }
 }
+
+/* ---------- v6: card "Jogo da Semana" ---------- */
+.jds-card { position: relative; overflow: hidden; color: #fff; background: radial-gradient(120% 90% at 50% 0%, #13294B 0%, #0A1628 70%); border: 0; }
+.jds-card .hub-card-title, .jds-card .muted { color: #fff; }
+.jds-card .empty-state { color: rgba(255,255,255,.75); }
+.jds-cab { display: flex; align-items: center; gap: 10px; }
+.jds-cab .hub-card-title { margin: 0; flex: 1; color: #FFD700; }
+.jds-recolher { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); color: #fff; }
+.jds-resumo { display: none; margin: 6px 0 0; font-size: .85rem; color: rgba(255,255,255,.85); }
+.jds.recolhido .jds-corpo { display: none; }
+.jds.recolhido .jds-resumo { display: block; }
+.jds-frente { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 4vw, 40px); margin: 14px 0 10px; }
+.jds-equipa { display: grid; justify-items: center; gap: 6px; width: 140px; text-align: center; }
+.jds-logo { display: grid; place-items: center; width: 82px; height: 82px; border-radius: 50%; background: radial-gradient(circle, var(--cor-equipa-suave, rgba(255,255,255,.12)) 0%, rgba(255,255,255,.06) 70%); box-shadow: 0 0 0 3px var(--cor-equipa, rgba(255,255,255,.25)); }
+.jds-logo img { width: 64px; height: 64px; object-fit: contain; }
+.jds-logo b { font-size: 1.4rem; }
+.jds-equipa strong { font-size: .95rem; line-height: 1.15; }
+.jds-vs { font-size: 1.8rem; font-weight: 800; color: #FFD700; animation: vfnVs 2.2s ease-in-out infinite; }
+@keyframes vfnVs { 0%, 100% { transform: scale(1); text-shadow: 0 0 0 rgba(255,215,0,0); } 50% { transform: scale(1.15); text-shadow: 0 0 18px rgba(255,215,0,.6); } }
+.jds-contagem { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 0 14px; }
+.jds-contagem span { display: grid; justify-items: center; min-width: 62px; padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,.08); }
+.jds-contagem b { font-size: 1.7rem; font-variant-numeric: tabular-nums; line-height: 1; }
+.jds-contagem b.muda { animation: vfnTique .5s ease-out; }
+@keyframes vfnTique { from { transform: translateY(-6px); opacity: .3; } to { transform: none; opacity: 1; } }
+.jds-contagem small { margin-top: 3px; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.7); }
+.jds-contagem i { font-style: normal; font-weight: 800; color: #FFD700; }
+.jds-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 14px; margin: 0; }
+.jds-info dt { font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(255,255,255,.6); }
+.jds-info dd { margin: 2px 0 0; font-size: .86rem; font-weight: 600; }
+.jds-tempo { display: inline-flex; align-items: center; gap: 6px; }
+.jds-tempo .ic { color: #FFD700; }
+@media (max-width: 520px) { .jds-equipa { width: 100px; } .jds-logo { width: 64px; height: 64px; } .jds-logo img { width: 48px; height: 48px; } .jds-contagem span { min-width: 52px; } .jds-contagem b { font-size: 1.35rem; } }
+@media (prefers-reduced-motion: reduce) { .jds-vs, .jds-contagem b.muda { animation: none; } }

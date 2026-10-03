@@ -636,6 +636,109 @@
     return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
+  /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
+
+  // códigos WMO do Open-Meteo → [ícone Lucide, descrição]
+  const METEO = [
+    [[0], "sun", "Céu limpo"], [[1, 2], "cloud-sun", "Pouco nublado"], [[3], "cloud", "Nublado"], [[45, 48], "cloud-fog", "Nevoeiro"],
+    [[51, 53, 55, 56, 57], "cloud-drizzle", "Chuvisco"], [[61, 63, 65, 66, 67, 80, 81, 82], "cloud-rain", "Chuva"],
+    [[71, 73, 75, 77, 85, 86], "cloud-snow", "Neve"], [[95, 96, 99], "cloud-lightning", "Trovoada"]
+  ];
+  const meteoDoCodigo = c => METEO.find(([cs]) => cs.includes(Number(c))) || [[], "cloud", "—"];
+
+  /** Previsão para o dia/hora do jogo: { temp, codigo } ou { indisponivel } (Open-Meteo, sem chave). */
+  async function previsaoDoJogo(jogo, equipas) {
+    const e = VFN.estadioDoJogo(jogo, equipas);
+    const d = VFN.paraData(jogo.date);
+    if (e.lat == null || !d) return { indisponivel: "Sem coordenadas do estádio." };
+    const dias = (d - Date.now()) / 86400000;
+    if (dias > 15) return { indisponivel: "Previsão disponível a 16 dias do jogo." };
+    const dia = VFN.dataIso(d);
+    const chave = `vfnMeteo:${e.lat},${e.lng},${dia}`;
+    let dados = null;
+    try { const c = JSON.parse(sessionStorage.getItem(chave) || "null"); if (c && Date.now() - c.t < 3 * 3600 * 1000) dados = c.d; } catch (x) { /* ignora */ }
+    if (!dados) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${e.lat}&longitude=${e.lng}&hourly=temperature_2m,weathercode&timezone=Europe/Lisbon&start_date=${dia}&end_date=${dia}`;
+      const r = await fetch(url);
+      if (!r.ok) return { indisponivel: "Previsão indisponível." };
+      dados = await r.json();
+      try { sessionStorage.setItem(chave, JSON.stringify({ t: Date.now(), d: dados })); } catch (x) { /* ignora */ }
+    }
+    const horas = (dados.hourly && dados.hourly.time) || [];
+    const alvo = `${dia}T${String(d.getHours()).padStart(2, "0")}:00`;
+    const i = Math.max(0, horas.indexOf(alvo));
+    if (!horas.length) return { indisponivel: "Previsão indisponível." };
+    return { temp: Math.round(dados.hourly.temperature_2m[i]), codigo: dados.hourly.weathercode[i] };
+  }
+
+  function partesContagem(data) {
+    const ms = Math.max(0, (VFN.paraData(data) || new Date()) - Date.now());
+    const min = Math.floor(ms / 60000);
+    return { d: Math.floor(min / 1440), h: Math.floor((min % 1440) / 60), m: min % 60 };
+  }
+
+  /** Card do próximo jogo: emblemas frente a frente, "vs" animado, contagem, competição/fase, data, hora, estádio e tempo. */
+  function renderJogoDaSemana(dados, o) {
+    const opcoes = o || {};
+    const jogo = VFN.proximoJogo(dados.matches);
+    if (!jogo) return `<div class="jds jds-vazio"><h2 class="hub-card-title">Jogo da Semana</h2>${H().vazio("Sem jogos agendados.")}</div>`;
+    const nome = H().nomeAdversario(dados, jogo);
+    const casa = VFN.jogoEmCasa(jogo);
+    const adv = H().equipa(dados, jogo.opponent_team_id);
+    const lado = (url, texto, t) => `<div class="jds-equipa"${VFN.estiloCorEquipa(t, 0.25)}><span class="jds-logo">${url ? `<img src="${esc(url)}" alt="">` : `<b>${esc(texto.slice(0, 2).toUpperCase())}</b>`}</span><strong>${esc(texto)}</strong></div>`;
+    const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv);
+    const c = partesContagem(jogo.date);
+    const hora = VFN.horaIso(jogo.date);
+    const fechado = (() => { try { return localStorage.getItem("vfnJogoSemana") === "fechado"; } catch (e) { return false; } })();
+    const estadio = VFN.estadioDoJogo(jogo, dados.teams).nome;
+    return `<div class="jds${fechado ? " recolhido" : ""}" data-jogo-semana="${esc(jogo.id)}">
+      <div class="jds-cab"><h2 class="hub-card-title">Jogo da Semana</h2>${H().tagCompeticao(jogo.competition)}
+        <button type="button" class="icon-btn jds-recolher" aria-expanded="${!fechado}" aria-label="${fechado ? "Mostrar" : "Minimizar"} o Jogo da Semana" title="${fechado ? "Mostrar" : "Minimizar"}">${VFN.icone(fechado ? "chevron-down" : "chevron-up", 16)}</button></div>
+      <p class="jds-resumo">${esc(casa ? "VFN vs " + nome : nome + " vs VFN")} · ${esc(VFN.dataLonga(jogo.date, true))}</p>
+      <div class="jds-corpo">
+        <div class="jds-frente">${casa ? vfn : outro}<span class="jds-vs">vs</span>${casa ? outro : vfn}</div>
+        <div class="jds-contagem" data-contagem-jogo="${esc(jogo.date)}" aria-label="Tempo até ao jogo">
+          <span><b data-parte="d">${c.d}</b><small>dias</small></span><i>:</i><span><b data-parte="h">${String(c.h).padStart(2, "0")}</b><small>horas</small></span><i>:</i><span><b data-parte="m">${String(c.m).padStart(2, "0")}</b><small>min</small></span>
+        </div>
+        <dl class="jds-info">
+          <div><dt>Competição</dt><dd>${esc(jogo.competition || "—")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</dd></div>
+          <div><dt>Data</dt><dd>${esc(VFN.dataLonga(jogo.date))}</dd></div>
+          <div><dt>Hora</dt><dd>${hora && hora !== "00:00" ? esc(hora) : "—"}</dd></div>
+          <div><dt>Local</dt><dd>${casa ? "Casa" : "Fora"}${estadio ? " · " + esc(estadio) : ""}</dd></div>
+          <div class="jds-meteo"><dt>Meteorologia</dt><dd data-meteo>${VFN.icone("loader", 14)} a carregar…</dd></div>
+        </dl>
+        ${opcoes.extra || ""}
+      </div>
+    </div>`;
+  }
+
+  /** Liga o card (contagem a cada segundo, minimizar e meteorologia). */
+  async function ligarJogoDaSemana(contentor, dados) {
+    const card = contentor && contentor.querySelector("[data-jogo-semana]");
+    if (!card) return;
+    const botao = card.querySelector(".jds-recolher");
+    botao.addEventListener("click", () => {
+      const fechado = card.classList.toggle("recolhido");
+      botao.setAttribute("aria-expanded", !fechado);
+      botao.innerHTML = VFN.icone(fechado ? "chevron-down" : "chevron-up", 16);
+      try { localStorage.setItem("vfnJogoSemana", fechado ? "fechado" : "aberto"); } catch (e) { /* ignora */ }
+    });
+    const jogo = (dados.matches || []).find(j => String(j.id) === card.dataset.jogoSemana);
+    const alvo = card.querySelector("[data-meteo]");
+    try {
+      const p = await previsaoDoJogo(jogo, dados.teams);
+      if (p.indisponivel) alvo.textContent = p.indisponivel;
+      else { const [, ic, txt] = meteoDoCodigo(p.codigo); alvo.innerHTML = `<span class="jds-tempo">${VFN.icone(ic, 22)}<b>${p.temp}°C</b> ${esc(txt)}</span>`; }
+    } catch (e) { alvo.textContent = "Previsão indisponível."; }
+  }
+
+  // contagem decrescente (dias : horas : minutos) de todos os cards visíveis
+  setInterval(() => document.querySelectorAll("[data-contagem-jogo]").forEach(el => {
+    const c = partesContagem(el.dataset.contagemJogo);
+    const por = { d: String(c.d), h: String(c.h).padStart(2, "0"), m: String(c.m).padStart(2, "0") };
+    el.querySelectorAll("[data-parte]").forEach(b => { if (b.textContent !== por[b.dataset.parte]) { b.textContent = por[b.dataset.parte]; b.classList.remove("muda"); void b.offsetWidth; b.classList.add("muda"); } });
+  }), 1000);
+
   /* ---------- Segmented control (ex.: Classificação | Jornadas | Marcadores) ----------
      Botões [data-seg="x"] dentro de `controlo`; painéis [data-seg-painel="x"] dentro de `raiz`.
      A troca anima o painel novo (fade + slide). Devolve { definir(modo), atual() }. */
@@ -811,7 +914,7 @@
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
-    ligarSegmentos, apresentarClassificacao,
+    ligarSegmentos, apresentarClassificacao, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

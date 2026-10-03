@@ -725,7 +725,21 @@ function nomeAdversarioJogo(jogo) {
   return (equipa && equipa.name) || jogo.opponent || "Adversário";
 }
 
+/** Card "Jogo da Semana" no topo do Pré-Jogo (só redesenha quando o próximo jogo muda). */
+function renderJogoSemanaAdmin() {
+  const caixa = el("jogoSemanaAdmin");
+  if (!caixa || !calendarioCarregado) return;
+  const jogo = VFN.proximoJogo(jogosCalendario);
+  const chave = jogo ? `${jogo.id}|${jogo.date}|${jogo.venue || ""}|${jogo.opponent_team_id}` : "";
+  if (caixa.dataset.chave === chave && caixa.innerHTML) return;
+  caixa.dataset.chave = chave;
+  const dados = { matches: jogosCalendario, teams: equipasCalendario };
+  caixa.innerHTML = VFNComp.renderJogoDaSemana(dados);
+  VFNComp.ligarJogoDaSemana(caixa, dados);
+}
+
 function renderProximoJogoPreJogo() {
+  renderJogoSemanaAdmin();
   const container = el("nextMatchBody");
   if (!container) return;
   renderOpcoesPreJogo(); // o calendário ou as equipas podem ter mudado

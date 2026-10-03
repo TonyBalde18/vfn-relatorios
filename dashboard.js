@@ -61,7 +61,9 @@ function mostrarVista(vista) {
 /* ---------- Hub ---------- */
 
 function renderHub() {
-  $("cardProximoJogo").innerHTML = H.proximoJogoHTML(dados);
+  // Jogo da Semana: contagem, competição, estádio e meteorologia (Open-Meteo)
+  $("cardProximoJogo").innerHTML = VFNComp.renderJogoDaSemana(dados);
+  VFNComp.ligarJogoDaSemana($("cardProximoJogo"), dados);
   $("hubForma").innerHTML = H.formaHTML(dados, 5);
   $("hubResultados").innerHTML = H.resultadosHTML(dados, 5);
 
