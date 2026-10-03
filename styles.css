@@ -1558,3 +1558,9 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
   .mapa-posicoes svg .area, .anel-valor, .anel.anel-num strong, .ficha-barra .barra i, .distincoes .distincao { animation: none; }
 }
+
+/* ---------- v5: relatório de dívidas (filtro por tipo, total no rodapé da imagem) ---------- */
+.dividas-botoes select { max-width: 220px; }
+.dividas-imagem .dividas-topo strong { font-size: 1.15rem; }
+.dividas-imagem .dividas-total-rodape { display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px; }
+.dividas-imagem .dividas-total-rodape strong { font-size: 1.6rem; }

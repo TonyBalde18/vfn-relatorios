@@ -761,7 +761,7 @@
   /** Folha de dívidas: Jogador | Tipo de dívida | Valor | Data | Estado | Observações (só multas por pagar). */
   function folhaDividas(multas, nomeJogador) {
     const porPagar = multas.filter(f => !f.paid).sort((a, b) => String(nomeJogador(a.player_id) || "").localeCompare(String(nomeJogador(b.player_id) || ""), "pt") || String(a.match_date || "").localeCompare(String(b.match_date || "")));
-    const cab = ["Jogador", "Tipo de dívida", "Valor (€)", "Data", "Estado", "Observações"];
+    const cab = ["Jogador", "Tipo", "Valor (€)", "Data", "Estado", "Observações"];
     const linhas = porPagar.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), Number(f.amount) || 0, dataDDMMAAAA(f.match_date), "Pendente", f.description || ""]);
     const total = porPagar.reduce((t, f) => t + (Number(f.amount) || 0), 0);
     return { linhas: [cab, ...linhas, [], ["Total em dívida", "", total, "", "", ""]], larguras: [24, 34, 12, 12, 11, 40], euros: 2, paisagem: true };

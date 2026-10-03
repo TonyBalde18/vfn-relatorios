@@ -349,30 +349,45 @@
     return [...mapa.values()].sort((a, b) => b.valor - a.valor || b.n - a.n || String((a.pessoa || {}).nome).localeCompare(String((b.pessoa || {}).nome), "pt"));
   }
 
+  /** Multas por pagar, opcionalmente só de um tipo (infraction_type). */
+  function multasEmDivida(multas, tipo) {
+    return (multas || []).filter(f => !f.paid && (!tipo || f.infraction_type === tipo));
+  }
+
+  /** <option>s dos tipos com dívida (para o filtro "tipo de dívida"), mantendo a escolha. */
+  function opcoesTipoDividaHTML(multas, selecionado) {
+    const tipos = [...new Set(multasEmDivida(multas).map(f => f.infraction_type))].sort((a, b) => VFN.rotuloMulta(a).localeCompare(VFN.rotuloMulta(b), "pt"));
+    return '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${esc(t)}"${t === selecionado ? " selected" : ""}>${esc(VFN.rotuloMulta(t))}</option>`).join("");
+  }
+
   /**
    * Relatório de dívidas (ecrã e imagem partilhável).
-   * o: { pessoa(id) -> { nome, ... }, imagem: true para a versão da imagem (sem fotos, data no rodapé) }
+   * o: { pessoa(id) -> { nome, ... }, tipo: só esse tipo de dívida, imagem: true para a versão da imagem
+   * (cabeçalho "Dívidas Pendentes — mês", sem fotos, total no rodapé) }
    */
   function renderDebtReport(multas, o) {
-    const lista = dividasPorPessoa(multas, o.pessoa);
+    const lista = dividasPorPessoa(multasEmDivida(multas, o.tipo), o.pessoa);
     const total = lista.reduce((t, d) => t + d.valor, 0);
     const euro = v => VFN.formatoEuro.format(v);
+    const hoje = new Date();
+    const titulo = `Dívidas Pendentes — ${VFN.MESES_LONGOS[hoje.getMonth()]} ${hoje.getFullYear()}`;
     return `<div class="dividas${o.imagem ? " dividas-imagem" : ""}">
-      <div class="dividas-topo"><img src="assets/logo.png" alt=""><div><strong>ACD Vila Franca das Naves</strong><span>Multas por pagar</span></div></div>
-      <div class="dividas-total"><span>Total em dívida</span><strong>${euro(total)}</strong></div>
+      <div class="dividas-topo"><img src="assets/logo.png" alt=""><div><strong>${esc(titulo)}</strong><span>ACD Vila Franca das Naves${o.tipo ? " · " + esc(VFN.rotuloMulta(o.tipo)) : ""}</span></div></div>
+      ${o.imagem ? "" : `<div class="dividas-total"><span>Total em dívida${o.tipo ? " · " + esc(VFN.rotuloMulta(o.tipo)) : ""}</span><strong>${euro(total)}</strong></div>`}
       ${lista.length ? `<ol class="dividas-lista">${lista.map((d, i) => `<li${!o.imagem && d.pessoa ? ` data-jogador="${esc(d.id)}"` : ""}>
         <span class="dividas-pos">${i + 1}</span>
         ${!o.imagem && d.pessoa ? VFN.avatarJogador(d.pessoa, "avatar-xs") : ""}
         <span class="dividas-nome">${esc(d.pessoa ? d.pessoa.nome : "Jogador removido")}<small>${d.n} multa${d.n === 1 ? "" : "s"}</small></span>
         <strong>${euro(d.valor)}</strong>
       </li>`).join("")}</ol>` : '<p class="dividas-vazio">Não há multas por pagar.</p>'}
-      ${o.imagem ? `<p class="dividas-rodape">Atualizado a ${esc(VFN.dataDDMMAAAA(new Date().toISOString().slice(0, 10)))}</p>` : ""}
+      ${o.imagem ? `<div class="dividas-total dividas-total-rodape"><span>Total</span><strong>${euro(total)}</strong></div>
+        <p class="dividas-rodape">Atualizado a ${esc(VFN.dataDDMMAAAA(VFN.dataIso(hoje)))}</p>` : ""}
     </div>`;
   }
 
   /** Gera a imagem PNG do relatório (html2canvas) e partilha-a (telemóvel) ou descarrega-a. */
   function exportarImagemDividas(multas, o) {
-    return exportarImagemHTML(renderDebtReport(multas, { ...o, imagem: true }), { nome: `dividas_vfn_${new Date().toISOString().slice(0, 10)}.png`, titulo: "Multas por pagar — VFN", largura: 540, partilhar: o.partilhar });
+    return exportarImagemHTML(renderDebtReport(multas, { ...o, imagem: true }), { nome: `dividas_vfn_${VFN.dataIso(new Date())}.png`, titulo: "Dívidas Pendentes — VFN", largura: 540, partilhar: o.partilhar });
   }
 
   /**
@@ -554,7 +569,7 @@
   window.VFNComp = {
     renderMatchCard, renderPlayerCard, renderBracket,
     abrirDrawer, fecharDrawer,
-    dividasPorPessoa, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
+    dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario

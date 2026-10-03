@@ -135,8 +135,10 @@ function initMultas() {
   el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnJoiaMes").addEventListener("click", lancarJoiaDoMes);
-  el("btnDividasImagem").addEventListener("click", () => VFNComp.exportarImagemDividas(cacheAdmin.fines, { pessoa: pessoaPorId }));
-  el("btnDividasXlsx").addEventListener("click", () => VFN.exportarXlsx(`dividas_vfn_${hojeIso()}.xlsx`, [{ nome: "Dívidas", ...VFN.folhaDividas(cacheAdmin.fines, id => (pessoaPorId(id) || {}).nome) }]));
+  // relatório de dívidas: o filtro por tipo aplica-se ao ecrã, à imagem e ao XLSX
+  el("dividasTipo").addEventListener("change", renderDividasAdmin);
+  el("btnDividasImagem").addEventListener("click", () => VFNComp.exportarImagemDividas(cacheAdmin.fines, { pessoa: pessoaPorId, tipo: el("dividasTipo").value }));
+  el("btnDividasXlsx").addEventListener("click", () => VFN.exportarXlsx(`dividas_vfn_${hojeIso()}.xlsx`, [{ nome: "Dívidas", ...VFN.folhaDividas(VFNComp.multasEmDivida(cacheAdmin.fines, el("dividasTipo").value), id => (pessoaPorId(id) || {}).nome) }]));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
 }
@@ -209,7 +211,7 @@ function renderMultas() {
   renderFiltrosMultas();
   renderTiposMulta();
   renderEstadoJoia();
-  el("dividasRelatorio").innerHTML = VFNComp.renderDebtReport(cacheAdmin.fines, { pessoa: pessoaPorId });
+  renderDividasAdmin();
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
@@ -239,6 +241,11 @@ function renderMultas() {
     tr.querySelector("[data-acao=editar]").addEventListener("click", () => abrirModalMulta(multa));
     tr.querySelector("[data-acao=apagar]").addEventListener("click", () => apagarMulta(multa));
   });
+}
+
+function renderDividasAdmin() {
+  el("dividasTipo").innerHTML = VFNComp.opcoesTipoDividaHTML(cacheAdmin.fines, el("dividasTipo").value);
+  el("dividasRelatorio").innerHTML = VFNComp.renderDebtReport(cacheAdmin.fines, { pessoa: pessoaPorId, tipo: el("dividasTipo").value });
 }
 
 function rotuloInfraccao(tipo) {
