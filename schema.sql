@@ -605,6 +605,48 @@ where competition = 'Taça de Honra Comunilog' and phase is null;
 update public.matches set phase = '1eliminatoria', jornada = null
 where competition = 'Taça de Honra Comunilog' and phase is null;
 
+-- [Tarefa 3] Equipas: nome completo, cores (cards, camisola, bracket, forma) e estádio
+alter table public.teams add column if not exists full_name text;
+alter table public.teams add column if not exists color_primary text;
+alter table public.teams add column if not exists color_secondary text;
+alter table public.teams add column if not exists stadium text;
+
+update public.teams set full_name = 'Sport Gonçalense',        color_primary = '#328e24', color_secondary = '#ffffff' where id = '8063';
+update public.teams set full_name = 'ACDR Freixo de Numão',    color_primary = '#023c85', color_secondary = '#eddcb1' where id = '11082';
+update public.teams set full_name = 'GDS Póvoa do Mileu',      color_primary = '#040d18', color_secondary = '#f9e18c' where id = '6306';
+update public.teams set full_name = 'GD Vila Nova de Foz Côa', color_primary = '#1a9a53', color_secondary = '#ffffff' where id = '6846';
+update public.teams set full_name = 'Seia FC',                 color_primary = '#ae9b63', color_secondary = '#ffffff' where id = '16479';
+update public.teams set full_name = 'Paços da Serra',          color_primary = '#03490a', color_secondary = '#ffffff' where id = '11073';
+update public.teams set full_name = 'Casal Cinza',             color_primary = '#0b22eb', color_secondary = '#fff900' where id = '11085';
+update public.teams set full_name = 'UFC Arcozelo',            color_primary = '#003b73', color_secondary = '#ffffff' where id = '6840';
+update public.teams set full_name = 'CCR Vila Verde',          color_primary = '#a62f33', color_secondary = '#ffffff' where id = '338084';
+update public.teams set full_name = 'Palmares FC',             color_primary = '#000000', color_secondary = '#43fa00' where id = '391027';
+
+update public.teams set full_name = 'Associação Desportiva de São Romão',          color_primary = '#fdfd06', color_secondary = '#ffffff' where id = '8062';
+update public.teams set full_name = 'Ginásio Clube Figueirense',                   color_primary = '#c3093a', color_secondary = '#003daf' where id = '5668';
+update public.teams set full_name = 'ADRC Aguiar da Beira',                        color_primary = '#0035b9', color_secondary = '#ffffff' where id = '3546';
+update public.teams set full_name = 'Clube de Futebol Os Vilanovenses',            color_primary = '#003daf', color_secondary = '#fe0000' where id = '10485';
+update public.teams set full_name = 'Associação Desportiva de Fornos de Algodres', color_primary = '#feed01', color_secondary = '#387e40' where id = '3583';
+update public.teams set full_name = 'Associação Desportiva de Manteigas',          color_primary = '#f5d425', color_secondary = '#000000' where id = '6837';
+update public.teams set full_name = 'CCDRC Vila Cortez do Mondego',                color_primary = '#e40002', color_secondary = '#ffffff' where id = '6845';
+update public.teams set full_name = 'Sporting Clube Celoricense',                  color_primary = '#6b9856', color_secondary = '#ffffff' where id = '11074';
+update public.teams set full_name = 'AD Belmonte',                                 color_primary = '#0000ff', color_secondary = '#ffffff' where id = '12268';
+
+-- equipas novas da 1ª Divisão Cima-Tavfer (logos em assets/opponents/<id>.png)
+insert into public.teams (id, name, full_name, city, color_primary, color_secondary, logo_url) values
+  ('6836', 'SC Sabugal',    'Sporting Clube do Sabugal',       'Sabugal',       '#487a5f', '#ffffff', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6836.png'),
+  ('4344', 'CD Gouveia',    'Clube Desportivo de Gouveia',     'Gouveia',       '#663366', '#ffffff', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/4344.png'),
+  ('6839', 'Trancoso',      'Grupo Desportivo de Trancoso',    'Trancoso',      '#e21c22', '#ffffff', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6839.png'),
+  ('6843', 'Pinhelenses',   'União Desportiva Os Pinhelenses', 'Pinhel',        '#00b0f0', '#fff212', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6843.png'),
+  ('6838', 'Vilar Formoso', 'Sporting Clube Vilar Formoso',    'Vilar Formoso', '#017c4d', '#ffffff', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6838.png'),
+  ('6841', 'Sp. Mêda',      'Sporting Clube de Mêda',          'Mêda',          '#00923f', '#fff500', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6841.png')
+on conflict (id) do update set
+  full_name = excluded.full_name,
+  city = excluded.city,
+  color_primary = excluded.color_primary,
+  color_secondary = excluded.color_secondary,
+  logo_url = excluded.logo_url;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

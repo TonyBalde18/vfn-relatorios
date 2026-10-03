@@ -1415,3 +1415,16 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 @keyframes vfnFundoEntra { from { background-color: rgba(10,22,40,0); backdrop-filter: none; } }
 @media (prefers-reduced-motion: reduce) { .modal-overlay:not([hidden]) { animation: none; } }
 .bracket.uma-fase { grid-template-columns: minmax(220px, 360px); min-width: 0; }
+
+/* ---------- v5: cores das equipas ---------- */
+.team-card.com-cor { position: relative; overflow: hidden; border-left: 6px solid var(--cor-equipa); }
+.team-card.com-cor::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--cor-equipa-2); opacity: .9; }
+.forma-badge { display: inline-flex; align-items: center; gap: 6px; }
+.cor-equipa-dot { display: inline-block; flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(10,22,40,.25); }
+.perfil-equipa-cab.com-cor { padding: 12px; border-radius: 12px; background: linear-gradient(90deg, var(--cor-equipa-suave), transparent 85%); border-left: 6px solid var(--cor-equipa); }
+.perfil-equipa-nome { flex: 1; min-width: 0; }
+.perfil-nome-completo { color: var(--vfn-navy); font-weight: 600; }
+.perfil-camisola { flex-shrink: 0; filter: drop-shadow(0 4px 8px rgba(10,22,40,.18)); }
+.br-equipa.com-cor { background: var(--cor-equipa-suave); box-shadow: inset 3px 0 0 var(--cor-equipa); }
+.br-equipa.com-cor.vence { background: var(--cor-equipa-suave); box-shadow: inset 3px 0 0 var(--cor-equipa), inset 0 0 0 1px #16a34a; }
+.equipa-cores input[type=color] { width: 100%; height: 40px; padding: 2px; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; cursor: pointer; }

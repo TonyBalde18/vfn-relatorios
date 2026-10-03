@@ -589,7 +589,16 @@
       <div class="field"><label for="equipaIdZerozero">ID Zerozero</label><input type="text" id="equipaIdZerozero" inputmode="numeric" placeholder="Ex: 11085" aria-describedby="equipaIdAjuda"><small id="equipaIdAjuda" class="muted">Usado para o logo assets/opponents/{id}.png. Não pode ser alterado depois.</small></div>
       <div class="field"><label for="equipaCidade">Cidade</label><input type="text" id="equipaCidade" placeholder="Ex: Guarda"></div>
     </div>
-    <div class="field"><label for="equipaNome">Nome</label><input type="text" id="equipaNome" placeholder="Ex: SC Trancoso"></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="equipaNome">Nome curto</label><input type="text" id="equipaNome" placeholder="Ex: Trancoso"></div>
+      <div class="field"><label for="equipaNomeCompleto">Nome completo</label><input type="text" id="equipaNomeCompleto" placeholder="Ex: Grupo Desportivo de Trancoso"></div>
+    </div>
+    <div class="grid grid-3 equipa-cores">
+      <div class="field"><label for="equipaCorPrincipal">Cor principal</label><input type="color" id="equipaCorPrincipal" value="#cbd5e1"></div>
+      <div class="field"><label for="equipaCorSecundaria">Cor secundária</label><input type="color" id="equipaCorSecundaria" value="#ffffff"></div>
+      <div class="field"><label for="equipaEstadio">Estádio</label><input type="text" id="equipaEstadio" placeholder="Opcional"></div>
+    </div>
+    <label class="check-inline"><input type="checkbox" id="equipaSemCores"> Sem cores definidas</label>
     <div class="grid grid-2">
       <div class="field"><label for="equipaLogo">Logo (URL)</label><input type="url" id="equipaLogo" placeholder="https://..."></div>
       <div class="field"><label for="equipaLogoUpload">Ou carregar logo</label><input type="file" id="equipaLogoUpload" accept="image/*"></div>

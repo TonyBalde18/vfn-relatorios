@@ -850,6 +850,51 @@
     return "";
   }
 
+  /* ---------- Cores das equipas (teams.color_primary / color_secondary) ---------- */
+
+  const COR_HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+  /** Cores da equipa ({ primaria, secundaria }); "" quando não estão definidas. O VFN é amarelo e azul. */
+  function coresEquipa(t) {
+    const e = t || {};
+    if (!e.color_primary && eVFN(e.name)) return { primaria: "#FFD700", secundaria: "#055bd0" };
+    return { primaria: COR_HEX.test(e.color_primary || "") ? e.color_primary : "", secundaria: COR_HEX.test(e.color_secondary || "") ? e.color_secondary : "" };
+  }
+
+  /** "#1a9a53" com opacidade → "rgba(26,154,83,.12)" (para fundos suaves). */
+  function corComOpacidade(hex, alfa) {
+    if (!COR_HEX.test(hex || "")) return "";
+    let h = hex.slice(1);
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    const n = parseInt(h, 16);
+    return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${alfa})`;
+  }
+
+  /** Atributo style com as variáveis CSS da cor da equipa (vazio sem cor definida). */
+  function estiloCorEquipa(t, alfa) {
+    const { primaria, secundaria } = coresEquipa(t);
+    if (!primaria) return "";
+    return ` style="--cor-equipa:${primaria};--cor-equipa-2:${secundaria || "#ffffff"};--cor-equipa-suave:${corComOpacidade(primaria, alfa == null ? 0.12 : alfa)}"`;
+  }
+
+  /** Camisola da equipa com as duas cores (corpo na principal; mangas, gola e número na secundária). */
+  function camisolaEquipaSVG(t, opcoes) {
+    const o = opcoes || {};
+    const { primaria, secundaria } = coresEquipa(t);
+    const p = primaria || "#CBD5E1", s = secundaria || "#ffffff";
+    const id = `vfnCamisola${++contadorAvatar}`;
+    const corpo = "M27 7 L13 12 L2 28 L13 38 L19 32 L19 86 Q40 90 61 86 L61 32 L67 38 L78 28 L67 12 L53 7 Q40 17 27 7 Z";
+    const numero = escapeHtml(String(o.numero == null ? "" : o.numero).slice(0, 3));
+    return `<svg class="camisola-equipa ${o.classe || ""}" xmlns="http://www.w3.org/2000/svg" width="${o.tamanho || 80}" height="${Math.round((o.tamanho || 80) * 90 / 80)}" viewBox="0 0 80 90" role="img" aria-label="${escapeHtml(o.rotulo || "Camisola " + ((t && t.name) || "da equipa"))}">` +
+      `<defs><clipPath id="${id}"><path d="${corpo}"/></clipPath></defs>` +
+      `<path d="${corpo}" fill="${p}"/>` +
+      `<g clip-path="url(#${id})"><path d="M2 28 L13 12 L19 10 L19 34 L13 38 Z M78 28 L67 12 L61 10 L61 34 L67 38 Z" fill="${s}"/><rect x="19" y="80" width="42" height="10" fill="${s}" opacity=".9"/></g>` +
+      `<path d="M27 7 Q40 17 53 7" fill="none" stroke="${s}" stroke-width="4"/>` +
+      `<path d="${corpo}" fill="none" stroke="#0A1628" stroke-opacity=".3" stroke-width="1.2"/>` +
+      (numero ? `<text x="40" y="62" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${numero.length > 1 ? 26 : 30}" fill="${s}" stroke="${p}" stroke-width="1.5" paint-order="stroke">${numero}</text>` : "") +
+      `</svg>`;
+  }
+
   /* ---------- Avatar camisola ---------- */
 
   let contadorAvatar = 0;
@@ -1015,7 +1060,7 @@
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    BASE_SITE, LOGO_VFN, urlLogoEquipa,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,

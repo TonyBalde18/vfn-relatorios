@@ -1562,7 +1562,7 @@ function dadosEquipasAdmin() {
 function renderAdversarios() {
   const termo = el("equipasPesquisa").value.trim().toLocaleLowerCase("pt-PT");
   const equipas = [...equipasCalendario]
-    .filter(t => !termo || t.name.toLocaleLowerCase("pt-PT").includes(termo) || String(t.city || "").toLocaleLowerCase("pt-PT").includes(termo))
+    .filter(t => !termo || [t.name, t.full_name, t.city].some(v => String(v || "").toLocaleLowerCase("pt-PT").includes(termo)))
     .sort((a, b) => a.name.localeCompare(b.name, "pt"));
   const grelha = el("equipasGrid");
   if (!equipas.length) {
@@ -1573,7 +1573,7 @@ function renderAdversarios() {
     const obs = observacaoDaEquipa(t.id);
     const h = historicoContra(t.id);
     const temObs = obs && (obs.style || obs.strengths || obs.weaknesses || obs.history || obs.formation);
-    return `<button type="button" class="team-card" data-id="${escapeHtml(t.id)}">
+    return `<button type="button" class="team-card${VFN.coresEquipa(t).primaria ? " com-cor" : ""}" data-id="${escapeHtml(t.id)}"${VFN.estiloCorEquipa(t)}>
       ${logoEquipaHTML(t, t.name)}
       <strong>${escapeHtml(t.name)}</strong>
       ${t.city ? `<small>${escapeHtml(t.city)}</small>` : ""}
@@ -1588,6 +1588,12 @@ function abrirModalEquipa(equipa) {
   const obs = equipa ? observacaoDaEquipa(equipa.id) : null;
   el("modalEquipaTitulo").textContent = equipa ? equipa.name : "Adicionar Equipa";
   el("equipaNome").value = equipa ? equipa.name : "";
+  el("equipaNomeCompleto").value = equipa ? equipa.full_name || "" : "";
+  el("equipaEstadio").value = equipa ? equipa.stadium || "" : "";
+  const cores = VFN.coresEquipa(equipa && !VFN.eVFN(equipa.name) ? equipa : null);
+  el("equipaSemCores").checked = !cores.primaria;
+  el("equipaCorPrincipal").value = cores.primaria && cores.primaria.length === 7 ? cores.primaria : "#cbd5e1";
+  el("equipaCorSecundaria").value = cores.secundaria && cores.secundaria.length === 7 ? cores.secundaria : "#ffffff";
   el("equipaIdZerozero").value = equipa ? equipa.id : "";
   el("equipaIdZerozero").readOnly = !!equipa; // chave da tabela teams
   el("equipaCidade").value = equipa ? equipa.city || "" : "";
@@ -1642,7 +1648,25 @@ async function guardarEquipa() {
     let logo = el("equipaLogo").value.trim() || (equipaEmEdicaoAdmin ? equipaEmEdicaoAdmin.logo_url : null) || `${VFN.BASE_SITE}assets/opponents/${id}.png`;
     const carregado = await carregarLogoEquipa(el("equipaLogoUpload").files[0], id);
     if (carregado) logo = carregado;
-    const equipa = await dadosClube.guardar("teams", { ...(equipaEmEdicaoAdmin || {}), id, name: nome, city: el("equipaCidade").value.trim() || null, logo_url: logo });
+    const linha = { ...(equipaEmEdicaoAdmin || {}), id, name: nome, city: el("equipaCidade").value.trim() || null, logo_url: logo };
+    // colunas novas (SQL de 03/10): só vão no pedido quando preenchidas ou já existentes
+    const semCores = el("equipaSemCores").checked;
+    const extra = {
+      full_name: el("equipaNomeCompleto").value.trim() || null,
+      stadium: el("equipaEstadio").value.trim() || null,
+      color_primary: semCores ? null : el("equipaCorPrincipal").value,
+      color_secondary: semCores ? null : el("equipaCorSecundaria").value
+    };
+    Object.entries(extra).forEach(([k, v]) => { if (v !== null || (equipaEmEdicaoAdmin && k in equipaEmEdicaoAdmin)) linha[k] = v; });
+    let equipa;
+    try {
+      equipa = await dadosClube.guardar("teams", linha);
+    } catch (e) {
+      if (!/full_name|stadium|color_/i.test(e.message || "")) throw e;
+      Object.keys(extra).forEach(k => delete linha[k]);
+      equipa = await dadosClube.guardar("teams", linha);
+      alert("Equipa guardada sem nome completo, cores e estádio: corre a secção de 03/10/2026 do schema.sql.");
+    }
     equipasCalendario = equipasCalendario.filter(t => String(t.id) !== String(equipa.id)).concat(equipa);
 
     if (!VFN.eVFN(nome)) {

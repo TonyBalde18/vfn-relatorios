@@ -62,7 +62,8 @@
     const colunas = fases.map(f => {
       const html = f.jogos.map(j => {
         const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
-        const linha = (eq, golos) => `<div class="br-equipa${j.vencedor ? (j.vencedor === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}">
+        // fundo suave com a cor principal da equipa (teams.color_primary)
+        const linha = (eq, golos) => `<div class="br-equipa${j.vencedor ? (j.vencedor === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}${VFN.coresEquipa(H().equipa(dados, eq.id)).primaria ? " com-cor" : ""}"${VFN.estiloCorEquipa(H().equipa(dados, eq.id), 0.14)}>
           ${H().logoEquipa(H().equipa(dados, eq.id), eq.nome, "br-logo")}<span class="br-nome">${esc(eq.nome)}</span>${j.veioDaFaseAnterior.has(eq.id) ? `<span class="br-veio" title="Passou a fase anterior">${VFN.icone("chevrons-right", 12)}</span>` : ""}
           <strong class="br-golos">${temRes ? Number(golos) : ""}</strong></div>`;
         return `<button type="button" class="br-jogo" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">

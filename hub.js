@@ -618,20 +618,28 @@
 
   /* ---------- Equipas adversárias: cards com forma e ficha completa ---------- */
 
+  /** Badge de forma: círculo com as cores da equipa + últimos resultados. */
   function chipsForma(dados, teamId, n) {
     const jogos = jogosDaEquipa(dados, teamId).slice(0, n || 5);
-    if (!jogos.length) return '<span class="muted forma-sem-jogos">Sem jogos</span>';
-    return `<span class="form-row form-row-sm" aria-label="Forma: últimos ${jogos.length} jogos, mais recente à esquerda">${jogos.map(j => VFN.chipForma(j.letra)).join("")}</span>`;
+    const cor = corEquipaDot(equipa(dados, teamId));
+    if (!jogos.length) return `<span class="forma-badge">${cor}<span class="muted forma-sem-jogos">Sem jogos</span></span>`;
+    return `<span class="forma-badge">${cor}<span class="form-row form-row-sm" aria-label="Forma: últimos ${jogos.length} jogos, mais recente à esquerda">${jogos.map(j => VFN.chipForma(j.letra)).join("")}</span></span>`;
+  }
+
+  /** Círculo com a cor principal (e a secundária no contorno) da equipa; vazio sem cores. */
+  function corEquipaDot(t) {
+    const { primaria, secundaria } = VFN.coresEquipa(t);
+    return primaria ? `<span class="cor-equipa-dot" style="background:${primaria};border-color:${secundaria || "#fff"}" aria-hidden="true"></span>` : "";
   }
 
   /** Cards de todas as equipas (exceto o VFN) com logo, nome, cidade e forma recente. */
   function cardsEquipasHTML(dados, termo) {
     const t = String(termo || "").toLocaleLowerCase("pt-PT");
     const lista = [...(dados.teams || [])].filter(x => !VFN.eVFN(x.name))
-      .filter(x => !t || x.name.toLocaleLowerCase("pt-PT").includes(t) || String(x.city || "").toLocaleLowerCase("pt-PT").includes(t))
+      .filter(x => !t || [x.name, x.full_name, x.city].some(v => String(v || "").toLocaleLowerCase("pt-PT").includes(t)))
       .sort((a, b) => a.name.localeCompare(b.name, "pt"));
     if (!lista.length) return vazio("Sem equipas.");
-    return lista.map(x => `<button type="button" class="team-card" data-equipa="${esc(x.id)}">
+    return lista.map(x => `<button type="button" class="team-card${VFN.coresEquipa(x).primaria ? " com-cor" : ""}" data-equipa="${esc(x.id)}"${VFN.estiloCorEquipa(x)}>
       ${logoEquipa(x, x.name)}
       <strong>${esc(x.name)}</strong>
       ${x.city ? `<small>${esc(x.city)}</small>` : ""}
@@ -653,10 +661,13 @@
     const jogadores = (dados.external_players || []).filter(p => String(p.team_id) === String(teamId)).sort((x, y) => x.name.localeCompare(y.name, "pt"));
     const golosPorJogador = new Map();
     (dados.league_results || []).forEach(r => (Array.isArray(r.scorer_list) ? r.scorer_list : []).forEach(s => { if (s.player_id) golosPorJogador.set(String(s.player_id), (golosPorJogador.get(String(s.player_id)) || 0) + (Number(s.count) || 1)); }));
+    const cores = VFN.coresEquipa(t);
     return `
-      <div class="perfil-equipa-cab">
+      <div class="perfil-equipa-cab${cores.primaria ? " com-cor" : ""}"${VFN.estiloCorEquipa(t, 0.1)}>
         ${logoEquipa(t, t.name, "perfil-logo")}
-        <div><h3>${esc(t.name)}</h3>${t.city ? `<p class="muted">${VFN.icone("map-pin", 14)} ${esc(t.city)}</p>` : ""}</div>
+        <div class="perfil-equipa-nome"><h3>${esc(t.name)}</h3>${t.full_name && t.full_name !== t.name ? `<p class="perfil-nome-completo">${esc(t.full_name)}</p>` : ""}
+          ${t.city ? `<p class="muted">${VFN.icone("map-pin", 14)} ${esc(t.city)}</p>` : ""}${t.stadium ? `<p class="muted">${VFN.icone("landmark", 14)} ${esc(t.stadium)}</p>` : ""}</div>
+        ${cores.primaria ? `<div class="perfil-camisola" title="Equipamento principal">${VFN.camisolaEquipaSVG(t, { tamanho: 64 })}</div>` : ""}
       </div>
       ${formaEquipaHTML(dados, teamId)}
       <div class="perfil-stats">
@@ -794,7 +805,7 @@
   }
 
   window.VFNHub = {
-    jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, tagCompeticao, vazio,
+    jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
