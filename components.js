@@ -84,7 +84,7 @@
     const d = document.getElementById("vfnDrawer");
     if (!d || d.hidden) return;
     d.classList.remove("aberto");
-    setTimeout(() => { d.hidden = true; }, 220);
+    setTimeout(() => { d.hidden = true; }, 250); // fecho rápido (a abertura demora 600ms)
     const anterior = drawerAberto;
     drawerAberto = null;
     if (anterior && anterior.aoFechar) anterior.aoFechar();

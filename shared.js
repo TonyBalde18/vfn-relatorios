@@ -423,28 +423,31 @@
   const temGsap = () => !!window.gsap && !semMovimento();
   const lista = alvo => (!alvo ? [] : alvo.length !== undefined && !(alvo instanceof Element) ? [...alvo] : [alvo]).filter(Boolean);
 
+  // Durações entre 600 e 800ms com saída rápida (power3.out): a interação nunca fica bloqueada
+  // (o GSAP só anima opacidade/transform e os elementos estão clicáveis desde o início).
+  const DURACAO = 0.6;
   const anim = {
     /** Cards a entrar em cascata (fade-in + slide-up). */
     cascata(elementos) {
       const els = lista(elementos);
       if (!temGsap() || !els.length) return;
-      window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.035, clearProps: "opacity,transform" });
+      window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: DURACAO, ease: "power3.out", stagger: 0.03, clearProps: "opacity,transform" });
     },
-    /** Mudança de tab: fade-in com um pequeno deslize horizontal (220ms). */
+    /** Mudança de tab: fade-in com um pequeno deslize horizontal. */
     tab(painel) {
       if (!temGsap() || !painel) return;
-      window.gsap.fromTo(painel, { opacity: 0, x: 12 }, { opacity: 1, x: 0, duration: 0.22, ease: "power2.out", clearProps: "opacity,transform" });
+      window.gsap.fromTo(painel, { opacity: 0, x: 12 }, { opacity: 1, x: 0, duration: DURACAO, ease: "power3.out", clearProps: "opacity,transform" });
     },
-    /** Modal ao abrir: scale 0.95 → 1 com fade-in. */
+    /** Modal ao abrir: fade-in com scale 0.95 → 1. */
     modal(caixa) {
       if (!temGsap() || !caixa) return;
-      window.gsap.fromTo(caixa, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.22, ease: "power2.out", clearProps: "opacity,transform" });
+      window.gsap.fromTo(caixa, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: DURACAO, ease: "power3.out", clearProps: "opacity,transform" });
     },
     /** Linhas de tabela a entrar da esquerda em cascata. */
     linhas(linhas) {
       const els = lista(linhas);
       if (!temGsap() || !els.length) return;
-      window.gsap.fromTo(els, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out", stagger: 0.04, clearProps: "opacity,transform" });
+      window.gsap.fromTo(els, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: DURACAO, ease: "power3.out", stagger: 0.03, clearProps: "opacity,transform" });
     },
     /** Números com data-contar="N" contam de 0 até N. */
     contar(raiz) {
@@ -455,7 +458,7 @@
         if (!fim) return;
         const obj = { v: 0 };
         el.textContent = "0";
-        window.gsap.to(obj, { v: fim, duration: 0.9, ease: "power2.out", onUpdate: () => { el.textContent = Math.round(obj.v); }, onComplete: () => { el.textContent = fim; } });
+        window.gsap.to(obj, { v: fim, duration: 0.7, ease: "power2.out", onUpdate: () => { el.textContent = Math.round(obj.v); }, onComplete: () => { el.textContent = fim; } });
       });
     }
   };
@@ -464,7 +467,7 @@
      Ao entrar no ecrã, o número conta de 0 até ao valor (700ms), mantendo o formato
      ("6,00 €", "75%", "270'"). Novos elementos são apanhados automaticamente. */
 
-  const SELETOR_KPI = ".summary-tile strong, .season-stat strong, .player-modal-stat strong, .dividas-total strong, .att-pct, .disp-coluna h3 b, .stat-num";
+  const SELETOR_KPI = ".summary-tile strong, .season-stat strong, .player-modal-stat strong, .dividas-total strong, .att-pct, .disp-coluna h3 b, .stat-num, .perfil-stats strong, .pres-pct b, .anel strong, .big-number";
   const animados = new WeakSet();
   let observadorKpi = null;
 

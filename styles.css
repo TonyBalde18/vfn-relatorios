@@ -1564,3 +1564,18 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .dividas-imagem .dividas-topo strong { font-size: 1.15rem; }
 .dividas-imagem .dividas-total-rodape { display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px; }
 .dividas-imagem .dividas-total-rodape strong { font-size: 1.6rem; }
+
+/* ---------- v5: animações (600–800ms ao abrir; fechar é rápido) ---------- */
+.vfn-drawer { transition: background .25s ease; }
+.vfn-drawer.aberto { transition: background .6s ease; }
+.drawer-painel { transition: transform .25s ease-in, opacity .25s ease-in; }
+/* bottom-sheet no telemóvel: desliza de baixo com fade-in */
+.vfn-drawer.aberto .drawer-painel { transition: transform .6s cubic-bezier(.16, 1, .3, 1), opacity .6s ease-out; }
+.modal-overlay:not([hidden]) { animation-duration: .6s; }
+.view.active, .tab-panel.active { animation: vfnTabEntra .6s cubic-bezier(.16, 1, .3, 1); }
+html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /* com GSAP, a animação é do anim.tab */
+@keyframes vfnTabEntra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .vfn-drawer, .vfn-drawer.aberto, .drawer-painel, .vfn-drawer.aberto .drawer-painel { transition: none; }
+  .view.active, .tab-panel.active { animation: none; }
+}
