@@ -1708,3 +1708,13 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .vfn-apresentacao .legenda-zonas { color: rgba(255,255,255,.75); font-size: .9rem; margin-top: 2vh; }
 .vfn-apresentacao .hide-xs { display: table-cell; }
 .vfn-apresentacao .dg-col.pos { color: #4ade80; } .vfn-apresentacao .dg-col.neg { color: #f87171; }
+
+/* ---------- v6: segmented control (Classificação | Jornadas | Marcadores) ---------- */
+.seg-control { display: inline-flex; flex-wrap: wrap; gap: 2px; margin: 4px 0 14px; padding: 3px; border-radius: 10px; background: rgba(10, 22, 40, .07); }
+.seg-control button { padding: 7px 14px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: .84rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.seg-control button.ativo { background: #fff; color: var(--vfn-navy); box-shadow: 0 1px 4px rgba(10,22,40,.15); }
+.seg-control button:focus-visible { outline: 2px solid #FFD700; outline-offset: 1px; }
+@media (max-width: 480px) { .seg-control { display: flex; } .seg-control button { flex: 1; padding: 7px 6px; } }
+.marcadores-duplos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
+.marcadores-duplos .subsecao-titulo { margin-top: 0; }
+@media (max-width: 760px) { .marcadores-duplos { grid-template-columns: minmax(0, 1fr); } }

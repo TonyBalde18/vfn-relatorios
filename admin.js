@@ -1368,6 +1368,7 @@ function dadosJornadas() {
 }
 
 function initJornadas() {
+  VFNComp.ligarSegmentos(el("jornadasModos"), el("jornadasPaineis"), null, "jornadas"); // no admin abre nas Jornadas (formulário)
   el("jornadasCompeticao").innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option>${escapeHtml(c)}</option>`).join("");
   el("jornadasCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadasAdmin(); });
   el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
@@ -1423,12 +1424,14 @@ function renderJornadasAdmin() {
   el("jornadaFase").closest(".field").hidden = !taca;
   el("jornadaVencedor").closest(".field").hidden = !taca;
   renderVencedorForm();
-  // competições sem o VFN (1ª Divisão): classificação calculada aqui, fora do separador Classificação
-  const tabela = VFNHub.classificacaoJornadasHTML(dados, filtrosJornadas.competicao);
-  el("jornadasClassificacaoWrap").hidden = !tabela;
-  el("jornadasClassificacao").innerHTML = tabela;
+  // Classificação (ou Bracket nas taças) | Jornadas | Marcadores
+  el("jornadasModos").querySelector(".seg-rotulo-tabela").textContent = taca ? "Bracket" : "Classificação";
+  document.querySelectorAll("#tab-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosJornadas.competicao); });
+  el("jornadasTabela").innerHTML = VFNHub.classificacaoHTML(dados, filtrosJornadas.competicao);
   el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
-  el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 })), filtrosJornadas.competicao, 15);
+  const jogadoresVFN = plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 }));
+  el("jornadasMarcadoresVFN").innerHTML = VFNHub.marcadoresVFNCompeticaoHTML(dados, jogadoresVFN, filtrosJornadas.competicao, 10);
+  el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, jogadoresVFN, filtrosJornadas.competicao, 15);
 }
 
 /** Vencedor do confronto (taças): pelo resultado, ou escolhido quando há empate. */

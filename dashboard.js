@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -674,15 +674,18 @@ function renderJornadas() {
   eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${VFN.escapeHtml(t.id)}">${VFN.escapeHtml(t.nome)}</option>`).join("");
   eq.value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
   $("dbJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
-  const tabela = H.classificacaoJornadasHTML(dados, filtrosJornadas.competicao);
-  $("dbJornClassificacaoWrap").hidden = !tabela;
-  $("dbJornClassificacao").innerHTML = tabela;
   $("dbJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
+  $("dbJornModos").querySelector(".seg-rotulo-tabela").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
+  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosJornadas.competicao); });
+  $("dbJornTabela").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
+  $("dbJornMarcadoresVFN").innerHTML = H.marcadoresVFNCompeticaoHTML(dados, jogadores, filtrosJornadas.competicao, 10);
   $("dbJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
   if (estiloGraficos()) graficos.posicao = H.graficoPosicao($("chartPosicao"), dados, filtrosJornadas.competicao, graficos.posicao);
 }
 
 function initJornadas() {
+  // ao mudar para a Classificação o gráfico precisa de redimensionar (estava escondido)
+  VFNComp.ligarSegmentos($("dbJornModos"), $("dbJornPaineis"), modo => { if (modo === "tabela" && graficos.posicao) graficos.posicao.resize(); });
   $("dbJornCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadas(); });
   $("dbJornJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadas(); });
   $("dbJornEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadas(); });

@@ -42,7 +42,7 @@
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
     <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
-    <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
+    <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
     <button class="nav-item" data-view="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
@@ -153,23 +153,37 @@
     </div>
   </section>
 
-  <!-- JORNADAS AF GUARDA -->
+  <!-- COMPETIÇÕES: Classificação/Bracket | Jornadas | Marcadores -->
   <section id="view-jornadas" class="view">
     <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Jornadas AF Guarda</h2>
-      <div class="toolbar">
-        <label class="sr-only" for="dbJornCompeticao">Competição</label><select id="dbJornCompeticao" class="compact-select"></select>
-        <label class="sr-only" for="dbJornJornada">Jornada</label><select id="dbJornJornada" class="compact-select"></select>
-        <label class="sr-only" for="dbJornEquipa">Equipa</label><select id="dbJornEquipa" class="compact-select"></select>
-        <button type="button" id="dbJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
+      <div class="hub-card-head"><h2 class="hub-card-title">Competições</h2><label class="sr-only" for="dbJornCompeticao">Competição</label><select id="dbJornCompeticao" class="compact-select"></select></div>
+      <div class="seg-control" id="dbJornModos" aria-label="Vista da competição">
+        <button type="button" data-seg="tabela" role="tab"><span class="seg-rotulo-tabela">Classificação</span></button>
+        <button type="button" data-seg="jornadas" role="tab">Jornadas</button>
+        <button type="button" data-seg="marcadores" role="tab">Marcadores</button>
       </div>
-      <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
-      <div class="chart-box chart-posicao"><canvas id="chartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
-      <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
-      <div id="dbJornClassificacaoWrap" hidden><h3 class="subsecao-titulo">Classificação</h3><div id="dbJornClassificacao"></div></div>
-      <div id="dbJornLista" class="jornadas-lista"></div>
-      <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
-      <div id="dbJornMarcadores"></div>
+      <div id="dbJornPaineis">
+        <div data-seg-painel="tabela">
+          <div id="dbJornTabela"></div>
+          <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
+          <div class="chart-box chart-posicao"><canvas id="chartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
+          <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
+        </div>
+        <div data-seg-painel="jornadas" hidden>
+          <div class="toolbar">
+            <label class="sr-only" for="dbJornJornada">Jornada</label><select id="dbJornJornada" class="compact-select"></select>
+            <label class="sr-only" for="dbJornEquipa">Equipa</label><select id="dbJornEquipa" class="compact-select"></select>
+            <button type="button" id="dbJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
+          </div>
+          <div id="dbJornLista" class="jornadas-lista"></div>
+        </div>
+        <div data-seg-painel="marcadores" hidden>
+          <div class="marcadores-duplos">
+            <section><h3 class="subsecao-titulo">Top Marcadores VFN</h3><div id="dbJornMarcadoresVFN"></div></section>
+            <section><h3 class="subsecao-titulo">Top Marcadores <span class="seg-nome-comp"></span></h3><div id="dbJornMarcadores"></div></section>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

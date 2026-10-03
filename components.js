@@ -623,6 +623,31 @@
     return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
+  /* ---------- Segmented control (ex.: Classificação | Jornadas | Marcadores) ----------
+     Botões [data-seg="x"] dentro de `controlo`; painéis [data-seg-painel="x"] dentro de `raiz`.
+     A troca anima o painel novo (fade + slide). Devolve { definir(modo), atual() }. */
+
+  function ligarSegmentos(controlo, raiz, aoMudar, inicial) {
+    let atual = inicial || (controlo.querySelector("[data-seg]") || {}).dataset.seg;
+    const aplicar = (modo, animar) => {
+      atual = modo;
+      controlo.querySelectorAll("[data-seg]").forEach(b => { const ativo = b.dataset.seg === modo; b.classList.toggle("ativo", ativo); b.setAttribute("aria-selected", ativo); b.tabIndex = ativo ? 0 : -1; });
+      raiz.querySelectorAll("[data-seg-painel]").forEach(p => { p.hidden = p.dataset.segPainel !== modo; if (!p.hidden && animar) VFN.anim.tab(p); });
+      if (aoMudar) aoMudar(modo);
+    };
+    controlo.setAttribute("role", "tablist");
+    controlo.addEventListener("click", e => { const b = e.target.closest("[data-seg]"); if (b && b.dataset.seg !== atual) aplicar(b.dataset.seg, true); });
+    controlo.addEventListener("keydown", e => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const botoes = [...controlo.querySelectorAll("[data-seg]")];
+      const i = botoes.findIndex(b => b.dataset.seg === atual);
+      const seguinte = botoes[(i + (e.key === "ArrowRight" ? 1 : -1) + botoes.length) % botoes.length];
+      aplicar(seguinte.dataset.seg, true); seguinte.focus();
+    });
+    aplicar(atual, false);
+    return { definir: m => aplicar(m, true), atual: () => atual };
+  }
+
   /* ---------- Classificação em modo apresentação (balneário) ----------
      O botão "Apresentar" ([data-apresentar]) copia a tabela para um ecrã inteiro escuro
      e as linhas entram uma a uma (GSAP stagger). Esc ou "Fechar" para sair. */
@@ -773,6 +798,7 @@
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
+    ligarSegmentos, apresentarClassificacao,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

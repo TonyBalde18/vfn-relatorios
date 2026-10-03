@@ -53,7 +53,7 @@
     <button class="tab-btn nav-item" data-tab="presencas"><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="tab-btn nav-item" data-tab="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
     <button class="tab-btn nav-item" data-tab="resultados"><span class="nav-icon"><i data-icon="list-ordered"></i></span><span class="nav-label">Resultados</span></button>
-    <button class="tab-btn nav-item" data-tab="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Jornadas AF Guarda</span></button>
+    <button class="tab-btn nav-item" data-tab="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="tab-btn nav-item" data-tab="classificacao"><span class="nav-icon"><i data-icon="trophy"></i></span><span class="nav-label">Classificação</span></button>
     <button class="tab-btn nav-item" data-tab="adversarios"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Adversários</span></button>
     <button class="tab-btn nav-item" data-tab="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
@@ -429,6 +429,14 @@
         <h2 class="section-title">Jornadas AF Guarda</h2>
         <div class="toolbar toolbar-inline"><label class="toolbar-label" for="jornadasCompeticao">Competição</label><select id="jornadasCompeticao"></select></div>
       </div>
+      <div class="seg-control" id="jornadasModos" aria-label="Vista da competição">
+        <button type="button" data-seg="tabela" role="tab"><span class="seg-rotulo-tabela">Classificação</span></button>
+        <button type="button" data-seg="jornadas" role="tab">Jornadas</button>
+        <button type="button" data-seg="marcadores" role="tab">Marcadores</button>
+      </div>
+      <div id="jornadasPaineis">
+      <div data-seg-painel="tabela"><div id="jornadasTabela"></div></div>
+      <div data-seg-painel="jornadas" hidden>
       <div class="jornada-form" role="group" aria-label="Adicionar resultado">
         <div class="field jf-jornada"><label for="jornadaNumero">Jornada</label><input type="number" id="jornadaNumero" min="1" placeholder="Nº"></div>
         <div class="field jf-jornada" hidden><label for="jornadaFase">Fase</label><select id="jornadaFase"></select></div>
@@ -455,11 +463,16 @@
         <label class="toolbar-label" for="jornadasFiltroEquipa">Equipa</label><select id="jornadasFiltroEquipa"></select>
         <button type="button" id="btnOrdemJornadas" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
-      <div id="jornadasClassificacaoWrap" hidden><h3 class="subsecao-titulo">Classificação</h3><div id="jornadasClassificacao"></div></div>
       <div id="jornadasLista" class="jornadas-lista"></div>
-      <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
-      <div id="jornadasMarcadores"></div>
       <small class="muted">Os jogos do VFN (marcados como VFN) vêm do Calendário; usa o lápis para editar data, hora, local, competição e fase.</small>
+      </div>
+      <div data-seg-painel="marcadores" hidden>
+        <div class="marcadores-duplos">
+          <section><h3 class="subsecao-titulo">Top Marcadores VFN</h3><div id="jornadasMarcadoresVFN"></div></section>
+          <section><h3 class="subsecao-titulo">Top Marcadores <span class="seg-nome-comp"></span></h3><div id="jornadasMarcadores"></div></section>
+        </div>
+      </div>
+      </div>
     </div>
   </section>
 
