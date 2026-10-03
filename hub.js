@@ -218,13 +218,68 @@
       .filter(j => !o.estado || (j.disponibilidade || "disponivel") === o.estado)
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
+    const capitao = capitaoAtivo(jogadores);
     return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}">
-      ${VFN.avatarJogador(j)}
+      ${VFN.avatarJogador(j)}${String(j.id) === capitao ? VFN.badgeCapitao("no-card") : ""}
       <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
       <strong>${esc(j.nome)}</strong>
       <small>${esc(j.posicao)}</small>
       ${o.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
     </button>`).join("");
+  }
+
+  /** Capitão ativo do plantel: o primeiro da lista de prioridade que está disponível. */
+  function capitaoAtivo(jogadores) {
+    const porId = new Map((jogadores || []).map(j => [String(j.id), j]));
+    return VFN.capitaoAutomatico([...porId.keys()], { estado: id => (porId.get(id) || {}).disponibilidade || "" });
+  }
+
+  /* ---------- Ficha visual do jogador ---------- */
+
+  // zonas do campo (x, y em %; ataque em cima) por código de posição
+  const ZONAS = {
+    GR: [50, 90], DC: [50, 76], DD: [84, 72], DE: [16, 72], MDC: [50, 60], MC: [50, 47], MOC: [50, 34],
+    ED: [82, 24], EE: [18, 24], PL: [50, 12]
+  };
+  const ZONAS_ALIAS = { MDEF: "MDC", MD: "MDC", MCEN: "MC", MOFE: "MOC", MO: "MOC", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
+
+  /** Campo com a posição principal (dourado) e as secundárias destacadas. */
+  function mapaPosicoesHTML(posicao) {
+    const codigos = String(posicao || "").split("/").map(c => c.trim().toUpperCase()).map(c => ZONAS[c] ? c : ZONAS_ALIAS[c]).filter(Boolean);
+    const unicos = [...new Set(codigos)];
+    return `<div class="mapa-posicoes" role="img" aria-label="Posições: ${esc(unicos.join(", ") || "sem posição")}">
+      <svg viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+        <rect x="1" y="1" width="98" height="138" rx="3"></rect><line x1="1" y1="70" x2="99" y2="70"></line><circle cx="50" cy="70" r="11"></circle>
+        <rect x="27" y="1" width="46" height="18"></rect><rect x="27" y="121" width="46" height="18"></rect>
+      </svg>
+      ${Object.entries(ZONAS).map(([c, [x, y]]) => { const i = unicos.indexOf(c); return `<span class="zona ${i === 0 ? "principal" : i > 0 ? "secundaria" : ""}" style="left:${x}%;top:${y}%">${c}</span>`; }).join("")}
+    </div>`;
+  }
+
+  /** Estatísticas em barras (comparadas com o melhor do plantel) e distinções. */
+  function fichaVisualHTML(j, jogadores) {
+    const todos = jogadores || [];
+    const max = k => Math.max(1, ...todos.map(x => Number(x[k]) || 0));
+    const posicaoNo = k => [...todos].sort((a, b) => (Number(b[k]) || 0) - (Number(a[k]) || 0)).findIndex(x => x.id === j.id) + 1;
+    const distincoes = [];
+    [["golos", "Melhor marcador", "goal"], ["assistencias", "Mais assistências", "target"], ["minutos", "Mais minutos", "timer"], ["jogos", "Mais jogos", "shirt"]].forEach(([k, titulo, icone]) => {
+      if (!(Number(j[k]) > 0)) return;
+      const p = posicaoNo(k);
+      if (p === 1) distincoes.push(`<span class="distincao ouro">${VFN.icone(icone, 14)} ${titulo}</span>`);
+      else if (p <= 3) distincoes.push(`<span class="distincao">${VFN.icone(icone, 14)} Top 3 · ${titulo.replace(/^Melhor marcador$/, "golos").replace(/^Mais /, "")}</span>`);
+    });
+    if (String(j.id) === capitaoAtivo(todos)) distincoes.unshift(`<span class="distincao capitao">${VFN.badgeCapitao()} Capitão</span>`);
+    const barras = [["Jogos", "jogos", ""], ["Minutos", "minutos", "'"], ["Golos", "golos", ""], ["Assistências", "assistencias", ""]].map(([rotulo, k, suf]) => `
+      <div class="ficha-barra"><span>${rotulo}</span><span class="barra"><i style="width:${Math.round((Number(j[k]) || 0) / max(k) * 100)}%"></i></span><strong>${Number(j[k]) || 0}${suf}</strong></div>`).join("");
+    const cartoes = `<div class="ficha-cartoes"><span class="cartao amarelo" title="Amarelos">${j.cartoesA || 0}</span><span class="cartao vermelho" title="Vermelhos">${j.cartoesV || 0}</span></div>`;
+    return `<div class="ficha-visual">
+      ${mapaPosicoesHTML(j.posicao)}
+      <div class="ficha-dados">
+        ${distincoes.length ? `<div class="distincoes">${distincoes.join("")}</div>` : ""}
+        ${barras}
+        ${cartoes}
+      </div>
+    </div>`;
   }
 
   /* ---------- Calendário ---------- */
@@ -732,6 +787,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao, posicaoNoCampo, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

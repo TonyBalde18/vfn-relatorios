@@ -72,8 +72,8 @@ function abrirJogador(id) {
   $("pjAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("pjNome").textContent = j.nomeCompleto;
   $("pjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ");
-  $("pjStats").innerHTML = [["Jogos", j.jogos], ["Minutos", j.minutos], ["Golos", j.golos], ["Assistências", j.assistencias], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV]]
-    .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  $("pjVisual").innerHTML = H.fichaVisualHTML(j, jogadores);
+  $("pjStats").innerHTML = ""; // os números estão na ficha visual
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
 }

@@ -40,7 +40,7 @@
       golosAdv: r.score_opponent ?? jogo.golosAdversario ?? 0,
       formacao: r.formation || jogo.formacaoVFN || "",
       formacaoAdv: jogo.formacaoAdversario === "Outro" ? (jogo.formacaoAdversarioOutro || "Outro") : (jogo.formacaoAdversario || ""),
-      onze: (jogo.titulares || []).filter(Boolean).map(nome),
+      onze: (jogo.titulares || []).filter(Boolean).map(id => nome(id) + (String(id) === String(jogo.capitaoId) ? " (C)" : "")),
       suplentes: (jogo.suplentes || []).filter(Boolean).map(nome),
       substituicoes: vfnEm("Substituição").map(e => ({ min: minuto(e), sai: nome(e.jogadorSaiId), entra: nome(e.jogadorId) })),
       golos: eventos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").map(e => ({ min: minuto(e), vfn: (e.tipo === "Golo") === (e.equipa === "VFN"), texto: e.equipa === "VFN" ? nome(e.jogadorId) + (e.assistId ? ` (assist. ${nome(e.assistId)})` : "") : (e.detalhe || "Adversário") + (e.tipo === "Auto-golo" ? " (autogolo)" : "") })),

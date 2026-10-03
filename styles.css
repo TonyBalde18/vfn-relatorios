@@ -1164,3 +1164,34 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .timeline-event.neutro span { display: none; }
 .dj-evento.lado-centro { grid-template-columns: 1fr; justify-items: center; background: #EFF6FF; color: #1e3a8a; font-size: .8rem; }
 .dj-evento.lado-centro > :empty { display: none; }
+
+/* ---------- v4: capitão ---------- */
+.badge-capitao { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #FFD700; color: #0A1628; font-size: .68rem; font-weight: 900; line-height: 1; border: 1.5px solid #0A1628; vertical-align: middle; }
+.badge-capitao.no-campo { position: absolute; top: -6px; right: -8px; }
+.badge-capitao.no-card { position: absolute; top: 10px; left: 10px; width: 22px; height: 22px; font-size: .78rem; }
+.capitao-campo { display: grid; grid-template-columns: minmax(160px, 240px) 1fr; gap: 4px 12px; align-items: end; margin-bottom: 12px; }
+.capitao-campo small { grid-column: 1 / -1; }
+.capitao-atual { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-weight: 700; }
+@media (max-width: 560px) { .capitao-campo { grid-template-columns: 1fr; } }
+
+/* ---------- v4: ficha visual do jogador ---------- */
+.ficha-visual { display: grid; grid-template-columns: 130px 1fr; gap: 16px; align-items: start; margin: 12px 0; }
+.mapa-posicoes { position: relative; width: 130px; aspect-ratio: 100 / 140; border-radius: 8px; background: repeating-linear-gradient(180deg, #2f7d3b 0 12.5%, #2a7235 12.5% 25%); overflow: hidden; }
+.mapa-posicoes svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(255,255,255,.7); stroke-width: .8; }
+.mapa-posicoes .zona { position: absolute; transform: translate(-50%, -50%); padding: 1px 4px; border-radius: 4px; font-size: .55rem; font-weight: 800; color: rgba(255,255,255,.45); }
+.mapa-posicoes .zona.principal { background: #FFD700; color: #0A1628; font-size: .68rem; box-shadow: 0 0 0 4px rgba(255,215,0,.35); }
+.mapa-posicoes .zona.secundaria { background: rgba(255,255,255,.9); color: #0A1628; font-size: .62rem; }
+.ficha-dados { display: grid; gap: 8px; min-width: 0; }
+.distincoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.distincao { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: rgba(10,22,40,.06); color: var(--vfn-navy); font-size: .72rem; font-weight: 700; }
+.distincao.ouro { background: #FFF4CC; color: #7A5A00; }
+.distincao.capitao { background: #0A1628; color: #FFD700; }
+.ficha-barra { display: grid; grid-template-columns: 92px 1fr 44px; align-items: center; gap: 8px; font-size: .82rem; }
+.ficha-barra .barra { height: 8px; border-radius: 999px; background: rgba(10,22,40,.08); overflow: hidden; }
+.ficha-barra .barra i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0A1628, #1e40af); }
+.ficha-barra strong { text-align: right; }
+.ficha-cartoes { display: flex; gap: 8px; }
+.cartao { display: inline-grid; place-items: center; width: 22px; height: 30px; border-radius: 3px; font-weight: 800; font-size: .8rem; }
+.cartao.amarelo { background: #facc15; color: #0A1628; }
+.cartao.vermelho { background: #dc2626; color: #fff; }
+@media (max-width: 420px) { .ficha-visual { grid-template-columns: 100px 1fr; gap: 10px; } .mapa-posicoes { width: 100px; } .ficha-barra { grid-template-columns: 74px 1fr 40px; } }

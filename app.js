@@ -179,6 +179,8 @@ function estadoInicial() {
       formacaoAdversarioOutro: "",
       titulares: new Array(11).fill(null),
       suplentes: new Array(7).fill(null),
+      capitaoId: null, // id local do capitão (automático pela ordem de prioridade)
+      capitaoManual: false, // escolhido à mão no Jogo
       coachpad: null, // { dataUrl, tipo, largura, altura }
       eventos: [],
       statsAplicadas: {}, // contribuição deste jogo já somada ao plantel (id -> campos)
@@ -885,6 +887,13 @@ function initJogo() {
     renderPitch();
     renderTitulares();
   });
+  el("jgCapitao").addEventListener("change", e => {
+    state.jogo.capitaoManual = !!e.target.value; // vazio volta ao automático
+    state.jogo.capitaoId = e.target.value ? Number(e.target.value) : null;
+    renderCapitao();
+    renderPitch();
+    renderTitulares();
+  });
   el("jgFormacaoAdv").addEventListener("change", e => {
     state.jogo.formacaoAdversario = e.target.value;
     renderFormacaoAdversarioOutro();
@@ -975,6 +984,7 @@ function idsUsadosExcluindo(valorAtual) {
 
 /* Campo visual — apenas decorativo, reflete os dropdowns */
 function renderPitch() {
+  atualizarCapitao();
   const pitch = el("pitch");
   pitch.innerHTML = "";
   const slots = FORMACOES_SLOTS[state.jogo.formacaoVFN] || FORMACOES_SLOTS["4-3-3"];
@@ -996,10 +1006,35 @@ function renderPitch() {
       nameSpan.className = "slot-name";
       nameSpan.textContent = nomeJogador(jogadorId).split(" ")[0];
       div.appendChild(nameSpan);
+      if (eCapitao(jogadorId)) div.insertAdjacentHTML("beforeend", VFN.badgeCapitao("no-campo"));
     }
 
     pitch.appendChild(div);
   });
+}
+
+/* ---- Capitão ---- */
+
+/** Atualiza o capitão: o escolhido à mão (se continuar no onze) ou o primeiro titular da lista de prioridade disponível. */
+function atualizarCapitao() {
+  const titulares = titularesIds();
+  if (state.jogo.capitaoManual && titulares.includes(Number(state.jogo.capitaoId))) return;
+  state.jogo.capitaoManual = false;
+  const porBD = new Map(titulares.map(id => [idJogadorBD(plantel.find(p => p.id === id) || { id }), id]));
+  const escolhido = VFN.capitaoAutomatico([...porBD.keys()], { estado: idBD => (jogadorPorIdBD(idBD) || {}).disponibilidade || "" });
+  state.jogo.capitaoId = escolhido ? porBD.get(escolhido) : null;
+}
+
+function eCapitao(id) {
+  return !!id && Number(id) === Number(state.jogo.capitaoId);
+}
+
+function renderCapitao() {
+  const select = el("jgCapitao");
+  if (!select) return;
+  atualizarCapitao();
+  select.innerHTML = '<option value="">Automático</option>' + titularesIds().map(id => `<option value="${id}" ${state.jogo.capitaoManual && eCapitao(id) ? "selected" : ""}>${escapeHtml(nomeJogador(id))}</option>`).join("");
+  el("jgCapitaoAtual").innerHTML = state.jogo.capitaoId ? `${VFN.badgeCapitao()} ${escapeHtml(nomeJogador(state.jogo.capitaoId))}${state.jogo.capitaoManual ? "" : " <small class=\"muted\">(automático)</small>"}` : '<span class="muted">Sem capitão da lista no onze — escolhe um.</span>';
 }
 
 /* Lista de dropdowns dos titulares — é aqui que o onze é realmente definido */
@@ -1015,12 +1050,14 @@ function renderTitulares() {
     const label = document.createElement("span");
     label.className = "lineup-label";
     label.textContent = (idx + 1) + ". " + slot.label;
+    if (eCapitao(state.jogo.titulares[idx])) label.insertAdjacentHTML("beforeend", " " + VFN.badgeCapitao());
 
     const valorAtual = state.jogo.titulares[idx];
     const select = document.createElement("select");
     select.innerHTML = opcoesJogadoresHTML(valorAtual, { excludeIds: idsUsadosExcluindo(valorAtual) });
     select.addEventListener("change", () => {
       state.jogo.titulares[idx] = select.value ? Number(select.value) : null;
+      renderCapitao();
       renderPitch();
       renderTitulares();
       renderBench();
@@ -1366,6 +1403,7 @@ function renderEventos(ordenar) {
 
 function renderJogo() {
   state.jogo.duracaoJogo = 90;
+  renderCapitao();
   el("jgFormacaoVFN").value = state.jogo.formacaoVFN;
   el("jgFormacaoAdv").value = state.jogo.formacaoAdversario;
   renderPitch();
@@ -2200,7 +2238,7 @@ async function gerarRelatorioWord() {
       });
       const linhasMin = minutosJogadores.map(m => new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.nome, size: 16 })] })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.nome + (eCapitao(m.id) ? " (C)" : ""), size: 16 })] })] }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.posicao, size: 16 })] })] }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: m.minutos + "'", size: 16 })] })] })
         ]

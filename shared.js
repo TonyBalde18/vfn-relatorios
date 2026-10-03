@@ -560,6 +560,26 @@
     }).observe(document.body, { childList: true, subtree: true });
   });
 
+  /* ---------- Capitão ---------- */
+
+  // ordem de prioridade (ids Zerozero): Toneca, Silvestre, Marco, Macedo
+  const CAPITAES = ["872514", "726895", "710175", "664348"];
+  const INDISPONIVEIS = ["lesionado", "suspenso", "indisponivel"];
+
+  /**
+   * Primeiro da lista de capitães presente em `candidatos` (ids) e disponível.
+   * opcoes.estado(id) devolve a disponibilidade (vazio = desconhecida, conta como disponível).
+   */
+  function capitaoAutomatico(candidatos, opcoes) {
+    const o = opcoes || {};
+    const ids = new Set((candidatos || []).map(String));
+    return CAPITAES.find(id => ids.has(id) && !INDISPONIVEIS.includes(o.estado ? o.estado(id) : "")) || "";
+  }
+
+  function badgeCapitao(classe) {
+    return `<span class="badge-capitao ${classe || ""}" title="Capitão" aria-label="Capitão">C</span>`;
+  }
+
   /* ---------- Mapa de presenças (estilo GitHub) ---------- */
 
   const PRESENTE = e => e === "P" || e === "A";
@@ -897,7 +917,7 @@
 
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, heatmapPresencasHTML,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,

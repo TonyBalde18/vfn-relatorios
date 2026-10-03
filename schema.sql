@@ -400,6 +400,9 @@ insert into public.staff (id, name, full_name, role, date_of_birth, photo_url) v
   ('1635906', 'Ricardo Isento', 'Ricardo Manuel Mendes Isento', 'treinador', date '1975-10-25', 'https://tonybalde18.github.io/vfn-relatorios/assets/staff/1635906.png')
 on conflict (id) do nothing;
 
+-- [v4 Tarefa 6] Capitão do jogo (automático: Toneca → Silvestre → Marco → Macedo)
+alter table public.match_reports add column if not exists captain_id text references public.players(id) on delete set null;
+
 -- [v4 Tarefa 4] Equipas novas (logos em assets/opponents/<id>.png)
 alter table public.teams add column if not exists city text; -- já usada no admin (Equipas)
 insert into public.teams (id, name, city, logo_url) values

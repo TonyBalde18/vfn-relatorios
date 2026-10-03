@@ -1169,6 +1169,7 @@ async function gravarMarcadoresForm(casa, fora) {
    ========================================================= */
 
 let colunasRelatorioV3 = true; // passa a false se a BD ainda não tiver as colunas novas
+let colunaCapitao = true; // match_reports.captain_id (v4)
 let gravacaoRelatorio = Promise.resolve();
 
 function estadoDoRelatorio(r) {
@@ -1214,7 +1215,8 @@ function linhaRelatorio() {
     highlights: state.analise.destaques || null,
     areas_to_improve: state.analise.aMelhorar || null,
     individual_notes: (state.analise.notasIndividuais || []).filter(n => n.jogadorId && n.nota).map(n => ({ player: nomeJogador(n.jogadorId), note: n.nota })),
-    created_by: currentUser ? currentUser.id : null
+    created_by: currentUser ? currentUser.id : null,
+    ...(colunaCapitao ? { captain_id: state.jogo.capitaoId ? idJogadorBD(plantel.find(p => p.id === Number(state.jogo.capitaoId)) || { id: state.jogo.capitaoId }) : null } : {})
   };
 }
 
@@ -1227,8 +1229,9 @@ function guardarRelatorioDoJogo() {
       try {
         gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
       } catch (e) {
-        if (!colunasRelatorioV3 || !/does not exist|schema cache|could not find/i.test(e.message || "")) throw e;
-        colunasRelatorioV3 = false; // BD sem as colunas da v3: grava só o match_data
+        if (!colunasRelatorioV3 || !/does not exist|schema cache|could not find|foreign key/i.test(e.message || "")) throw e;
+        if (colunaCapitao && /captain_id/i.test(e.message || "")) colunaCapitao = false; // só falta a coluna da v4 (ou o capitão não está na BD)
+        else colunasRelatorioV3 = false; // BD sem as colunas da v3: grava só o match_data
         gravado = await dadosClube.guardar("match_reports", linhaRelatorio());
       }
       state.relatorioId = gravado.id;
