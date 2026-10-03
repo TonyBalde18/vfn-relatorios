@@ -230,7 +230,7 @@ function abrirJogador(id) {
   const p = presencaJogador(j.id);
   const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Pé dominante", j.info.pe], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]].filter(([k, v]) => k !== "Pé dominante" || v);
   $("mjCorpo").innerHTML = `
-    ${H.fichaVisualHTML(j, jogadores)}
+    ${H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id))}
     <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();

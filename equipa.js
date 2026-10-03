@@ -237,7 +237,7 @@ function abrirPresencasJogador(id) {
 const COLUNAS_STATS = [["nome", "Jogador", "texto"], ["jogos", "J", "numero"], ["minutos", "Min", "numero"], ["golos", "Golos", "numero"], ["assistencias", "Ass", "numero"], ["cartoesA", "Am.", "numero"], ["cartoesV", "Verm.", "numero"]];
 
 function renderEstatisticas() {
-  $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores) : H.vazio("Só para jogadores.");
+  $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id)) : H.vazio("Só para jogadores.");
   const lista = [...jogadores].sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
   $("eqStatsTabela").innerHTML = `<thead><tr>${COLUNAS_STATS.map(([c, t, tipo]) => `<th scope="col" class="${c === "nome" ? "team-col" : "num"}" data-tipo="${tipo}">${t}</th>`).join("")}</tr></thead>
     <tbody>${lista.map(j => `<tr class="${j.eEu ? "is-vfn-row" : ""}"><td class="team-col" data-v="${esc(j.nome)}"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)} <small class="muted">${esc(j.posicao)}</small></span></span></td>${COLUNAS_STATS.slice(1).map(([c]) => `<td class="num">${j[c]}</td>`).join("")}</tr>`).join("")}</tbody>`;
@@ -252,10 +252,7 @@ function abrirJogador(id) {
   $("ejNome").textContent = j.nomeCompleto;
   $("ejMeta").innerHTML = esc([j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ")) + (j.disponibilidade ? " " + VFN.badgeDisponibilidade(j.disponibilidade) : "");
   $("ejStats").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]].map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
-  const p = presencaDe(j.id);
-  $("ejCorpo").innerHTML = `${H.fichaVisualHTML(j, jogadores)}
-    <h4 class="perfil-subtitulo">Presenças na época ${p.pct === null ? "" : `<small class="muted">· ${p.pct}%</small>`}</h4>
-    ${VFN.heatmapPresencasHTML(dados.attendance.filter(a => String(a.player_id) === String(j.id)).map(a => ({ data: a.session_date, status: a.status })), { individual: true })}`;
+  $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id));
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
 }

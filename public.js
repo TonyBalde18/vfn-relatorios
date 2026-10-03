@@ -74,7 +74,8 @@ function abrirJogador(id) {
   $("pjAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("pjNome").textContent = j.nomeCompleto;
   $("pjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ");
-  $("pjVisual").innerHTML = H.fichaVisualHTML(j, jogadores);
+  // sem presenças na página pública (não são públicas)
+  $("pjVisual").innerHTML = H.fichaVisualHTML(j, jogadores, { jogosEquipa: H.jogosDisputados(dados) });
   $("pjStats").innerHTML = ""; // os números estão na ficha visual
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();

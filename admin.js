@@ -662,6 +662,25 @@ function renderRadarJogador(jogador) {
   });
 }
 
+/** Jogador do plantel do admin no formato das vistas (hub.js): minutos, cartoesA, cartoesV, id da BD. */
+function jogadorParaFicha(j) {
+  return { ...j, id: idJogadorBD(j), minutos: Number(j.minutosTotais) || 0, cartoesA: Number(j.cartoesAmarelos) || 0, cartoesV: Number(j.cartoesVermelhos) || 0, jogos: Number(j.jogos) || 0, golos: Number(j.golos) || 0, assistencias: Number(j.assistencias) || 0 };
+}
+
+/** Ficha visual (zonas no campo, anéis, barras e mapa de presenças) no modal do jogador. */
+async function renderFichaAdmin(jogador) {
+  const caixa = el("playerModalFicha");
+  if (!caixa) return;
+  caixa.hidden = !jogador || !plantel.includes(jogador);
+  if (caixa.hidden) { caixa.innerHTML = ""; return; }
+  const desenhar = () => {
+    const id = idJogadorBD(jogador);
+    caixa.innerHTML = VFNHub.fichaVisualHTML(jogadorParaFicha(jogador), plantel.map(jogadorParaFicha), VFNHub.opcoesFicha({ matches: jogosCalendario, attendance: cacheAdmin.attendance }, id));
+  };
+  desenhar();
+  if (!tabelasCarregadas.has("attendance")) { await carregarTabelaAdmin("attendance", "presencasErro"); if (jogadorEmEdicao === jogador) desenhar(); }
+}
+
 /**
  * Alerta de amarelos (AF Guarda: suspensão ao 5.º): quem está a um amarelo
  * da suspensão (4, 9, ...) e quem completou um ciclo de 5 e não está marcado como suspenso.

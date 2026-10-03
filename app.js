@@ -1780,6 +1780,7 @@ function renderPlayerModalHeader(jogador) {
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
   el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
   if (typeof renderRadarJogador === "function") renderRadarJogador(jogador);
+  if (typeof renderFichaAdmin === "function") renderFichaAdmin(jogador);
 }
 
 function fecharModalJogador() {

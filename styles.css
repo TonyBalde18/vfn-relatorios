@@ -1531,3 +1531,30 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .aniv-lista strong { display: block; color: var(--vfn-navy); }
 .aniv-lista small { color: var(--text-muted); font-size: .76rem; }
 .dia-aniversarios { background: #FFF7FA; margin: 0 -16px; padding: 10px 16px; }
+
+/* ---------- v5: ficha visual — zonas no campo, anéis e animações ---------- */
+.mapa-posicoes svg .area { stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: vfnZona 2.4s ease-in-out infinite; }
+.mapa-posicoes svg .area.principal { fill: rgba(255, 215, 0, .55); stroke: #E0B800; }
+.mapa-posicoes svg .area.secundaria { fill: rgba(255, 255, 255, .28); stroke: rgba(255, 255, 255, .8); stroke-dasharray: 3 2; }
+@keyframes vfnZona { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+.aneis { display: flex; flex-wrap: wrap; gap: 10px; margin: 2px 0 10px; }
+.anel { position: relative; display: grid; justify-items: center; width: 74px; text-align: center; }
+.anel svg { width: 60px; height: 60px; transform: rotate(-90deg); }
+.anel circle { fill: none; stroke-width: 6; }
+.anel-fundo { stroke: rgba(10, 22, 40, .08); }
+.anel-valor { stroke-linecap: round; stroke-dasharray: var(--total); stroke-dashoffset: var(--alvo); animation: vfnAnel .9s ease-out both; }
+.anel-valor.bom { stroke: #16a34a; } .anel-valor.medio { stroke: #E7A601; } .anel-valor.baixo { stroke: #dc2626; }
+@keyframes vfnAnel { from { stroke-dashoffset: var(--total); } to { stroke-dashoffset: var(--alvo); } }
+.anel strong { position: absolute; top: 18px; left: 0; right: 0; font-size: .82rem; color: var(--vfn-navy); }
+.anel span { margin-top: 2px; font-size: .66rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+.anel.anel-num { align-content: start; }
+.anel.anel-num strong { position: static; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; background: var(--vfn-navy); color: #FFD700; font-size: .95rem; animation: vfnPop .5s ease-out both; }
+.ficha-barra .barra i { animation: vfnBarra .8s ease-out both; transform-origin: left; }
+@keyframes vfnBarra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.distincoes .distincao { animation: vfnPop .45s ease-out both; }
+.distincoes .distincao:nth-child(2) { animation-delay: .08s; } .distincoes .distincao:nth-child(3) { animation-delay: .16s; } .distincoes .distincao:nth-child(4) { animation-delay: .24s; }
+@keyframes vfnPop { 0% { opacity: 0; transform: scale(.6); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+.player-ficha-admin { margin: 6px 0 14px; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(10, 22, 40, .02); }
+@media (prefers-reduced-motion: reduce) {
+  .mapa-posicoes svg .area, .anel-valor, .anel.anel-num strong, .ficha-barra .barra i, .distincoes .distincao { animation: none; }
+}

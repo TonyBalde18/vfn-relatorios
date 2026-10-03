@@ -297,21 +297,44 @@
   };
   const ZONAS_ALIAS = { MDEF: "MDC", MD: "MDC", MCEN: "MC", MOFE: "MOC", MO: "MOC", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
 
-  /** Campo com a posição principal (dourado) e as secundárias destacadas. */
+  // área de cada posição no campo (viewBox 100×140, ataque em cima): x, y, largura, altura
+  const AREAS = {
+    GR: [34, 122, 32, 16], DC: [26, 98, 48, 20], DD: [72, 84, 26, 34], DE: [2, 84, 26, 34],
+    MDC: [24, 76, 52, 18], MC: [20, 56, 60, 22], MOC: [26, 38, 48, 18],
+    ED: [72, 14, 26, 36], EE: [2, 14, 26, 36], PL: [28, 4, 44, 22]
+  };
+
+  /** Campo com as zonas das posições do jogador: principal (dourado) e secundárias, a pulsar. */
   function mapaPosicoesHTML(posicao) {
     const codigos = String(posicao || "").split("/").map(c => c.trim().toUpperCase()).map(c => ZONAS[c] ? c : ZONAS_ALIAS[c]).filter(Boolean);
     const unicos = [...new Set(codigos)];
+    const zonas = unicos.map((c, i) => { const [x, y, w, h] = AREAS[c]; return `<rect class="area ${i === 0 ? "principal" : "secundaria"}" x="${x}" y="${y}" width="${w}" height="${h}" rx="6" style="animation-delay:${i * 0.15}s"></rect>`; }).join("");
     return `<div class="mapa-posicoes" role="img" aria-label="Posições: ${esc(unicos.join(", ") || "sem posição")}">
       <svg viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
         <rect x="1" y="1" width="98" height="138" rx="3"></rect><line x1="1" y1="70" x2="99" y2="70"></line><circle cx="50" cy="70" r="11"></circle>
         <rect x="27" y="1" width="46" height="18"></rect><rect x="27" y="121" width="46" height="18"></rect>
+        ${zonas}
       </svg>
       ${Object.entries(ZONAS).map(([c, [x, y]]) => { const i = unicos.indexOf(c); return `<span class="zona ${i === 0 ? "principal" : i > 0 ? "secundaria" : ""}" style="left:${x}%;top:${y}%">${c}</span>`; }).join("")}
     </div>`;
   }
 
-  /** Estatísticas em barras (comparadas com o melhor do plantel) e distinções. */
-  function fichaVisualHTML(j, jogadores) {
+  /** Anel (mini gráfico) com uma percentagem, animado ao aparecer. */
+  function anelHTML(pct, rotulo, detalhe) {
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    const c = 2 * Math.PI * 24;
+    return `<div class="anel" title="${esc(detalhe || "")}"><svg viewBox="0 0 60 60" aria-hidden="true"><circle class="anel-fundo" cx="30" cy="30" r="24"></circle>
+      <circle class="anel-valor${p >= 75 ? " bom" : p >= 50 ? " medio" : " baixo"}" cx="30" cy="30" r="24" style="--total:${c.toFixed(1)};--alvo:${(c * (1 - p / 100)).toFixed(1)}"></circle></svg>
+      <strong>${p}%</strong><span>${esc(rotulo)}</span></div>`;
+  }
+
+  /**
+   * Ficha visual: campo com as zonas, anéis (utilização e presença), barras comparadas com o
+   * melhor do plantel, distinções e mapa de presenças (estilo GitHub).
+   * o: { presencas: [{ data, status }], jogosEquipa: nº de jogos disputados pelo VFN }
+   */
+  function fichaVisualHTML(j, jogadores, opcoes) {
+    const o = opcoes || {};
     const todos = jogadores || [];
     const max = k => Math.max(1, ...todos.map(x => Number(x[k]) || 0));
     const posicaoNo = k => [...todos].sort((a, b) => (Number(b[k]) || 0) - (Number(a[k]) || 0)).findIndex(x => x.id === j.id) + 1;
@@ -326,14 +349,35 @@
     const barras = [["Jogos", "jogos", ""], ["Minutos", "minutos", "'"], ["Golos", "golos", ""], ["Assistências", "assistencias", ""]].map(([rotulo, k, suf]) => `
       <div class="ficha-barra"><span>${rotulo}</span><span class="barra"><i style="width:${Math.round((Number(j[k]) || 0) / max(k) * 100)}%"></i></span><strong>${Number(j[k]) || 0}${suf}</strong></div>`).join("");
     const cartoes = `<div class="ficha-cartoes"><span class="cartao amarelo" title="Amarelos">${j.cartoesA || 0}</span><span class="cartao vermelho" title="Vermelhos">${j.cartoesV || 0}</span></div>`;
+    const aneis = [];
+    if (o.jogosEquipa > 0) aneis.push(anelHTML((Number(j.minutos) || 0) / (o.jogosEquipa * 90) * 100, "Utilização", `${j.minutos || 0}' de ${o.jogosEquipa * 90}' possíveis`));
+    const registos = (o.presencas || []).filter(r => r.status);
+    if (registos.length) {
+      const presentes = registos.filter(r => r.status === "P" || r.status === "A").length;
+      aneis.push(anelHTML(presentes / registos.length * 100, "Presença", `${presentes} de ${registos.length} sessões`));
+    }
+    if (Number(j.jogos) > 0) aneis.push(`<div class="anel anel-num"><strong>${((Number(j.golos) || 0) / Number(j.jogos)).toFixed(2).replace(".", ",")}</strong><span>Golos/jogo</span></div>`);
     return `<div class="ficha-visual">
       ${mapaPosicoesHTML(j.posicao)}
       <div class="ficha-dados">
         ${distincoes.length ? `<div class="distincoes">${distincoes.join("")}</div>` : ""}
+        ${aneis.length ? `<div class="aneis">${aneis.join("")}</div>` : ""}
         ${barras}
         ${cartoes}
       </div>
-    </div>`;
+    </div>
+    ${o.presencas ? `<h4 class="perfil-subtitulo">Presenças por sessão</h4>${VFN.heatmapPresencasHTML(o.presencas, { individual: true })}` : ""}`;
+  }
+
+  /** Nº de jogos do VFN já disputados (com resultado): base da % de utilização. */
+  function jogosDisputados(dados) {
+    return VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j)).length;
+  }
+
+  /** Opções da ficha visual de um jogador: presenças da época e jogos disputados. */
+  function opcoesFicha(dados, id) {
+    const presencas = dados.attendance ? dados.attendance.filter(a => String(a.player_id) === String(id)).map(a => ({ data: a.session_date, status: a.status })) : null;
+    return { presencas, jogosEquipa: jogosDisputados(dados) };
   }
 
   /* ---------- Calendário ---------- */
@@ -860,6 +904,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();
