@@ -259,10 +259,12 @@ function renderEstatisticas() {
 
 function renderTabelaStats() {
   const { campo, desc } = ordenacaoStats;
-  const lista = [...jogadores].sort((a, b) => {
+  const posicao = $("statsPosicao").value; // GR, Def, Meio, Ata (qualquer uma das posições do jogador)
+  const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => {
     const r = campo === "nome" ? a.nome.localeCompare(b.nome, "pt") : a[campo] - b[campo];
     return desc ? -r : r;
   });
+  if (!lista.length) { $("statsTabela").innerHTML = `<tbody><tr><td class="empty-state">Sem jogadores nesta posição.</td></tr></tbody>`; return; }
   $("statsTabela").innerHTML = `<thead><tr>${COLUNAS_STATS.map(([c, t]) => `<th scope="col" class="${c === "nome" ? "team-col" : "num"}" aria-sort="${c === campo ? (desc ? "descending" : "ascending") : "none"}"><button type="button" class="sort-btn" data-campo="${c}">${t}${c === campo ? (desc ? " ▾" : " ▴") : ""}</button></th>`).join("")}</tr></thead>
     <tbody>${lista.map(j => `<tr><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)} <small class="muted">${esc(j.posicao)}</small></span></span></td>${COLUNAS_STATS.slice(1).map(([c]) => `<td class="num">${j[c]}</td>`).join("")}</tr>`).join("")}</tbody>`;
   $("statsTabela").querySelectorAll(".sort-btn").forEach(b => b.addEventListener("click", () => {
@@ -811,6 +813,7 @@ async function iniciar() {
   initMultasPresencasDash();
   initConvocatoriaDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
+  $("statsPosicao").addEventListener("change", renderTabelaStats);
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
   $("btnFecharJogador").addEventListener("click", () => { $("modalJogador").hidden = true; });

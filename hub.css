@@ -249,3 +249,17 @@
 .pres-pct i { position: absolute; inset: 0 auto 0 0; background: rgba(22,163,74,.25); }
 .pres-card.menos .pres-pct i { background: rgba(220,38,38,.22); }
 .pres-pct b { position: relative; z-index: 1; display: block; line-height: 22px; text-align: center; font-size: .8rem; color: var(--vfn-navy); }
+
+/* ---------- v5: estatísticas da época compactas no telemóvel (sem scroll horizontal) ---------- */
+@media (max-width: 640px) {
+  .stats-wrap { overflow-x: hidden; }
+  .stats-compacta { table-layout: fixed; width: 100%; min-width: 0; font-size: .74rem; }
+  .stats-compacta th, .stats-compacta td { padding: 6px 2px; }
+  .stats-compacta th.team-col, .stats-compacta td.team-col { width: 34%; }
+  .stats-compacta .sort-btn { padding: 4px 1px; font-size: .68rem; }
+  .stats-compacta td.team-col .vfn-avatar { display: none; }
+  .stats-compacta td.team-col .player-cell > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stats-compacta td.team-col small { display: block; font-size: .64rem; }
+  .stats-compacta td.num { text-align: center; font-variant-numeric: tabular-nums; }
+  table[data-ordenar].stats-compacta th[data-tipo]::after { display: none; }
+}

@@ -238,7 +238,9 @@ const COLUNAS_STATS = [["nome", "Jogador", "texto"], ["jogos", "J", "numero"], [
 
 function renderEstatisticas() {
   $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id)) : H.vazio("Só para jogadores.");
-  const lista = [...jogadores].sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
+  const posicao = $("eqStatsPosicao").value;
+  const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
+  if (!lista.length) { $("eqStatsTabela").innerHTML = '<tbody><tr><td class="empty-state">Sem jogadores nesta posição.</td></tr></tbody>'; return; }
   $("eqStatsTabela").innerHTML = `<thead><tr>${COLUNAS_STATS.map(([c, t, tipo]) => `<th scope="col" class="${c === "nome" ? "team-col" : "num"}" data-tipo="${tipo}">${t}</th>`).join("")}</tr></thead>
     <tbody>${lista.map(j => `<tr class="${j.eEu ? "is-vfn-row" : ""}"><td class="team-col" data-v="${esc(j.nome)}"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)} <small class="muted">${esc(j.posicao)}</small></span></span></td>${COLUNAS_STATS.slice(1).map(([c]) => `<td class="num">${j[c]}</td>`).join("")}</tr>`).join("")}</tbody>`;
 }
@@ -380,6 +382,7 @@ async function iniciar() {
     if (c) VFNComp.exportarAnuncioConvocatoria(dados, c.jogo, c.squad, pessoa, b.dataset.anuncio);
   });
   $("eqMultasJogador").addEventListener("change", renderMultas);
+  $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
   $("eqMultasEstado").addEventListener("change", renderMultas);
   $("eqPresencasMes").addEventListener("change", renderPresencas);
   $("eqPresencasLista").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b && !e.target.closest("[data-jogador]")) abrirPresencasJogador(b.dataset.presencasJogador); });
