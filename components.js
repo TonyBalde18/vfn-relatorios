@@ -623,6 +623,44 @@
     return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
+  /* ---------- Classificação em modo apresentação (balneário) ----------
+     O botão "Apresentar" ([data-apresentar]) copia a tabela para um ecrã inteiro escuro
+     e as linhas entram uma a uma (GSAP stagger). Esc ou "Fechar" para sair. */
+
+  function apresentarClassificacao(bloco) {
+    const tabela = bloco.querySelector("table");
+    if (!tabela) return;
+    const ecra = document.createElement("div");
+    ecra.className = "vfn-apresentacao";
+    ecra.setAttribute("role", "dialog");
+    ecra.setAttribute("aria-modal", "true");
+    ecra.innerHTML = `<div class="ap-topo"><img src="assets/logo.png" alt=""><h2>${esc(bloco.dataset.competicao || "Classificação")}</h2><button type="button" class="ap-fechar">Fechar</button></div>`;
+    const copia = tabela.cloneNode(true);
+    copia.removeAttribute("data-ordenar");
+    ecra.appendChild(copia);
+    const legenda = bloco.querySelector(".legenda-zonas");
+    if (legenda) ecra.appendChild(legenda.cloneNode(true));
+    document.body.appendChild(ecra);
+    const fechar = () => {
+      document.removeEventListener("keydown", teclas);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      ecra.remove();
+    };
+    const teclas = e => { if (e.key === "Escape") fechar(); };
+    document.addEventListener("keydown", teclas);
+    ecra.querySelector(".ap-fechar").addEventListener("click", fechar);
+    ecra.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) fechar(); });
+    if (ecra.requestFullscreen) ecra.requestFullscreen().catch(() => {}); // sem ecrã inteiro fica como sobreposição
+    ecra.querySelector(".ap-fechar").focus();
+    const linhas = copia.querySelectorAll("tbody tr");
+    if (window.gsap && !semMovimento()) window.gsap.fromTo(linhas, { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out", stagger: 0.12, delay: 0.3 });
+  }
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-apresentar]");
+    if (b && b.closest(".classificacao-bloco")) apresentarClassificacao(b.closest(".classificacao-bloco"));
+  });
+
   /* ---------- Mapa dos estádios (Leaflet + OpenStreetMap, sem chave) ---------- */
 
   const CENTRO_GUARDA = [40.53, -7.26];

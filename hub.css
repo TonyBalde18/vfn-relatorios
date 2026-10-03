@@ -57,13 +57,6 @@
 .result-score { font-weight: 800; color: var(--vfn-navy); font-size: 1.05rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ---------- Tabelas compactas ---------- */
-.standings-compact, .scorers-table { width: 100%; }
-.standings-compact th, .standings-compact td, .scorers-table th, .scorers-table td { padding: 7px 6px; text-align: center; font-size: .82rem; }
-.standings-compact th, .scorers-table th { background: transparent; color: var(--text-muted); border-bottom: 2px solid var(--border-color); font-size: .7rem; }
-.standings-compact .team-col, .scorers-table .team-col { text-align: left; }
-.standings-compact .team-inline span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
-.scorers-table .player-cell small { display: block; font-weight: 400; font-size: .7rem; }
-.scorers-table .player-cell { min-width: 0; }
 
 /* ---------- Próximo adversário ---------- */
 .scout-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }

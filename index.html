@@ -483,13 +483,9 @@
       <div class="section-header-row">
         <h2 class="section-title">Classificação</h2>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select><span class="muted">Calculada em tempo real a partir dos jogos do VFN (Resultados) e dos jogos entre as outras equipas (Jornadas AF Guarda). Pts = V×3 + E.</span></div>
+      <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select><span class="muted">Calculada em tempo real a partir dos jogos do VFN (Resultados) e dos jogos entre as outras equipas (Jornadas AF Guarda). Pts = V×3 + E; DG = GM − GS.</span></div>
       <div class="table-wrap">
-        <div id="classificacaoBracket" hidden></div>
-        <table class="standings-table data-table" data-ordenar="classificacao-admin">
-          <thead><tr><th data-tipo="numero">Pos</th><th class="team-col" data-tipo="texto">Equipa</th><th title="Jogos" data-tipo="numero">P</th><th data-tipo="numero">V</th><th data-tipo="numero">E</th><th data-tipo="numero">D</th><th data-tipo="numero">GM</th><th data-tipo="numero">GS</th><th data-tipo="numero">DG</th><th data-tipo="numero">Pts</th></tr></thead>
-          <tbody id="classificacaoBody"></tbody>
-        </table>
+        <div id="classificacaoTabela"></div>
       </div>
     </div>
   </section>

@@ -1664,3 +1664,47 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .vfn-lightbox button:hover { background: #FFD700; color: #0A1628; }
 .vfn-lightbox .lb-fechar { position: absolute; top: 14px; right: 14px; }
 @media (max-width: 640px) { .vfn-lightbox .lb-ant, .vfn-lightbox .lb-seg { position: absolute; bottom: 18px; } .vfn-lightbox .lb-ant { left: 24px; } .vfn-lightbox .lb-seg { right: 24px; } }
+
+/* ---------- tabelas classificativas e de marcadores: partilhadas por todas as páginas ---------- */
+.standings-compact, .scorers-table { width: 100%; }
+.standings-compact th, .standings-compact td, .scorers-table th, .scorers-table td { padding: 7px 6px; text-align: center; font-size: .82rem; }
+.standings-compact th, .scorers-table th { background: transparent; color: var(--text-muted); border-bottom: 2px solid var(--border-color); font-size: .7rem; }
+.standings-compact .team-col, .scorers-table .team-col { text-align: left; }
+.standings-compact .team-inline span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.scorers-table .player-cell small { display: block; font-weight: 400; font-size: .7rem; }
+.scorers-table .player-cell { min-width: 0; }
+@media (max-width: 520px) {
+  .standings-compact .hide-xs, .scorers-table .hide-xs { display: none; }
+  .standings-compact th, .standings-compact td { padding: 7px 4px; }
+  .standings-compact .team-inline span { max-width: 118px; }
+  .standings-compact .team-logo, .standings-compact .team-logo-placeholder { width: 22px; height: 22px; font-size: .5rem; }
+}
+
+/* ---------- v6: tabelas — DG, zonas, legenda e modo apresentação ---------- */
+.dg-col.pos { color: #15803d; font-weight: 700; }
+.dg-col.neg { color: #b91c1c; font-weight: 700; }
+.standings-compact tr.zona-campeao td:first-child { box-shadow: inset 4px 0 0 #E0B800; }
+.standings-compact tr.zona-promocao td:first-child { box-shadow: inset 4px 0 0 #16a34a; }
+.standings-compact tr.zona-descida td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
+.standings-compact tr.zona-campeao { background: rgba(255, 215, 0, .1); }
+.standings-compact tr.zona-promocao { background: rgba(22, 163, 74, .06); }
+.standings-compact tr.zona-descida { background: rgba(220, 38, 38, .06); }
+.legenda-zonas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: .76rem; color: var(--text-muted); }
+.legenda-zonas li { display: flex; align-items: center; gap: 6px; padding-left: 8px; border-left: 4px solid transparent; }
+.legenda-zonas .zona-campeao { border-left-color: #E0B800; } .legenda-zonas .zona-promocao { border-left-color: #16a34a; } .legenda-zonas .zona-descida { border-left-color: #dc2626; }
+.classificacao-acoes { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.vfn-apresentacao { position: fixed; inset: 0; z-index: 1500; overflow: auto; padding: 4vh 4vw; background: radial-gradient(120% 80% at 50% 0%, #13294B 0%, #050B16 70%); color: #fff; }
+.vfn-apresentacao .ap-topo { display: flex; align-items: center; gap: 16px; margin-bottom: 3vh; }
+.vfn-apresentacao .ap-topo img { width: 64px; height: 64px; object-fit: contain; }
+.vfn-apresentacao .ap-topo h2 { flex: 1; margin: 0; font-size: clamp(1.4rem, 3vw, 2.4rem); color: #FFD700; }
+.vfn-apresentacao .ap-fechar { border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+.vfn-apresentacao table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: clamp(.95rem, 1.6vw, 1.5rem); }
+.vfn-apresentacao th { color: rgba(255,255,255,.6); font-size: .7em; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border: 0; }
+.vfn-apresentacao td { padding: .55em .7em; background: rgba(255,255,255,.06); color: #fff; text-align: center; border: 0; }
+.vfn-apresentacao td.team-col { text-align: left; }
+.vfn-apresentacao .team-logo, .vfn-apresentacao .team-logo-placeholder { width: 1.6em; height: 1.6em; }
+.vfn-apresentacao .team-inline span { max-width: none; }
+.vfn-apresentacao tr.is-vfn-row td { background: rgba(255,215,0,.22); font-weight: 800; }
+.vfn-apresentacao .legenda-zonas { color: rgba(255,255,255,.75); font-size: .9rem; margin-top: 2vh; }
+.vfn-apresentacao .hide-xs { display: table-cell; }
+.vfn-apresentacao .dg-col.pos { color: #4ade80; } .vfn-apresentacao .dg-col.neg { color: #f87171; }

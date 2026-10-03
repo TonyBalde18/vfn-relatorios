@@ -1345,34 +1345,13 @@ async function apagarOutroJogo(jogo) {
 
 function renderClassificacaoAdmin() {
   const select = el("classificacaoCompeticao");
-  const comps = VFN.COMPETICOES_CLASSIFICACAO; // 2ª Liga (tabela) e as duas taças (bracket)
+  const comps = VFN.COMPETICOES_TABELA; // 2ª Liga e 1ª Divisão (as taças têm bracket nas Jornadas)
   const atual = select.value;
   const proximo = VFN.proximoJogo(jogosCalendario);
   select.innerHTML = comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
   select.value = comps.includes(atual) ? atual : (proximo && comps.includes(proximo.competition) ? proximo.competition : comps[0] || "");
-  select.hidden = !comps.length;
-
-  // taças por eliminatórias: bracket em vez da tabela
-  const taca = VFN.eliminatorias(select.value);
-  el("classificacaoBracket").hidden = !taca;
-  el("classificacaoBody").closest("table").hidden = taca;
-  if (taca) { el("classificacaoBracket").innerHTML = VFNHub.bracketHTML(dadosJornadas(), select.value); return; }
-  const tbody = el("classificacaoBody");
-  const linhas = select.value ? VFN.calcularClassificacao(jogosCalendario, equipasCalendario, select.value, resultadosLiga) : [];
-  if (!linhas.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sem jogos de liga no calendário.</td></tr>';
-    return;
-  }
-  setTimeout(() => VFN.anim.linhas(tbody.querySelectorAll("tr")), 0);
-  tbody.innerHTML = linhas.map((s, i) => {
-    const dg = s.goals_for - s.goals_against;
-    return `<tr class="${VFN.eVFN(s.team_name) ? "is-vfn-row" : ""}">
-      <td class="pos-col">${i + 1}</td>
-      <td class="team-col"><span class="team-inline">${logoPorId(s.team_id, s.team_name)}${escapeHtml(s.team_name)}</span></td>
-      <td>${s.played}</td><td>${s.won}</td><td>${s.drawn}</td><td>${s.lost}</td><td>${s.goals_for}</td><td>${s.goals_against}</td>
-      <td>${dg > 0 ? "+" + dg : dg}</td><td class="pts-col">${s.points}</td>
-    </tr>`;
-  }).join("");
+  el("classificacaoTabela").innerHTML = VFNHub.classificacaoHTML(dadosJornadas(), select.value);
+  VFN.anim.linhas(el("classificacaoTabela").querySelectorAll("tbody tr"));
 }
 
 /* =========================================================

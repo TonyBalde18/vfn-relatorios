@@ -13,6 +13,8 @@
   // Competições acompanhadas só nas Jornadas AF Guarda (o VFN não participa: adversários possíveis nas taças)
   const COMPETICOES_SEM_VFN = ["1ª Divisão Cima-Tavfer"];
   const COMPETICOES_JORNADAS = [...COMPETICOES_CLASSIFICACAO, ...COMPETICOES_SEM_VFN];
+  // Competições com tabela classificativa (as taças têm bracket)
+  const COMPETICOES_TABELA = ["2ª Liga Zero Graus", ...COMPETICOES_SEM_VFN];
   const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
 
 
@@ -1100,7 +1102,7 @@
   if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
 
   window.VFN = {
-    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, semVFN,
+    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, semVFN,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,

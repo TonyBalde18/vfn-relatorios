@@ -123,8 +123,8 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    // 2ª Liga Zero Graus (tabela) e as duas taças (bracket por eliminatórias)
-    return VFN.COMPETICOES_CLASSIFICACAO;
+    // tabelas: 2ª Liga Zero Graus e 1ª Divisão Cima-Tavfer (as taças têm bracket, na vista de cada competição)
+    return VFN.COMPETICOES_TABELA;
   }
 
   function competicaoPreferida(dados) {
@@ -164,18 +164,51 @@
 
   const bracketHTML = (dados, competicao) => window.VFNComp.renderBracket(dados, competicao);
 
-  function classificacaoHTML(dados, competicao) {
+  /**
+   * Zonas da tabela por competição: posições (1 = primeiro; negativas contam do fim não se usam aqui),
+   * classe da linha, ícone e texto da legenda.
+   */
+  const ZONAS_TABELA = {
+    "2ª Liga Zero Graus": [
+      { pos: [1], classe: "zona-campeao", icone: "🟡", texto: "1.º lugar — Campeão · Promoção à 1ª Divisão AF Guarda" },
+      { pos: [2], classe: "zona-promocao", icone: "🟢", texto: "2.º lugar — Promoção à 1ª Divisão AF Guarda" }
+    ],
+    "1ª Divisão Cima-Tavfer": [
+      { pos: [1], classe: "zona-campeao", icone: "🏆", texto: "1.º lugar — Campeão · Promoção ao Campeonato de Portugal" },
+      { pos: [2], classe: "zona-promocao", icone: "🟢", texto: "2.º lugar — Qualificação para a Taça de Portugal 2027/28" },
+      { pos: [13, 14], classe: "zona-descida", icone: "🔴", texto: "13.º e 14.º — Despromoção à 2ª Divisão AF Guarda" }
+    ]
+  };
+
+  const zonaDaPosicao = (competicao, pos) => (ZONAS_TABELA[competicao] || []).find(z => z.pos.includes(pos)) || null;
+
+  function legendaZonasHTML(competicao) {
+    const zonas = ZONAS_TABELA[competicao] || [];
+    return zonas.length ? `<ul class="legenda-zonas">${zonas.map(z => `<li class="${z.classe}"><span aria-hidden="true">${z.icone}</span>${esc(z.texto)}</li>`).join("")}</ul>` : "";
+  }
+
+  const comSinal = n => (n > 0 ? "+" : "") + n;
+
+  /** Tabela classificativa (taças: bracket). Com DG, zonas, legenda e botão "Apresentar" (o: { semApresentar }). */
+  function classificacaoHTML(dados, competicao, opcoes) {
+    const o = opcoes || {};
     if (VFN.eliminatorias(competicao)) return bracketHTML(dados, competicao);
     // calculada a partir dos resultados em matches (não usa a tabela standings)
     const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
-    return `<div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
-      <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
+    return `<div class="classificacao-bloco" data-competicao="${esc(competicao)}">
+      ${o.semApresentar ? "" : `<div class="classificacao-acoes"><button type="button" class="btn btn-ghost btn-sm" data-apresentar title="Mostrar em ecrã inteiro (balneário)">${VFN.icone("presentation", 16)} Apresentar</button></div>`}
+      <div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
+      <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero" title="Diferença de golos">DG</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
       <tbody>${linhas.map((s, i) => {
         const t = equipa(dados, s.team_id);
         const nome = (t && t.name) || s.team_name || "—";
-        return `<tr class="${VFN.eVFN(nome) ? "is-vfn-row" : ""}"><td class="pos-col">${i + 1}</td><td class="team-col"><span class="team-inline">${logoEquipa(t, nome)}<span>${esc(nome)}</span></span></td><td>${Number(s.played) || 0}</td><td>${Number(s.won) || 0}</td><td>${Number(s.drawn) || 0}</td><td>${Number(s.lost) || 0}</td><td class="hide-xs">${Number(s.goals_for) || 0}</td><td class="hide-xs">${Number(s.goals_against) || 0}</td><td class="pts-col">${Number(s.points) || 0}</td></tr>`;
-      }).join("")}</tbody></table></div>`;
+        const zona = zonaDaPosicao(competicao, i + 1);
+        const dg = (Number(s.goals_for) || 0) - (Number(s.goals_against) || 0);
+        return `<tr class="${[VFN.eVFN(nome) ? "is-vfn-row" : "", zona ? zona.classe : ""].filter(Boolean).join(" ")}"><td class="pos-col">${i + 1}</td><td class="team-col"><span class="team-inline">${logoEquipa(t, nome)}<span>${esc(nome)}</span></span></td><td>${Number(s.played) || 0}</td><td>${Number(s.won) || 0}</td><td>${Number(s.drawn) || 0}</td><td>${Number(s.lost) || 0}</td><td class="hide-xs">${Number(s.goals_for) || 0}</td><td class="hide-xs">${Number(s.goals_against) || 0}</td><td class="dg-col${dg > 0 ? " pos" : dg < 0 ? " neg" : ""}" data-v="${dg}">${comSinal(dg)}</td><td class="pts-col">${Number(s.points) || 0}</td></tr>`;
+      }).join("")}</tbody></table></div>
+      ${legendaZonasHTML(competicao)}
+    </div>`;
   }
 
   /* ---------- Marcadores ---------- */
@@ -967,7 +1000,7 @@
   window.VFNHub = {
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
-    competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
+    competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
