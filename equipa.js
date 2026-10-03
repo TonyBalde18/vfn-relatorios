@@ -126,6 +126,39 @@ function renderConvocatoria() {
   }
 }
 
+/* ---------- Competições: Classificação/Bracket | Jornadas | Marcadores (só leitura) ---------- */
+
+const filtrosComp = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+let graficoPosicaoEq = null;
+
+function renderCompeticoes() {
+  const comp = $("eqJornCompeticao"), jor = $("eqJornJornada"), eq = $("eqJornEquipa");
+  comp.innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option value="${esc(c)}">${esc(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
+  comp.value = filtrosComp.competicao;
+  const jornadas = H.jornadasDisponiveis(dados, filtrosComp.competicao);
+  jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${esc(VFN.rotuloJornada(filtrosComp.competicao, n))}</option>`).join("");
+  jor.value = jornadas.map(String).includes(filtrosComp.jornada) ? filtrosComp.jornada : "";
+  const equipas = H.equipasDasJornadas(dados, filtrosComp.competicao);
+  eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("");
+  eq.value = equipas.some(t => t.id === filtrosComp.equipa) ? filtrosComp.equipa : "";
+  $("eqJornOrdem").innerHTML = `${VFN.icone(filtrosComp.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosComp.ordem === "asc" ? "↑" : "↓"}`;
+  $("eqJornModos").querySelector(".seg-rotulo-tabela").textContent = VFN.eliminatorias(filtrosComp.competicao) ? "Bracket" : "Classificação";
+  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosComp.competicao); });
+  $("eqJornTabela").innerHTML = H.classificacaoHTML(dados, filtrosComp.competicao);
+  $("eqJornLista").innerHTML = H.jornadasHTML(dados, filtrosComp);
+  $("eqJornMarcadoresVFN").innerHTML = H.marcadoresVFNCompeticaoHTML(dados, jogadores, filtrosComp.competicao, 10);
+  $("eqJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosComp.competicao, 15);
+  if (window.Chart) graficoPosicaoEq = H.graficoPosicao($("eqChartPosicao"), dados, filtrosComp.competicao, graficoPosicaoEq);
+}
+
+function initCompeticoes() {
+  VFNComp.ligarSegmentos($("eqJornModos"), $("eqJornPaineis"), modo => { if (modo === "tabela" && graficoPosicaoEq) graficoPosicaoEq.resize(); });
+  $("eqJornCompeticao").addEventListener("change", e => { filtrosComp.competicao = e.target.value; filtrosComp.jornada = ""; filtrosComp.equipa = ""; renderCompeticoes(); });
+  $("eqJornJornada").addEventListener("change", e => { filtrosComp.jornada = e.target.value; renderCompeticoes(); });
+  $("eqJornEquipa").addEventListener("change", e => { filtrosComp.equipa = e.target.value; renderCompeticoes(); });
+  $("eqJornOrdem").addEventListener("click", () => { filtrosComp.ordem = filtrosComp.ordem === "asc" ? "desc" : "asc"; renderCompeticoes(); });
+}
+
 /* ---------- Calendário ---------- */
 
 let calendario = null;
@@ -331,6 +364,7 @@ function renderTudo() {
   renderCabecalho();
   renderInicio();
   renderConvocatoria();
+  renderCompeticoes();
   renderCalendario();
   renderMultas();
   renderPresencas();
@@ -380,6 +414,7 @@ async function sair() {
 async function iniciar() {
   VFN.initAOS();
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
+  initCompeticoes();
   $("eqAvatar").addEventListener("click", () => { if (eu) abrirJogador(eu.id); });
   document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
   $("eqConvAcoes").addEventListener("click", e => {

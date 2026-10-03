@@ -63,6 +63,7 @@
   <button type="button" class="active" data-view="inicio"><span aria-hidden="true"><i data-icon="house"></i></span>Início</button>
   <button type="button" data-view="convocatoria"><span aria-hidden="true"><i data-icon="clipboard-list"></i></span>Convocatória</button>
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Calendário</button>
+  <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="trophy"></i></span>Competições</button>
   <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
   <button type="button" data-view="presencas"><span aria-hidden="true"><i data-icon="calendar-check"></i></span>Presenças</button>
   <button type="button" data-view="estatisticas"><span aria-hidden="true"><i data-icon="chart-column"></i></span>Estatísticas</button>
@@ -96,6 +97,40 @@
       <h2 class="hub-card-title">Convocatória do próximo jogo</h2>
       <div id="eqConvocatoria"></div>
       <div class="conv-acoes" id="eqConvAcoes" hidden><button type="button" class="btn btn-ghost btn-sm" data-anuncio="1x1"><i data-icon="image" data-size="16"></i> Exportar 1:1</button><button type="button" class="btn btn-ghost btn-sm" data-anuncio="9x16"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button></div>
+    </div>
+  </section>
+
+  <!-- COMPETIÇÕES: Classificação/Bracket | Jornadas | Marcadores -->
+  <section id="view-jornadas" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Competições</h2><label class="sr-only" for="eqJornCompeticao">Competição</label><select id="eqJornCompeticao" class="compact-select"></select></div>
+      <div class="seg-control" id="eqJornModos" aria-label="Vista da competição">
+        <button type="button" data-seg="tabela" role="tab"><span class="seg-rotulo-tabela">Classificação</span></button>
+        <button type="button" data-seg="jornadas" role="tab">Jornadas</button>
+        <button type="button" data-seg="marcadores" role="tab">Marcadores</button>
+      </div>
+      <div id="eqJornPaineis">
+        <div data-seg-painel="tabela">
+          <div id="eqJornTabela"></div>
+          <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
+          <div class="chart-box chart-posicao"><canvas id="eqChartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
+          <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
+        </div>
+        <div data-seg-painel="jornadas" hidden>
+          <div class="toolbar">
+            <label class="sr-only" for="eqJornJornada">Jornada</label><select id="eqJornJornada" class="compact-select"></select>
+            <label class="sr-only" for="eqJornEquipa">Equipa</label><select id="eqJornEquipa" class="compact-select"></select>
+            <button type="button" id="eqJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
+          </div>
+          <div id="eqJornLista" class="jornadas-lista"></div>
+        </div>
+        <div data-seg-painel="marcadores" hidden>
+          <div class="marcadores-duplos">
+            <section><h3 class="subsecao-titulo">Top Marcadores VFN</h3><div id="eqJornMarcadoresVFN"></div></section>
+            <section><h3 class="subsecao-titulo">Top Marcadores <span class="seg-nome-comp"></span></h3><div id="eqJornMarcadores"></div></section>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -193,6 +228,7 @@
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="config.js?v=5"></script>
 <script src="shared.js?v=5"></script>
