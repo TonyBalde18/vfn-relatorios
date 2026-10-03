@@ -918,7 +918,7 @@ function renderCalendarioMensalAdmin() {
   if (!el("adminCalMes")) return;
   if (calendarioMensalAdmin) { calendarioMensalAdmin.render(); return; }
   calendarioMensalAdmin = VFNComp.criarCalendarioMensal(el("adminCalMes"), {
-    obterDados: () => ({ matches: jogosCalendario, teams: equipasCalendario, sessions: cacheAdmin.sessions, attendance: cacheAdmin.attendance, match_reports: relatoriosAdmin }),
+    obterDados: () => ({ matches: jogosCalendario, teams: equipasCalendario, sessions: cacheAdmin.sessions, attendance: cacheAdmin.attendance, match_reports: relatoriosAdmin, aniversariantes: VFN.aniversariantes(plantel, cacheAdmin.staff) }),
     perfil: "admin",
     nomeRelatorio: id => nomeJogador(id),
     nomePresenca: id => (pessoaPorId(id) || {}).nome,

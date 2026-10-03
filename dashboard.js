@@ -712,7 +712,7 @@ let calendarioMensal = null;
 function renderCalendario() {
   if (!calendarioMensal) {
     calendarioMensal = VFNComp.criarCalendarioMensal($("dbCalMes"), {
-      obterDados: () => dados,
+      obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),
       perfil: "staff",
       nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome,
       nomePresenca: id => (jogadorPorIdDash(id) || {}).nome

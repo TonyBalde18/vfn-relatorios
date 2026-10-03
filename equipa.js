@@ -131,7 +131,7 @@ let calendario = null;
 function renderCalendario() {
   if (calendario) { calendario.render(); return; }
   calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), {
-    obterDados: () => dados,
+    obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),
     perfil: "staff", // detalhe com eventos, escalação e presenças (só leitura)
     nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome,
     nomePresenca: id => (pessoa(id) || {}).nome

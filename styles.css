@@ -1520,3 +1520,14 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .pitch-player-name { display: inline-flex; gap: 4px; }
 .pitch-player-name span { overflow: hidden; text-overflow: ellipsis; }
 .pitch-player-name b { flex: 0 0 auto; }
+
+/* ---------- v5: aniversários no calendário ---------- */
+.cal-dia.com-aniversario { background: linear-gradient(180deg, #FFF1F5 0%, #fff 70%); }
+.cal-dia.com-aniversario.com-jogo { background: linear-gradient(180deg, #FFF1F5 0%, #FFFBEA 70%); }
+.cal-bolo { font-size: .8rem; line-height: 1; }
+@media (min-width: 700px) { .cal-bolo { font-size: 1rem; } }
+.aniv-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.aniv-lista li { display: flex; align-items: center; gap: 10px; }
+.aniv-lista strong { display: block; color: var(--vfn-navy); }
+.aniv-lista small { color: var(--text-muted); font-size: .76rem; }
+.dia-aniversarios { background: #FFF7FA; margin: 0 -16px; padding: 10px 16px; }

@@ -132,12 +132,29 @@
   const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-  /** Jogos do VFN e treinos de um dia. dados: { matches, sessions }. */
+  /**
+   * Jogos do VFN, treinos e aniversários de um dia. dados: { matches, sessions, aniversariantes }.
+   * aniversariantes: [{ jogador, nascimento: "AAAA-MM-DD" }] — só nas páginas com login.
+   */
   function eventosDoDia(dados, dia) {
     return {
       jogos: VFN.jogosDoVFN(dados.matches).filter(j => VFN.dataIso(j.date) === dia && VFN.estadoJogo(j) !== "cancelado"),
-      treinos: (dados.sessions || []).filter(s => s.session_date === dia && s.session_type === "treino")
+      treinos: (dados.sessions || []).filter(s => s.session_date === dia && s.session_type === "treino"),
+      aniversarios: aniversariosDoDia(dados.aniversariantes, dia)
     };
+  }
+
+  /** Quem faz anos no dia (ignora o ano; os nascidos a 29/02 festejam a 28/02 nos anos comuns). */
+  function aniversariosDoDia(aniversariantes, dia) {
+    if (!aniversariantes || !aniversariantes.length) return [];
+    const [ano, mes, d] = dia.split("-").map(Number);
+    const bissexto = (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
+    return aniversariantes.filter(a => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(a.nascimento || "");
+      if (!m) return false;
+      const [mn, dn] = [Number(m[2]), Number(m[3])];
+      return (mn === mes && dn === d) || (!bissexto && mn === 2 && dn === 29 && mes === 2 && d === 28);
+    }).map(a => ({ ...a, idade: ano - Number(a.nascimento.slice(0, 4)) }));
   }
 
   /** Célula de um dia: número, cone nos treinos, logo do adversário + casa/fora nos jogos. */
@@ -145,7 +162,7 @@
     const o = opcoes || {};
     const dia = iso(data);
     const jogo = eventos.jogos[0];
-    const classes = ["cal-dia", o.hoje ? "hoje" : "", o.selecionado ? "selecionado" : "", jogo ? "com-jogo" : "", eventos.treinos.length ? "com-treino" : "",
+    const classes = ["cal-dia", o.hoje ? "hoje" : "", o.selecionado ? "selecionado" : "", jogo ? "com-jogo" : "", eventos.treinos.length ? "com-treino" : "", eventos.aniversarios.length ? "com-aniversario" : "",
       jogo && VFN.estadoJogo(jogo) === "jogado" && VFN.golosJogo(jogo) ? "res-" + VFN.letraResultado(jogo) : ""].filter(Boolean).join(" ");
     const partes = [];
     if (jogo) {
@@ -156,7 +173,9 @@
       partes.push(`<span class="cal-jogo">${url ? `<img src="${esc(url)}" alt="" loading="lazy">` : `<b>${esc(nome.slice(0, 2).toUpperCase())}</b>`}<span class="cal-local">${VFN.icone(casa ? "house" : "bus", 10)}</span></span>`);
     }
     if (eventos.treinos.length) partes.push(`<span class="cal-treino">${VFN.icone("traffic-cone", 12)}</span>`);
-    const descricao = [jogo ? `Jogo ${VFN.jogoEmCasa(jogo) ? "em casa" : "fora"} com ${H().nomeAdversario(o.dados || {}, jogo)}` : "", eventos.treinos.length ? "Treino" : ""].filter(Boolean).join(", ");
+    if (eventos.aniversarios.length) partes.push('<span class="cal-bolo" aria-hidden="true">🎂</span>');
+    const descricao = [jogo ? `Jogo ${VFN.jogoEmCasa(jogo) ? "em casa" : "fora"} com ${H().nomeAdversario(o.dados || {}, jogo)}` : "", eventos.treinos.length ? "Treino" : "",
+      eventos.aniversarios.length ? "Aniversário de " + eventos.aniversarios.map(a => a.jogador.nome).join(", ") : ""].filter(Boolean).join(", ");
     return `<button type="button" class="${classes}" data-dia="${dia}" aria-label="${esc(VFN.dataLonga(dia + "T12:00:00") + (descricao ? ": " + descricao : ""))}"${o.selecionado ? ' aria-pressed="true"' : ""}>
       <span class="cal-num">${data.getDate()}</span>${partes.length ? `<span class="cal-icones">${partes.join("")}</span>` : ""}
     </button>`;
@@ -184,7 +203,7 @@
         ${DIAS_SEMANA.map(d => `<span class="cal-semana" aria-hidden="true">${d}</span>`).join("")}
         ${celulas.join("")}
       </div>
-      <div class="cal-legenda"><span>${VFN.icone("traffic-cone", 12)} Treino</span><span>${VFN.icone("house", 12)} Casa</span><span>${VFN.icone("bus", 12)} Fora</span><span><i class="leg-res res-V"></i>V <i class="leg-res res-E"></i>E <i class="leg-res res-D"></i>D</span></div>`;
+      <div class="cal-legenda"><span>${VFN.icone("traffic-cone", 12)} Treino</span>${(dados.aniversariantes || []).length ? '<span><span aria-hidden="true">🎂</span> Aniversário</span>' : ""}<span>${VFN.icone("house", 12)} Casa</span><span>${VFN.icone("bus", 12)} Fora</span><span><i class="leg-res res-V"></i>V <i class="leg-res res-E"></i>E <i class="leg-res res-D"></i>D</span></div>`;
   }
 
   /* ---------- Detalhe do dia (drawer) ---------- */
@@ -251,17 +270,19 @@
    * Conteúdo do drawer de um dia. o: { perfil: "publico" | "staff" | "admin", nomeRelatorio(idLocal), nomePresenca(playerId) }.
    */
   function detalheDiaHTML(dados, dia, o) {
-    const { jogos, treinos } = eventosDoDia(dados, dia);
+    const { jogos, treinos, aniversarios } = eventosDoDia(dados, dia);
     const staff = o.perfil === "staff" || o.perfil === "admin";
     const passado = dia < iso(new Date());
     const blocos = [];
+    if (aniversarios.length) blocos.push(`<section class="dia-bloco dia-aniversarios"><h4><span aria-hidden="true">🎂</span> ${aniversarios.length === 1 ? "Aniversário" : "Aniversários"}</h4>
+      <ul class="aniv-lista">${aniversarios.map(a => `<li>${VFN.avatarJogador(a.jogador, "avatar-xs")}<span><strong>${esc(a.jogador.nome)}</strong><small>${a.idade > 0 ? `faz ${a.idade} anos` : ""}${a.jogador.staff ? " · " + esc(a.jogador.posicao) : ""}</small></span></li>`).join("")}</ul></section>`);
     jogos.forEach(j => blocos.push(detalheJogoDiaHTML(dados, j, { ...o, comRelatorios: staff })));
     treinos.forEach(t => blocos.push(`<section class="dia-bloco dia-treino">
       <h4>${VFN.icone("traffic-cone", 16)} Treino</h4>
       <dl class="dia-info"><div><dt>Hora</dt><dd>${esc(t.start_time ? String(t.start_time).slice(0, 5) : "—")}</dd></div><div><dt>Local</dt><dd>${esc(t.location || "—")}</dd></div>${staff && t.notes ? `<div><dt>Notas</dt><dd>${esc(t.notes)}</dd></div>` : ""}</dl>
     </section>`));
     if (staff && passado && (jogos.length || treinos.length)) blocos.push(`<section class="dia-bloco"><h4>${VFN.icone("calendar-check", 16)} Presenças</h4>${presencasDiaHTML(dados, dia, o.nomePresenca || (() => ""))}</section>`);
-    if (!blocos.length) blocos.push('<p class="muted dia-vazio">Sem treinos nem jogos neste dia.</p>');
+    if (!jogos.length && !treinos.length) blocos.push('<p class="muted dia-vazio">Sem treinos nem jogos neste dia.</p>');
     if (o.perfil === "admin") blocos.push(`<div class="dia-acoes"><button type="button" class="btn btn-ghost btn-sm" data-cal-acao="treino" data-dia="${dia}">${VFN.icone("traffic-cone", 16)} Adicionar treino</button><button type="button" class="btn btn-accent btn-sm" data-cal-acao="jogo" data-dia="${dia}">${VFN.icone("plus", 16)} Adicionar jogo</button></div>`);
     return blocos.join("");
   }
@@ -536,6 +557,6 @@
     dividasPorPessoa, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
-    eventosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
+    eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

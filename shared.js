@@ -48,6 +48,15 @@
     return { id: String(t.id), idBD: String(t.id), nome: t.name, nomeCompleto: t.full_name || t.name, posicao: t.role === "treinador" ? "Treinador" : (t.role || "Staff"), numero: "", fotoUrl: t.photo_url || `${BASE_SITE}assets/staff/${t.id}.png`, staff: true };
   }
 
+  /**
+   * Aniversariantes para o calendário: jogadores (nascimento em j.nascimento ou j.info.nascimento)
+   * e equipa técnica (linhas de staff; sem linhas usa STAFF_PADRAO).
+   */
+  function aniversariantes(jogadores, linhasStaff) {
+    const staff = (linhasStaff && linhasStaff.length ? linhasStaff : STAFF_PADRAO).filter(t => t.date_of_birth).map(t => ({ jogador: pessoaStaff(t), nascimento: t.date_of_birth }));
+    return (jogadores || []).map(j => ({ jogador: j, nascimento: j.nascimento || (j.info && j.info.nascimento) || "" })).filter(a => a.nascimento).concat(staff);
+  }
+
   const formatoEuro = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
   function tipoMulta(nome) {
@@ -1054,7 +1063,7 @@
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, semVFN,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
