@@ -6,6 +6,8 @@
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .view { display: none; }
 .view.active { display: block; animation: tab-in .2s ease both; }
+/* hub.css carrega depois de styles.css: sem isto a animação ignorava prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) { .view.active { animation: none; } }
 .login-alt { margin: 18px 0 0; text-align: center; font-size: .85rem; }
 .login-alt a { color: var(--vfn-navy); font-weight: 600; }
 .login-card .btn { width: 100%; margin-top: 8px; }
