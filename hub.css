@@ -243,3 +243,11 @@
 .equipa-page #view-inicio > .card { margin-bottom: 16px; }
 .att-lista.sempre { display: block; }
 .equipa-page .login-card form { display: grid; gap: 12px; }
+
+/* ---------- v5: página pública ---------- */
+.public-header-texto { flex: 1; min-width: 0; }
+.public-entrar { flex-shrink: 0; color: #fff; border-color: rgba(255,255,255,.35); }
+.public-entrar:hover { color: var(--vfn-navy); background: var(--vfn-yellow); }
+@media (max-width: 420px) { .public-entrar { padding: 6px 8px; font-size: 0; gap: 0; } .public-entrar .ic { width: 18px; height: 18px; } }
+/* sem fichas de equipas na página pública: os logos não são clicáveis */
+.public-page:not(.equipa-page) [data-equipa] { cursor: default; }

@@ -739,6 +739,11 @@ create policy "Players read staff" on public.staff for select to authenticated u
 create policy "Players read fine_types" on public.fine_types for select to authenticated using (public.vfn_is_player());
 -- Treinador: Authentication → Invite user e depois o bloco "2. TREINADOR" no fim deste ficheiro.
 
+-- [v5 Tarefa 7] Marcadores do VFN por competição (página pública): gravados no jogo do calendário
+-- quando o relatório é gerado ou publicado. Formato igual a league_results.scorer_list:
+-- [{"player_id": "872514", "player_name": "Toneca", "team_id": "<id do VFN>", "count": 1}]
+alter table public.matches add column if not exists scorer_list jsonb;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

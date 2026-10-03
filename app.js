@@ -659,7 +659,7 @@ function initPreJogo() {
     else { state.preJogo.matchId = ""; renderPreJogo(); }
   });
   el("pjData").addEventListener("input", e => state.preJogo.data = e.target.value);
-  el("pjCompeticao").addEventListener("change", e => { state.preJogo.competicao = e.target.value; atualizarSponsorsAdmin(); });
+  el("pjCompeticao").addEventListener("change", e => { state.preJogo.competicao = e.target.value; });
   el("pjAdversario").addEventListener("change", e => escolherAdversario(e.target.value));
   el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
   el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
@@ -821,11 +821,28 @@ function usarJogoNoRelatorio(jogo) {
   state.preJogo.adversarioId = jogo.opponent_team_id || "";
   if (jogo.venue) state.preJogo.local = jogo.venue;
   renderPreJogo();
-  atualizarSponsorsAdmin();
   guardarRascunho();
 }
 
-/** Ao gerar o relatório, grava o resultado no jogo do calendário associado. */
+/**
+ * Marcadores do VFN neste jogo, no formato de league_results.scorer_list
+ * ([{ player_id, player_name, team_id, count }]): ficam públicos em matches.scorer_list
+ * para os marcadores por competição (os relatórios não são públicos).
+ */
+function marcadoresDoJogo() {
+  const idVFN = String(VFN.equipaVFN(equipasCalendario).id);
+  const porJogador = new Map();
+  state.jogo.eventos.filter(ev => ev.equipa === "VFN" && ev.tipo === "Golo" && ev.jogadorId).forEach(ev => {
+    const j = jogadorPorId(ev.jogadorId);
+    const id = j ? idJogadorBD(j) : String(ev.jogadorId);
+    const atual = porJogador.get(id) || { player_id: id, player_name: j ? j.nome : nomeJogador(ev.jogadorId), team_id: idVFN, count: 0 };
+    atual.count++;
+    porJogador.set(id, atual);
+  });
+  return [...porJogador.values()];
+}
+
+/** Ao gerar (ou publicar) o relatório, grava o resultado e os marcadores no jogo do calendário associado. */
 async function registarResultadoNoCalendario() {
   const jogo = jogosCalendario.find(j => j.id === state.preJogo.matchId);
   if (!jogo) return;
@@ -834,10 +851,18 @@ async function registarResultadoNoCalendario() {
     ...jogo,
     status: "jogado",
     score_home: casa ? state.jogo.golosVFN : state.jogo.golosAdversario,
-    score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN
+    score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN,
+    scorer_list: marcadoresDoJogo()
   };
   try {
-    const gravado = await dadosClube.guardar("matches", atualizado);
+    let gravado;
+    try {
+      gravado = await dadosClube.guardar("matches", atualizado);
+    } catch (e) {
+      if (!/scorer_list/i.test(e.message || "")) throw e; // antes do SQL de 03/10
+      delete atualizado.scorer_list;
+      gravado = await dadosClube.guardar("matches", atualizado);
+    }
     jogosCalendario = jogosCalendario.map(j => j.id === gravado.id ? gravado : j);
     renderProximoJogoPreJogo();
     if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
@@ -871,12 +896,6 @@ async function carregarCalendario() {
   renderProximoJogoPreJogo();
   if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();
   if (typeof renderResultados === "function") { renderResultados(); renderClassificacaoAdmin(); renderJornadasAdmin(); }
-}
-
-/* ---- Sponsors no rodapé: AF Guarda + sponsor da competição do relatório ---- */
-
-function atualizarSponsorsAdmin() {
-  VFN.renderSponsors(el("sponsorFooter"), state.preJogo.competicao);
 }
 
 /* =========================================================
@@ -2448,7 +2467,6 @@ function initAplicacao() {
   atualizarEstatisticasEpoca(); // volta a calcular quando o calendário carrega
 
   initRascunho();
-  atualizarSponsorsAdmin();
   carregarCalendario();
   setInterval(renderProximoJogoPreJogo, 60000); // atualiza a contagem decrescente
 

@@ -724,7 +724,6 @@ function renderTudo() {
   renderPresencasDash();
   renderCalendario();
   renderHistorico();
-  VFN.renderSponsors($("sponsorFooter"), H.competicaoAtiva(dados));
   VFN.refreshAOS();
 }
 

@@ -9,7 +9,7 @@ Aplicação web estática (GitHub Pages + Supabase) do ACD Vila Franca das Naves
 | `index.html` | Tony (admin) | Login. Relatório de jogo e gestão (multas, presenças, calendário, classificação, adversários) |
 | `dashboard.html` | Treinador e dirigentes | Login. Hub, plantel, estatísticas e calendário (só leitura) |
 | `equipa.html` | Jogadores (e equipa técnica) | Login. Calendário, convocatória, multas, presenças, estatísticas, disponibilidade e relatórios publicados (só leitura) |
-| `public.html` | Atletas | Sem login. Próximo jogo, forma, plantel, classificação, calendário e marcadores |
+| `public.html` | Público | Sem login. Próximo jogo, forma, plantel, classificação da 2ª Liga, jornadas, calendário e marcadores (liga e taças) |
 
 ## Ficheiros
 
@@ -17,12 +17,12 @@ Aplicação web estática (GitHub Pages + Supabase) do ACD Vila Franca das Naves
 - `admin.js` — tabs de gestão do admin (Multas, Presenças, Calendário, Classificação, Adversários).
 - `dashboard.html`, `dashboard.js` — dashboard da equipa técnica (gráficos Chart.js).
 - `public.html`, `public.js` — página pública dos atletas.
-- `shared.js` — cliente Supabase com spinner, avatar `generateJerseyAvatar(number)`, patrocinadores por competição e utilitários.
+- `shared.js` — cliente Supabase com spinner, avatar `generateJerseyAvatar(number)` e utilitários.
 - `hub.js` — componentes de leitura partilhados pelo dashboard e pela página pública.
 - `styles.css` (base) e `hub.css` (dashboard e página pública).
 - `schema.sql` — tabelas, view pública e políticas RLS.
 - `config.js` — URL e chave **anon** do projeto Supabase.
-- `assets/` — `logo.png`, `logo-icon.ico` e `sponsors/` (AF Guarda, Zero Graus, FDM, Comunilog).
+- `assets/` — `logo.png`, `logo-icon.ico`, `players/`, `opponents/`, `external/` e `staff/`.
 
 ## Configuração Supabase
 
@@ -51,10 +51,6 @@ const SUPABASE_ANON_KEY = 'a-tua-chave-anon';
 | Plantel | só `players_public` (sem atributos nem notas) | lê | lê e escreve |
 | Multas, presenças, sessões, observação de adversários | — | lê | lê e escreve |
 | Relatórios e rascunhos | — | lê relatórios | os seus |
-
-### Patrocinadores por competição
-
-A AF Guarda aparece sempre. Zero Graus → 2ª Liga · FDM → Taça 2ª Liga · Comunilog → Taça de Honra. O rodapé mostra o patrocinador da competição do relatório (admin) ou do próximo jogo (dashboard e página pública).
 
 ### Estatísticas dos jogadores
 

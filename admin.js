@@ -1464,6 +1464,7 @@ async function alternarPublicacao() {
   state.estadoRelatorio = publicar ? "published" : "draft";
   const gravado = await guardarRelatorioDoJogo();
   if (!gravado) { state.estadoRelatorio = publicar ? "draft" : "published"; alert("Não foi possível alterar o estado do relatório."); }
+  else if (publicar) await registarResultadoNoCalendario(); // resultado e marcadores ficam no calendário (públicos)
   renderEstadoRelatorio();
 }
 

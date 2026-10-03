@@ -15,12 +15,6 @@
   const COMPETICOES_JORNADAS = [...COMPETICOES_CLASSIFICACAO, ...COMPETICOES_SEM_VFN];
   const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
 
-  const AF_GUARDA = { src: "assets/sponsors/af-guarda.png", alt: "Associação de Futebol da Guarda" };
-  const SPONSORS = {
-    zero: { src: "assets/sponsors/zero-graus.png", alt: "Zero Graus Produções" },
-    fdm: { src: "assets/sponsors/fdm.png", alt: "FDM" },
-    comunilog: { src: "assets/sponsors/comunilog.png", alt: "Comunilog" }
-  };
 
   // Tipos de multa por omissão, todos com valor fixo (a tabela fine_types no Supabase substitui-os ao carregar)
   const TIPOS_MULTA = [
@@ -123,7 +117,7 @@
       .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "equipa";
   }
 
-  /* ---------- Competições e sponsors ---------- */
+  /* ---------- Competições ---------- */
 
   /**
    * Nome oficial da competição. Aliases antigos (ex.: "2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES",
@@ -157,23 +151,6 @@
     if (s.includes("AMIG")) return "Amigável";
     if (s.includes("LIGA")) return "2ª Liga";
     return competicao || "—";
-  }
-
-  function sponsorDaCompeticao(competicao) {
-    const s = String(competicao || "").toUpperCase();
-    if (s.includes("COMUNILOG") || s.includes("HONRA")) return SPONSORS.comunilog;
-    if (s.includes("FDM") || (s.includes("TAÇA") && s.includes("LIGA"))) return SPONSORS.fdm;
-    if (s.includes("ZERO") || (s.includes("LIGA") && !s.includes("TAÇA"))) return SPONSORS.zero;
-    return null;
-  }
-
-  /** Rodapé de parceiros: AF Guarda sempre + sponsor da competição indicada. */
-  function renderSponsors(container, competicao) {
-    if (!container) return;
-    const sponsor = sponsorDaCompeticao(competicao);
-    const logos = [AF_GUARDA, sponsor].filter(Boolean)
-      .map(s => `<img src="${s.src}" alt="${escapeHtml(s.alt)}" title="${escapeHtml(s.alt)}" loading="lazy">`).join("");
-    container.innerHTML = `<div class="sponsor-logos">${logos}</div>`;
   }
 
   /* ---------- Datas ---------- */
@@ -1075,12 +1052,12 @@
   if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
 
   window.VFN = {
-    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, semVFN, AF_GUARDA,
+    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, semVFN,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
-    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
+    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,

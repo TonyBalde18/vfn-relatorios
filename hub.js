@@ -210,10 +210,37 @@
         mapa.set(chave, atual);
       });
     });
-    const vfn = VFN.equipaVFN(dados.teams);
-    // o VFN não joga nas competições só acompanhadas (ex.: 1ª Divisão)
-    if (!VFN.semVFN(competicao)) (jogadoresVFN || []).filter(j => j.golos > 0).forEach(j => mapa.set(`vfn:${j.id}`, { nome: j.nome, teamId: String(vfn.id), golos: j.golos, vfn: true, jogador: j }));
+    golosVFNNaCompeticao(dados, jogadoresVFN, competicao).forEach(m => mapa.set(`vfn:${m.jogador ? m.jogador.id : m.nome}`, m));
     return [...mapa.values()].sort((a, b) => b.golos - a.golos || a.nome.localeCompare(b.nome, "pt"));
+  }
+
+  /** O VFN tem marcadores por jogo nesta competição (matches.scorer_list, gravado com o relatório)? */
+  function temMarcadoresPorJogo(dados, competicao) {
+    return VFN.jogosDoVFN(dados.matches).some(j => j.competition === competicao && Array.isArray(j.scorer_list));
+  }
+
+  /**
+   * Golos do VFN numa competição: soma de matches.scorer_list dos jogos dessa competição.
+   * Sem marcadores por jogo, a 2ª Liga usa o total da época (players.stats); as taças ficam vazias.
+   * O VFN não joga nas competições só acompanhadas (ex.: 1ª Divisão).
+   */
+  function golosVFNNaCompeticao(dados, jogadoresVFN, competicao) {
+    if (VFN.semVFN(competicao)) return [];
+    const vfn = String(VFN.equipaVFN(dados.teams).id);
+    const porId = id => (jogadoresVFN || []).find(j => String(j.id) === String(id) || String(j.id).endsWith("-" + id)) || null;
+    if (temMarcadoresPorJogo(dados, competicao)) {
+      const mapa = new Map();
+      VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && Array.isArray(j.scorer_list)).forEach(j => j.scorer_list.forEach(s => {
+        const jogador = porId(s.player_id);
+        const chave = jogador ? String(jogador.id) : `nome:${s.player_name}`;
+        const atual = mapa.get(chave) || { nome: jogador ? jogador.nome : s.player_name || "?", teamId: vfn, golos: 0, vfn: true, jogador };
+        atual.golos += Number(s.count) || 1;
+        mapa.set(chave, atual);
+      }));
+      return [...mapa.values()];
+    }
+    if (VFN.eliminatorias(competicao)) return [];
+    return (jogadoresVFN || []).filter(j => j.golos > 0).map(j => ({ nome: j.nome, teamId: vfn, golos: j.golos, vfn: true, jogador: j }));
   }
 
   /** Tabela classificativa mostrada nas Jornadas para as competições sem o VFN ("" nas outras). */
@@ -233,7 +260,7 @@
           <td class="team-col"><span class="team-inline">${logoEquipa(t, clube)}<span>${esc(clube)}</span></span></td>
           <td class="pts-col" data-contar="${m.golos}">${m.golos}</td></tr>`;
       }).join("")}</tbody></table>
-      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p>`;
+      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : temMarcadoresPorJogo(dados, competicao) ? "Golos do VFN: relatórios dos jogos desta competição. Outras equipas: marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p>`;
   }
 
   /* ---------- Plantel ---------- */

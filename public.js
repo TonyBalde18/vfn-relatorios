@@ -4,6 +4,8 @@
    PÁGINA PÚBLICA — atletas, sem login, só leitura.
    Lê apenas dados públicos: teams, matches e a view
    players_public (sem atributos, notas, multas nem presenças).
+   Conteúdo: calendário, plantel, resultados, classificação da 2ª Liga,
+   jornadas e marcadores (liga e cada taça). Sem fichas das equipas adversárias.
    ========================================================= */
 
 const H = VFNHub;
@@ -13,7 +15,7 @@ let dados = { teams: [], matches: [], league_results: [], external_players: [], 
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
-let competicao = "";
+const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Zero Graus
 
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
@@ -140,37 +142,12 @@ function initJornadas() {
   $("pubJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 
-/* ---------- Equipas (só leitura) ---------- */
-
-function renderEquipas() {
-  $("pubEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("pubEquipasPesquisa").value);
-}
-
-function abrirEquipa(teamId) {
-  if (!teamId || VFN.eVFN((H.equipa(dados, teamId) || {}).name)) return;
-  $("equipaPerfilCorpo").innerHTML = H.perfilEquipaHTML(dados, teamId);
-  $("modalEquipaPerfil").hidden = false;
-  $("btnFecharEquipaPerfil").focus();
-}
-
-function initEquipas() {
-  $("pubEquipasPesquisa").addEventListener("input", renderEquipas);
-  // qualquer elemento com data-equipa abre a ficha
-  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo) abrirEquipa(alvo.dataset.equipa); });
-  $("btnFecharEquipaPerfil").addEventListener("click", () => { $("modalEquipaPerfil").hidden = true; });
-  $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
-}
-
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
   $("pubForma").innerHTML = H.formaHTML(dados, 5) || H.vazio("Ainda não há jogos disputados.");
 
-  competicao = H.competicaoPreferida(dados);
-  $("pubCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicao);
-  $("pubCompeticao").hidden = !competicao;
-  $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao);
+  $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, LIGA);
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
   $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
@@ -179,22 +156,21 @@ function renderTudo() {
     .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
   $("pubOnze").innerHTML = H.onzeCampoHTML(minutos);
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
-  $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 5);
-  $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, VFN.COMPETICOES_CLASSIFICACAO[0], 10);
+  $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);
+  // marcadores por competição: liga e cada taça
+  $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 10);
+  $("pubMarcadoresHonra").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, "Taça de Honra Comunilog", 10);
+  $("pubMarcadoresFDM").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, "Taça 2ª Liga FDM", 10);
   renderPlantel();
   renderJornadas();
-  renderEquipas();
   renderCalendario();
 
-  // rodapé: AF Guarda + patrocinador da competição do próximo jogo
-  VFN.renderSponsors($("sponsorFooter"), H.competicaoAtiva(dados));
   VFN.refreshAOS();
 }
 
 async function iniciar() {
   VFN.initAOS();
   initJornadas();
-  initEquipas();
   H.ligarDetalheJogo(() => dados); // os relatórios não são públicos: só resultado e marcadores
   // qualquer avatar de jogador abre a ficha (marcadores, minutos, campo, multas, presenças...)
   document.addEventListener("click", e => {
@@ -206,7 +182,6 @@ async function iniciar() {
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") fecharJogador(); });
-  $("pubCompeticao").addEventListener("change", e => { competicao = e.target.value; $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicao); VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr")); });
   mostrarEsqueletos();
   await carregarDados();
   renderTudo();
