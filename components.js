@@ -832,8 +832,9 @@
   }
 
   /**
-   * Mapa interativo com um marcador pequeno por equipa (círculo 24×24 nas cores do clube, âncora ao
-   * centro; o VFN com contorno dourado e sempre por cima). O emblema só aparece no popup.
+   * Mapa interativo com o emblema de cada equipa num círculo de 24×24 (contorno na cor principal,
+   * âncora ao centro; o VFN sempre por cima). Sem emblema (ou se a imagem falhar): ponto de 20×20 na
+   * cor do clube. O popup mostra o emblema grande, o estádio e o relvado.
    * Só se cria quando o contentor fica visível (o Leaflet precisa do tamanho). Devolve { render }.
    */
   function criarMapaEstadios(contentor, obterEquipas) {
@@ -850,8 +851,13 @@
         const e = VFN.estadioDaEquipa(t);
         if (e.lat == null || e.lng == null) { semCoordenadas++; return; }
         const souVFN = VFN.eVFN(t.name);
-        const cores = VFN.coresEquipa(t);
-        const icone = window.L.divIcon({ className: `mapa-pin${souVFN ? " vfn" : ""}`, html: `<span class="mapa-ponto" style="background:${cores.primaria || "#64748B"};border-color:${souVFN ? "#FFD700" : cores.secundaria || "#ffffff"}"></span>`, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
+        const cor = VFN.coresEquipa(t).primaria;
+        const logo = VFN.urlLogoEquipa(t, t.name) || (souVFN ? VFN.LOGO_VFN : "");
+        const ponto = `<span class="mapa-ponto" style="background:${cor || "#888"}"></span>`;
+        // emblema circular; se a imagem não carregar, troca pelo ponto colorido
+        const icone = logo
+          ? window.L.divIcon({ className: `mapa-pin${souVFN ? " vfn" : ""}`, html: `<img class="mapa-logo" src="${esc(logo)}" alt="" style="border-color:${cor || "#fff"}" onerror="this.outerHTML='${ponto.replace(/"/g, "&quot;")}'">`, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] })
+          : window.L.divIcon({ className: "mapa-pin", html: ponto, iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
         window.L.marker([e.lat, e.lng], { icon: icone, title: t.name, zIndexOffset: souVFN ? 1000 : 0 }).bindPopup(popupEstadioHTML(t, vfn)).addTo(camada);
       });
       const aviso = contentor.parentElement && contentor.parentElement.querySelector(".mapa-aviso");
