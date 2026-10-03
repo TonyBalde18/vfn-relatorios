@@ -448,10 +448,10 @@
       if (!temGsap() || !els.length) return;
       window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.035, clearProps: "opacity,transform" });
     },
-    /** Mudança de tab: fade-in de 200ms. */
+    /** Mudança de tab: fade-in com um pequeno deslize horizontal (220ms). */
     tab(painel) {
       if (!temGsap() || !painel) return;
-      window.gsap.fromTo(painel, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out", clearProps: "opacity" });
+      window.gsap.fromTo(painel, { opacity: 0, x: 12 }, { opacity: 1, x: 0, duration: 0.22, ease: "power2.out", clearProps: "opacity,transform" });
     },
     /** Modal ao abrir: scale 0.95 → 1 com fade-in. */
     modal(caixa) {
@@ -478,6 +478,59 @@
     }
   };
 
+  /* ---------- Contagem animada dos números (KPIs) ----------
+     Ao entrar no ecrã, o número conta de 0 até ao valor (700ms), mantendo o formato
+     ("6,00 €", "75%", "270'"). Novos elementos são apanhados automaticamente. */
+
+  const SELETOR_KPI = ".summary-tile strong, .season-stat strong, .player-modal-stat strong, .dividas-total strong, .att-pct, .disp-coluna h3 b, .stat-num";
+  const animados = new WeakSet();
+  let observadorKpi = null;
+
+  function animarNumero(el) {
+    const texto = el.textContent;
+    const m = texto.match(/^(\D*?)(\d[\d.\s\u00a0]*(?:,\d+)?)(\D*)$/);
+    if (!m) return;
+    const decimais = (m[2].split(",")[1] || "").length;
+    const fim = Number(m[2].replace(/[.\s\u00a0]/g, "").replace(",", "."));
+    if (!(fim > 0)) return;
+    const formato = new Intl.NumberFormat("pt-PT", { minimumFractionDigits: decimais, maximumFractionDigits: decimais });
+    const duracao = 700, inicio = performance.now();
+    const passo = agora => {
+      if (el.textContent !== texto && !el.dataset.aContar) return; // o conteúdo mudou entretanto
+      const t = Math.min(1, (agora - inicio) / duracao);
+      const v = fim * (1 - Math.pow(1 - t, 3)); // ease-out cúbico
+      el.dataset.aContar = "1";
+      el.textContent = t < 1 ? m[1] + formato.format(v) + m[3] : texto;
+      if (t < 1) requestAnimationFrame(passo); else delete el.dataset.aContar;
+    };
+    requestAnimationFrame(passo);
+  }
+
+  function procurarKpis() {
+    if (!observadorKpi) return;
+    document.querySelectorAll(SELETOR_KPI).forEach(el => {
+      if (animados.has(el)) return;
+      animados.add(el);
+      observadorKpi.observe(el);
+    });
+  }
+
+  function observarKpis() {
+    if (!window.IntersectionObserver || !window.MutationObserver || semMovimento()) return;
+    observadorKpi = new IntersectionObserver(entradas => entradas.forEach(e => {
+      if (!e.isIntersecting) return;
+      observadorKpi.unobserve(e.target);
+      animarNumero(e.target);
+    }), { threshold: 0.4 });
+    let pendente = false;
+    new MutationObserver(() => {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(() => { pendente = false; procurarKpis(); });
+    }).observe(document.body, { childList: true, subtree: true });
+    procurarKpis();
+  }
+
   // Todos os modais (.modal-overlay) animam ao perder o atributo hidden
   function observarModais() {
     if (!window.MutationObserver) return;
@@ -490,6 +543,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     if (temGsap()) document.documentElement.classList.add("gsap-on");
     observarModais();
+    observarKpis();
   });
 
   /* ---------- Ordenação de tabelas por coluna ----------
