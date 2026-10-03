@@ -1100,6 +1100,21 @@
     return data || null;
   }
 
+  /**
+   * Papel efetivo de quem tem sessão: { papel, perfil, erro }.
+   * papel: "admin" | "treinador" | "dirigente" (tabela profiles) | "jogador" (conta ligada a um
+   * jogador, players.auth_user_id) | null (sem acesso). erro = true se não foi possível confirmar:
+   * nesse caso NÃO se dá acesso (antes um erro ao ler profiles abria o dashboard a qualquer conta).
+   */
+  async function acessoDoUtilizador(cliente, utilizador) {
+    if (!cliente || !utilizador) return { papel: null, perfil: null, erro: false };
+    const { data, error } = await cliente.from("profiles").select("role, full_name").eq("id", utilizador.id).maybeSingle();
+    if (error) return { papel: null, perfil: null, erro: true };
+    if (data && ["admin", "treinador", "dirigente"].includes(data.role)) return { papel: data.role, perfil: data, erro: false };
+    const r = await cliente.rpc("vfn_is_player");
+    return { papel: !r.error && r.data === true ? "jogador" : null, perfil: data || null, erro: false };
+  }
+
   /* ---------- Layout ---------- */
 
   /** Sidebar off-canvas em ecrãs < 768px. */
@@ -1146,7 +1161,7 @@
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
-    supabaseConfigurado, criarClienteSupabase, obterPapel,
+    supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,
     initSidebar, initAOS, refreshAOS
   };
 })();

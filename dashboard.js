@@ -759,9 +759,9 @@ async function iniciarApp(perfil) {
   const meta = utilizador.user_metadata || {};
   $("sidebarUserName").textContent = (perfil && perfil.full_name) || meta.full_name || meta.name || utilizador.email;
   $("sidebarUserRole").textContent = { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "";
-  $("linkAdmin").hidden = !(perfil && (perfil.role === "admin" || perfil.role === "sem-tabela"));
+  $("linkAdmin").hidden = !(perfil && perfil.role === "admin");
   // Multas e Presenças: só dirigentes (e admin), sem edição
-  const veMultas = !!perfil && ["dirigente", "admin", "sem-tabela"].includes(perfil.role);
+  const veMultas = !!perfil && ["dirigente", "admin"].includes(perfil.role);
   document.querySelectorAll("[data-papel=dirigente]").forEach(b => { b.hidden = !veMultas; });
   if (appIniciada) return;
   appIniciada = true;
@@ -778,13 +778,16 @@ function mostrarLogin(mensagem) {
 
 async function entrarComSessao(sessao) {
   utilizador = sessao.user;
-  const perfil = await VFN.obterPapel(cliente, utilizador);
-  if (!perfil) {
+  // só equipa técnica e dirigentes (e o admin); jogadores vão para a Área do Jogador
+  const a = await VFN.acessoDoUtilizador(cliente, utilizador);
+  if (a.papel === "jogador") { location.replace("equipa.html"); return; }
+  if (!a.papel) {
+    if (a.erro) { mostrarLogin("Não foi possível confirmar o teu acesso. Verifica a ligação e tenta de novo."); return; }
     await cliente.auth.signOut();
-    mostrarLogin("Este utilizador não tem acesso ao dashboard. Se és jogador, entra na Área do Jogador (equipa.html).");
+    mostrarLogin("Esta conta não tem acesso ao dashboard.");
     return;
   }
-  await iniciarApp(perfil);
+  await iniciarApp(a.perfil);
 }
 
 async function iniciar() {

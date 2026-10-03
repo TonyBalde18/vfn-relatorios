@@ -2517,16 +2517,46 @@ function mostrarLogin(mensagem) {
 
 let aEntrar = false; // entrada em curso (à espera do plantel): ignora eventos de autenticação repetidos
 
+/**
+ * A área de administração é só para o papel "admin". Jogadores vão para a Área do Jogador e
+ * treinador/dirigentes para o dashboard (a sessão mantém-se); outras contas saem.
+ */
+let adminVerificado = ""; // id da conta já confirmada como admin (as renovações do token não voltam a verificar)
+
+async function acessoAdminPermitido() {
+  if (currentUser && currentUser.id === adminVerificado) return true;
+  const a = await VFN.acessoDoUtilizador(supabaseClient, currentUser);
+  if (a.papel === "admin") { adminVerificado = currentUser.id; return true; }
+  adminVerificado = "";
+  if (a.papel === "jogador") { location.replace("equipa.html"); return false; }
+  if (a.papel === "treinador" || a.papel === "dirigente") { location.replace("dashboard.html"); return false; }
+  if (!a.erro) await supabaseClient.auth.signOut();
+  mostrarLogin(a.erro ? "Não foi possível confirmar o teu acesso. Verifica a ligação e tenta de novo." : "Esta conta não tem acesso à área de administração.");
+  return false;
+}
+
 async function iniciarAutenticacao() {
   iniciarSupabase();
   if (supabaseClient) {
     const { data } = await supabaseClient.auth.getSession();
-    if (data.session) { currentUser = data.session.user; plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); const draft = await carregarRascunhoSupabase(); if (draft) mostrarBannerRascunho(draft); }
-    else mostrarLogin();
+    if (data.session) {
+      currentUser = data.session.user;
+      aEntrar = true;
+      if (await acessoAdminPermitido()) { plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); const draft = await carregarRascunhoSupabase(); if (draft) mostrarBannerRascunho(draft); }
+      aEntrar = false;
+    } else mostrarLogin();
     supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session && session.user;
-      if (currentUser && !aplicacaoIniciada && !aEntrar) { aEntrar = true; plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); aEntrar = false; }
-      else if (currentUser && aplicacaoIniciada) mostrarAplicacao(); // voltou a entrar depois de sair
+      if (currentUser && !aplicacaoIniciada && !aEntrar) {
+        aEntrar = true;
+        if (await acessoAdminPermitido()) { plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); }
+        aEntrar = false;
+      } else if (currentUser && aplicacaoIniciada && !aEntrar) {
+        // voltou a entrar depois de sair: pode ser outra conta, por isso confirma outra vez
+        aEntrar = true;
+        if (await acessoAdminPermitido()) mostrarAplicacao();
+        aEntrar = false;
+      }
       if (!currentUser && _event !== "INITIAL_SESSION") mostrarLogin("Sessão terminada.");
     });
   } else mostrarLogin();
