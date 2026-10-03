@@ -848,6 +848,18 @@ create policy "report-images admin update" on storage.objects for update to auth
 create policy "report-images admin delete" on storage.objects for delete to authenticated
   using (bucket_id = 'report-images' and public.vfn_is_admin());
 
+-- =====================================================================
+-- ATUALIZAÇÃO 03/10/2026 (v7) — correr esta secção antes do deploy v7
+-- (depois da secção v6; idempotente). Os dados dos estádios estão em seed_v7.sql
+-- =====================================================================
+
+-- [v7 Tarefa 3] Tipo de relvado do estádio de cada equipa (mapa, detalhe do jogo e Jogo da Semana)
+alter table public.teams add column if not exists surface_type text;
+alter table public.teams drop constraint if exists teams_surface_type_check;
+alter table public.teams add constraint teams_surface_type_check
+  check (surface_type is null or surface_type in ('relva_natural', 'sintetica', 'terra_batida', 'desconhecido'));
+-- coordenadas exatas, nomes dos estádios e relvados: correr seed_v7.sql (a seguir a esta secção)
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.
