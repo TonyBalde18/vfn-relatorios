@@ -1844,3 +1844,10 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 /* detalhe do jogo: badge do relvado por baixo do nome do estádio */
 .dj-meta .dj-estadio { display: inline-block; line-height: 1.6; }
 .dj-estadio .surface-badge { margin-left: 20px; }
+
+/* ---------- v8: "Jogo da Semana" sempre escuro (no hub do dashboard a regra de vidro
+   .hub-grid > .card:not(.hub-hero) era mais específica e deixava o card branco) ---------- */
+.card.jds-card, .hub-grid > .card.jds-card, .hub-grid > .card.jds-card:not(.hub-hero) {
+  color: #fff; background: radial-gradient(120% 90% at 50% 0%, #13294B 0%, #0A1628 70%);
+  border: 0; box-shadow: 0 10px 30px rgba(10, 22, 40, .25); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
