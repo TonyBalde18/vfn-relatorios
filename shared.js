@@ -897,6 +897,13 @@
     return { ...e, nome: jogo.venue || e.nome };
   }
 
+  /** Tipo de relvado (teams.surface_type) → badge pequeno: 🟢 Relva Natural, 🔵 Sintética, 🟤 Terra Batida, ⚪ Desconhecido. */
+  const SUPERFICIES = { relva_natural: ["🟢", "Relva Natural"], sintetica: ["🔵", "Sintética"], terra_batida: ["🟤", "Terra Batida"], desconhecido: ["⚪", "Desconhecido"] };
+  function badgeRelvado(tipo) {
+    const t = SUPERFICIES[tipo] ? tipo : "desconhecido";
+    return `<span class="surface-badge ${t}" title="Tipo de relvado"><span aria-hidden="true">${SUPERFICIES[t][0]}</span> ${SUPERFICIES[t][1]}</span>`;
+  }
+
   /** Distância em km entre dois pontos (fórmula de haversine). */
   function distanciaKm(lat1, lng1, lat2, lng2) {
     const rad = x => x * Math.PI / 180, R = 6371;
@@ -1131,7 +1138,7 @@
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,

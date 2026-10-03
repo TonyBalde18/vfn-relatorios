@@ -815,19 +815,24 @@
 
   const CENTRO_GUARDA = [40.53, -7.26];
 
-  /** Conteúdo do popup de uma equipa: nome, estádio, cidade e distância ao VFN (em linha reta). */
+  /** Popup de uma equipa: emblema (64px), nome, estádio, tipo de relvado, cidade e distância ao VFN (em linha reta). */
   function popupEstadioHTML(t, vfn) {
     const e = VFN.estadioDaEquipa(t);
     const ev = VFN.estadioDaEquipa(vfn);
     const souVFN = VFN.eVFN(t.name);
     const km = !souVFN && e.lat != null && ev.lat != null ? VFN.distanciaKm(ev.lat, ev.lng, e.lat, e.lng) : null;
-    return `<div class="mapa-popup"><strong>${esc(t.full_name || t.name)}</strong>
-      ${e.nome ? `<span>${esc(e.nome)}</span>` : ""}${t.city ? `<span>${esc(t.city)}</span>` : ""}
+    const logo = VFN.urlLogoEquipa(t, t.name) || (souVFN ? VFN.LOGO_VFN : "");
+    return `<div class="mapa-popup">${logo ? `<img class="mapa-popup-logo" src="${esc(logo)}" alt="" width="64" height="64">` : ""}
+      <strong>${esc(t.full_name || t.name)}</strong>
+      ${e.nome ? `<span>${esc(e.nome)}</span>` : ""}
+      <span>${VFN.badgeRelvado(t.surface_type)}</span>
+      ${t.city ? `<span>${esc(t.city)}</span>` : ""}
       ${km != null ? `<span class="mapa-km">${Math.round(km)} km do Picoto <small>(em linha reta)</small></span>` : ""}</div>`;
   }
 
   /**
-   * Mapa interativo com um pin por equipa (logo 32×32; VFN 40×40, sempre por cima).
+   * Mapa interativo com um marcador pequeno por equipa (círculo 24×24 nas cores do clube, âncora ao
+   * centro; o VFN com contorno dourado e sempre por cima). O emblema só aparece no popup.
    * Só se cria quando o contentor fica visível (o Leaflet precisa do tamanho). Devolve { render }.
    */
   function criarMapaEstadios(contentor, obterEquipas) {
@@ -844,9 +849,8 @@
         const e = VFN.estadioDaEquipa(t);
         if (e.lat == null || e.lng == null) { semCoordenadas++; return; }
         const souVFN = VFN.eVFN(t.name);
-        const tam = souVFN ? 40 : 32;
-        const url = VFN.urlLogoEquipa(t, t.name) || VFN.LOGO_VFN;
-        const icone = window.L.divIcon({ className: `mapa-pin${souVFN ? " vfn" : ""}`, html: `<img src="${esc(url)}" alt="" width="${tam}" height="${tam}">`, iconSize: [tam, tam], iconAnchor: [tam / 2, tam / 2], popupAnchor: [0, -tam / 2] });
+        const cores = VFN.coresEquipa(t);
+        const icone = window.L.divIcon({ className: `mapa-pin${souVFN ? " vfn" : ""}`, html: `<span class="mapa-ponto" style="background:${cores.primaria || "#64748B"};border-color:${souVFN ? "#FFD700" : cores.secundaria || "#ffffff"}"></span>`, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] });
         window.L.marker([e.lat, e.lng], { icon: icone, title: t.name, zIndexOffset: souVFN ? 1000 : 0 }).bindPopup(popupEstadioHTML(t, vfn)).addTo(camada);
       });
       const aviso = contentor.parentElement && contentor.parentElement.querySelector(".mapa-aviso");
