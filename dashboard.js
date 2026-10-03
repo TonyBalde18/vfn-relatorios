@@ -74,6 +74,7 @@ function renderHub() {
   $("hubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
   renderAlertasSuspensao();
   VFN.anim.contar($("hubMarcadores"));
+  $("hubPresencas").innerHTML = H.rankingPresencasHTML(jogadores, dados.attendance, 5);
   $("cardAdversario").innerHTML = proximoAdversarioHTML();
   renderGraficos();
 }

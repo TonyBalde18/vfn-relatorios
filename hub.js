@@ -494,6 +494,32 @@
     ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
   }
 
+  /* ---------- Presenças: quem mais e quem menos ---------- */
+
+  /** % de presença (P + A sobre os registos) de cada jogador na época, só quem tem registos. */
+  function presencasPorJogador(jogadores, attendance) {
+    return (jogadores || []).map(j => {
+      const registos = (attendance || []).filter(a => String(a.player_id) === String(j.id) && a.status);
+      const presentes = registos.filter(a => a.status === "P" || a.status === "A").length;
+      return { jogador: j, total: registos.length, presentes, pct: registos.length ? Math.round(presentes / registos.length * 100) : null };
+    }).filter(p => p.total > 0);
+  }
+
+  /** Cards compactos: top presenças e menos presenças (n de cada). */
+  function rankingPresencasHTML(jogadores, attendance, n) {
+    const lista = presencasPorJogador(jogadores, attendance);
+    if (!lista.length) return vazio("Ainda não há presenças registadas.");
+    const k = n || 5;
+    const desc = [...lista].sort((a, b) => b.pct - a.pct || b.total - a.total || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
+    const asc = [...lista].sort((a, b) => a.pct - b.pct || b.total - a.total || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
+    const card = (p, classe) => `<li class="pres-card ${classe}">${VFN.avatarJogador(p.jogador, "avatar-xs")}<span class="pres-nome">${esc(p.jogador.nome)}<small class="muted">${p.presentes}/${p.total} sessões</small></span>
+      <span class="pres-pct"><b>${p.pct}%</b><i style="width:${p.pct}%"></i></span></li>`;
+    return `<div class="pres-ranking">
+      <section><h3>${VFN.icone("trending-up", 16)} Mais presenças</h3><ol>${desc.slice(0, k).map(p => card(p, "mais")).join("")}</ol></section>
+      <section><h3>${VFN.icone("trending-down", 16)} Menos presenças</h3><ol>${asc.slice(0, k).map(p => card(p, "menos")).join("")}</ol></section>
+    </div>`;
+  }
+
   /* ---------- Desempenho por competição ---------- */
 
   function desempenhoPorCompeticaoHTML(dados) {
@@ -904,6 +930,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

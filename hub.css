@@ -234,3 +234,18 @@
 @media (max-width: 420px) { .public-entrar { padding: 6px 8px; font-size: 0; gap: 0; } .public-entrar .ic { width: 18px; height: 18px; } }
 /* sem fichas de equipas na página pública: os logos não são clicáveis */
 .public-page:not(.equipa-page) [data-equipa] { cursor: default; }
+
+/* ---------- v5: presenças no hub (mais e menos) ---------- */
+.pres-ranking { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .pres-ranking { grid-template-columns: minmax(0, 1fr); } }
+.pres-ranking h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: .85rem; color: var(--vfn-navy); }
+.pres-ranking ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pres-card { display: grid; grid-template-columns: auto minmax(0, 1fr) 96px; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; background: #fff; border: 1px solid var(--border-color); }
+.pres-card.mais { border-left: 4px solid #16a34a; }
+.pres-card.menos { border-left: 4px solid #dc2626; }
+.pres-nome { display: flex; flex-direction: column; min-width: 0; font-weight: 700; font-size: .85rem; color: var(--vfn-navy); }
+.pres-nome small { font-weight: 400; font-size: .7rem; }
+.pres-pct { position: relative; display: block; height: 22px; border-radius: 6px; background: rgba(10,22,40,.06); overflow: hidden; }
+.pres-pct i { position: absolute; inset: 0 auto 0 0; background: rgba(22,163,74,.25); }
+.pres-card.menos .pres-pct i { background: rgba(220,38,38,.22); }
+.pres-pct b { position: relative; z-index: 1; display: block; line-height: 22px; text-align: center; font-size: .8rem; color: var(--vfn-navy); }
