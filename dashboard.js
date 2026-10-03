@@ -661,7 +661,18 @@ function initEquipas() {
 
 /* ---------- Calendário ---------- */
 
+let calendarioMensal = null;
+
 function renderCalendario() {
+  if (!calendarioMensal) {
+    calendarioMensal = VFNComp.criarCalendarioMensal($("dbCalMes"), {
+      obterDados: () => dados,
+      perfil: "staff",
+      nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome,
+      nomePresenca: id => (jogadorPorIdDash(id) || {}).nome
+    });
+    VFNComp.ligarAlternanciaCalendario($("dbCalModos"), $("dbCalMes"), $("dbCalLista"), "vfnCalModoDashboard");
+  } else calendarioMensal.render();
   $("calendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
   $("calendarioLista").innerHTML = H.calendarioHTML(dados, filtroCalendario);
   $("calendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));

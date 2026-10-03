@@ -228,8 +228,12 @@
   <!-- CALENDÁRIO -->
   <section id="view-calendario" class="view">
     <div class="card" data-aos="fade-up">
-      <div id="calendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
-      <div id="calendarioLista" class="calendar-list"></div>
+      <div class="cal-modos" id="dbCalModos" role="group" aria-label="Vista do calendário"><button type="button" class="filter-chip" data-modo="mes">Mês</button><button type="button" class="filter-chip" data-modo="lista">Lista</button></div>
+      <div id="dbCalMes" class="cal-mensal"></div>
+      <div id="dbCalLista">
+        <div id="calendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
+        <div id="calendarioLista" class="calendar-list"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -271,6 +275,7 @@
 <script src="shared.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="hub.js?v=4"></script>
+<script src="components.js?v=4"></script>
 <script src="relatorio.js?v=4"></script>
 <script src="dashboard.js?v=4"></script>
 </body>

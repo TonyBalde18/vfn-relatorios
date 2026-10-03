@@ -411,6 +411,14 @@ update public.league_results set phase = '1eliminatoria' where competition = 'Ta
 -- jogos do VFN na taça: a fase vem do nº da jornada; o vencedor só é preciso quando há empate (penáltis)
 alter table public.matches add column if not exists winner_id text references public.teams(id);
 
+-- [v4 Tarefa 5] Calendário mensal: hora e local dos treinos; vista pública só com
+-- data, tipo, hora e local (as notas das sessões continuam só para a equipa técnica)
+alter table public.sessions add column if not exists start_time time;
+alter table public.sessions add column if not exists location text;
+create or replace view public.sessions_public as
+select id, session_date, session_type, start_time, location from public.sessions;
+grant select on public.sessions_public to anon, authenticated;
+
 -- [v4 Tarefa 6] Capitão do jogo (automático: Toneca → Silvestre → Marco → Macedo)
 alter table public.match_reports add column if not exists captain_id text references public.players(id) on delete set null;
 

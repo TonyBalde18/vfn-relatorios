@@ -393,7 +393,7 @@ function initPresencas() {
   el("btnAddSessao").addEventListener("click", () => {
     el("sessaoData").value = hojeIso();
     el("sessaoTipo").value = "treino";
-    el("sessaoNotas").value = "";
+    ["sessaoNotas", "sessaoHora", "sessaoLocal"].forEach(id => { el(id).value = ""; });
     el("sessaoErro").textContent = "";
     abrirModalAdmin("modalSessao");
   });
@@ -636,9 +636,14 @@ async function guardarSessao() {
     return;
   }
   try {
-    const gravada = await dadosClube.guardar("sessions", { session_date: data, session_type: tipo, notes: el("sessaoNotas").value.trim() || null });
+    const linha = { session_date: data, session_type: tipo, notes: el("sessaoNotas").value.trim() || null };
+    // hora e local só vão no pedido quando preenchidos (as colunas são do SQL v4)
+    if (el("sessaoHora").value) linha.start_time = el("sessaoHora").value;
+    if (el("sessaoLocal").value.trim()) linha.location = el("sessaoLocal").value.trim();
+    const gravada = await dadosClube.guardar("sessions", linha);
     cacheAdmin.sessions.push(gravada);
     fecharModalAdmin("modalSessao");
+    if (calendarioMensalAdmin) calendarioMensalAdmin.render();
     const mes = data.slice(0, 7);
     if ([...el("presencasMes").options].some(o => o.value === mes)) el("presencasMes").value = mes;
     renderPresencas();
@@ -682,6 +687,28 @@ function initCalendarioAdmin() {
   el("btnJogoGuardar").addEventListener("click", guardarJogo);
   ["jogoCompeticao", "jogoGolosVFN", "jogoGolosAdv"].forEach(id => el(id).addEventListener("input", atualizarPenaltisJogo));
   el("jogoCompeticao").addEventListener("change", atualizarPenaltisJogo);
+}
+
+/* ---------- Vista mensal (componente partilhado) ---------- */
+
+let calendarioMensalAdmin = null;
+
+function renderCalendarioMensalAdmin() {
+  if (!el("adminCalMes")) return;
+  if (calendarioMensalAdmin) { calendarioMensalAdmin.render(); return; }
+  calendarioMensalAdmin = VFNComp.criarCalendarioMensal(el("adminCalMes"), {
+    obterDados: () => ({ matches: jogosCalendario, teams: equipasCalendario, sessions: cacheAdmin.sessions, attendance: cacheAdmin.attendance, match_reports: relatoriosAdmin }),
+    perfil: "admin",
+    nomeRelatorio: id => nomeJogador(id),
+    nomePresenca: id => (pessoaPorId(id) || {}).nome,
+    novoTreino: dia => {
+      el("sessaoData").value = dia; el("sessaoTipo").value = "treino";
+      ["sessaoHora", "sessaoLocal", "sessaoNotas"].forEach(id => { el(id).value = ""; });
+      el("sessaoErro").textContent = "";
+      abrirModalAdmin("modalSessao");
+    },
+    novoJogo: dia => { abrirModalJogo(null); el("jogoData").value = dia; }
+  });
 }
 
 function renderCalendarioAdmin() {
@@ -790,6 +817,7 @@ async function guardarJogo() {
     jogosCalendario = jogosCalendario.filter(j => String(j.id) !== String(gravado.id)).concat(gravado);
     fecharModalAdmin("modalJogo");
     renderCalendarioAdmin();
+    if (calendarioMensalAdmin) calendarioMensalAdmin.render();
     renderProximoJogoPreJogo();
   } catch (e) {
     el("jogoErro").textContent = mensagemErro(e);
@@ -1555,6 +1583,8 @@ async function abrirTabGestao(tab) {
     renderPresencas();
   } else if (tab === "calendario") {
     renderCalendarioAdmin();
+    await Promise.all([carregarTabelaAdmin("sessions", "calendarioErro"), carregarTabelaAdmin("attendance", "calendarioErro")]);
+    renderCalendarioMensalAdmin();
   } else if (tab === "resultados") {
     renderResultados();
   } else if (tab === "jornadas") {

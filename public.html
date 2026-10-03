@@ -109,8 +109,12 @@
 
   <section id="view-calendario" class="view">
     <h2 class="public-section-title">Calendário</h2>
-    <div id="pubCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
-    <div id="pubCalendario" class="calendar-list"></div>
+    <div class="cal-modos" id="pubCalModos" role="group" aria-label="Vista do calendário"><button type="button" class="filter-chip" data-modo="mes">Mês</button><button type="button" class="filter-chip" data-modo="lista">Lista</button></div>
+    <div id="pubCalMes" class="card cal-mensal"></div>
+    <div id="pubCalLista">
+      <div id="pubCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
+      <div id="pubCalendario" class="calendar-list"></div>
+    </div>
   </section>
 
   <section id="view-marcadores" class="view">
@@ -159,6 +163,7 @@
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>
+<script src="components.js?v=4"></script>
 <script src="public.js?v=4"></script>
 </body>
 </html>

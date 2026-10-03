@@ -328,6 +328,11 @@
   <!-- TAB: CALENDÁRIO -->
   <section id="tab-calendario" class="tab-panel">
     <div class="card" data-aos="fade-up">
+      <div class="section-header-row"><h2 class="section-title">Vista mensal</h2><span class="muted">Clica num dia para ver o detalhe ou adicionar treinos e jogos.</span></div>
+      <p id="calendarioErro" class="form-error" role="alert"></p>
+      <div id="adminCalMes" class="cal-mensal"></div>
+    </div>
+    <div class="card" data-aos="fade-up">
       <div class="section-header-row">
         <h2 class="section-title">Calendário</h2>
         <button type="button" id="btnAddJogo" class="btn btn-accent btn-sm">+ Adicionar Jogo</button>
@@ -525,7 +530,11 @@
       <div class="field"><label for="sessaoData">Data</label><input type="date" id="sessaoData"></div>
       <div class="field"><label for="sessaoTipo">Tipo</label><select id="sessaoTipo"><option value="treino">Treino</option><option value="jogo">Jogo</option></select></div>
     </div>
-    <div class="field"><label for="sessaoNotas">Notas</label><input type="text" id="sessaoNotas" placeholder="Opcional"></div>
+    <div class="grid grid-2">
+      <div class="field"><label for="sessaoHora">Hora</label><input type="time" id="sessaoHora"></div>
+      <div class="field"><label for="sessaoLocal">Local</label><input type="text" id="sessaoLocal" placeholder="Ex: Campo Municipal"></div>
+    </div>
+    <div class="field"><label for="sessaoNotas">Notas</label><input type="text" id="sessaoNotas" placeholder="Opcional (só equipa técnica)"></div>
     <p id="sessaoErro" class="form-error" role="alert"></p>
     <div class="modal-actions">
       <button type="button" id="btnSessaoCancelar" class="btn btn-ghost">Cancelar</button>
@@ -607,6 +616,7 @@
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="hub.js?v=4"></script>
+<script src="components.js?v=4"></script>
 <script src="relatorio.js?v=4"></script>
 <script src="app.js?v=4"></script>
 <script src="admin.js?v=4"></script>

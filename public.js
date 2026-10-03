@@ -18,14 +18,14 @@ let competicao = "";
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
-  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public" };
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public" };
   const chaves = Object.keys(pedidos);
   // do plantel só as colunas públicas da view (nunca a tabela players)
   const colunas = { players: "id, name, display_name, full_name, position, number, photo_url, stats" };
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   // tabelas novas (ainda por criar no Supabase) não disparam o aviso
-  const opcionais = ["external_players"];
+  const opcionais = ["external_players", "sessions"];
   respostas.forEach((r, i) => { if (r.error && !opcionais.includes(chaves[i])) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
@@ -82,7 +82,13 @@ function fecharJogador() {
   $("modalJogador").hidden = true;
 }
 
+let calendarioMensal = null;
+
 function renderCalendario() {
+  if (!calendarioMensal) {
+    calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: () => dados, perfil: "publico" });
+    VFNComp.ligarAlternanciaCalendario($("pubCalModos"), $("pubCalMes"), $("pubCalLista"), "vfnCalModoPublico");
+  } else calendarioMensal.render();
   $("pubCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
   $("pubCalendario").innerHTML = H.calendarioDivididoHTML(dados, filtroCalendario);
   $("pubCalendarioFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroCalendario = b.dataset.filtro; renderCalendario(); }));
