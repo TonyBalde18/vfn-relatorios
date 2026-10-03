@@ -391,8 +391,10 @@ async function entrarComSessao(sessao) {
   utilizador = sessao.user;
   // primeiro login: liga a conta ao jogador com o mesmo email (se o admin já o indicou)
   try { await cliente.rpc("vfn_ligar_minha_conta"); } catch (e) { /* função ainda não criada */ }
+  // "perfil" = só equipa técnica (admin/treinador/dirigente); um perfil com outro papel (ex.: "jogador")
+  // não dá o modo equipa técnica: o jogador entra pela ligação players.auth_user_id
   perfil = await VFN.obterPapel(cliente, utilizador);
-  if (perfil && perfil.role === "sem-tabela") perfil = null;
+  if (!perfil || !["admin", "treinador", "dirigente"].includes(perfil.role)) perfil = null;
   await carregarDados();
   if (!eu && !perfil) {
     $("esperaEmail").textContent = utilizador.email || "";
