@@ -1045,13 +1045,14 @@
   function detalheJogoHTML(dados, ref, opcoes) {
     const o = opcoes || {};
     const [tipo, id] = String(ref).split(/:(.+)/);
-    let casa, fora, gc = null, gf = null, data = null, comp = "", local = "", jornada = null, eventos = [], relatorio = null, estado = "jogado";
+    let casa, fora, gc = null, gf = null, data = null, comp = "", local = "", relvado = "", jornada = null, eventos = [], relatorio = null, estado = "jogado";
     if (tipo === "vfn") {
       const j = (dados.matches || []).find(m => String(m.id) === id);
       if (!j) return vazio("Jogo não encontrado.");
       ({ casa, fora } = VFN.equipasDoJogo(j, dados.teams));
       estado = VFN.estadoJogo(j) || "agendado";
       if (estado === "jogado") { gc = j.score_home; gf = j.score_away; }
+      relvado = VFN.estadioDoJogo(j, dados.teams).relvado;
       data = j.date; comp = j.competition; local = VFN.estadioDoJogo(j, dados.teams).nome || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = VFN.etiquetaJornada(j, true);
       relatorio = relatorioDoJogo(dados, j.id);
       eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
@@ -1062,6 +1063,9 @@
       if (!r) return vazio("Jogo não encontrado.");
       ({ casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams));
       gc = r.score_home; gf = r.score_away; data = r.match_date; comp = r.competition; jornada = VFN.etiquetaJornada(r, true);
+      // jogo entre outras equipas: estádio e relvado da equipa da casa
+      const est = VFN.estadioDaEquipa(equipa(dados, r.home_team_id));
+      local = est.nome; relvado = est.relvado;
       estado = gc != null && gf != null ? "jogado" : "agendado";
       eventos = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ minuto: null, tipo: "Golo", texto: `${s.player_name}${Number(s.count) > 1 ? " ×" + s.count : ""}`, lado: String(s.team_id) === String(fora.id) ? "fora" : "casa" }));
       if (r.scorers) eventos.push({ minuto: null, tipo: "Nota", texto: r.scorers, lado: "centro" });
@@ -1082,7 +1086,7 @@
       <div class="dj-meta">
         ${data ? `<span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(data, true))}</span>` : ""}
         <span>${VFN.icone("trophy", 16)} ${esc(comp || "—")}${jornada ? ` · ${esc(jornada)}` : ""}</span>
-        ${local ? `<span>${VFN.icone("map-pin", 16)} ${esc(local)}</span>` : ""}
+        ${local || relvado ? `<span class="dj-estadio">${VFN.icone("map-pin", 16)} ${esc(local || "Estádio por indicar")}<br>${VFN.badgeRelvado(relvado)}</span>` : ""}
       </div>
       <h4 class="perfil-subtitulo">Eventos</h4>
       ${eventos.length ? `<ol class="dj-timeline">${eventos.map(linhaEvento).join("")}</ol>` : vazio(estado === "jogado" ? (tipo === "vfn" ? "Sem eventos registados (ainda não há relatório deste jogo)." : "Sem marcadores registados.") : "O jogo ainda não se realizou.")}

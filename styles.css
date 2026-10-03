@@ -1841,3 +1841,6 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .surface-badge.terra_batida { background: rgba(146, 64, 14, .15); color: #92400e; }
 .surface-badge.desconhecido { background: rgba(100, 116, 139, .15); color: #475569; }
 .jds-card .surface-badge { background: rgba(255,255,255,.16); color: #fff; }
+/* detalhe do jogo: badge do relvado por baixo do nome do estádio */
+.dj-meta .dj-estadio { display: inline-block; line-height: 1.6; }
+.dj-estadio .surface-badge { margin-left: 20px; }

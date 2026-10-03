@@ -874,7 +874,7 @@
 
   const ESTADIO_VFN = { nome: "Estádio do Picoto", lat: 40.7277, lng: -7.2645 };
 
-  /** Estádio de uma equipa: { nome, lat, lng } (o VFN usa o Picoto por omissão). */
+  /** Estádio de uma equipa: { nome, lat, lng, relvado } (o VFN usa o Picoto por omissão). */
   function estadioDaEquipa(t) {
     const e = t || {};
     const vfn = eVFN(e.name);
@@ -882,7 +882,8 @@
     return {
       nome: e.stadium || (vfn ? ESTADIO_VFN.nome : ""),
       lat: num(e.stadium_lat) ?? (vfn ? ESTADIO_VFN.lat : null),
-      lng: num(e.stadium_lng) ?? (vfn ? ESTADIO_VFN.lng : null)
+      lng: num(e.stadium_lng) ?? (vfn ? ESTADIO_VFN.lng : null),
+      relvado: e.surface_type || "" // relva_natural | sintetica | terra_batida | desconhecido
     };
   }
 

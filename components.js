@@ -690,7 +690,8 @@
     const c = partesContagem(jogo.date);
     const hora = VFN.horaIso(jogo.date);
     const fechado = (() => { try { return localStorage.getItem("vfnJogoSemana") === "fechado"; } catch (e) { return false; } })();
-    const estadio = VFN.estadioDoJogo(jogo, dados.teams).nome;
+    const est = VFN.estadioDoJogo(jogo, dados.teams);
+    const estadio = est.nome;
     return `<div class="jds${fechado ? " recolhido" : ""}" data-jogo-semana="${esc(jogo.id)}">
       <div class="jds-cab"><h2 class="hub-card-title">Jogo da Semana</h2>${H().tagCompeticao(jogo.competition)}
         <button type="button" class="icon-btn jds-recolher" aria-expanded="${!fechado}" aria-label="${fechado ? "Mostrar" : "Minimizar"} o Jogo da Semana" title="${fechado ? "Mostrar" : "Minimizar"}">${VFN.icone(fechado ? "chevron-down" : "chevron-up", 16)}</button></div>
@@ -704,7 +705,7 @@
           <div><dt>Competição</dt><dd>${esc(jogo.competition || "—")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</dd></div>
           <div><dt>Data</dt><dd>${esc(VFN.dataLonga(jogo.date))}</dd></div>
           <div><dt>Hora</dt><dd>${hora && hora !== "00:00" ? esc(hora) : "—"}</dd></div>
-          <div><dt>Local</dt><dd>${casa ? "Casa" : "Fora"}${estadio ? " · " + esc(estadio) : ""}</dd></div>
+          <div><dt>Local</dt><dd>${casa ? "Casa" : "Fora"}${estadio ? " · " + esc(estadio) : ""} ${VFN.badgeRelvado(est.relvado)}</dd></div>
           <div class="jds-meteo"><dt>Meteorologia</dt><dd data-meteo>${VFN.icone("loader", 14)} a carregar…</dd></div>
         </dl>
         ${opcoes.extra || ""}
