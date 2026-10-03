@@ -135,6 +135,8 @@ function initMultas() {
   el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnJoiaMes").addEventListener("click", lancarJoiaDoMes);
+  el("btnDividasImagem").addEventListener("click", () => VFNComp.exportarImagemDividas(cacheAdmin.fines, { pessoa: pessoaPorId }));
+  el("btnDividasXlsx").addEventListener("click", () => VFN.exportarXlsx(`dividas_vfn_${hojeIso()}.xlsx`, [{ nome: "Dívidas", ...VFN.folhaDividas(cacheAdmin.fines, id => (pessoaPorId(id) || {}).nome) }]));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
 }
@@ -207,6 +209,7 @@ function renderMultas() {
   renderFiltrosMultas();
   renderTiposMulta();
   renderEstadoJoia();
+  el("dividasRelatorio").innerHTML = VFNComp.renderDebtReport(cacheAdmin.fines, { pessoa: pessoaPorId });
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);

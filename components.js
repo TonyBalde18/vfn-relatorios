@@ -249,6 +249,76 @@
     return { render, irPara(ano, mes) { estado.ano = ano; estado.mes = mes; render(); } };
   }
 
+  /* ---------- Relatório de dívidas ---------- */
+
+  /** Dívida por pessoa (multas por pagar), da maior para a menor. */
+  function dividasPorPessoa(multas, pessoa) {
+    const mapa = new Map();
+    multas.filter(f => !f.paid).forEach(f => {
+      const d = mapa.get(String(f.player_id)) || { id: String(f.player_id), pessoa: pessoa(f.player_id), n: 0, valor: 0, aDefinir: 0 };
+      d.n++; d.valor += Number(f.amount) || 0; if (VFN.multaADefinir(f)) d.aDefinir++;
+      mapa.set(d.id, d);
+    });
+    return [...mapa.values()].sort((a, b) => b.valor - a.valor || b.n - a.n || String((a.pessoa || {}).nome).localeCompare(String((b.pessoa || {}).nome), "pt"));
+  }
+
+  /**
+   * Relatório de dívidas (ecrã e imagem partilhável).
+   * o: { pessoa(id) -> { nome, ... }, imagem: true para a versão da imagem (sem fotos, data no rodapé) }
+   */
+  function renderDebtReport(multas, o) {
+    const lista = dividasPorPessoa(multas, o.pessoa);
+    const total = lista.reduce((t, d) => t + d.valor, 0);
+    const aDefinir = lista.reduce((t, d) => t + d.aDefinir, 0);
+    const euro = v => VFN.formatoEuro.format(v);
+    return `<div class="dividas${o.imagem ? " dividas-imagem" : ""}">
+      <div class="dividas-topo"><img src="assets/logo.png" alt=""><div><strong>ACD Vila Franca das Naves</strong><span>Multas por pagar</span></div></div>
+      <div class="dividas-total"><span>Total em dívida</span><strong>${euro(total)}</strong>${aDefinir ? `<small>+ ${aDefinir} multa${aDefinir === 1 ? "" : "s"} em % do ordenado por definir</small>` : ""}</div>
+      ${lista.length ? `<ol class="dividas-lista">${lista.map((d, i) => `<li${!o.imagem && d.pessoa ? ` data-jogador="${esc(d.id)}"` : ""}>
+        <span class="dividas-pos">${i + 1}</span>
+        ${!o.imagem && d.pessoa ? VFN.avatarJogador(d.pessoa, "avatar-xs") : ""}
+        <span class="dividas-nome">${esc(d.pessoa ? d.pessoa.nome : "Jogador removido")}<small>${d.n} multa${d.n === 1 ? "" : "s"}${d.aDefinir ? ` · ${d.aDefinir} em % do ordenado` : ""}</small></span>
+        <strong>${d.valor > 0 || !d.aDefinir ? euro(d.valor) : "a definir"}</strong>
+      </li>`).join("")}</ol>` : '<p class="dividas-vazio">Não há multas por pagar.</p>'}
+      ${o.imagem ? `<p class="dividas-rodape">Atualizado a ${esc(VFN.dataDDMMAAAA(new Date().toISOString().slice(0, 10)))}</p>` : ""}
+    </div>`;
+  }
+
+  /** Gera a imagem PNG do relatório (html2canvas) e partilha-a (telemóvel) ou descarrega-a. */
+  async function exportarImagemDividas(multas, o) {
+    if (!window.html2canvas) { alert("A biblioteca de imagens não carregou. Verifica a ligação à internet."); return; }
+    // documento à parte (só o relatório e o CSS): o html2canvas copia apenas este documento
+    const palco = document.createElement("iframe");
+    palco.className = "dividas-palco";
+    palco.setAttribute("aria-hidden", "true");
+    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"></head><body style="margin:0;background:#fff">${renderDebtReport(multas, { ...o, imagem: true })}</body></html>`;
+    document.body.appendChild(palco);
+    try {
+      await new Promise(r => { palco.onload = r; });
+      const doc = palco.contentDocument;
+      if (doc.fonts && doc.fonts.ready) await doc.fonts.ready; // sem a letra carregada o html2canvas junta palavras
+      await Promise.all([...doc.querySelectorAll("img")].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+      const alvo = doc.body.firstElementChild;
+      palco.style.height = alvo.scrollHeight + "px";
+      const canvas = await window.html2canvas(alvo, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+      const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+      const nome = `dividas_vfn_${new Date().toISOString().slice(0, 10)}.png`;
+      const ficheiro = new File([blob], nome, { type: "image/png" });
+      // no telemóvel abre a partilha (WhatsApp, email...); no computador descarrega o PNG
+      const tatil = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+      if (o.partilhar !== false && tatil && navigator.canShare && navigator.canShare({ files: [ficheiro] })) {
+        try { await navigator.share({ files: [ficheiro], title: "Multas por pagar — VFN" }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally {
+      palco.remove();
+    }
+  }
+
   /* ---------- Presenças no telemóvel ---------- */
 
   const NOMES_ESTADO = { P: "Presente", A: "Atraso", F: "Falta", J: "Justificada" };
@@ -302,6 +372,7 @@
 
   window.VFNComp = {
     abrirDrawer, fecharDrawer,
+    dividasPorPessoa, renderDebtReport, exportarImagemDividas,
     listaPresencasHTML, renderAttendanceDrawer,
     eventosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };

@@ -710,6 +710,15 @@
   }
 
   /** Folha de multas: Nome | Tipo de Multa | Data | Valor (ou "% salário") | Notas, com total no rodapé. */
+  /** Folha de dívidas: Jogador | Tipo de dívida | Valor | Data | Estado | Observações (só multas por pagar). */
+  function folhaDividas(multas, nomeJogador) {
+    const porPagar = multas.filter(f => !f.paid).sort((a, b) => String(nomeJogador(a.player_id) || "").localeCompare(String(nomeJogador(b.player_id) || ""), "pt") || String(a.match_date || "").localeCompare(String(b.match_date || "")));
+    const cab = ["Jogador", "Tipo de dívida", "Valor (€)", "Data", "Estado", "Observações"];
+    const linhas = porPagar.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), multaADefinir(f) ? "% salário" : Number(f.amount) || 0, dataDDMMAAAA(f.match_date), "Pendente", f.description || ""]);
+    const total = porPagar.reduce((t, f) => t + (Number(f.amount) || 0), 0);
+    return { linhas: [cab, ...linhas, [], ["Total em dívida", "", total, "", "", ""]], larguras: [24, 34, 12, 12, 11, 40], euros: 2, paisagem: true };
+  }
+
   function folhaMultas(multas, nomeJogador) {
     const cab = ["Nome", "Tipo de Multa", "Data", "Valor (€)", "Notas"];
     const ordenadas = [...multas].sort((a, b) => String(a.match_date || "").localeCompare(String(b.match_date || "")));
@@ -946,7 +955,7 @@
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
-    ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,
+    ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa,

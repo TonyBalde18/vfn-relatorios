@@ -445,14 +445,7 @@ function renderResumoFinanceiro() {
   $("dbFinanceiroMeses").innerHTML = porMes.length ? `<table class="stats-table fin-table"><thead><tr><th scope="col">Mês</th><th scope="col">Multas</th><th scope="col">Total</th><th scope="col">Pago</th><th scope="col">Por pagar</th></tr></thead>
     <tbody>${porMes.map(m => `<tr><th scope="row">${esc(m.rotulo)}</th><td>${m.n}</td><td><span class="barra-pct barra-euro"><i style="width:${Math.round(m.total / maximo * 100)}%"></i></span>${euro(m.total)}</td><td class="txt-ok">${euro(m.pago)}</td><td class="txt-mau">${euro(m.pendente)}</td></tr>`).join("")}</tbody>
     <tfoot><tr><th scope="row">Época</th><td>${porMes.reduce((s, m) => s + m.n, 0)}</td><td>${euro(porMes.reduce((s, m) => s + m.total, 0))}</td><td class="txt-ok">${euro(porMes.reduce((s, m) => s + m.pago, 0))}</td><td class="txt-mau">${euro(porMes.reduce((s, m) => s + m.pendente, 0))}</td></tr></tfoot></table>` : H.vazio("Ainda não há multas registadas.");
-  const abertos = new Map();
-  dados.fines.filter(f => !f.paid).forEach(f => {
-    const a = abertos.get(f.player_id) || { jogador: jogadorPorIdDash(f.player_id), n: 0, valor: 0, aDefinir: 0 };
-    a.n++; a.valor += Number(f.amount) || 0; if (VFN.multaADefinir(f)) a.aDefinir++;
-    abertos.set(f.player_id, a);
-  });
-  const lista = [...abertos.values()].sort((a, b) => b.valor - a.valor || b.n - a.n);
-  $("dbFinanceiroAbertos").innerHTML = lista.length ? `<ul class="fin-abertos">${lista.map(a => `<li${a.jogador ? ` data-jogador="${esc(a.jogador.id)}"` : ""}>${a.jogador ? VFN.avatarJogador(a.jogador, "avatar-xs") : ""}<span class="fin-nome">${esc(a.jogador ? a.jogador.nome : "Jogador removido")}<small class="muted">${a.n} multa${a.n === 1 ? "" : "s"}${a.aDefinir ? ` · ${a.aDefinir} em % do ordenado` : ""}</small></span><strong>${euro(a.valor)}</strong></li>`).join("")}</ul>` : H.vazio("Nenhuma multa por pagar.");
+  $("dbFinanceiroAbertos").innerHTML = VFNComp.renderDebtReport(dados.fines, { pessoa: jogadorPorIdDash });
 }
 
 /* ---------- Multas e Presenças (dirigentes; só leitura) ---------- */
@@ -612,6 +605,8 @@ function abrirPresencasJogadorDash(id) {
 }
 
 function initMultasPresencasDash() {
+  $("dbDividasImagem").addEventListener("click", () => VFNComp.exportarImagemDividas(dados.fines, { pessoa: jogadorPorIdDash }));
+  $("dbDividasXlsx").addEventListener("click", () => VFN.exportarXlsx(`dividas_vfn_${new Date().toISOString().slice(0, 10)}.xlsx`, [{ nome: "Dívidas", ...VFN.folhaDividas(dados.fines, id => (jogadorPorIdDash(id) || {}).nome) }]));
   $("dbPresencasGrelha").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b) abrirPresencasJogadorDash(b.dataset.presencasJogador); });
   $("bannerProximoJogo").addEventListener("toggle", e => { try { localStorage.setItem("vfnBannerProximo", e.target.open ? "aberto" : "fechado"); } catch (err) { /* ignora */ } });
   $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });

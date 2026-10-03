@@ -181,7 +181,7 @@
         <div id="dbFinanceiroMeses" class="table-wrap"></div>
       </div>
       <div class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Multas por pagar <small class="muted">por jogador</small></h2>
+        <div class="hub-card-head"><h2 class="hub-card-title">Relatório de dívidas</h2><div class="dividas-botoes"><button type="button" id="dbDividasImagem" class="btn btn-accent btn-sm"><i data-icon="image" data-size="16"></i> Gerar Imagem</button><button type="button" id="dbDividasXlsx" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> XLSX</button></div></div>
         <div id="dbFinanceiroAbertos"></div>
       </div>
     </div>
@@ -271,6 +271,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="config.js?v=4"></script>
 <script src="shared.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
