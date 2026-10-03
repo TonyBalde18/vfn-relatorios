@@ -14,7 +14,7 @@ const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [] };
+let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [], fine_types: [], staff: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroEstado = "";
@@ -26,17 +26,21 @@ let appIniciada = false;
 
 /* ---------- Dados ---------- */
 
+// tabelas que podem ainda não existir (SQL por correr): sem aviso
+const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff"];
+
 async function carregarDados() {
   const tabelas = Object.keys(dados);
   const respostas = await Promise.all(tabelas.map(t => cliente.from(t).select("*")));
   const falhas = [];
   respostas.forEach((r, i) => {
-    if (r.error) { if (!["external_players"].includes(tabelas[i])) falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
+    if (r.error) { if (!TABELAS_OPCIONAIS.includes(tabelas[i])) falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
     else dados[tabelas[i]] = r.data || [];
   });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
   jogadores = dados.players.map(H.jogadorDeLinha);
+  VFN.definirTiposMulta(dados.fine_types);
   const aviso = $("avisoDados");
   aviso.hidden = !falhas.length;
   if (falhas.length) aviso.textContent = `Não foi possível ler: ${falhas.join(", ")}. Confirma que o schema.sql foi executado e que o teu utilizador tem papel atribuído.`;
@@ -456,8 +460,12 @@ const filtrosMultas = { mes: "epoca", jogador: "", tipo: "", estado: "" };
 const filtrosPresencas = { mes: VFN.mesAtual(), jogador: "" };
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
 
+/** Jogador, ou elemento da equipa técnica (as multas do treinador usam o id dele). */
 function jogadorPorIdDash(id) {
-  return jogadores.find(j => String(j.id) === String(id)) || null;
+  const jogador = jogadores.find(j => String(j.id) === String(id));
+  if (jogador) return jogador;
+  const staff = (dados.staff.length ? dados.staff : VFN.STAFF_PADRAO).find(t => String(t.id) === String(id));
+  return staff ? VFN.pessoaStaff(staff) : null;
 }
 
 function celulaJogadorDash(id) {

@@ -13,7 +13,8 @@ const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
 const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "jornadas", "historico", "classificacao", "adversarios"];
 
-const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [] };
+const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [], fine_types: [], staff: [] };
+let colunaTipoMulta = true; // fines.fine_type_id (v4); passa a false se a BD ainda não a tiver
 const tabelasCarregadas = new Set();
 let filtroCalendarioAdmin = "todos";
 let multaEmEdicao = null;
@@ -80,8 +81,36 @@ function opcoesPlantelHTML(selecionadoBD) {
     .join("");
 }
 
+/** Equipa técnica (tabela staff, ou o treinador por omissão antes do SQL v4). */
+function staffAdmin() {
+  return (cacheAdmin.staff.length ? cacheAdmin.staff : VFN.STAFF_PADRAO).map(VFN.pessoaStaff);
+}
+
+/** Jogador do plantel ou elemento da equipa técnica (as multas do treinador usam o id dele). */
+function pessoaPorId(id) {
+  return jogadorPorIdBD(id) || staffAdmin().find(p => p.id === String(id)) || null;
+}
+
+/** Tipos de multa e equipa técnica: tabelas opcionais (antes do SQL v4 usa os valores por omissão). */
+async function carregarTiposMulta() {
+  if (tabelasCarregadas.has("fine_types")) return;
+  tabelasCarregadas.add("fine_types");
+  const ler = async t => { try { return await dadosClube.listar(t); } catch (e) { return null; } };
+  const [tipos, staff] = await Promise.all([ler("fine_types"), ler("staff")]);
+  cacheAdmin.fine_types = tipos || [];
+  cacheAdmin.staff = staff || [];
+  // modo local: a tabela começa vazia; grava os tipos por omissão (no Supabase vêm do SQL v4)
+  if (tipos && !tipos.length && !dadosClube.usaSupabase()) {
+    cacheAdmin.fine_types = VFN.TIPOS_MULTA.map(t => ({ id: t.id, name: t.tipo, amount: t.valor, payer: t.pagador, description: t.descricao || null }));
+    dadosClube.gravarLocal("fine_types", cacheAdmin.fine_types);
+  }
+  tabelaTiposMulta = tipos !== null;
+  if (tipos && tipos.length) VFN.definirTiposMulta(tipos);
+}
+let tabelaTiposMulta = false; // a tabela fine_types existe (SQL v4 corrido ou modo local)
+
 function celulaJogadorHTML(playerId) {
-  const j = jogadorPorIdBD(playerId);
+  const j = pessoaPorId(playerId);
   if (!j) return `<span class="player-cell muted">Jogador removido</span>`;
   return `<span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${escapeHtml(j.nome)}</span></span>`;
 }
@@ -96,10 +125,14 @@ function initMultas() {
   ["multasFiltroJogador", "multasFiltroTipo", "multasFiltroEstado"].forEach(id => el(id).addEventListener("change", renderMultas));
   el("btnExportarMultas").addEventListener("click", () => {
     const mes = el("multasMes").value;
-    const folha = VFN.folhaMultas(multasDoPeriodo(), id => (jogadorPorIdBD(id) || {}).nome);
+    const folha = VFN.folhaMultas(multasDoPeriodo(), id => (pessoaPorId(id) || {}).nome);
     VFN.exportarXlsx(`multas_vfn_${mes}.xlsx`, [{ nome: "Multas " + el("multasMes").selectedOptions[0].textContent, ...folha }]);
   });
   el("multaTipo").addEventListener("change", () => aplicarTipoMulta(true));
+  el("multaValorManual").addEventListener("change", () => { el("multaValor").readOnly = !el("multaValorManual").checked; if (!el("multaValorManual").checked) aplicarTipoMulta(true); else el("multaValor").focus(); });
+  el("btnAddTipoMulta").addEventListener("click", () => abrirModalTipoMulta(null));
+  el("btnTipoMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalTipoMulta"));
+  el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
@@ -107,7 +140,7 @@ function initMultas() {
 
 function renderFiltrosMultas() {
   const manter = (id, html) => { const s = el(id); const v = s.value; s.innerHTML = html; if ([...s.options].some(o => o.value === v)) s.value = v; };
-  manter("multasFiltroJogador", opcoesPlantelHTML("").replace("— Selecionar jogador —", "Todos os jogadores"));
+  manter("multasFiltroJogador", opcoesPlantelHTML("").replace("— Selecionar jogador —", "Todos os jogadores") + staffAdmin().map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)} (${escapeHtml(p.posicao)})</option>`).join(""));
   const tipos = [...new Set([...VFN.TIPOS_MULTA.map(t => t.tipo), ...cacheAdmin.fines.map(f => f.infraction_type)])];
   manter("multasFiltroTipo", '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(rotuloInfraccao(t))}</option>`).join(""));
 }
@@ -125,6 +158,7 @@ function multasDoPeriodo() {
 
 function renderMultas() {
   renderFiltrosMultas();
+  renderTiposMulta();
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
@@ -141,7 +175,7 @@ function renderMultas() {
   }
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
-      <td data-v="${escapeHtml((jogadorPorIdBD(f.player_id) || {}).nome || "")}">${celulaJogadorHTML(f.player_id)}</td>
+      <td data-v="${escapeHtml((pessoaPorId(f.player_id) || {}).nome || "")}">${celulaJogadorHTML(f.player_id)}</td>
       <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${escapeHtml(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
@@ -161,41 +195,72 @@ function rotuloInfraccao(tipo) {
   return VFN.rotuloMulta(tipo);
 }
 
-/** Ao escolher o tipo, preenche o valor da tabela; nas multas em % do ordenado o valor fica 0 e mostra a nota. */
+/** Ao escolher o tipo, o valor vem da tabela (só editável com "Alterar valor"); o pagador define a lista de pessoas. */
 function aplicarTipoMulta(preencherValor) {
   const tipo = VFN.tipoMulta(el("multaTipo").value);
-  const percentagem = !!tipo && tipo.valor === null;
-  el("multaNotaPercentagem").hidden = !percentagem;
-  if (preencherValor && tipo) el("multaValor").value = percentagem ? 0 : tipo.valor;
+  el("multaNotaPercentagem").hidden = !(multaEmEdicao && VFN.multaADefinir(multaEmEdicao) && el("multaTipo").value === multaEmEdicao.infraction_type);
+  if (preencherValor && tipo && !el("multaValorManual").checked) el("multaValor").value = tipo.valor;
+  const treinador = !!tipo && tipo.pagador === "treinador";
+  const anterior = el("multaJogador").value;
+  el("multaJogadorLabel").textContent = treinador ? "Treinador" : "Jogador";
+  el("multaJogador").innerHTML = treinador
+    ? staffAdmin().filter(p => p.posicao === "Treinador").map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)}</option>`).join("")
+    : opcoesPlantelHTML(anterior);
+  if ([...el("multaJogador").options].some(o => o.value === anterior)) el("multaJogador").value = anterior;
 }
 
-function abrirModalMulta(multa) {
+function opcoesTiposMultaHTML() {
+  return VFN.TIPOS_MULTA.map(t => `<option value="${escapeHtml(t.tipo)}">${t.id}. ${escapeHtml(t.tipo)} — ${formatoEuro.format(t.valor)}${t.pagador === "treinador" ? " (treinador)" : ""}</option>`).join("");
+}
+
+async function abrirModalMulta(multa) {
+  await carregarTiposMulta();
   multaEmEdicao = multa;
   el("modalMultaTitulo").textContent = multa ? "Editar Multa" : "Adicionar Multa";
   el("multaJogador").innerHTML = opcoesPlantelHTML(multa ? multa.player_id : "");
-  el("multaTipo").innerHTML = VFN.TIPOS_MULTA.map((t, n) => `<option value="${escapeHtml(t.tipo)}">${n + 1}. ${escapeHtml(t.tipo)} — ${t.valor === null ? "% do ordenado" : formatoEuro.format(t.valor)}</option>`).join("");
+  el("multaTipo").innerHTML = opcoesTiposMultaHTML();
   // multas antigas com tipos que já não existem continuam a abrir
   if (multa && !VFN.tipoMulta(multa.infraction_type)) el("multaTipo").add(new Option(rotuloInfraccao(multa.infraction_type), multa.infraction_type));
   el("multaTipo").value = multa ? multa.infraction_type : VFN.TIPOS_MULTA[0].tipo;
+  // ao editar mantém-se o valor gravado; o valor manual fica ativo se for diferente do tipo
+  const tipo = VFN.tipoMulta(el("multaTipo").value);
+  const manual = !!multa && (!tipo || Number(multa.amount) !== tipo.valor);
+  el("multaValorManual").checked = manual;
+  el("multaValor").readOnly = !manual;
   el("multaValor").value = multa ? multa.amount : "";
   aplicarTipoMulta(!multa);
+  if (multa) el("multaJogador").value = multa.player_id;
   el("multaDescricao").value = multa ? multa.description || "" : "";
   el("multaData").value = multa ? multa.match_date || "" : hojeIso();
   el("multaErro").textContent = "";
   abrirModalAdmin("modalMulta");
 }
 
+/** Grava uma multa; se a BD ainda não tiver fines.fine_type_id, grava sem essa coluna. */
+async function guardarLinhaMulta(linha) {
+  const { fine_type_id, ...semTipo } = linha;
+  if (!colunaTipoMulta) return dadosClube.guardar("fines", semTipo);
+  try {
+    return await dadosClube.guardar("fines", linha);
+  } catch (e) {
+    if (!/fine_type_id|does not exist|schema cache|could not find/i.test(e.message || "")) throw e;
+    colunaTipoMulta = false;
+    return dadosClube.guardar("fines", semTipo);
+  }
+}
+
 async function guardarMulta() {
   const valor = Number(String(el("multaValor").value).replace(",", "."));
   const tipo = VFN.tipoMulta(el("multaTipo").value);
-  const percentagem = !!tipo && tipo.valor === null; // pode ficar a 0 até os dirigentes definirem
-  const erro = !el("multaJogador").value ? "Escolhe o jogador." : !(valor >= 0) || (!percentagem && !(valor > 0)) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
+  const aDefinir = !!multaEmEdicao && VFN.multaADefinir(multaEmEdicao) && el("multaTipo").value === multaEmEdicao.infraction_type; // antigas em % do ordenado
+  const erro = !el("multaJogador").value ? "Escolhe quem paga a multa." : !(valor >= 0) || (!aDefinir && !(valor > 0)) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
   el("multaErro").textContent = erro;
   if (erro) return;
   const linha = {
     ...(multaEmEdicao || {}),
     player_id: el("multaJogador").value,
     infraction_type: el("multaTipo").value,
+    fine_type_id: tipo ? tipo.id : null,
     amount: Math.round(valor * 100) / 100,
     description: el("multaDescricao").value.trim() || null,
     match_date: el("multaData").value,
@@ -205,7 +270,7 @@ async function guardarMulta() {
   const botao = el("btnMultaGuardar");
   botao.disabled = true;
   try {
-    const gravada = await dadosClube.guardar("fines", linha);
+    const gravada = await guardarLinhaMulta(linha);
     cacheAdmin.fines = cacheAdmin.fines.filter(f => String(f.id) !== String(gravada.id)).concat(gravada);
     fecharModalAdmin("modalMulta");
     // mostra o mês da multa acabada de gravar
@@ -216,6 +281,73 @@ async function guardarMulta() {
     el("multaErro").textContent = mensagemErro(e);
   } finally {
     botao.disabled = false;
+  }
+}
+
+/* ---------- Tipos de multa (tabela fine_types) ---------- */
+
+let tipoMultaEmEdicao = null;
+
+function renderTiposMulta() {
+  const tbody = el("tiposMultaBody");
+  if (!tbody) return;
+  el("btnAddTipoMulta").disabled = !tabelaTiposMulta;
+  el("tiposMultaErro").textContent = tabelaTiposMulta ? "" : "Corre a secção v4 do schema.sql no Supabase para poderes editar os tipos (até lá usam-se os valores por omissão).";
+  tbody.innerHTML = VFN.TIPOS_MULTA.map(t => `<tr data-tipo-id="${t.id}">
+    <td>${t.id}</td>
+    <td>${escapeHtml(t.tipo)}${t.descricao ? `<span class="fine-desc">${escapeHtml(t.descricao)}</span>` : ""}</td>
+    <td class="num">${formatoEuro.format(t.valor)}</td>
+    <td>${t.pagador === "treinador" ? '<span class="status-badge status-agendado">Treinador</span>' : "Jogador"}</td>
+    <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar-tipo" title="Editar tipo" aria-label="Editar ${escapeHtml(t.tipo)}" ${tabelaTiposMulta ? "" : "disabled"}>${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar-tipo" title="Apagar tipo" aria-label="Apagar ${escapeHtml(t.tipo)}" ${tabelaTiposMulta ? "" : "disabled"}>${VFN.icone("trash-2", 16)}</button></div></td>
+  </tr>`).join("");
+  tbody.querySelectorAll("tr[data-tipo-id]").forEach(tr => {
+    const tipo = VFN.tipoMultaPorId(tr.dataset.tipoId);
+    tr.querySelector("[data-acao=editar-tipo]").addEventListener("click", () => abrirModalTipoMulta(tipo));
+    tr.querySelector("[data-acao=apagar-tipo]").addEventListener("click", () => apagarTipoMulta(tipo));
+  });
+}
+
+function abrirModalTipoMulta(tipo) {
+  tipoMultaEmEdicao = tipo;
+  el("modalTipoMultaTitulo").textContent = tipo ? `Editar tipo ${tipo.id}` : "Novo tipo de multa";
+  el("tipoMultaNome").value = tipo ? tipo.tipo : "";
+  el("tipoMultaValor").value = tipo ? tipo.valor : "";
+  el("tipoMultaPagador").value = tipo ? tipo.pagador : "jogador";
+  el("tipoMultaDescricao").value = tipo ? tipo.descricao : "";
+  el("tipoMultaErro").textContent = "";
+  abrirModalAdmin("modalTipoMulta");
+}
+
+async function guardarTipoMulta() {
+  const nome = el("tipoMultaNome").value.trim();
+  const valor = Number(String(el("tipoMultaValor").value).replace(",", "."));
+  const repetido = VFN.TIPOS_MULTA.some(t => t.tipo.toLowerCase() === nome.toLowerCase() && (!tipoMultaEmEdicao || t.id !== tipoMultaEmEdicao.id));
+  const erro = !nome ? "Indica o nome." : repetido ? "Já existe um tipo com esse nome." : !(valor > 0) ? "Indica um valor maior que zero." : "";
+  el("tipoMultaErro").textContent = erro;
+  if (erro) return;
+  const id = tipoMultaEmEdicao ? tipoMultaEmEdicao.id : Math.max(0, ...VFN.TIPOS_MULTA.map(t => t.id)) + 1;
+  const linha = { id, name: nome, amount: Math.round(valor * 100) / 100, payer: el("tipoMultaPagador").value, description: el("tipoMultaDescricao").value.trim() || null };
+  try {
+    const gravado = await dadosClube.guardar("fine_types", linha);
+    cacheAdmin.fine_types = cacheAdmin.fine_types.filter(t => Number(t.id) !== id).concat(gravado);
+    VFN.definirTiposMulta(cacheAdmin.fine_types);
+    fecharModalAdmin("modalTipoMulta");
+    renderMultas();
+  } catch (e) {
+    el("tipoMultaErro").textContent = mensagemErro(e);
+  }
+}
+
+async function apagarTipoMulta(tipo) {
+  const usadas = cacheAdmin.fines.filter(f => f.infraction_type === tipo.tipo).length;
+  if (!confirm(`Apagar o tipo "${tipo.tipo}"?${usadas ? `\n\nAs ${usadas} multa(s) já lançadas com este tipo mantêm-se.` : ""}`)) return;
+  try {
+    await dadosClube.remover("fine_types", tipo.id);
+    cacheAdmin.fine_types = cacheAdmin.fine_types.filter(t => Number(t.id) !== tipo.id);
+    VFN.definirTiposMulta(cacheAdmin.fine_types);
+    renderMultas();
+  } catch (e) {
+    el("tiposMultaErro").textContent = mensagemErro(e);
   }
 }
 
@@ -436,12 +568,17 @@ function renderPresencas() {
   container.querySelectorAll(".session-remove").forEach(btn => btn.addEventListener("click", () => removerSessao(sessoes[Number(btn.dataset.sessao)])));
 }
 
-const MULTA_FALTA_TREINO = { infraction_type: "Falta ao treino injustificada", amount: 0 };
+/** Multa automática por falta ao treino: tipo 6 "Falta treino sem justificação", com o valor atual da tabela. */
+function multaFaltaTreino() {
+  const t = VFN.tipoMultaPorId(VFN.ID_FALTA_TREINO) || { id: VFN.ID_FALTA_TREINO, tipo: "Falta treino sem justificação", valor: 5 };
+  return { infraction_type: t.tipo, fine_type_id: t.id, amount: t.valor };
+}
+const TIPOS_FALTA_AUTOMATICA = ["falta_treino", "Falta ao treino injustificada"]; // nomes usados antes da v4
 const DESCRICAO_MULTA_AUTOMATICA = "Criada automaticamente (falta no treino)";
 
 function multaAutomatica(playerId, data) {
   // só as criadas pela grelha (as antigas usavam o tipo 'falta_treino')
-  return cacheAdmin.fines.find(f => String(f.player_id) === String(playerId) && f.match_date === data && (f.infraction_type === "falta_treino" || (f.infraction_type === MULTA_FALTA_TREINO.infraction_type && f.description === DESCRICAO_MULTA_AUTOMATICA))) || null;
+  return cacheAdmin.fines.find(f => String(f.player_id) === String(playerId) && f.match_date === data && (f.infraction_type === "falta_treino" || ((TIPOS_FALTA_AUTOMATICA.includes(f.infraction_type) || f.infraction_type === multaFaltaTreino().infraction_type) && f.description === DESCRICAO_MULTA_AUTOMATICA))) || null;
 }
 
 /** Falta num treino cria a multa automática; ao sair de F, a multa é retirada se ainda não estiver paga. */
@@ -450,7 +587,7 @@ async function sincronizarMultaFalta(playerId, sessao, anterior, seguinte) {
   if (!tabelasCarregadas.has("fines")) await carregarTabelaAdmin("fines", "presencasErro");
   const existente = multaAutomatica(playerId, sessao.data);
   if (seguinte === "F" && !existente) {
-    const multa = await dadosClube.guardar("fines", { player_id: playerId, ...MULTA_FALTA_TREINO, match_date: sessao.data, description: DESCRICAO_MULTA_AUTOMATICA, paid: false, paid_date: null });
+    const multa = await guardarLinhaMulta({ player_id: playerId, ...multaFaltaTreino(), match_date: sessao.data, description: DESCRICAO_MULTA_AUTOMATICA, paid: false, paid_date: null });
     cacheAdmin.fines.push(multa);
   } else if (anterior === "F" && seguinte !== "F" && existente && !existente.paid) {
     await dadosClube.remover("fines", existente.id);
@@ -1355,10 +1492,10 @@ async function apagarEquipa() {
 async function abrirTabGestao(tab) {
   document.body.classList.toggle("tab-gestao", TABS_GESTAO.includes(tab));
   if (tab === "multas") {
-    await carregarTabelaAdmin("fines", "multasErro");
+    await Promise.all([carregarTabelaAdmin("fines", "multasErro"), carregarTiposMulta()]);
     renderMultas();
   } else if (tab === "presencas") {
-    await Promise.all([carregarTabelaAdmin("attendance", "presencasErro"), carregarTabelaAdmin("sessions", "presencasErro"), carregarTabelaAdmin("fines", "presencasErro")]);
+    await Promise.all([carregarTabelaAdmin("attendance", "presencasErro"), carregarTabelaAdmin("sessions", "presencasErro"), carregarTabelaAdmin("fines", "presencasErro"), carregarTiposMulta()]);
     renderPresencas();
   } else if (tab === "calendario") {
     renderCalendarioAdmin();

@@ -19,23 +19,40 @@
   };
 
   /* Tabela de multas do plantel. valor null = percentagem do ordenado (amount 0 até os dirigentes definirem). */
+  // Tipos de multa por omissão (a tabela fine_types no Supabase substitui-os ao carregar)
   const TIPOS_MULTA = [
-    { tipo: "Atraso ao treino", valor: null },
-    { tipo: "Atraso ao jogo até 5 min", valor: 1 },
-    { tipo: "Atraso ao jogo mais de 5 min", valor: 2 },
-    { tipo: "Falta ao treino justificada", valor: 2 },
-    { tipo: "Falta ao treino injustificada", valor: null },
-    { tipo: "Falta ao jogo justificada", valor: 2 },
-    { tipo: "Falta ao jogo injustificada", valor: 5 },
-    { tipo: "Cartão amarelo justificado", valor: 0.5 },
-    { tipo: "Cartão amarelo injustificado", valor: 1 },
-    { tipo: "Cartão vermelho justificado", valor: 2 },
-    { tipo: "Cartão vermelho injustificado", valor: 5 },
-    { tipo: "Falta de respeito", valor: 5 },
-    { tipo: "Falta de material", valor: 2.5 },
-    { tipo: "Falta de uso de caneleiras no treino", valor: 1.5 },
-    { tipo: "Uso de telemóvel no balneário", valor: 1 }
-  ];
+    [1, "Joia Mensal", 0.5], [2, "Atraso treino até 5min", 0.5], [3, "Atraso treino após 5min", 1],
+    [4, "Atraso jogo até 5min", 1], [5, "Atraso jogo após 5min", 2], [6, "Falta treino sem justificação", 5],
+    [7, "Falta jogo sem justificação", 10], [8, "Não levar shampoo", 0.5], [9, "Não levar chinelos", 0.5],
+    [10, "Cartão vermelho por protesto", 5], [11, "Cartão amarelo por protesto", 2], [12, "Telemóvel durante refeição ou palestra", 2],
+    [13, "Falta de fato de treino no dia de jogo", 5], [14, "Cada golo sofrido", 0.5], [15, "Jogo sem sofrer golo", 2, "treinador"],
+    [16, "Esquecer material no balneário", 0.5], [17, "Não tomar banho no dia de treino ou jogo", 1], [18, "Falta de respeito", 5],
+    [19, "Levantar da refeição sem autorização", 1]
+  ].map(([id, tipo, valor, pagador]) => ({ id, tipo, valor, pagador: pagador || "jogador", descricao: "" }));
+  const ID_JOIA = 1, ID_FALTA_TREINO = 6;
+  // tipos antigos (antes da v4) cujo valor era uma % do ordenado
+  const TIPOS_PERCENTAGEM_ANTIGOS = ["Atraso ao treino", "Falta ao treino injustificada", "falta_treino"];
+
+  /** Substitui os tipos pelos da tabela fine_types (mantém o mesmo array). */
+  function definirTiposMulta(linhas) {
+    if (!Array.isArray(linhas) || !linhas.length) return;
+    const tipos = linhas.map(t => ({ id: Number(t.id), tipo: t.name, valor: Number(t.amount) || 0, pagador: t.payer || "jogador", descricao: t.description || "" }))
+      .sort((a, b) => a.id - b.id);
+    TIPOS_MULTA.splice(0, TIPOS_MULTA.length, ...tipos);
+  }
+
+  function tipoMultaPorId(id) {
+    return TIPOS_MULTA.find(t => t.id === Number(id)) || null;
+  }
+
+  // Equipa técnica por omissão (tabela staff no Supabase)
+  const STAFF_PADRAO = [{ id: "1635906", name: "Ricardo Isento", full_name: "Ricardo Manuel Mendes Isento", role: "treinador", date_of_birth: "1975-10-25", photo_url: "" }];
+
+  /** Linha de staff -> objeto com o mesmo formato dos jogadores nas vistas (nome, fotoUrl, ...). */
+  function pessoaStaff(t) {
+    return { id: String(t.id), idBD: String(t.id), nome: t.name, nomeCompleto: t.full_name || t.name, posicao: t.role === "treinador" ? "Treinador" : (t.role || "Staff"), numero: "", fotoUrl: t.photo_url || `${BASE_SITE}assets/staff/${t.id}.png`, staff: true };
+  }
+
   const NOTA_PERCENTAGEM = "Percentagem do ordenado — valor a definir pelos dirigentes";
   const formatoEuro = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
@@ -43,10 +60,9 @@
     return TIPOS_MULTA.find(t => t.tipo === nome) || null;
   }
 
-  /** Multa em percentagem do ordenado ainda sem valor (inclui as automáticas antigas 'falta_treino'). */
+  /** Multa antiga em percentagem do ordenado ainda sem valor definido. */
   function multaADefinir(f) {
-    const t = tipoMulta(f.infraction_type);
-    return (!!t && t.valor === null || f.infraction_type === "falta_treino") && !(Number(f.amount) > 0);
+    return TIPOS_PERCENTAGEM_ANTIGOS.includes(f.infraction_type) && !(Number(f.amount) > 0);
   }
 
   function rotuloMulta(tipo) {
@@ -369,7 +385,7 @@
   }
 
   /** Categoria de posição a partir da posição principal ("DC/MDef" -> Def). */
-  // Códigos atuais (MDC, MC, MOC, AV) e antigos (MDef, MCen, MOfe, PL)
+  // Códigos atuais (MDC, MC, MOC, PL) e antigos (MDef, MCen, MOfe, AV)
   const CATEGORIA_CODIGO = {
     GR: "GR",
     DC: "Def", DD: "Def", DE: "Def", LD: "Def", LE: "Def",
@@ -882,7 +898,7 @@
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, heatmapPresencasHTML,
-    TIPOS_MULTA, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,

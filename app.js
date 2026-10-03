@@ -47,17 +47,19 @@ const FORMACOES_SLOTS = {
 };
 
 const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
-const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Nota"];
+const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Paragem para hidratação", "Intervalo", "Nota"];
+// eventos que normalmente não são de nenhuma equipa (a equipa fica vazia ao escolher o tipo)
+const TIPOS_SEM_EQUIPA = ["Paragem para hidratação", "Intervalo"];
 // emojis só para o Word e para as <option>; na interface usam-se ícones Lucide
 const ICONES_LUCIDE_EVENTO = {
   "Golo": "goal", "Auto-golo": "goal", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
   "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage",
-  "Substituição": "repeat", "Tempo Acrescentado": "timer", "Nota": "sticky-note"
+  "Substituição": "repeat", "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note"
 };
 const ICONES_EVENTO = {
   "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴",
   "Cartão Amarelo": "🟨", "Cartão Vermelho": "🟥", "Lesão": "🤕",
-  "Substituição": "🔄", "Tempo Acrescentado": "⏱️", "Nota": "📝"
+  "Substituição": "🔄", "Tempo Acrescentado": "⏱️", "Paragem para hidratação": "💧", "Intervalo": "⏸️", "Nota": "📝"
 };
 
 const SECCOES_TATICAS = [
@@ -218,9 +220,9 @@ let filtroDisponibilidadeEquipa = "";
 let posicoesModal = [];
 let posicaoPrincipalModal = "";
 // campo vertical (ataque em cima); DC centrado na mesma vertical do MDef
-const POSICOES_MAPA = { GR: [50, 92], DC: [50, 77], DD: [85, 70], DE: [15, 70], MDC: [50, 61], MC: [50, 46], MOC: [50, 31], ED: [84, 21], EE: [16, 21], AV: [50, 9] };
+const POSICOES_MAPA = { GR: [50, 92], DC: [50, 77], DD: [85, 70], DE: [15, 70], MDC: [50, 61], MC: [50, 46], MOC: [50, 31], ED: [84, 21], EE: [16, 21], PL: [50, 9] };
 // posições gravadas com os códigos antigos
-const CODIGOS_ANTIGOS = { MDEF: "MDC", MCEN: "MC", MOFE: "MOC", PL: "AV" };
+const CODIGOS_ANTIGOS = { MDEF: "MDC", MCEN: "MC", MOFE: "MOC", AV: "PL" };
 const normalizarCodigoPosicao = c => CODIGOS_ANTIGOS[String(c).toUpperCase()] || c;
 let supabaseClient = null;
 let currentUser = null;
@@ -366,7 +368,7 @@ function migrarJogador(p) {
     idBD: p.idBD || "",
     nome: p.nome || "", // nome curto (players.display_name)
     nomeCompleto: p.nomeCompleto || "", // players.full_name
-    posicao: p.posicao || "—",
+    posicao: (p.posicao || "—").split("/").map(c => c.trim().toUpperCase() === "AV" ? "PL" : c).join("/"), // AV passou a PL
     numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
     // os valores vindos do Supabase estão em players.stats com nomes curtos
     golos: Number(p.golos ?? stats.golos) || 0,
@@ -1113,7 +1115,7 @@ function bancoDisponivel(excludeEventId) {
 function migrarEvento(evento) {
   const ev = { ...evento };
   ev.id = ev.id || uid();
-  ev.equipa = ev.equipa === "Adversário" ? "Adversário" : "VFN";
+  ev.equipa = ev.equipa === "Adversário" ? "Adversário" : ev.equipa === "" ? "" : "VFN"; // "" = sem equipa
   if (ev.tipo === "Substituição — Entra") ev.tipo = "Substituição";
   if (ev.tipo === "Substituição — Sai") ev.tipo = "Substituição";
   ev.detalhe = ev.detalhe || ev.nota || "";
@@ -1155,7 +1157,7 @@ function renderTimeline() {
   const track = container.querySelector(".timeline-track");
   state.jogo.eventos.forEach(ev => {
     const marker = document.createElement("div");
-    marker.className = `timeline-event ${ev.equipa === "VFN" ? "vfn" : "adv"}`;
+    marker.className = `timeline-event ${ev.equipa === "VFN" ? "vfn" : ev.equipa ? "adv" : "neutro"}`;
     marker.dataset.type = ev.tipo;
     marker.style.left = `${Math.min(100, Math.max(0, Number(ev.minuto) || 0) / duracao * 100)}%`;
     marker.title = `${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
@@ -1309,14 +1311,20 @@ function renderEventos(ordenar) {
 
     const tdEquipa = document.createElement("td");
     const selectEquipa = document.createElement("select");
-    selectEquipa.innerHTML = ["VFN", "Adversário"].map(e => `<option value="${e}" ${e === ev.equipa ? "selected" : ""}>${e}</option>`).join("");
+    selectEquipa.setAttribute("aria-label", "Equipa (opcional)");
+    selectEquipa.innerHTML = [["VFN", "VFN"], ["Adversário", "Adversário"], ["", "— Sem equipa —"]].map(([v, t]) => `<option value="${v}" ${v === ev.equipa ? "selected" : ""}>${t}</option>`).join("");
     selectEquipa.addEventListener("change", () => { ev.equipa = selectEquipa.value; ev.jogadorId = ""; ev.jogadorSaiId = ""; ev.assistId = ""; renderEventos(false); });
     tdEquipa.appendChild(selectEquipa);
 
     const tdTipo = document.createElement("td");
     const selectTipo = document.createElement("select");
     selectTipo.innerHTML = TIPOS_EVENTO.map(t => `<option value="${t}" ${t === ev.tipo ? "selected" : ""}>${t}</option>`).join("");
-    selectTipo.addEventListener("change", () => { ev.tipo = selectTipo.value; if (ev.tipo !== "Golo") ev.assistId = ""; renderEventos(false); });
+    selectTipo.addEventListener("change", () => {
+      ev.tipo = selectTipo.value;
+      if (ev.tipo !== "Golo") ev.assistId = "";
+      if (TIPOS_SEM_EQUIPA.includes(ev.tipo)) { ev.equipa = ""; ev.jogadorId = ""; ev.jogadorSaiId = ""; }
+      renderEventos(false);
+    });
     tdTipo.appendChild(selectTipo);
 
     const tdJogador = document.createElement("td");
@@ -2166,7 +2174,8 @@ async function gerarRelatorioWord() {
       const eventos = eventosPorMinuto[minuto] || [];
       const esquerda = eventos.filter(ev => ev.equipa === "VFN").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} ${nomeOuDetalheEvento(ev)}`).join("\n");
       const direita = eventos.filter(ev => ev.equipa === "Adversário").map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} ${nomeOuDetalheEvento(ev)}`).join("\n");
-      const centro = minuto === 45 ? "│\nIntervalo\n│" : "│";
+      const neutros = eventos.filter(ev => !ev.equipa).map(ev => `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} ${ev.tipo}${ev.detalhe ? " — " + ev.detalhe : ""}`);
+      const centro = minuto === 45 && !eventos.some(ev => ev.tipo === "Intervalo") ? "│\nIntervalo\n│" : neutros.length ? `│\n${neutros.join("\n")}\n│` : "│";
       return new TableRow({ children: [
         new TableCell({ width: { size: 43, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: esquerda || "", size: 15 })] })] }),
         new TableCell({ width: { size: 14, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.SINGLE, size: 10, color: COR_DARK_KHAKI }, right: { style: BorderStyle.SINGLE, size: 10, color: COR_DARK_KHAKI } }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${minuto}'\n${centro}`, bold: true, size: 14, color: COR_DARK_KHAKI })] })] }),

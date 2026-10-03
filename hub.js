@@ -628,7 +628,7 @@
       if (e.tipo === "Substituição") texto = `${nome(e.jogadorSaiId) || "—"} ↘ / ${nome(e.jogadorId) || "—"} ↗`;
       else if (e.equipa === "VFN") texto = (nome(e.jogadorId) || e.detalhe || "") + (e.tipo === "Golo" && e.assistId ? ` (assist. ${nome(e.assistId)})` : "");
       else texto = e.detalhe || "";
-      return { minuto: Number(e.minuto) || 0, acrescimo: Number(e.acrescimo) || 0, tipo: e.tipo, vfn: e.equipa === "VFN", texto };
+      return { minuto: Number(e.minuto) || 0, acrescimo: Number(e.acrescimo) || 0, tipo: e.tipo, vfn: e.equipa === "VFN", neutro: !e.equipa, texto };
     }).sort((a, b) => a.minuto - b.minuto || a.acrescimo - b.acrescimo);
   }
 
@@ -650,7 +650,7 @@
       relatorio = relatorioDoJogo(dados, j.id);
       eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
       // sem eventos no relatório, os golos do VFN não são conhecidos; o lado VFN fica à esquerda/direita conforme casa/fora
-      eventos.forEach(e => { e.lado = (e.vfn === VFN.jogoEmCasa(j)) ? "casa" : "fora"; });
+      eventos.forEach(e => { e.lado = e.neutro ? "centro" : (e.vfn === VFN.jogoEmCasa(j)) ? "casa" : "fora"; });
     } else {
       const r = (dados.league_results || []).find(x => String(x.id) === id);
       if (!r) return vazio("Jogo não encontrado.");

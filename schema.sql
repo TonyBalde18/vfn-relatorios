@@ -327,6 +327,79 @@ where not exists (
     and r.home_team_id = v.home_team_id and r.away_team_id = v.away_team_id
 );
 
+-- ---------------------------------------------------------------------
+-- ATUALIZAÇÃO v4 (03/10/2026) — correr esta secção antes do deploy v4
+-- ---------------------------------------------------------------------
+
+-- [v4 Tarefa 1] Posições: o código AV passa a PL (mantém a ordem "DC/MDC/...")
+update public.players
+set position = (
+  select string_agg(case when upper(trim(p)) = 'AV' then 'PL' else trim(p) end, '/' order by n)
+  from unnest(string_to_array(position, '/')) with ordinality as t(p, n)
+)
+where position ~* '(^|/)\s*AV\s*(/|$)';
+
+-- [v4 Tarefa 1] Tipos de multa: tabela própria; cada multa continua a guardar o nome
+-- do tipo em texto (infraction_type), por isso as multas antigas mantêm-se como estão.
+create table if not exists public.fine_types (
+  id integer primary key,
+  name text not null,
+  amount numeric(8,2) not null default 0,
+  description text,
+  payer text not null default 'jogador' check (payer in ('jogador', 'treinador')),
+  created_at timestamptz not null default now()
+);
+alter table public.fine_types enable row level security;
+drop policy if exists "fine_types staff read" on public.fine_types;
+drop policy if exists "fine_types admin write" on public.fine_types;
+create policy "fine_types staff read" on public.fine_types for select to authenticated using (public.vfn_is_staff());
+create policy "fine_types admin write" on public.fine_types for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
+-- valores iniciais; correr de novo não apaga nem altera tipos editados no admin
+insert into public.fine_types (id, name, amount, payer) values
+  (1,  'Joia Mensal', 0.50, 'jogador'),
+  (2,  'Atraso treino até 5min', 0.50, 'jogador'),
+  (3,  'Atraso treino após 5min', 1.00, 'jogador'),
+  (4,  'Atraso jogo até 5min', 1.00, 'jogador'),
+  (5,  'Atraso jogo após 5min', 2.00, 'jogador'),
+  (6,  'Falta treino sem justificação', 5.00, 'jogador'),
+  (7,  'Falta jogo sem justificação', 10.00, 'jogador'),
+  (8,  'Não levar shampoo', 0.50, 'jogador'),
+  (9,  'Não levar chinelos', 0.50, 'jogador'),
+  (10, 'Cartão vermelho por protesto', 5.00, 'jogador'),
+  (11, 'Cartão amarelo por protesto', 2.00, 'jogador'),
+  (12, 'Telemóvel durante refeição ou palestra', 2.00, 'jogador'),
+  (13, 'Falta de fato de treino no dia de jogo', 5.00, 'jogador'),
+  (14, 'Cada golo sofrido', 0.50, 'jogador'),
+  (15, 'Jogo sem sofrer golo', 2.00, 'treinador'),
+  (16, 'Esquecer material no balneário', 0.50, 'jogador'),
+  (17, 'Não tomar banho no dia de treino ou jogo', 1.00, 'jogador'),
+  (18, 'Falta de respeito', 5.00, 'jogador'),
+  (19, 'Levantar da refeição sem autorização', 1.00, 'jogador')
+on conflict (id) do nothing;
+alter table public.fines add column if not exists fine_type_id integer references public.fine_types(id) on delete set null;
+
+-- [v4 Tarefa 1] Equipa técnica (o treinador paga a multa 15 "Jogo sem sofrer golo").
+-- As multas usam fines.player_id com o id do treinador (a coluna não tem chave estrangeira).
+create table if not exists public.staff (
+  id text primary key,
+  name text not null,
+  full_name text,
+  role text not null default 'treinador',
+  date_of_birth date,
+  photo_url text,
+  created_at timestamptz not null default now()
+);
+alter table public.staff enable row level security;
+drop policy if exists "staff staff read" on public.staff;
+drop policy if exists "staff admin write" on public.staff;
+create policy "staff staff read" on public.staff for select to authenticated using (public.vfn_is_staff());
+create policy "staff admin write" on public.staff for all to authenticated
+  using (public.vfn_is_admin()) with check (public.vfn_is_admin());
+insert into public.staff (id, name, full_name, role, date_of_birth, photo_url) values
+  ('1635906', 'Ricardo Isento', 'Ricardo Manuel Mendes Isento', 'treinador', date '1975-10-25', 'https://tonybalde18.github.io/vfn-relatorios/assets/staff/1635906.png')
+on conflict (id) do nothing;
+
 -- Logos das equipas com o caminho absoluto do GitHub Pages
 update public.teams
 set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url
