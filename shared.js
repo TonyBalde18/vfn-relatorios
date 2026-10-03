@@ -560,6 +560,32 @@
     }).observe(document.body, { childList: true, subtree: true });
   });
 
+  /* ---------- Taças por eliminatórias ---------- */
+
+  const COMPETICOES_ELIMINATORIAS = ["Taça 2ª Liga FDM"];
+  const FASES_TACA = [["1eliminatoria", "1ª Eliminatória"], ["oitavos", "Oitavos-de-final"], ["quartos", "Quartos-de-final"], ["meias", "Meias-finais"], ["final", "Final"]];
+
+  function eliminatorias(competicao) {
+    return COMPETICOES_ELIMINATORIAS.includes(competicao);
+  }
+
+  /** Fase de um jogo: a coluna phase, ou o nº da jornada (1 = 1ª eliminatória ... 5 = final). */
+  function faseDoJogo(phase, jornada) {
+    if (FASES_TACA.some(([k]) => k === phase)) return phase;
+    const f = FASES_TACA[(Number(jornada) || 0) - 1];
+    return f ? f[0] : "";
+  }
+
+  /** "Jornada 3", ou o nome da fase nas taças por eliminatórias. */
+  function rotuloJornada(competicao, n) {
+    if (eliminatorias(competicao) && nomeFase(faseDoJogo("", n))) return nomeFase(faseDoJogo("", n));
+    return n ? "Jornada " + n : "Sem jornada";
+  }
+
+  function nomeFase(fase) {
+    return (FASES_TACA.find(([k]) => k === fase) || [, ""])[1];
+  }
+
   /* ---------- Capitão ---------- */
 
   // ordem de prioridade (ids Zerozero): Toneca, Silvestre, Marco, Macedo
@@ -917,7 +943,7 @@
 
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, heatmapPresencasHTML,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, exportarXlsx,

@@ -138,7 +138,41 @@
     return competicoesComClassificacao(dados).map(c => `<option value="${esc(c)}" ${c === selecionada ? "selected" : ""}>${esc(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
   }
 
+  /* ---------- Taça por eliminatórias (bracket) ---------- */
+
+  /** Vencedor de um confronto: winner_id (penáltis) ou o resultado. "" se ainda não há. */
+  function vencedorConfronto(j) {
+    if (j.vencedor) return j.vencedor;
+    if (j.gc == null || j.gf == null || j.gc === "" || j.gf === "" || Number(j.gc) === Number(j.gf)) return "";
+    return Number(j.gc) > Number(j.gf) ? j.casa.id : j.fora.id;
+  }
+
+  /** Bracket com as fases em colunas; as equipas isentas entram quando o sorteio da fase seguinte é lançado. */
+  function bracketHTML(dados, competicao) {
+    const jogos = jogosDaJornada(dados, competicao);
+    if (!jogos.length) return vazio("Ainda não há jogos desta taça.");
+    const vencedoresAnteriores = new Set();
+    const colunas = VFN.FASES_TACA.map(([fase, nome]) => {
+      const daFase = jogos.filter(j => j.fase === fase).sort((a, b) => String(a.data || "9999").localeCompare(String(b.data || "9999")));
+      const html = daFase.map(j => {
+        const v = vencedorConfronto(j);
+        const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
+        const linha = (eq, golos) => `<div class="br-equipa${v ? (v === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}">
+          ${logoEquipa(equipa(dados, eq.id), eq.nome, "br-logo")}<span class="br-nome">${esc(eq.nome)}</span>${vencedoresAnteriores.has(eq.id) ? `<span class="br-veio" title="Passou a fase anterior">${VFN.icone("chevrons-right", 12)}</span>` : ""}
+          <strong class="br-golos">${temRes ? Number(golos) : ""}</strong></div>`;
+        return `<button type="button" class="br-jogo" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">
+          ${linha(j.casa, j.gc)}${linha(j.fora, j.gf)}
+          <small class="br-data">${j.data ? esc(VFN.dataCurta(j.data)) : "Data por definir"}${temRes && !v ? " · empate: falta o vencedor" : v && Number(j.gc) === Number(j.gf) ? " · após penáltis" : ""}</small>
+        </button>`;
+      }).join("");
+      daFase.forEach(j => { const v = vencedorConfronto(j); if (v) vencedoresAnteriores.add(v); });
+      return `<section class="br-fase${daFase.length ? "" : " vazia"}"><h4>${esc(nome)}</h4><div class="br-jogos">${html || '<p class="br-sorteio">Por sortear</p>'}</div></section>`;
+    });
+    return `<p class="bracket-dica">${VFN.icone("move-horizontal", 14)} Desliza para ver as fases seguintes.</p><div class="bracket-scroll"><div class="bracket">${colunas.join("")}</div></div>`;
+  }
+
   function classificacaoHTML(dados, competicao) {
+    if (VFN.eliminatorias(competicao)) return bracketHTML(dados, competicao);
     // calculada a partir dos resultados em matches (não usa a tabela standings)
     const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
@@ -446,6 +480,7 @@
 
   /** Posição do VFN na classificação no fim de cada jornada com resultados. */
   function posicoesPorJornada(dados, competicao) {
+    if (VFN.eliminatorias(competicao)) return [];
     const comResultado = (a, b) => a != null && b != null && a !== "" && b !== "";
     const jornadas = [...new Set(jogosDaJornada(dados, competicao).filter(x => x.jornada && comResultado(x.gc, x.gf)).map(x => x.jornada))].sort((a, b) => a - b);
     return jornadas.map(n => {
@@ -464,7 +499,9 @@
     const caixa = canvas.closest(".chart-box");
     const aviso = caixa && caixa.nextElementSibling && caixa.nextElementSibling.classList.contains("empty-state") ? caixa.nextElementSibling : null;
     if (caixa) caixa.hidden = !pontos.length || !window.Chart;
-    if (aviso) aviso.hidden = !!pontos.length;
+    if (aviso) aviso.hidden = !!pontos.length || VFN.eliminatorias(competicao);
+    const titulo = caixa && caixa.previousElementSibling;
+    if (titulo && titulo.classList.contains("subsecao-titulo")) titulo.hidden = VFN.eliminatorias(competicao);
     if (!pontos.length || !window.Chart) return null;
     const total = Math.max(...pontos.map(p => p.equipas));
     return new Chart(canvas, {
@@ -488,12 +525,12 @@
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
       const lista = Array.isArray(r.scorer_list) && r.scorer_list.length ? r.scorer_list.map(s => `${s.player_name}${Number(s.count) > 1 ? " (" + s.count + ")" : ""}`).join(", ") : "";
-      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
+      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
     });
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
       const jogado = VFN.estadoJogo(j) === "jogado";
-      return { origem: "vfn", id: j.id, jornada: Number(j.jornada) || 0, casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
+      return { origem: "vfn", id: j.id, jornada: Number(j.jornada) || 0, fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
     });
     return [...liga, ...vfn];
   }
@@ -525,7 +562,7 @@
     const lado = (eq, classe) => `<span class="jj-equipa ${classe}">${classe === "jj-casa" ? `<span>${esc(eq.nome)}</span>${logoEquipa(equipa(dados, eq.id), eq.nome)}` : `${logoEquipa(equipa(dados, eq.id), eq.nome)}<span>${esc(eq.nome)}</span>`}</span>`;
     return ordem.map(n => `
       <section class="jornada-grupo">
-        <h3 class="jornada-titulo">${n ? `Jornada ${n}` : "Sem jornada"} <small class="muted">${porJornada.get(n).length} jogo${porJornada.get(n).length === 1 ? "" : "s"}</small></h3>
+        <h3 class="jornada-titulo">${esc(VFN.rotuloJornada(o.competicao, n))} <small class="muted">${porJornada.get(n).length} jogo${porJornada.get(n).length === 1 ? "" : "s"}</small></h3>
         ${porJornada.get(n).map(j => {
           const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
           const resultado = temRes ? `${Number(j.gc)} – ${Number(j.gf)}` : "–";
@@ -787,6 +824,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

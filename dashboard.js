@@ -618,7 +618,7 @@ function renderJornadas() {
   comp.innerHTML = VFN.COMPETICOES_CLASSIFICACAO.map(c => `<option value="${VFN.escapeHtml(c)}">${VFN.escapeHtml(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
   comp.value = filtrosJornadas.competicao;
   const jornadas = H.jornadasDisponiveis(dados, filtrosJornadas.competicao);
-  jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${n ? "Jornada " + n : "Sem jornada"}</option>`).join("");
+  jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${VFN.escapeHtml(VFN.rotuloJornada(filtrosJornadas.competicao, n))}</option>`).join("");
   jor.value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
   const equipas = H.equipasDasJornadas(dados, filtrosJornadas.competicao);
   eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${VFN.escapeHtml(t.id)}">${VFN.escapeHtml(t.nome)}</option>`).join("");

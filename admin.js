@@ -680,6 +680,8 @@ function initCalendarioAdmin() {
   el("btnAddJogo").addEventListener("click", () => abrirModalJogo(null));
   el("btnJogoCancelar").addEventListener("click", () => fecharModalAdmin("modalJogo"));
   el("btnJogoGuardar").addEventListener("click", guardarJogo);
+  ["jogoCompeticao", "jogoGolosVFN", "jogoGolosAdv"].forEach(id => el(id).addEventListener("input", atualizarPenaltisJogo));
+  el("jogoCompeticao").addEventListener("change", atualizarPenaltisJogo);
 }
 
 function renderCalendarioAdmin() {
@@ -740,8 +742,16 @@ function abrirModalJogo(jogo) {
   el("jogoGolosVFN").value = g ? g.vfn : "";
   el("jogoGolosAdv").value = g ? g.adv : "";
   el("jogoLocal").value = jogo ? jogo.venue || "" : "";
+  el("jogoPenaltis").value = jogo && jogo.winner_id ? (String(jogo.winner_id) === String(jogo.opponent_team_id) ? "adv" : "vfn") : "";
+  atualizarPenaltisJogo();
   el("jogoErro").textContent = "";
   abrirModalAdmin("modalJogo");
+}
+
+/** Taça por eliminatórias com empate: pede o vencedor nos penáltis. */
+function atualizarPenaltisJogo() {
+  const gVFN = el("jogoGolosVFN").value, gAdv = el("jogoGolosAdv").value;
+  el("jogoPenaltisWrap").hidden = !(VFN.eliminatorias(el("jogoCompeticao").value) && gVFN !== "" && gVFN === gAdv);
 }
 
 async function guardarJogo() {
@@ -768,6 +778,11 @@ async function guardarJogo() {
     score_away: temResultado ? Number(casa ? gAdv : gVFN) : null,
     venue: el("jogoLocal").value.trim() || null
   };
+  // winner_id só vai no pedido quando faz falta (ou já existia), para funcionar antes do SQL v4
+  const penaltis = el("jogoPenaltisWrap").hidden ? "" : el("jogoPenaltis").value;
+  const idVFN = VFN.equipaVFN(equipasCalendario).id;
+  if (penaltis) linha.winner_id = penaltis === "vfn" ? idVFN : (equipa ? equipa.id : null);
+  else if (jogoEmEdicao && "winner_id" in jogoEmEdicao) linha.winner_id = null;
   const botao = el("btnJogoGuardar");
   botao.disabled = true;
   try {
@@ -919,6 +934,11 @@ function renderClassificacaoAdmin() {
   select.value = comps.includes(atual) ? atual : (proximo && comps.includes(proximo.competition) ? proximo.competition : comps[0] || "");
   select.hidden = !comps.length;
 
+  // taças por eliminatórias: bracket em vez da tabela
+  const taca = VFN.eliminatorias(select.value);
+  el("classificacaoBracket").hidden = !taca;
+  el("classificacaoBody").closest("table").hidden = taca;
+  if (taca) { el("classificacaoBracket").innerHTML = VFNHub.bracketHTML(dadosJornadas(), select.value); return; }
   const tbody = el("classificacaoBody");
   const linhas = select.value ? VFN.calcularClassificacao(jogosCalendario, equipasCalendario, select.value, resultadosLiga) : [];
   if (!linhas.length) {
@@ -957,6 +977,8 @@ function initJornadas() {
   el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
   el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
   el("btnGuardarResultadoLiga").addEventListener("click", guardarResultadoLiga);
+  el("jornadaFase").innerHTML = VFN.FASES_TACA.map(([k, nome], i) => `<option value="${k}" data-jornada="${i + 1}">${escapeHtml(nome)}</option>`).join("");
+  ["jornadaCasa", "jornadaFora", "jornadaGolosCasa", "jornadaGolosFora"].forEach(id => el(id).addEventListener("change", () => renderVencedorForm()));
   // sugere a data do jogo do VFN da mesma jornada (as jornadas jogam-se no mesmo fim de semana)
   el("jornadaNumero").addEventListener("change", () => {
     if (el("jornadaData").value) return;
@@ -986,7 +1008,7 @@ function renderJornadasAdmin() {
   const dados = dadosJornadas();
   el("jornadasCompeticao").value = filtrosJornadas.competicao;
   const jornadas = VFNHub.jornadasDisponiveis(dados, filtrosJornadas.competicao);
-  el("jornadasFiltroJornada").innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${n ? "Jornada " + n : "Sem jornada"}</option>`).join("");
+  el("jornadasFiltroJornada").innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${escapeHtml(VFN.rotuloJornada(filtrosJornadas.competicao, n))}</option>`).join("");
   el("jornadasFiltroJornada").value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
   const equipas = VFNHub.equipasDasJornadas(dados, filtrosJornadas.competicao);
   el("jornadasFiltroEquipa").innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.nome)}</option>`).join("");
@@ -994,8 +1016,25 @@ function renderJornadasAdmin() {
   el("btnOrdemJornadas").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   // as equipas podem chegar depois do primeiro render: reconstrói os menus mantendo a escolha
   ["jornadaCasa", "jornadaFora"].forEach(id => { const v = el(id).value; el(id).innerHTML = opcoesEquipasLiga(v); });
+  const taca = VFN.eliminatorias(filtrosJornadas.competicao);
+  el("jornadaNumero").closest(".field").hidden = taca;
+  el("jornadaFase").closest(".field").hidden = !taca;
+  el("jornadaVencedor").closest(".field").hidden = !taca;
+  renderVencedorForm();
   el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
   el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 })), filtrosJornadas.competicao, 15);
+}
+
+/** Vencedor do confronto (taças): pelo resultado, ou escolhido quando há empate. */
+function renderVencedorForm() {
+  const casa = equipaPorId(el("jornadaCasa").value), fora = equipaPorId(el("jornadaFora").value);
+  const gc = el("jornadaGolosCasa").value, gf = el("jornadaGolosFora").value;
+  const anterior = el("jornadaVencedor").value || (resultadoEmEdicao && resultadoEmEdicao.winner_id) || "";
+  const porResultado = gc !== "" && gf !== "" && Number(gc) !== Number(gf) ? (Number(gc) > Number(gf) ? casa : fora) : null;
+  const opcoes = [casa, fora].filter(Boolean);
+  el("jornadaVencedor").innerHTML = '<option value="">— Por decidir —</option>' + opcoes.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join("");
+  el("jornadaVencedor").value = porResultado ? porResultado.id : opcoes.some(t => String(t.id) === String(anterior)) ? anterior : "";
+  el("jornadaVencedor").disabled = !!porResultado;
 }
 
 function limparFormJornada(manterJornada) {
@@ -1017,12 +1056,16 @@ function editarResultadoLiga(r) {
   resultadoEmEdicao = r;
   filtrosJornadas.competicao = r.competition;
   el("jornadaNumero").value = r.jornada;
+  if (VFN.eliminatorias(r.competition)) el("jornadaFase").value = VFN.faseDoJogo(r.phase, r.jornada) || "1eliminatoria";
   el("jornadaData").value = r.match_date || "";
   el("jornadaCasa").innerHTML = opcoesEquipasLiga(r.home_team_id);
   el("jornadaFora").innerHTML = opcoesEquipasLiga(r.away_team_id);
   el("jornadaGolosCasa").value = r.score_home ?? "";
   el("jornadaGolosFora").value = r.score_away ?? "";
   el("jornadaMarcadores").value = r.scorers || "";
+  el("jornadaVencedor").value = "";
+  renderVencedorForm();
+  el("jornadaVencedor").value = r.winner_id || el("jornadaVencedor").value;
   marcadoresForm = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ lado: String(s.team_id) === String(r.away_team_id) ? "fora" : "casa", player_id: s.player_id || "", player_name: s.player_name || "", count: s.count || 1 }));
   renderMarcadoresForm();
   el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
@@ -1031,7 +1074,8 @@ function editarResultadoLiga(r) {
 }
 
 async function guardarResultadoLiga() {
-  const jornada = Number(el("jornadaNumero").value);
+  const taca = VFN.eliminatorias(filtrosJornadas.competicao);
+  const jornada = taca ? Number(el("jornadaFase").selectedOptions[0].dataset.jornada) : Number(el("jornadaNumero").value);
   const casa = equipaPorId(el("jornadaCasa").value), fora = equipaPorId(el("jornadaFora").value);
   const gc = el("jornadaGolosCasa").value, gf = el("jornadaGolosFora").value;
   const erro = !(jornada > 0) ? "Indica o número da jornada." : !casa || !fora ? "Escolhe a equipa da casa e a de fora." : casa.id === fora.id ? "As equipas têm de ser diferentes." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum, se o jogo ainda não se realizou)." : "";
@@ -1047,6 +1091,7 @@ async function guardarResultadoLiga() {
     score_away: gf === "" ? null : Number(gf),
     scorers: el("jornadaMarcadores").value.trim() || null
   };
+  if (taca) { linha.phase = el("jornadaFase").value; linha.winner_id = el("jornadaVencedor").value || null; }
   // match_date só vai no pedido quando há data (ou já existia), para funcionar antes de a coluna ser criada
   const data = el("jornadaData").value;
   if (data) linha.match_date = data;
@@ -1058,7 +1103,15 @@ async function guardarResultadoLiga() {
     // scorer_list só vai no pedido quando há marcadores (ou já existia), para funcionar antes do SQL v3
     if (listaMarcadores.length) linha.scorer_list = listaMarcadores;
     else if (resultadoEmEdicao && "scorer_list" in resultadoEmEdicao) linha.scorer_list = null;
-    const gravado = await dadosClube.guardar("league_results", linha);
+    let gravado;
+    try {
+      gravado = await dadosClube.guardar("league_results", linha);
+    } catch (e) {
+      // antes do SQL v4 as colunas phase/winner_id não existem: a fase fica no nº da jornada
+      if (!taca || !/phase|winner_id/i.test(e.message || "")) throw e;
+      delete linha.phase; delete linha.winner_id;
+      gravado = await dadosClube.guardar("league_results", linha);
+    }
     resultadosLiga = resultadosLiga.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
     limparFormJornada(true); // mantém a jornada para lançar os jogos seguintes
     renderJornadasAdmin();

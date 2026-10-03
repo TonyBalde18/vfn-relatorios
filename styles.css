@@ -1195,3 +1195,27 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .cartao.amarelo { background: #facc15; color: #0A1628; }
 .cartao.vermelho { background: #dc2626; color: #fff; }
 @media (max-width: 420px) { .ficha-visual { grid-template-columns: 100px 1fr; gap: 10px; } .mapa-posicoes { width: 100px; } .ficha-barra { grid-template-columns: 74px 1fr 40px; } }
+
+/* ---------- v4: bracket da taça ---------- */
+.bracket-scroll { overflow-x: auto; padding-bottom: 6px; }
+.bracket { display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr)); gap: 14px; min-width: 980px; }
+.br-fase { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 10px; background: rgba(10,22,40,.03); }
+.br-jogos { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+.br-fase h4 { margin: 0 0 4px; text-align: center; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--vfn-navy); }
+.br-fase.vazia { opacity: .7; }
+.br-sorteio { margin: auto 0; text-align: center; color: var(--text-muted); font-size: .8rem; font-style: italic; }
+.br-jogo { display: grid; gap: 2px; width: 100%; padding: 6px; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.br-jogo:hover { border-color: var(--vfn-yellow, #FFD700); box-shadow: 0 4px 12px rgba(10,22,40,.1); }
+.br-equipa { display: grid; grid-template-columns: 22px 1fr auto auto; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 5px; font-size: .8rem; }
+.br-equipa .br-logo { width: 22px; height: 22px; object-fit: contain; }
+.br-equipa .team-logo-placeholder.br-logo { display: inline-grid; place-items: center; font-size: .5rem; }
+.br-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-golos { min-width: 14px; text-align: right; }
+.br-equipa.vence { background: #ECFDF5; font-weight: 800; }
+.br-equipa.sai { opacity: .5; }
+.br-equipa.is-vfn .br-nome { color: var(--vfn-navy); font-weight: 800; }
+.br-veio { display: inline-flex; color: #16a34a; }
+.br-data { padding: 0 4px; color: var(--text-muted); font-size: .68rem; }
+.jf-vencedor small { display: block; margin-top: 2px; }
+.bracket-dica { margin: 0 0 8px; font-size: .75rem; color: var(--text-muted); }
+@media (min-width: 1100px) { .bracket-dica { display: none; } }

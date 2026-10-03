@@ -400,6 +400,17 @@ insert into public.staff (id, name, full_name, role, date_of_birth, photo_url) v
   ('1635906', 'Ricardo Isento', 'Ricardo Manuel Mendes Isento', 'treinador', date '1975-10-25', 'https://tonybalde18.github.io/vfn-relatorios/assets/staff/1635906.png')
 on conflict (id) do nothing;
 
+-- [v4 Tarefa 3] Taça 2ª Liga FDM por eliminatórias
+-- phase: '1eliminatoria', 'oitavos', 'quartos', 'meias', 'final' (a jornada guarda o nº da fase: 1 a 5)
+alter table public.league_results add column if not exists phase text;
+alter table public.league_results drop constraint if exists league_results_phase_check;
+alter table public.league_results add constraint league_results_phase_check
+  check (phase is null or phase in ('1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'));
+alter table public.league_results add column if not exists winner_id text references public.teams(id);
+update public.league_results set phase = '1eliminatoria' where competition = 'Taça 2ª Liga FDM' and phase is null;
+-- jogos do VFN na taça: a fase vem do nº da jornada; o vencedor só é preciso quando há empate (penáltis)
+alter table public.matches add column if not exists winner_id text references public.teams(id);
+
 -- [v4 Tarefa 6] Capitão do jogo (automático: Toneca → Silvestre → Marco → Macedo)
 alter table public.match_reports add column if not exists captain_id text references public.players(id) on delete set null;
 
