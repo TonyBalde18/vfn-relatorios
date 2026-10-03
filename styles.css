@@ -1579,3 +1579,8 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
   .vfn-drawer, .vfn-drawer.aberto, .drawer-painel, .vfn-drawer.aberto .drawer-painel { transition: none; }
   .view.active, .tab-panel.active { animation: none; }
 }
+
+/* ---------- v5: marcadores do VFN no modal do jogo ---------- */
+.jogo-marcadores { display: grid; gap: 6px; margin-top: 8px; padding: 10px; border: 1px dashed var(--border-color); border-radius: 10px; background: rgba(10, 22, 40, .03); }
+.marcador-jogo { display: grid; grid-template-columns: minmax(0, 1fr) 72px 32px; gap: 8px; align-items: center; }
+.marcador-jogo input { text-align: center; font-weight: 700; }

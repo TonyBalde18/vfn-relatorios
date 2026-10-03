@@ -611,6 +611,11 @@
     </div>
     <div class="field" id="jogoPenaltisWrap" hidden><label for="jogoPenaltis">Vencedor nos penáltis</label><select id="jogoPenaltis"><option value="">— Por decidir —</option><option value="vfn">VFN</option><option value="adv">Adversário</option></select></div>
     <div class="field"><label for="jogoLocal">Campo</label><input type="text" id="jogoLocal" placeholder="Opcional"></div>
+    <div class="jogo-marcadores">
+      <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores do VFN</span><button type="button" id="btnJogoAddMarcador" class="btn btn-ghost btn-sm">+ Marcador</button></div>
+      <div id="jogoMarcadoresLista"></div>
+      <small id="jogoMarcadoresInfo" class="muted">Contam para os marcadores por competição (liga e taças). Se o relatório do jogo tiver golos registados, ao gerá-lo ou publicá-lo substitui esta lista.</small>
+    </div>
     <p id="jogoErro" class="form-error" role="alert"></p>
     <div class="modal-actions">
       <button type="button" id="btnJogoCancelar" class="btn btn-ghost">Cancelar</button>

@@ -851,9 +851,12 @@ async function registarResultadoNoCalendario() {
     ...jogo,
     status: "jogado",
     score_home: casa ? state.jogo.golosVFN : state.jogo.golosAdversario,
-    score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN,
-    scorer_list: marcadoresDoJogo()
+    score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN
   };
+  // os marcadores do relatório só substituem os lançados à mão no jogo quando o relatório os tem
+  // (ou o VFN não marcou); um relatório sem os golos registados não apaga a lista
+  const marcadores = marcadoresDoJogo();
+  if (marcadores.length || Number(state.jogo.golosVFN) === 0) atualizado.scorer_list = marcadores;
   try {
     let gravado;
     try {

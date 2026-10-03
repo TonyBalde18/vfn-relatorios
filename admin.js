@@ -927,6 +927,50 @@ function initCalendarioAdmin() {
   el("jogoCompeticao").addEventListener("change", atualizarPenaltisJogo);
   el("jogoFase").innerHTML = '<option value="">— Fase —</option>' + VFN.FASES_TACA.map(([k, nome]) => `<option value="${k}">${escapeHtml(nome)}</option>`).join("");
   el("jogoCompeticao").addEventListener("change", atualizarCamposTaca);
+  initMarcadoresJogo();
+}
+
+/* ---- Marcadores do VFN no jogo (matches.scorer_list), sem precisar de relatório ---- */
+
+let marcadoresJogo = []; // [{ player_id, count }]
+
+function renderMarcadoresJogo() {
+  const opcoes = sel => '<option value="">— Jogador —</option>' + VFN.ordenarPorPosicao(plantel)
+    .map(j => { const id = idJogadorBD(j); return `<option value="${escapeHtml(id)}" ${id === sel ? "selected" : ""}>${j.numero ? "#" + escapeHtml(j.numero) + " " : ""}${escapeHtml(j.nome)}</option>`; }).join("");
+  el("jogoMarcadoresLista").innerHTML = marcadoresJogo.map((m, i) => `
+    <div class="marcador-jogo" data-i="${i}">
+      <select data-campo="player_id" aria-label="Marcador">${opcoes(m.player_id)}</select>
+      <input type="number" data-campo="count" min="1" value="${Number(m.count) || 1}" aria-label="Golos">
+      <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover marcador" aria-label="Remover marcador">${VFN.icone("x", 14)}</button>
+    </div>`).join("");
+}
+
+function initMarcadoresJogo() {
+  el("btnJogoAddMarcador").addEventListener("click", () => { marcadoresJogo.push({ player_id: "", count: 1 }); renderMarcadoresJogo(); });
+  el("jogoMarcadoresLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresJogo(); } });
+  el("jogoMarcadoresLista").addEventListener("change", e => {
+    const linha = e.target.closest(".marcador-jogo");
+    if (!linha) return;
+    const m = marcadoresJogo[Number(linha.dataset.i)];
+    m[e.target.dataset.campo] = e.target.dataset.campo === "count" ? Math.max(1, Number(e.target.value) || 1) : e.target.value;
+  });
+}
+
+/**
+ * scorer_list a gravar: a lista (mesmo jogador somado); [] num jogo jogado em que o VFN não marcou;
+ * null quando não se sabe (assim a liga não perde golos de jogos sem marcadores lançados).
+ */
+function scorerListDoModal(golosVFN, jogado) {
+  const idVFN = String(VFN.equipaVFN(equipasCalendario).id);
+  const porJogador = new Map();
+  marcadoresJogo.filter(m => m.player_id).forEach(m => {
+    const j = jogadorPorIdBD(m.player_id);
+    const atual = porJogador.get(m.player_id) || { player_id: m.player_id, player_name: j ? j.nome : m.player_id, team_id: idVFN, count: 0 };
+    atual.count += Math.max(1, Number(m.count) || 1);
+    porJogador.set(m.player_id, atual);
+  });
+  if (porJogador.size) return [...porJogador.values()];
+  return jogado && golosVFN === 0 ? [] : null;
 }
 
 /** Nas taças por eliminatórias o jogo tem fase (a jornada fica a null); nas ligas tem jornada. */
@@ -1018,6 +1062,8 @@ function abrirModalJogo(jogo) {
   el("jogoGolosVFN").value = g ? g.vfn : "";
   el("jogoGolosAdv").value = g ? g.adv : "";
   el("jogoLocal").value = jogo ? jogo.venue || "" : "";
+  marcadoresJogo = (jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : []).map(s => ({ player_id: String(s.player_id || ""), count: Number(s.count) || 1 }));
+  renderMarcadoresJogo();
   el("jogoPenaltis").value = jogo && jogo.winner_id ? (String(jogo.winner_id) === String(jogo.opponent_team_id) ? "adv" : "vfn") : "";
   atualizarPenaltisJogo();
   el("jogoErro").textContent = "";
@@ -1036,7 +1082,10 @@ async function guardarJogo() {
   const nomeAdv = equipa ? equipa.name : el("jogoAdversarioNome").value.trim();
   const estado = el("jogoEstado").value;
   const gVFN = el("jogoGolosVFN").value, gAdv = el("jogoGolosAdv").value;
-  const erro = !data ? "Indica a data do jogo." : !nomeAdv ? "Indica o adversário." : (estado === "jogado" && (gVFN === "" || gAdv === "")) ? "Para um jogo jogado indica o resultado." : "";
+  // os marcadores não podem somar mais golos do que o VFN marcou (podem somar menos: auto-golos do adversário)
+  const golosMarcadores = marcadoresJogo.filter(m => m.player_id).reduce((s, m) => s + (Number(m.count) || 1), 0);
+  const erro = !data ? "Indica a data do jogo." : !nomeAdv ? "Indica o adversário." : (estado === "jogado" && (gVFN === "" || gAdv === "")) ? "Para um jogo jogado indica o resultado."
+    : golosMarcadores && gVFN !== "" && golosMarcadores > Number(gVFN) ? `Os marcadores somam ${golosMarcadores} golos, mas o VFN marcou ${gVFN}.` : "";
   el("jogoErro").textContent = erro;
   if (erro) return;
   const casa = el("jogoCasaFora").value === "Casa";
@@ -1065,6 +1114,9 @@ async function guardarJogo() {
   // phase só vai no pedido nas taças (ou se já existia), para funcionar antes do SQL de 03/10
   if (taca) linha.phase = fase || null;
   else if (jogoEmEdicao && "phase" in jogoEmEdicao) linha.phase = null;
+  // scorer_list só vai no pedido quando há o que gravar (ou já existia), para funcionar antes do SQL de 03/10
+  const listaMarcadores = scorerListDoModal(gVFN === "" ? null : Number(gVFN), estado === "jogado");
+  if (listaMarcadores !== null || (jogoEmEdicao && "scorer_list" in jogoEmEdicao)) linha.scorer_list = listaMarcadores;
   const botao = el("btnJogoGuardar");
   botao.disabled = true;
   try {
@@ -1073,6 +1125,7 @@ async function guardarJogo() {
       gravado = await dadosClube.guardar("matches", linha);
     } catch (e) {
       // BD sem matches.phase: a fase fica guardada no nº da jornada (1 = 1ª eliminatória ... 5 = final)
+      if (/scorer_list/i.test(e.message || "")) throw new Error("Para gravar os marcadores do jogo corre a secção de 03/10/2026 do schema.sql (matches.scorer_list).");
       if (!/phase/i.test(e.message || "")) throw e;
       delete linha.phase;
       if (fase) linha.jornada = VFN.numeroFase(fase);
