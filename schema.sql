@@ -572,6 +572,31 @@ create policy "Admin manages all" on public.match_reports for all to authenticat
 create policy "draft own row" on public.draft for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- =====================================================================
+-- ATUALIZAÇÃO 03/10/2026 (v5) — correr esta secção antes do deploy v5
+-- Fica depois do bloco RLS de propósito: esse bloco apaga as políticas
+-- das tabelas principais e as políticas novas abaixo têm de sobreviver.
+-- =====================================================================
+
+-- [Tarefa 1] Taças: o jogo tem fase; a jornada deixa de ser obrigatória (fica a null)
+alter table public.matches add column if not exists phase text;
+alter table public.matches drop constraint if exists matches_phase_check;
+alter table public.matches add constraint matches_phase_check
+  check (phase is null or phase in ('1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'));
+alter table public.league_results alter column jornada drop not null;
+-- jogos do VFN na Taça FDM gravados na v4 com a fase no nº da jornada (1..5) passam para a coluna phase
+update public.matches
+set phase = (array['1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'])[jornada], jornada = null
+where competition = 'Taça 2ª Liga FDM' and phase is null and jornada between 1 and 5;
+
+-- [Tarefa 1 · Bug 3] Vilar Formoso vs VFN na Taça 2ª Liga FDM: 1ª eliminatória
+-- (id Zerozero 6838; o jogo antigo pode só ter o nome do adversário escrito)
+update public.matches
+set phase = '1eliminatoria', jornada = null
+where competition = 'Taça 2ª Liga FDM'
+  and (opponent_team_id = '6838' or opponent ilike '%vilar formoso%')
+  and phase is null;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

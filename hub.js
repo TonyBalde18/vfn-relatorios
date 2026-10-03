@@ -76,7 +76,7 @@
       <div class="hero-teams">${casa ? vfn : adv}<span class="hero-vs">vs</span>${casa ? adv : vfn}</div>
       <div class="hero-meta">
         <span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(jogo.date, true))}</span>
-        <span>${casa ? VFN.icone("house", 16) + " Casa" : VFN.icone("bus", 16) + " Fora"}${jogo.jornada ? ` · Jornada ${esc(jogo.jornada)}` : ""}${jogo.venue ? ` · ${esc(jogo.venue)}` : ""}</span>
+        <span>${casa ? VFN.icone("house", 16) + " Casa" : VFN.icone("bus", 16) + " Fora"}${VFN.etiquetaJornada(jogo) ? ` · ${esc(VFN.etiquetaJornada(jogo))}` : ""}${jogo.venue ? ` · ${esc(jogo.venue)}` : ""}</span>
       </div>
       <div class="hero-countdown" aria-live="off"><span>Faltam</span><strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></div>`;
   }
@@ -494,15 +494,18 @@
 
   /** Todos os jogos da competição: resultados entre outras equipas e jogos do VFN (não cancelados). */
   function jogosDaJornada(dados, competicao) {
+    // nas taças a jornada pode vir a null: agrupa pelo nº da fase (1 = 1ª eliminatória ... 5 = final)
+    const taca = VFN.eliminatorias(competicao);
+    const numero = (phase, jornada) => taca ? VFN.numeroFase(VFN.faseDoJogo(phase, jornada)) : Number(jornada) || 0;
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
       const lista = Array.isArray(r.scorer_list) && r.scorer_list.length ? r.scorer_list.map(s => `${s.player_name}${Number(s.count) > 1 ? " (" + s.count + ")" : ""}`).join(", ") : "";
-      return { origem: "liga", id: r.id, jornada: Number(r.jornada) || 0, fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
+      return { origem: "liga", id: r.id, jornada: numero(r.phase, r.jornada), fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
     });
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
       const jogado = VFN.estadoJogo(j) === "jogado";
-      return { origem: "vfn", id: j.id, jornada: Number(j.jornada) || 0, fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
+      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
     });
     return [...liga, ...vfn];
   }
@@ -540,7 +543,7 @@
           const resultado = temRes ? `${Number(j.gc)} – ${Number(j.gf)}` : "–";
           const data = j.data ? `${esc(VFN.dataCurta(j.data))}${VFN.horaIso(j.data) && VFN.horaIso(j.data) !== "00:00" ? " · " + esc(VFN.horaIso(j.data)) : ""}` : "";
           const acoes = j.origem === "vfn"
-            ? '<span class="jj-tag" title="Jogo do VFN (vem do Calendário)">VFN</span>'
+            ? `<span class="jj-tag" title="Jogo do VFN (vem do Calendário)">VFN</span>${o.editavel ? `<button type="button" class="icon-btn" data-acao="editar-vfn" data-id="${esc(j.id)}" title="Editar jogo do VFN" aria-label="Editar jogo do VFN">${VFN.icone("pencil", 16)}</button>` : ""}`
             : o.editavel ? `<span class="row-actions"><button type="button" class="icon-btn" data-acao="editar" data-id="${esc(j.id)}" title="Editar resultado" aria-label="Editar resultado">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" data-id="${esc(j.id)}" title="Eliminar resultado" aria-label="Eliminar resultado">${VFN.icone("trash-2", 16)}</button></span>` : "";
           return `<div class="jornada-jogo${j.origem === "vfn" ? " is-vfn-game" : ""}">
             ${lado(j.casa, "jj-casa")}
@@ -710,7 +713,7 @@
       ({ casa, fora } = VFN.equipasDoJogo(j, dados.teams));
       estado = VFN.estadoJogo(j) || "agendado";
       if (estado === "jogado") { gc = j.score_home; gf = j.score_away; }
-      data = j.date; comp = j.competition; local = j.venue || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = j.jornada;
+      data = j.date; comp = j.competition; local = j.venue || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = VFN.etiquetaJornada(j, true);
       relatorio = relatorioDoJogo(dados, j.id);
       eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
       // sem eventos no relatório, os golos do VFN não são conhecidos; o lado VFN fica à esquerda/direita conforme casa/fora
@@ -719,7 +722,7 @@
       const r = (dados.league_results || []).find(x => String(x.id) === id);
       if (!r) return vazio("Jogo não encontrado.");
       ({ casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams));
-      gc = r.score_home; gf = r.score_away; data = r.match_date; comp = r.competition; jornada = r.jornada;
+      gc = r.score_home; gf = r.score_away; data = r.match_date; comp = r.competition; jornada = VFN.etiquetaJornada(r, true);
       estado = gc != null && gf != null ? "jogado" : "agendado";
       eventos = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ minuto: null, tipo: "Golo", texto: `${s.player_name}${Number(s.count) > 1 ? " ×" + s.count : ""}`, lado: String(s.team_id) === String(fora.id) ? "fora" : "casa" }));
       if (r.scorers) eventos.push({ minuto: null, tipo: "Nota", texto: r.scorers, lado: "centro" });
@@ -739,7 +742,7 @@
       </div>
       <div class="dj-meta">
         ${data ? `<span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(data, true))}</span>` : ""}
-        <span>${VFN.icone("trophy", 16)} ${esc(comp || "—")}${jornada ? ` · J${esc(jornada)}` : ""}</span>
+        <span>${VFN.icone("trophy", 16)} ${esc(comp || "—")}${jornada ? ` · ${esc(jornada)}` : ""}</span>
         ${local ? `<span>${VFN.icone("map-pin", 16)} ${esc(local)}</span>` : ""}
       </div>
       <h4 class="perfil-subtitulo">Eventos</h4>

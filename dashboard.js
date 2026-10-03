@@ -496,15 +496,14 @@ function multasFiltradasDash() {
 function renderTabelaMultasDash(lista) {
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  const aDefinir = lista.filter(f => !f.paid && VFN.multaADefinir(f)).length;
   $("dbMultasResumo").innerHTML = `
-    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${VFN.formatoEuro.format(pendente)}</strong>${aDefinir ? `<small class="valor-a-definir-nota">+ ${aDefinir} a definir (% do ordenado)</small>` : ""}</div>
+    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${VFN.formatoEuro.format(pendente)}</strong></div>
     <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${VFN.formatoEuro.format(pago)}</strong></div>
     <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
   $("dbMultasBody").innerHTML = lista.length ? lista.map(f => `
     <tr>
       <td data-v="${esc((jogadorPorIdDash(f.player_id) || {}).nome || "")}">${celulaJogadorDash(f.player_id)}</td>
-      <td class="fine-infraction">${esc(VFN.rotuloMulta(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${esc(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${esc(f.description)}</span>` : ""}</td>
+      <td class="fine-infraction">${esc(VFN.rotuloMulta(f.infraction_type))}${f.description ? `<span class="fine-desc">${esc(f.description)}</span>` : ""}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
       <td><span class="status-badge ${f.paid ? "status-jogado result-V" : "status-jogado result-D"}">${f.paid ? "Pago" : "Pendente"}</span>${f.paid && f.paid_date ? `<span class="fine-desc">em ${esc(VFN.dataDDMMAAAA(f.paid_date))}</span>` : ""}</td>
       <td data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td>
@@ -607,7 +606,7 @@ function abrirPresencasJogadorDash(id) {
 function initMultasPresencasDash() {
   $("dbDividasImagem").addEventListener("click", () => VFNComp.exportarImagemDividas(dados.fines, { pessoa: jogadorPorIdDash }));
   $("dbDividasXlsx").addEventListener("click", () => VFN.exportarXlsx(`dividas_vfn_${new Date().toISOString().slice(0, 10)}.xlsx`, [{ nome: "Dívidas", ...VFN.folhaDividas(dados.fines, id => (jogadorPorIdDash(id) || {}).nome) }]));
-  $("dbPresencasGrelha").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b) abrirPresencasJogadorDash(b.dataset.presencasJogador); });
+  $("dbPresencasGrelha").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b && !e.target.closest("[data-jogador]")) abrirPresencasJogadorDash(b.dataset.presencasJogador); });
   $("bannerProximoJogo").addEventListener("toggle", e => { try { localStorage.setItem("vfnBannerProximo", e.target.open ? "aberto" : "fechado"); } catch (err) { /* ignora */ } });
   $("dbMultasJogador").addEventListener("change", e => { filtrosMultas.jogador = e.target.value; renderMultasDash(); });
   $("dbMultasMes").addEventListener("change", e => { filtrosMultas.mes = e.target.value; renderMultasDash(); });

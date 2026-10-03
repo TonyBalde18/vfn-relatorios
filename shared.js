@@ -18,8 +18,7 @@
     comunilog: { src: "assets/sponsors/comunilog.png", alt: "Comunilog" }
   };
 
-  /* Tabela de multas do plantel. valor null = percentagem do ordenado (amount 0 até os dirigentes definirem). */
-  // Tipos de multa por omissão (a tabela fine_types no Supabase substitui-os ao carregar)
+  // Tipos de multa por omissão, todos com valor fixo (a tabela fine_types no Supabase substitui-os ao carregar)
   const TIPOS_MULTA = [
     [1, "Joia Mensal", 0.5], [2, "Atraso treino até 5min", 0.5], [3, "Atraso treino após 5min", 1],
     [4, "Atraso jogo até 5min", 1], [5, "Atraso jogo após 5min", 2], [6, "Falta treino sem justificação", 5],
@@ -30,8 +29,6 @@
     [19, "Levantar da refeição sem autorização", 1]
   ].map(([id, tipo, valor, pagador]) => ({ id, tipo, valor, pagador: pagador || "jogador", descricao: "" }));
   const ID_JOIA = 1, ID_FALTA_TREINO = 6;
-  // tipos antigos (antes da v4) cujo valor era uma % do ordenado
-  const TIPOS_PERCENTAGEM_ANTIGOS = ["Atraso ao treino", "Falta ao treino injustificada", "falta_treino"];
 
   /** Substitui os tipos pelos da tabela fine_types (mantém o mesmo array). */
   function definirTiposMulta(linhas) {
@@ -53,25 +50,19 @@
     return { id: String(t.id), idBD: String(t.id), nome: t.name, nomeCompleto: t.full_name || t.name, posicao: t.role === "treinador" ? "Treinador" : (t.role || "Staff"), numero: "", fotoUrl: t.photo_url || `${BASE_SITE}assets/staff/${t.id}.png`, staff: true };
   }
 
-  const NOTA_PERCENTAGEM = "Percentagem do ordenado — valor a definir pelos dirigentes";
   const formatoEuro = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" });
 
   function tipoMulta(nome) {
     return TIPOS_MULTA.find(t => t.tipo === nome) || null;
   }
 
-  /** Multa antiga em percentagem do ordenado ainda sem valor definido. */
-  function multaADefinir(f) {
-    return TIPOS_PERCENTAGEM_ANTIGOS.includes(f.infraction_type) && !(Number(f.amount) > 0);
-  }
-
   function rotuloMulta(tipo) {
     return tipo === "falta_treino" ? "Falta ao treino injustificada" : tipo;
   }
 
-  /** Valor da multa para mostrar: euros, ou "% ordenado" enquanto não estiver definido. */
+  /** Valor da multa para mostrar (sempre um valor fixo em euros). */
   function valorMultaHTML(f) {
-    return multaADefinir(f) ? '<span class="valor-a-definir" title="' + NOTA_PERCENTAGEM + '">% ordenado</span>' : formatoEuro.format(Number(f.amount) || 0);
+    return formatoEuro.format(Number(f.amount) || 0);
   }
 
   /* Disponibilidade dos jogadores (players.availability). Suspensão ao 5.º amarelo (AF Guarda). */
@@ -640,6 +631,18 @@
     return (FASES_TACA.find(([k]) => k === fase) || [, ""])[1];
   }
 
+  /** Nº de ordem da fase (1 = 1ª eliminatória ... 5 = final); 0 se não for uma fase. */
+  function numeroFase(fase) {
+    return FASES_TACA.findIndex(([k]) => k === fase) + 1;
+  }
+
+  /** "J3" / "Jornada 3" num jogo de liga, ou o nome da fase nas taças ("" se não houver). */
+  function etiquetaJornada(jogo, curto) {
+    if (!jogo) return "";
+    if (eliminatorias(jogo.competition)) return nomeFase(faseDoJogo(jogo.phase, jogo.jornada));
+    return jogo.jornada ? (curto ? "J" : "Jornada ") + jogo.jornada : "";
+  }
+
   /* ---------- Capitão ---------- */
 
   // ordem de prioridade (ids Zerozero): Toneca, Silvestre, Marco, Macedo
@@ -763,23 +766,22 @@
     return { linhas: [cab, ...linhas], larguras: [5, 24, ...sessoes.map(() => 11), 15, 12, 12], percentagem: cab.length - 1, paisagem: true };
   }
 
-  /** Folha de multas: Nome | Tipo de Multa | Data | Valor (ou "% salário") | Notas, com total no rodapé. */
   /** Folha de dívidas: Jogador | Tipo de dívida | Valor | Data | Estado | Observações (só multas por pagar). */
   function folhaDividas(multas, nomeJogador) {
     const porPagar = multas.filter(f => !f.paid).sort((a, b) => String(nomeJogador(a.player_id) || "").localeCompare(String(nomeJogador(b.player_id) || ""), "pt") || String(a.match_date || "").localeCompare(String(b.match_date || "")));
     const cab = ["Jogador", "Tipo de dívida", "Valor (€)", "Data", "Estado", "Observações"];
-    const linhas = porPagar.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), multaADefinir(f) ? "% salário" : Number(f.amount) || 0, dataDDMMAAAA(f.match_date), "Pendente", f.description || ""]);
+    const linhas = porPagar.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), Number(f.amount) || 0, dataDDMMAAAA(f.match_date), "Pendente", f.description || ""]);
     const total = porPagar.reduce((t, f) => t + (Number(f.amount) || 0), 0);
     return { linhas: [cab, ...linhas, [], ["Total em dívida", "", total, "", "", ""]], larguras: [24, 34, 12, 12, 11, 40], euros: 2, paisagem: true };
   }
 
+  /** Folha de multas: Nome | Tipo de Multa | Data | Valor | Notas, com total no rodapé. */
   function folhaMultas(multas, nomeJogador) {
     const cab = ["Nome", "Tipo de Multa", "Data", "Valor (€)", "Notas"];
     const ordenadas = [...multas].sort((a, b) => String(a.match_date || "").localeCompare(String(b.match_date || "")));
-    const linhas = ordenadas.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), dataDDMMAAAA(f.match_date), multaADefinir(f) ? "% salário" : Number(f.amount) || 0, [f.paid ? "Paga" : "Pendente", f.description].filter(Boolean).join(" · ")]);
+    const linhas = ordenadas.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), dataDDMMAAAA(f.match_date), Number(f.amount) || 0, [f.paid ? "Paga" : "Pendente", f.description].filter(Boolean).join(" · ")]);
     const total = ordenadas.reduce((s, f) => s + (Number(f.amount) || 0), 0);
-    const aDefinir = ordenadas.filter(multaADefinir).length;
-    return { linhas: [cab, ...linhas, [], ["Total acumulado", "", "", total, aDefinir ? `+ ${aDefinir} multa(s) em % do salário por definir` : ""]], larguras: [24, 34, 12, 12, 40], euros: 3, paisagem: true };
+    return { linhas: [cab, ...linhas, [], ["Total acumulado", "", "", total, ""]], larguras: [24, 34, 12, 12, 40], euros: 3, paisagem: true };
   }
 
   /** Gera o .xlsx (várias folhas) e descarrega-o. As folhas com paisagem: true ficam em orientação horizontal. */
@@ -1006,8 +1008,8 @@
 
   window.VFN = {
     COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, NOTA_PERCENTAGEM, formatoEuro, tipoMulta, multaADefinir, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
+    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao, sponsorDaCompeticao, renderSponsors,

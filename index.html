@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -379,11 +379,11 @@
         <div class="field jf-jornada"><label for="jornadaNumero">Jornada</label><input type="number" id="jornadaNumero" min="1" placeholder="Nº"></div>
         <div class="field jf-jornada" hidden><label for="jornadaFase">Fase</label><select id="jornadaFase"></select></div>
         <div class="field jf-data"><label for="jornadaData">Data do jogo</label><input type="date" id="jornadaData"></div>
-        <div class="field jf-casa"><label for="jornadaCasa">Equipa casa</label><select id="jornadaCasa"></select></div>
-        <div class="field jf-golos"><label for="jornadaGolosCasa">Golos casa</label><input type="number" id="jornadaGolosCasa" min="0"></div>
-        <div class="field jf-golos"><label for="jornadaGolosFora">Golos fora</label><input type="number" id="jornadaGolosFora" min="0"></div>
-        <div class="field jf-fora"><label for="jornadaFora">Equipa fora</label><select id="jornadaFora"></select></div>
         <div class="field jf-vencedor" hidden><label for="jornadaVencedor">Vencedor (passa à fase seguinte)</label><select id="jornadaVencedor"></select><small class="muted">Automático pelo resultado; em caso de empate escolhe quem ganhou nos penáltis.</small></div>
+        <div class="field jf-casa"><label for="jornadaCasa">Equipa da casa</label><select id="jornadaCasa"></select></div>
+        <div class="field jf-golos"><label for="jornadaGolosCasa">Golos casa</label><input type="number" id="jornadaGolosCasa" min="0" inputmode="numeric"></div>
+        <div class="field jf-golos"><label for="jornadaGolosFora">Golos fora</label><input type="number" id="jornadaGolosFora" min="0" inputmode="numeric"></div>
+        <div class="field jf-fora"><label for="jornadaFora">Equipa de fora</label><select id="jornadaFora"></select></div>
         <div class="field jf-marcadores"><label for="jornadaMarcadores">Notas (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: golo de penálti, expulsão aos 80'"></div>
         <div class="jf-lista-marcadores">
           <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><button type="button" id="btnAddMarcador" class="btn btn-ghost btn-sm">+ Marcador</button></div>
@@ -404,7 +404,7 @@
       <div id="jornadasLista" class="jornadas-lista"></div>
       <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
       <div id="jornadasMarcadores"></div>
-      <small class="muted">Os jogos do VFN (marcados como VFN) vêm do Calendário e editam-se no separador Resultados.</small>
+      <small class="muted">Os jogos do VFN (marcados como VFN) vêm do Calendário; usa o lápis para editar data, hora, local, competição e fase.</small>
     </div>
   </section>
 
@@ -520,7 +520,6 @@
       <div class="field"><label for="multaValor">Valor (€)</label><input type="number" id="multaValor" min="0" step="0.5" inputmode="decimal" readonly aria-describedby="multaValorAjuda"><label class="check-inline"><input type="checkbox" id="multaValorManual"> Alterar valor desta multa</label><small id="multaValorAjuda" class="muted">O valor vem do tipo de multa.</small></div>
       <div class="field"><label for="multaData">Data</label><input type="date" id="multaData"></div>
     </div>
-    <p id="multaNotaPercentagem" class="nota-percentagem" role="note" hidden>Percentagem do ordenado — valor a definir pelos dirigentes. A multa fica pendente com valor 0 até ser definida.</p>
     <div class="field"><label for="multaDescricao">Descrição</label><textarea id="multaDescricao" rows="3" placeholder="Detalhes (opcional)"></textarea></div>
     <p id="multaErro" class="form-error" role="alert"></p>
     <div class="modal-actions">
@@ -559,7 +558,8 @@
     <div class="grid grid-3">
       <div class="field"><label for="jogoData">Data</label><input type="date" id="jogoData"></div>
       <div class="field"><label for="jogoHora">Hora</label><input type="time" id="jogoHora" value="15:00"></div>
-      <div class="field"><label for="jogoJornada">Jornada</label><input type="number" id="jogoJornada" min="1"></div>
+      <div class="field" id="jogoJornadaWrap"><label for="jogoJornada">Jornada</label><input type="number" id="jogoJornada" min="1"></div>
+      <div class="field" id="jogoFaseWrap" hidden><label for="jogoFase">Fase</label><select id="jogoFase"></select></div>
     </div>
     <div class="grid grid-2">
       <div class="field"><label for="jogoCasaFora">Casa / Fora</label><select id="jogoCasaFora"><option>Casa</option><option>Fora</option></select></div>
@@ -622,12 +622,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="config.js?v=4"></script>
-<script src="shared.js?v=4"></script>
-<script src="hub.js?v=4"></script>
-<script src="components.js?v=4"></script>
-<script src="relatorio.js?v=4"></script>
-<script src="app.js?v=4"></script>
-<script src="admin.js?v=4"></script>
+<script src="config.js?v=5"></script>
+<script src="shared.js?v=5"></script>
+<script src="hub.js?v=5"></script>
+<script src="components.js?v=5"></script>
+<script src="relatorio.js?v=5"></script>
+<script src="app.js?v=5"></script>
+<script src="admin.js?v=5"></script>
 </body>
 </html>

@@ -35,7 +35,7 @@
     return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}">
         <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
         <div class="match-main">
-          <div class="match-line">${H().tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
+          <div class="match-line">${H().tagCompeticao(j.competition)}${VFN.etiquetaJornada(j, true) ? `<small>${esc(VFN.etiquetaJornada(j, true))}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
           <div class="match-opponent">${H().logoEquipa(H().equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
           ${forma.length ? `<div class="form-row form-row-sm match-forma" title="Forma nos ${forma.length} jogos até este (mais recente à esquerda)">${forma.map(x => VFN.chipForma(VFN.letraResultado(x))).join("")}</div>` : ""}
         </div>
@@ -320,8 +320,8 @@
   function dividasPorPessoa(multas, pessoa) {
     const mapa = new Map();
     multas.filter(f => !f.paid).forEach(f => {
-      const d = mapa.get(String(f.player_id)) || { id: String(f.player_id), pessoa: pessoa(f.player_id), n: 0, valor: 0, aDefinir: 0 };
-      d.n++; d.valor += Number(f.amount) || 0; if (VFN.multaADefinir(f)) d.aDefinir++;
+      const d = mapa.get(String(f.player_id)) || { id: String(f.player_id), pessoa: pessoa(f.player_id), n: 0, valor: 0 };
+      d.n++; d.valor += Number(f.amount) || 0;
       mapa.set(d.id, d);
     });
     return [...mapa.values()].sort((a, b) => b.valor - a.valor || b.n - a.n || String((a.pessoa || {}).nome).localeCompare(String((b.pessoa || {}).nome), "pt"));
@@ -334,16 +334,15 @@
   function renderDebtReport(multas, o) {
     const lista = dividasPorPessoa(multas, o.pessoa);
     const total = lista.reduce((t, d) => t + d.valor, 0);
-    const aDefinir = lista.reduce((t, d) => t + d.aDefinir, 0);
     const euro = v => VFN.formatoEuro.format(v);
     return `<div class="dividas${o.imagem ? " dividas-imagem" : ""}">
       <div class="dividas-topo"><img src="assets/logo.png" alt=""><div><strong>ACD Vila Franca das Naves</strong><span>Multas por pagar</span></div></div>
-      <div class="dividas-total"><span>Total em dívida</span><strong>${euro(total)}</strong>${aDefinir ? `<small>+ ${aDefinir} multa${aDefinir === 1 ? "" : "s"} em % do ordenado por definir</small>` : ""}</div>
+      <div class="dividas-total"><span>Total em dívida</span><strong>${euro(total)}</strong></div>
       ${lista.length ? `<ol class="dividas-lista">${lista.map((d, i) => `<li${!o.imagem && d.pessoa ? ` data-jogador="${esc(d.id)}"` : ""}>
         <span class="dividas-pos">${i + 1}</span>
         ${!o.imagem && d.pessoa ? VFN.avatarJogador(d.pessoa, "avatar-xs") : ""}
-        <span class="dividas-nome">${esc(d.pessoa ? d.pessoa.nome : "Jogador removido")}<small>${d.n} multa${d.n === 1 ? "" : "s"}${d.aDefinir ? ` · ${d.aDefinir} em % do ordenado` : ""}</small></span>
-        <strong>${d.valor > 0 || !d.aDefinir ? euro(d.valor) : "a definir"}</strong>
+        <span class="dividas-nome">${esc(d.pessoa ? d.pessoa.nome : "Jogador removido")}<small>${d.n} multa${d.n === 1 ? "" : "s"}</small></span>
+        <strong>${euro(d.valor)}</strong>
       </li>`).join("")}</ol>` : '<p class="dividas-vazio">Não há multas por pagar.</p>'}
       ${o.imagem ? `<p class="dividas-rodape">Atualizado a ${esc(VFN.dataDDMMAAAA(new Date().toISOString().slice(0, 10)))}</p>` : ""}
     </div>`;

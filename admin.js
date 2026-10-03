@@ -213,9 +213,8 @@ function renderMultas() {
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  const aDefinir = lista.filter(f => !f.paid && VFN.multaADefinir(f)).length;
   el("multasResumo").innerHTML = `
-    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(pendente)}</strong>${aDefinir ? `<small class="valor-a-definir-nota">+ ${aDefinir} a definir (% do ordenado)</small>` : ""}</div>
+    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(pendente)}</strong></div>
     <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${formatoEuro.format(pago)}</strong></div>
     <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
 
@@ -227,7 +226,7 @@ function renderMultas() {
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
       <td data-v="${escapeHtml((pessoaPorId(f.player_id) || {}).nome || "")}">${celulaJogadorHTML(f.player_id)}</td>
-      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${VFN.multaADefinir(f) ? `<span class="nota-percentagem">${escapeHtml(VFN.NOTA_PERCENTAGEM)}</span>` : ""}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
+      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
       <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
       <td data-v="${escapeHtml(f.match_date || "")}">${dataPt(f.match_date)}</td>
@@ -249,7 +248,6 @@ function rotuloInfraccao(tipo) {
 /** Ao escolher o tipo, o valor vem da tabela (só editável com "Alterar valor"); o pagador define a lista de pessoas. */
 function aplicarTipoMulta(preencherValor) {
   const tipo = VFN.tipoMulta(el("multaTipo").value);
-  el("multaNotaPercentagem").hidden = !(multaEmEdicao && VFN.multaADefinir(multaEmEdicao) && el("multaTipo").value === multaEmEdicao.infraction_type);
   if (preencherValor && tipo && !el("multaValorManual").checked) el("multaValor").value = tipo.valor;
   const treinador = !!tipo && tipo.pagador === "treinador";
   const anterior = el("multaJogador").value;
@@ -303,8 +301,7 @@ async function guardarLinhaMulta(linha) {
 async function guardarMulta() {
   const valor = Number(String(el("multaValor").value).replace(",", "."));
   const tipo = VFN.tipoMulta(el("multaTipo").value);
-  const aDefinir = !!multaEmEdicao && VFN.multaADefinir(multaEmEdicao) && el("multaTipo").value === multaEmEdicao.infraction_type; // antigas em % do ordenado
-  const erro = !el("multaJogador").value ? "Escolhe quem paga a multa." : !(valor >= 0) || (!aDefinir && !(valor > 0)) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
+  const erro = !el("multaJogador").value ? "Escolhe quem paga a multa." : !(valor > 0) ? "Indica um valor em euros maior que zero." : !el("multaData").value ? "Indica a data." : "";
   el("multaErro").textContent = erro;
   if (erro) return;
   const linha = {
@@ -418,7 +415,7 @@ async function alternarPagamento(multa, pago) {
 }
 
 async function apagarMulta(multa) {
-  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}"${VFN.multaADefinir(multa) ? "" : " de " + formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
+  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}" de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
   try {
     await dadosClube.remover("fines", multa.id);
     cacheAdmin.fines = cacheAdmin.fines.filter(f => f !== multa);
@@ -585,7 +582,7 @@ function renderPresencas() {
   // a grelha é redesenhada a cada clique: guardar scroll (da grelha e da página) e foco
   const grelhaAntiga = container.querySelector(".attendance-wrap");
   const scroll = { top: grelhaAntiga ? grelhaAntiga.scrollTop : 0, left: grelhaAntiga ? grelhaAntiga.scrollLeft : 0, pagina: window.scrollY };
-  const focada = document.activeElement && document.activeElement.classList.contains("att-cell") ? { jogador: document.activeElement.dataset.jogador, sessao: document.activeElement.dataset.sessao } : null;
+  const focada = document.activeElement && document.activeElement.classList.contains("att-cell") ? { jogador: document.activeElement.dataset.attJogador, sessao: document.activeElement.dataset.sessao } : null;
 
   if (!sessoes.length) {
     container.innerHTML = `<p class="empty-state">Sem sessões em ${escapeHtml(el("presencasMes").selectedOptions[0].textContent)}. Usa "Adicionar Sessão" para criar um treino ou jogo.</p>`;
@@ -607,7 +604,7 @@ function renderPresencas() {
       const registo = registoPresenca(idBD, s);
       const estado = registo && registo.status || "";
       if (estado) { totais[estado]++; totaisSessao[i][estado]++; totaisGerais[estado]++; }
-      return `<td><button type="button" class="att-cell" data-jogador="${escapeHtml(idBD)}" data-sessao="${i}" data-status="${estado}" aria-label="${escapeHtml(j.nome)}, ${dataPt(s.data)}: ${NOMES_PRESENCA[estado] || "sem registo"}">${estado}</button></td>`;
+      return `<td><button type="button" class="att-cell" data-att-jogador="${escapeHtml(idBD)}" data-sessao="${i}" data-status="${estado}" aria-label="${escapeHtml(j.nome)}, ${dataPt(s.data)}: ${NOMES_PRESENCA[estado] || "sem registo"}">${estado}</button></td>`;
     }).join("");
     return `<tr><th scope="row" class="col-player"><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${escapeHtml(j.nome)}</span></span></th>${celulas}${["P", "F", "A", "J"].map(k => `<td class="col-total total-${k}">${totais[k]}</td>`).join("")}</tr>`;
   }).join("");
@@ -633,13 +630,14 @@ function renderPresencas() {
   grelha.scrollTop = scroll.top;
   grelha.scrollLeft = scroll.left;
   if (focada) {
-    const alvo = [...container.querySelectorAll(".att-cell")].find(b => b.dataset.jogador === focada.jogador && b.dataset.sessao === focada.sessao);
+    const alvo = [...container.querySelectorAll(".att-cell")].find(b => b.dataset.attJogador === focada.jogador && b.dataset.sessao === focada.sessao);
     if (alvo) alvo.focus({ preventScroll: true });
   }
   if (window.scrollY !== scroll.pagina) window.scrollTo(0, scroll.pagina);
 
-  container.querySelectorAll(".att-cell").forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); alternarPresenca(btn.dataset.jogador, sessoes[Number(btn.dataset.sessao)]); }));
-  container.querySelectorAll("[data-presencas-jogador]").forEach(btn => btn.addEventListener("click", () => abrirPresencasJogador(btn.dataset.presencasJogador)));
+  // a célula só marca a presença; a ficha do jogador abre apenas pela foto (data-jogador)
+  container.querySelectorAll(".att-cell").forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); alternarPresenca(btn.dataset.attJogador, sessoes[Number(btn.dataset.sessao)]); }));
+  container.querySelectorAll("[data-presencas-jogador]").forEach(btn => btn.addEventListener("click", e => { if (!e.target.closest("[data-jogador]")) abrirPresencasJogador(btn.dataset.presencasJogador); }));
   container.querySelectorAll(".session-remove").forEach(btn => btn.addEventListener("click", () => removerSessao(sessoes[Number(btn.dataset.sessao)])));
 }
 
@@ -763,6 +761,15 @@ function initCalendarioAdmin() {
   el("btnJogoGuardar").addEventListener("click", guardarJogo);
   ["jogoCompeticao", "jogoGolosVFN", "jogoGolosAdv"].forEach(id => el(id).addEventListener("input", atualizarPenaltisJogo));
   el("jogoCompeticao").addEventListener("change", atualizarPenaltisJogo);
+  el("jogoFase").innerHTML = '<option value="">— Fase —</option>' + VFN.FASES_TACA.map(([k, nome]) => `<option value="${k}">${escapeHtml(nome)}</option>`).join("");
+  el("jogoCompeticao").addEventListener("change", atualizarCamposTaca);
+}
+
+/** Nas taças por eliminatórias o jogo tem fase (a jornada fica a null); nas ligas tem jornada. */
+function atualizarCamposTaca() {
+  const taca = VFN.eliminatorias(el("jogoCompeticao").value);
+  el("jogoJornadaWrap").hidden = taca;
+  el("jogoFaseWrap").hidden = !taca;
 }
 
 /* ---------- Vista mensal (componente partilhado) ---------- */
@@ -810,7 +817,7 @@ function renderCalendarioAdmin() {
     return `<tr data-id="${escapeHtml(j.id)}" class="${proximo && proximo.id === j.id ? "is-vfn-row" : ""}">
       <td data-v="${escapeHtml(VFN.paraData(j.date) ? VFN.paraData(j.date).toISOString() : "")}">${escapeHtml(VFN.dataLonga(j.date, true))}</td>
       <td><span class="comp-tag comp-${VFN.categoriaCompeticao(j.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(j.competition))}</span></td>
-      <td class="num">${j.jornada != null ? escapeHtml(j.jornada) : "—"}</td>
+      <td class="num">${escapeHtml(VFN.etiquetaJornada(j, true).replace(/^J/, "") || "—")}</td>
       <td>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</td>
       <td><span class="team-inline">${logoEquipaHTML(equipaPorId(j.opponent_team_id), nome)}${escapeHtml(nome)}</span></td>
       <td class="num">${g ? `<strong>${g.vfn} – ${g.adv}</strong>` : "—"}</td>
@@ -832,6 +839,8 @@ function abrirModalJogo(jogo) {
   if (!COMPETICOES.includes(comp)) el("jogoCompeticao").add(new Option(comp, comp));
   el("jogoCompeticao").value = comp;
   el("jogoJornada").value = jogo && jogo.jornada != null ? jogo.jornada : "";
+  el("jogoFase").value = jogo && VFN.eliminatorias(comp) ? VFN.faseDoJogo(jogo.phase, jogo.jornada) : "";
+  atualizarCamposTaca();
   el("jogoData").value = jogo ? VFN.dataIso(jogo.date) : "";
   el("jogoHora").value = jogo ? VFN.horaIso(jogo.date) : "15:00";
   el("jogoCasaFora").value = jogo && !VFN.jogoEmCasa(jogo) ? "Fora" : "Casa";
@@ -868,10 +877,13 @@ async function guardarJogo() {
   if (erro) return;
   const casa = el("jogoCasaFora").value === "Casa";
   const temResultado = gVFN !== "" && gAdv !== "";
+  const taca = VFN.eliminatorias(el("jogoCompeticao").value);
+  const fase = taca ? el("jogoFase").value : "";
   const linha = {
     ...(jogoEmEdicao || {}),
     competition: el("jogoCompeticao").value,
-    jornada: el("jogoJornada").value ? Number(el("jogoJornada").value) : null,
+    // taça com fase: a jornada não é obrigatória e fica a null
+    jornada: fase ? null : el("jogoJornada").value && !taca ? Number(el("jogoJornada").value) : null,
     date: new Date(`${data}T${el("jogoHora").value || "15:00"}`).toISOString(),
     home_away: casa ? "Casa" : "Fora",
     opponent: nomeAdv,
@@ -886,14 +898,28 @@ async function guardarJogo() {
   const idVFN = VFN.equipaVFN(equipasCalendario).id;
   if (penaltis) linha.winner_id = penaltis === "vfn" ? idVFN : (equipa ? equipa.id : null);
   else if (jogoEmEdicao && "winner_id" in jogoEmEdicao) linha.winner_id = null;
+  // phase só vai no pedido nas taças (ou se já existia), para funcionar antes do SQL de 03/10
+  if (taca) linha.phase = fase || null;
+  else if (jogoEmEdicao && "phase" in jogoEmEdicao) linha.phase = null;
   const botao = el("btnJogoGuardar");
   botao.disabled = true;
   try {
-    const gravado = await dadosClube.guardar("matches", linha);
+    let gravado;
+    try {
+      gravado = await dadosClube.guardar("matches", linha);
+    } catch (e) {
+      // BD sem matches.phase: a fase fica guardada no nº da jornada (1 = 1ª eliminatória ... 5 = final)
+      if (!/phase/i.test(e.message || "")) throw e;
+      delete linha.phase;
+      if (fase) linha.jornada = VFN.numeroFase(fase);
+      gravado = await dadosClube.guardar("matches", linha);
+    }
     jogosCalendario = jogosCalendario.filter(j => String(j.id) !== String(gravado.id)).concat(gravado);
     fecharModalAdmin("modalJogo");
     renderCalendarioAdmin();
     if (calendarioMensalAdmin) calendarioMensalAdmin.render();
+    renderResultados();
+    renderJornadasAdmin();
     renderProximoJogoPreJogo();
   } catch (e) {
     el("jogoErro").textContent = mensagemErro(e);
@@ -953,12 +979,12 @@ function linhaResultadoHTML(j) {
   const valor = v => (v == null || v === "" ? "" : Number(v));
   return `<tr data-id="${escapeHtml(j.id)}" class="${doVFN ? "is-vfn-game" : ""} state-${escapeHtml(estado)}">
     <td class="nowrap">${escapeHtml(VFN.dataLonga(j.date))}</td>
-    <td class="num">${j.jornada != null ? escapeHtml(j.jornada) : "—"}</td>
+    <td class="num">${escapeHtml(VFN.etiquetaJornada(j, true).replace(/^J/, "") || "—")}</td>
     <td class="team-home"><span class="team-inline">${escapeHtml(casa.nome)}${logoPorId(casa.id, casa.nome)}</span></td>
     <td class="score-cell"><input type="number" min="0" data-campo="score_home" value="${valor(j.score_home)}" aria-label="Golos ${escapeHtml(casa.nome)}"><span>–</span><input type="number" min="0" data-campo="score_away" value="${valor(j.score_away)}" aria-label="Golos ${escapeHtml(fora.nome)}"></td>
     <td><span class="team-inline">${logoPorId(fora.id, fora.nome)}${escapeHtml(fora.nome)}</span></td>
     <td><select data-campo="status" aria-label="Estado do jogo">${ESTADOS_JOGO.map(([v, t]) => `<option value="${v}" ${v === estado ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-    <td><div class="row-actions-livre"><button type="button" class="icon-btn" data-jogo="vfn:${escapeHtml(j.id)}" title="Ver detalhe do jogo" aria-label="Ver detalhe do jogo">${VFN.icone("eye", 16)}</button>${doVFN ? botaoRelatorio(j) : ""}${doVFN ? '<span class="muted" title="Jogo do VFN (editar no Calendário)">VFN</span>' : `<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>`}</div></td>
+    <td><div class="row-actions-livre"><button type="button" class="icon-btn" data-jogo="vfn:${escapeHtml(j.id)}" title="Ver detalhe do jogo" aria-label="Ver detalhe do jogo">${VFN.icone("eye", 16)}</button>${doVFN ? botaoRelatorio(j) : ""}${doVFN ? `<button type="button" class="icon-btn" data-acao="editar-vfn" title="Editar jogo (data, hora, local, competição, fase)" aria-label="Editar jogo">${VFN.icone("pencil", 16)}</button>` : `<button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar jogo" aria-label="Eliminar jogo">${VFN.icone("trash-2", 16)}</button>`}</div></td>
   </tr>`;
 }
 
@@ -991,6 +1017,8 @@ function renderResultados() {
     tr.querySelectorAll("[data-campo]").forEach(input => input.addEventListener("change", () => alterarResultado(jogo, tr, input)));
     const apagar = tr.querySelector("[data-acao=apagar]");
     if (apagar) apagar.addEventListener("click", () => apagarOutroJogo(jogo));
+    const editar = tr.querySelector("[data-acao=editar-vfn]");
+    if (editar) editar.addEventListener("click", () => abrirModalJogo(jogo));
   });
 }
 
@@ -1093,6 +1121,11 @@ function initJornadas() {
   el("jornadasLista").addEventListener("click", e => {
     const botao = e.target.closest("[data-acao]");
     if (!botao) return;
+    if (botao.dataset.acao === "editar-vfn") {
+      const jogo = jogosCalendario.find(j => String(j.id) === botao.dataset.id);
+      if (jogo) abrirModalJogo(jogo);
+      return;
+    }
     const registo = resultadosLiga.find(r => String(r.id) === botao.dataset.id);
     if (!registo) return;
     if (botao.dataset.acao === "editar") editarResultadoLiga(registo);
@@ -1159,7 +1192,7 @@ function limparFormJornada(manterJornada) {
 function editarResultadoLiga(r) {
   resultadoEmEdicao = r;
   filtrosJornadas.competicao = r.competition;
-  el("jornadaNumero").value = r.jornada;
+  el("jornadaNumero").value = r.jornada ?? "";
   if (VFN.eliminatorias(r.competition)) el("jornadaFase").value = VFN.faseDoJogo(r.phase, r.jornada) || "1eliminatoria";
   el("jornadaData").value = r.match_date || "";
   el("jornadaCasa").innerHTML = opcoesEquipasLiga(r.home_team_id);
@@ -1179,10 +1212,11 @@ function editarResultadoLiga(r) {
 
 async function guardarResultadoLiga() {
   const taca = VFN.eliminatorias(filtrosJornadas.competicao);
-  const jornada = taca ? Number(el("jornadaFase").selectedOptions[0].dataset.jornada) : Number(el("jornadaNumero").value);
+  // nas taças só a fase é obrigatória: a jornada fica a null
+  const jornada = taca ? null : Number(el("jornadaNumero").value);
   const casa = equipaPorId(el("jornadaCasa").value), fora = equipaPorId(el("jornadaFora").value);
   const gc = el("jornadaGolosCasa").value, gf = el("jornadaGolosFora").value;
-  const erro = !(jornada > 0) ? "Indica o número da jornada." : !casa || !fora ? "Escolhe a equipa da casa e a de fora." : casa.id === fora.id ? "As equipas têm de ser diferentes." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum, se o jogo ainda não se realizou)." : "";
+  const erro = taca && !el("jornadaFase").value ? "Escolhe a fase." : !taca && !(jornada > 0) ? "Indica o número da jornada." : !casa || !fora ? "Escolhe a equipa da casa e a de fora." : casa.id === fora.id ? "As equipas têm de ser diferentes." : (gc === "") !== (gf === "") ? "Indica os dois resultados (ou nenhum, se o jogo ainda não se realizou)." : "";
   el("jornadasErro").textContent = erro;
   if (erro) return;
   const linha = {
@@ -1211,9 +1245,11 @@ async function guardarResultadoLiga() {
     try {
       gravado = await dadosClube.guardar("league_results", linha);
     } catch (e) {
-      // antes do SQL v4 as colunas phase/winner_id não existem: a fase fica no nº da jornada
-      if (!taca || !/phase|winner_id/i.test(e.message || "")) throw e;
-      delete linha.phase; delete linha.winner_id;
+      // antes do SQL de 03/10 a jornada é obrigatória (e antes da v4 não há phase/winner_id):
+      // a fase fica também no nº da jornada (1 = 1ª eliminatória ... 5 = final)
+      if (!taca || !/phase|winner_id|jornada|not-null/i.test(e.message || "")) throw e;
+      linha.jornada = VFN.numeroFase(linha.phase);
+      if (/phase|winner_id/i.test(e.message || "")) { delete linha.phase; delete linha.winner_id; }
       gravado = await dadosClube.guardar("league_results", linha);
     }
     resultadosLiga = resultadosLiga.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
@@ -1227,7 +1263,7 @@ async function guardarResultadoLiga() {
 }
 
 async function apagarResultadoLiga(r) {
-  if (!confirm(`Eliminar ${r.home_team_name} – ${r.away_team_name} (jornada ${r.jornada})?`)) return;
+  if (!confirm(`Eliminar ${r.home_team_name} – ${r.away_team_name} (${VFN.etiquetaJornada(r) || "sem jornada"})?`)) return;
   try {
     await dadosClube.remover("league_results", r.id);
     resultadosLiga = resultadosLiga.filter(x => x !== r);
