@@ -756,7 +756,7 @@ async function entrarComSessao(sessao) {
   const perfil = await VFN.obterPapel(cliente, utilizador);
   if (!perfil) {
     await cliente.auth.signOut();
-    mostrarLogin("Este utilizador ainda não tem acesso ao dashboard. Pede ao administrador para te atribuir um papel.");
+    mostrarLogin("Este utilizador não tem acesso ao dashboard. Se és jogador, entra na Área do Jogador (equipa.html).");
     return;
   }
   await iniciarApp(perfil);

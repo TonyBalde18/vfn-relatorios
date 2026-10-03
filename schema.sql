@@ -651,6 +651,94 @@ on conflict (id) do update set
 alter table public.external_players add column if not exists photo_url text;
 alter table public.external_players add column if not exists number integer;
 
+-- [v5 Tarefa 6] Contas dos jogadores (equipa.html)
+-- Nota: a ligação usa a coluna nova players.auth_user_id e NÃO players.user_id, porque o admin
+-- reescreve user_id com o seu próprio id sempre que sincroniza o plantel (e a política de escrita
+-- do admin depende disso). Fluxo:
+--   1. Supabase → Authentication → Invite user (email do jogador)
+--   2. No admin (ficha do jogador) preencher "Email da conta" com o mesmo email
+--   3. No primeiro login em equipa.html a conta liga-se sozinha (vfn_ligar_minha_conta);
+--      ou liga já à mão:  select public.vfn_ligar_jogador('<id do jogador>', '<email>');
+alter table public.players add column if not exists email text;
+alter table public.players add column if not exists auth_user_id uuid references auth.users(id) on delete set null;
+create unique index if not exists players_auth_user_idx on public.players (auth_user_id) where auth_user_id is not null;
+
+create or replace function public.vfn_player_id() returns text
+language sql stable security definer set search_path = public as $
+  select id from public.players where auth_user_id = auth.uid() limit 1
+$;
+
+create or replace function public.vfn_is_player() returns boolean
+language sql stable security definer set search_path = public as $
+  select exists (select 1 from public.players where auth_user_id = auth.uid())
+$;
+
+-- o jogador liga a própria conta no primeiro login (email da conta = players.email)
+create or replace function public.vfn_ligar_minha_conta() returns text
+language plpgsql security definer set search_path = public as $
+declare pid text;
+begin
+  select id into pid from public.players where auth_user_id = auth.uid() limit 1;
+  if pid is not null then return pid; end if;
+  update public.players set auth_user_id = auth.uid()
+  where auth_user_id is null and email is not null and lower(email) = lower(auth.email())
+  returning id into pid;
+  return pid;
+end $;
+revoke all on function public.vfn_ligar_minha_conta() from public, anon;
+grant execute on function public.vfn_ligar_minha_conta() to authenticated;
+
+-- ligação manual pelo admin (no SQL Editor ou por rpc)
+create or replace function public.vfn_ligar_jogador(p_player_id text, p_email text) returns boolean
+language plpgsql security definer set search_path = public as $
+declare uid uuid;
+begin
+  if auth.uid() is not null and not public.vfn_is_admin() then raise exception 'Só o admin pode ligar contas'; end if;
+  select id into uid from auth.users where lower(email) = lower(p_email);
+  if uid is null then return false; end if;
+  update public.players set auth_user_id = uid, email = p_email where id = p_player_id;
+  return found;
+end $;
+revoke all on function public.vfn_ligar_jogador(text, text) from public, anon;
+grant execute on function public.vfn_ligar_jogador(text, text) to authenticated;
+
+-- Plantel para jogadores: sem atributos, notas, email nem ids de autenticação dos outros.
+-- e_eu = true na linha do próprio jogador. Só devolve linhas a jogadores e staff.
+create or replace view public.players_equipa as
+select
+  id, name, display_name, full_name, position, number, photo_url, date_of_birth, availability,
+  jsonb_build_object(
+    'jogos', coalesce(stats->'jogos', '0'::jsonb),
+    'golos', coalesce(stats->'golos', '0'::jsonb),
+    'assistencias', coalesce(stats->'assistencias', '0'::jsonb),
+    'cartoesA', coalesce(stats->'cartoesA', '0'::jsonb),
+    'cartoesV', coalesce(stats->'cartoesV', '0'::jsonb),
+    'minutos', coalesce(stats->'minutos', '0'::jsonb),
+    'pePreferencial', coalesce(stats->'pePreferencial', '""'::jsonb)
+  ) as stats,
+  coalesce(auth_user_id = auth.uid(), false) as e_eu
+from public.players
+where public.vfn_is_player() or public.vfn_is_staff();
+revoke all on public.players_equipa from anon;
+grant select on public.players_equipa to authenticated;
+
+-- Jogadores autenticados (conta ligada) leem multas, presenças, sessões, equipa técnica,
+-- tipos de multa e relatórios publicados (só leitura; escrever continua só para o admin)
+drop policy if exists "Players read fines" on public.fines;
+drop policy if exists "Players read attendance" on public.attendance;
+drop policy if exists "Players read sessions" on public.sessions;
+drop policy if exists "Players read reports published" on public.match_reports;
+drop policy if exists "Players read staff" on public.staff;
+drop policy if exists "Players read fine_types" on public.fine_types;
+create policy "Players read fines" on public.fines for select to authenticated using (public.vfn_is_player());
+create policy "Players read attendance" on public.attendance for select to authenticated using (public.vfn_is_player());
+create policy "Players read sessions" on public.sessions for select to authenticated using (public.vfn_is_player());
+create policy "Players read reports published" on public.match_reports for select to authenticated
+  using ((status = 'published' and public.vfn_is_player()) or public.vfn_is_admin());
+create policy "Players read staff" on public.staff for select to authenticated using (public.vfn_is_player());
+create policy "Players read fine_types" on public.fine_types for select to authenticated using (public.vfn_is_player());
+-- Treinador: Authentication → Invite user e depois o bloco "2. TREINADOR" no fim deste ficheiro.
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

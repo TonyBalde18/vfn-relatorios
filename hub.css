@@ -225,3 +225,21 @@
 .attendance-table.leitura .att-cell { display: grid; place-items: center; cursor: default; }
 .attendance-table.leitura .att-cell:hover { filter: none; }
 #view-hub > .public-stack + .public-stack { margin-top: 16px; }
+
+/* ---------- v5: área do jogador (equipa.html) ---------- */
+.eq-header { gap: 10px; }
+.eq-header-texto { flex: 1; min-width: 0; }
+.eq-header-texto span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eq-avatar { display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 2px solid var(--vfn-yellow); border-radius: 50%; background: #fff; overflow: hidden; cursor: pointer; }
+.eq-avatar .vfn-avatar { width: 100%; height: 100%; }
+.eq-avatar .vfn-avatar.has-photo img { width: 100%; height: 100%; object-fit: cover; }
+.eq-sair { color: #fff; }
+.eq-sair:hover { color: var(--vfn-yellow); }
+.eq-ola { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.eq-ola h2 { margin: 0; color: var(--vfn-navy); font-size: 1.35rem; }
+.eq-ola p { margin: 2px 0 0; font-size: .85rem; color: var(--text-muted); }
+.eq-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+@media (max-width: 640px) { .eq-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.equipa-page #view-inicio > .card { margin-bottom: 16px; }
+.att-lista.sempre { display: block; }
+.equipa-page .login-card form { display: grid; gap: 12px; }

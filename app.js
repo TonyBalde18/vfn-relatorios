@@ -279,7 +279,8 @@ async function guardarRelatorioSupabase() {
 
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
-  const rows = plantel.map(p => ({ ...(colunaDisponibilidade ? { availability: p.disponibilidade || "disponivel" } : {}), id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
+  // auth_user_id nunca vai no pedido (é o jogador que liga a conta); user_id é o dono (admin)
+  const rows = plantel.map(p => ({ ...(colunaDisponibilidade ? { availability: p.disponibilidade || "disponivel" } : {}), ...(colunaEmailConta ? { email: p.email || null } : {}), id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (!rows.length) return;
   const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
   if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
@@ -287,6 +288,7 @@ async function sincronizarPlantelSupabase() {
 
 let temporizadorPlantel = null;
 let colunaDisponibilidade = false; // players.availability já existe no Supabase?
+let colunaEmailConta = false; // players.email (SQL de 03/10) já existe?
 function sincronizarPlantelDiferido() {
   clearTimeout(temporizadorPlantel);
   temporizadorPlantel = setTimeout(sincronizarPlantelSupabase, 1500);
@@ -384,6 +386,8 @@ function migrarJogador(p) {
     nascimento: p.nascimento || stats.nascimento || "",
     pePreferencial: p.pePreferencial || stats.pePreferencial || "",
     disponibilidade: p.disponibilidade || "disponivel",
+    email: p.email || "", // players.email: liga a conta do jogador (equipa.html)
+    contaLigada: !!p.contaLigada, // players.auth_user_id preenchido
     altura: p.altura || stats.altura || "",
     peso: p.peso || stats.peso || "",
     notas: p.notas || stats.notas || "",
@@ -417,7 +421,8 @@ async function carregarPlantelSupabase() {
     while (usados.has(id)) id += 100000; // ids locais têm de ser únicos
     usados.add(id);
     if ("availability" in p) colunaDisponibilidade = true;
-    return migrarJogador({ id, idBD: texto, disponibilidade: p.availability || "disponivel", nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
+    if ("email" in p) colunaEmailConta = true;
+    return migrarJogador({ id, idBD: texto, disponibilidade: p.availability || "disponivel", email: p.email || "", contaLigada: !!p.auth_user_id, nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
   });
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   return true;
@@ -1650,12 +1655,16 @@ function initPlantel() {
     const posicao = el("modalPosicao").value.trim();
     const numero = el("modalNumero").value.trim();
     if (!nome) { el("modalErro").textContent = "Indica o nome curto."; el("modalNome").focus(); return; }
+    const email = el("modalEmailConta").value.trim();
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { el("modalErro").textContent = "O email da conta não é válido."; el("modalEmailConta").focus(); return; }
+    if (email && !colunaEmailConta && supabaseClient && currentUser) { el("modalErro").textContent = "Para guardar o email da conta corre a secção de 03/10/2026 do schema.sql."; return; }
     const jogador = jogadorEmEdicao || Object.assign(jogadorBase(Number(idZerozero), nome, posicao || "—", numero), { idBD: idZerozero });
     jogador.nome = nome; jogador.nomeCompleto = nomeCompleto; jogador.posicao = posicao || "—"; jogador.numero = numero; jogador.fotoUrl = el("modalFoto").value.trim();
       const fotoSupabase = await carregarFotoParaSupabase(el("modalFotoUpload").files[0], jogador.id);
       if (fotoSupabase) jogador.fotoUrl = fotoSupabase;
     jogador.nascimento = el("modalNascimento").value; jogador.pePreferencial = el("modalPe").value;
     jogador.disponibilidade = el("modalDisponibilidade").value;
+    jogador.email = email;
     jogador.posicao = posicoesModal.join("/") || jogador.posicao;
     if (!jogadorEmEdicao) plantel.push(jogador);
     guardarPlantel();
@@ -1700,6 +1709,7 @@ function abrirModalJogador() {
   el("modalFoto").value = "";
   el("modalFotoUpload").value = "";
   el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalDisponibilidade").value = "disponivel";
+  el("modalEmailConta").value = ""; el("modalContaEstado").textContent = "";
   posicoesModal = []; posicaoPrincipalModal = "";
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
@@ -1718,6 +1728,8 @@ function abrirModalExistente(jogador) {
   el("modalFoto").value = jogador.fotoUrl || "";
   el("modalFotoUpload").value = "";
   el("modalNascimento").value = jogador.nascimento || ""; el("modalPe").value = jogador.pePreferencial || ""; el("modalDisponibilidade").value = jogador.disponibilidade || "disponivel";
+  el("modalEmailConta").value = jogador.email || "";
+  el("modalContaEstado").textContent = jogador.contaLigada ? "· conta ligada ✓" : jogador.email ? "· à espera do primeiro login" : "";
   posicoesModal = (jogador.posicao || "").split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || "";
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
