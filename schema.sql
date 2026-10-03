@@ -765,6 +765,21 @@ create policy "Staff manages squads" on public.squads for all to authenticated
 create policy "Players read published squads" on public.squads for select to authenticated
   using (published = true and public.vfn_is_player());
 
+-- =====================================================================
+-- ATUALIZAÇÃO 03/10/2026 (v6) — correr esta secção antes do deploy v6
+-- (depois da secção v5; idempotente)
+-- =====================================================================
+
+-- [v6 Tarefa 2] Convocatória em dois momentos: 'lista' (só os convocados) e 'completa'
+-- (onze inicial, suplentes, formação, capitão e concentração)
+alter table public.squads add column if not exists concentration_time time;
+alter table public.squads add column if not exists concentration_location text;
+alter table public.squads add column if not exists squad_status text default 'lista';
+alter table public.squads drop constraint if exists squads_squad_status_check;
+alter table public.squads add constraint squads_squad_status_check check (squad_status in ('lista', 'completa'));
+-- convocatórias v5 que já tinham onze passam a 'completa'
+update public.squads set squad_status = 'completa' where squad_status = 'lista' and coalesce(array_length(lineup, 1), 0) = 11;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

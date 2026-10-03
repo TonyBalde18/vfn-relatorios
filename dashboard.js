@@ -444,7 +444,7 @@ function renderConvocatoriaDash() {
   const jogo = dados.matches.find(j => j.id === atual);
   const squad = jogo && VFNComp.convocatoriaDoJogo(dados.squads, jogo.id);
   $("dbConvAcoes").hidden = !squad;
-  $("dbConvocatoria").innerHTML = squad ? VFNComp.renderSquadView(dados, jogo, squad, jogadorPorIdDash) : H.vazio("Ainda não há convocatórias (criam-se no admin).");
+  $("dbConvocatoria").innerHTML = squad ? VFNComp.renderSquadView(dados, jogo, squad, jogadorPorIdDash, { todos: jogadores }) : H.vazio("Ainda não há convocatórias (criam-se no admin).");
 }
 
 function initConvocatoriaDash() {

@@ -320,34 +320,44 @@
     </div>
   </section>
 
-  <!-- TAB: CONVOCATÓRIA -->
+  <!-- TAB: CONVOCATÓRIA (dois momentos: 1. lista de convocados · 2. onze inicial) -->
   <section id="tab-convocatoria" class="tab-panel">
     <div class="card" data-aos="fade-up">
       <div class="section-header-row">
         <h2 class="section-title">Convocatória</h2>
         <span id="convEstado" class="estado-relatorio" hidden></span>
       </div>
-      <div class="grid grid-3">
+      <div class="grid grid-2">
         <div class="field"><label for="convJogo">Jogo</label><select id="convJogo"></select></div>
+        <div class="field"><span class="toolbar-label">Momento</span>
+          <div class="conv-modos" id="convModos" role="group" aria-label="Momento da convocatória">
+            <button type="button" class="filter-chip" data-conv-modo="lista">1 · Lista de convocados</button>
+            <button type="button" class="filter-chip" data-conv-modo="completa">2 · Onze inicial</button>
+          </div></div>
+      </div>
+      <div id="convFase2" class="grid grid-2 conv-fase2-campos" hidden>
         <div class="field"><label for="convFormacao">Formação</label><select id="convFormacao"></select></div>
         <div class="field"><label for="convCapitao">Capitão</label><select id="convCapitao"></select><small id="convCapitaoAuto" class="muted"></small></div>
+        <div class="field"><label for="convConcHora">Hora de concentração</label><input type="time" id="convConcHora"></div>
+        <div class="field"><label for="convConcLocal">Local de concentração</label><input type="text" id="convConcLocal" placeholder="Ex: Estádio do Picoto"></div>
       </div>
       <div id="convResumo" class="conv-resumo" role="status"></div>
       <p id="convErro" class="form-error" role="alert"></p>
       <div class="conv-acoes">
         <button type="button" id="btnConvGuardar" class="btn btn-ghost btn-sm"><i data-icon="save" data-size="16"></i> Guardar rascunho</button>
         <button type="button" id="btnConvPublicar" class="btn btn-accent btn-sm"><i data-icon="send" data-size="16"></i> Publicar</button>
+        <button type="button" id="btnConvDespublicar" class="btn btn-ghost btn-sm" hidden><i data-icon="undo-2" data-size="16"></i> Despublicar</button>
         <button type="button" id="btnConvAnuncio1" class="btn btn-ghost btn-sm"><i data-icon="image" data-size="16"></i> Exportar 1:1</button>
         <button type="button" id="btnConvAnuncio2" class="btn btn-ghost btn-sm"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button>
       </div>
     </div>
     <div class="conv-layout">
       <div class="card" data-aos="fade-up">
-        <div class="section-header-row"><h2 class="section-title">Plantel</h2><span class="muted">Titular (T) · Suplente (S) · fora (—)</span></div>
+        <div class="section-header-row"><h2 class="section-title">Plantel</h2><span id="convAjuda" class="muted"></span></div>
         <div id="convPlantel" class="conv-plantel"></div>
       </div>
       <div class="card" data-aos="fade-up">
-        <h2 class="section-title">Pré-visualização</h2>
+        <h2 class="section-title">Pré-visualização <small class="muted">como os jogadores veem</small></h2>
         <div id="convPreview"></div>
       </div>
     </div>

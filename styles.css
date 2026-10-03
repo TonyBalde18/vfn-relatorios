@@ -1593,3 +1593,24 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .jj-golos b { color: var(--vfn-navy); }
 @media (max-width: 520px) { .jj-golos { grid-column: 1 / -1; gap: 2px 12px; } }
 .ic-bola { display: inline-block; line-height: 1; vertical-align: -0.1em; }
+
+/* ---------- v6: convocatória em dois momentos ---------- */
+.conv-modos { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.conv-fase2-campos { margin-top: 4px; }
+.conv-op.ativo[data-conv-papel="convocar"] { background: #16a34a; border-color: #16a34a; color: #fff; }
+.conv-linha.convocado { background: rgba(22, 163, 74, .1); }
+.conv-fase { padding: 3px 10px; border-radius: 999px; background: #E2E8F0; color: #334155; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.conv-fase.fase2 { background: #FFD700; color: var(--vfn-navy); }
+.conv-topo { grid-template-columns: 44px 1fr auto auto; }
+.conv-concentracao { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 16px; border-radius: 12px; background: var(--vfn-navy); color: #fff; }
+.conv-concentracao .ic { color: #FFD700; flex-shrink: 0; }
+.conv-concentracao span { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #FFD700; font-weight: 700; }
+.conv-concentracao strong { font-size: 1.1rem; }
+.conv-bloco + .conv-bloco { margin-top: 4px; }
+.conv-fora .conv-lista li { opacity: .6; }
+.an-foto { position: relative; display: block; width: 46px; height: 52px; border-radius: 8px; overflow: hidden; border: 2px solid #FFD700; background: #0A1628; }
+.an-foto img { width: 100%; height: 100%; object-fit: cover; }
+.an-foto b { position: absolute; right: 0; bottom: 0; padding: 0 4px; border-top-left-radius: 6px; background: #FFD700; color: #0A1628; font-size: .62rem; }
+.anuncio-9x16 .an-foto { width: 70px; height: 79px; }
+.anuncio-9x16 .an-foto b { font-size: .8rem; }
+@media (max-width: 560px) { .conv-topo { grid-template-columns: 40px 1fr; } .conv-topo .conv-fase, .conv-topo .estado-relatorio { grid-column: 2; justify-self: start; } }

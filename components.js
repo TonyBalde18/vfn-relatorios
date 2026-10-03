@@ -430,7 +430,9 @@
     }
   }
 
-  /* ---------- Convocatória (tabela squads) ---------- */
+  /* ---------- Convocatória (tabela squads) ----------
+     Dois momentos (squad_status): 'lista' — só os convocados (publicada logo, com anúncio);
+     'completa' — onze inicial, suplentes, formação, capitão e concentração (até ~1h antes). */
 
   const MIN_CONVOCADOS = 18, MAX_CONVOCADOS = 23;
 
@@ -458,41 +460,69 @@
   }
 
   const idDe = j => String(j.idBD || j.id);
+  const completa = squad => squad.squad_status === "completa";
+
+  /** Hora e local de concentração em destaque (fase 2). */
+  function concentracaoHTML(squad) {
+    if (!completa(squad) || (!squad.concentration_time && !squad.concentration_location)) return "";
+    return `<div class="conv-concentracao">${VFN.icone("map-pin", 22)}<div><span>Concentração</span>
+      <strong>${squad.concentration_time ? esc(String(squad.concentration_time).slice(0, 5)) : "Hora a definir"}${squad.concentration_location ? " · " + esc(squad.concentration_location) : ""}</strong></div></div>`;
+  }
 
   /**
-   * Vista da convocatória: jogo, aviso convocado/não convocado (o: { eu }), onze no campo com o
-   * capitão e lista dos convocados com foto, número e posição.
+   * Vista da convocatória (sem campo tático: esse fica no relatório/análise).
+   * Fase 1: convocados e não convocados com foto, número e nome.
+   * Fase 2: + concentração em destaque, onze inicial e suplentes, capitão.
+   * o: { eu (jogador com sessão), todos (plantel, para os não convocados), campo (pré-visualização do admin) }
    */
   function renderSquadView(dados, jogo, squad, pessoa, o) {
     const opcoes = o || {};
     const nome = H().nomeAdversario(dados, jogo);
     const casa = VFN.jogoEmCasa(jogo);
-    const convocados = jogadoresDosIds(squad.player_ids, pessoa);
-    const onze = (squad.lineup || []).map(id => pessoa(id)).filter(Boolean);
-    const suplentes = jogadoresDosIds(squad.subs, pessoa);
+    const ids = (squad.player_ids || []).map(String);
+    const convocados = jogadoresDosIds(ids, pessoa);
+    const fase2 = completa(squad);
+    const onze = fase2 ? (squad.lineup || []).map(id => pessoa(id)).filter(Boolean) : [];
+    const suplentes = fase2 ? jogadoresDosIds(squad.subs, pessoa) : [];
+    const fora = VFN.ordenarPorPosicao((opcoes.todos || []).filter(j => !ids.includes(idDe(j))));
     const eu = opcoes.eu ? String(opcoes.eu.id) : "";
-    const souConvocado = eu && (squad.player_ids || []).map(String).includes(eu);
+    const souConvocado = eu && ids.includes(eu);
     const souTitular = eu && (squad.lineup || []).map(String).includes(eu);
-    const aviso = eu ? `<div class="conv-aviso ${souConvocado ? "sim" : "nao"}">${VFN.icone(souConvocado ? "circle-check" : "circle-off", 22)}<div><strong>${souConvocado ? "Estás convocado!" : "Não foste convocado para este jogo."}</strong>${souConvocado ? `<span>${souTitular ? "No onze inicial" : "Suplente"}${String(squad.captain_id) === eu ? " · Capitão" : ""}</span>` : ""}</div></div>` : "";
-    const linha = j => `<li${idDe(j) === eu ? ' class="eu"' : ""}>${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${esc(j.numero === "" || j.numero == null ? "—" : j.numero)}</b><span class="conv-nome">${esc(j.nome)}${String(squad.captain_id) === idDe(j) ? " " + VFN.badgeCapitao() : ""}</span><small class="muted">${esc(j.posicao)}</small></li>`;
+    const aviso = eu ? `<div class="conv-aviso ${souConvocado ? "sim" : "nao"}">${VFN.icone(souConvocado ? "circle-check" : "circle-off", 22)}<div><strong>${souConvocado ? "Estás convocado!" : "Não foste convocado para este jogo."}</strong>${souConvocado && fase2 ? `<span>${souTitular ? "No onze inicial" : "Suplente"}${String(squad.captain_id) === eu ? " · Capitão" : ""}</span>` : ""}</div></div>` : "";
+    const linha = j => `<li${idDe(j) === eu ? ' class="eu"' : ""}>${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${esc(j.numero === "" || j.numero == null ? "—" : j.numero)}</b><span class="conv-nome">${esc(j.nome)}${fase2 && String(squad.captain_id) === idDe(j) ? " " + VFN.badgeCapitao() : ""}</span><small class="muted">${esc(j.posicao)}</small></li>`;
+    const bloco = (titulo, lista, classe) => lista.length ? `<section class="conv-bloco ${classe || ""}"><h4 class="perfil-subtitulo">${titulo} <small class="muted">${lista.length}</small></h4><ul class="conv-lista">${lista.map(linha).join("")}</ul></section>` : "";
     return `<div class="conv-topo">${H().logoEquipa(H().equipa(dados, jogo.opponent_team_id), nome, "conv-logo")}
         <div><strong>${casa ? "VFN vs " + esc(nome) : esc(nome) + " vs VFN"}</strong><span>${esc(VFN.dataLonga(jogo.date, true))} · ${esc(VFN.nomeCurtoCompeticao(jogo.competition))}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</span></div>
-        ${squad.published ? "" : '<span class="estado-relatorio rascunho">Rascunho</span>'}</div>
+        <span class="conv-fase ${fase2 ? "fase2" : ""}">${fase2 ? "Onze inicial" : "Lista de convocados"}</span>${squad.published ? "" : ' <span class="estado-relatorio rascunho">Rascunho</span>'}</div>
       ${aviso}
+      ${concentracaoHTML(squad)}
+      ${opcoes.campo && fase2 ? `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(squad.formation || "")} · só no admin</small></h4>${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3" })}</section>` : ""}
       <div class="conv-grelha">
-        <section><h4 class="perfil-subtitulo">Onze inicial <small class="muted">${esc(squad.formation || "")}</small></h4>
-          ${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3" })}</section>
-        <section><h4 class="perfil-subtitulo">Convocados <small class="muted">${convocados.length}</small></h4>
-          <ul class="conv-lista">${convocados.map(linha).join("")}</ul>
-          ${suplentes.length ? `<p class="muted conv-suplentes">Suplentes: ${suplentes.map(j => esc(j.nome)).join(", ")}</p>` : ""}</section>
+        ${fase2 ? bloco("Onze inicial", VFN.ordenarPorPosicao(onze)) + bloco("Suplentes", suplentes) : bloco("Convocados", convocados)}
+        ${bloco("Não convocados", fora, "conv-fora")}
       </div>`;
   }
 
+  /** Primeira foto que existe de cada jogador (photo_url, assets/players/{id}.jpg ou .png); null = camisola. */
+  async function fotosDosJogadores(jogadores) {
+    const testar = url => new Promise(r => { const img = new Image(); img.onload = () => r(url); img.onerror = () => r(null); img.src = url; });
+    const fotos = new Map();
+    await Promise.all(jogadores.map(async j => {
+      const id = idDe(j);
+      for (const url of [j.photo_url || j.fotoUrl, `assets/players/${id}.jpg`, `assets/players/${id}.png`].filter(Boolean)) {
+        if (await testar(url)) { fotos.set(id, url); return; }
+      }
+      fotos.set(id, null);
+    }));
+    return fotos;
+  }
+
   /**
-   * Anúncio da convocatória para as redes sociais (formato "1x1" ou "9x16"):
-   * escudo e gradiente do clube, jogo, e grelha de camisolas numeradas com o nome (capitão com "C").
+   * Anúncio da convocatória para as redes sociais (formato "1x1" ou "9x16"), com os dados da fase 1:
+   * escudo e gradiente do clube, jogo e grelha de jogadores (foto, ou camisola, + número + nome). Sem campo tático.
+   * fotos: Map id → url (de fotosDosJogadores); sem mapa usa as camisolas.
    */
-  function renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
+  function renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos) {
     const nome = H().nomeAdversario(dados, jogo);
     const casa = VFN.jogoEmCasa(jogo);
     const convocados = jogadoresDosIds(squad.player_ids, pessoa);
@@ -500,19 +530,26 @@
     const equipaLado = (logo, texto) => `<div class="an-equipa">${logo ? `<img src="${esc(logo)}" alt="" crossorigin="anonymous">` : `<span class="an-sem-logo">${esc(texto.slice(0, 2).toUpperCase())}</span>`}<strong>${esc(texto)}</strong></div>`;
     const vfn = equipaLado("assets/logo.png", "VFN"), adv = equipaLado(logoAdv, nome);
     const hora = VFN.horaIso(jogo.date);
+    const cartao = j => {
+      const foto = fotos && fotos.get(idDe(j));
+      const numero = j.numero === "" || j.numero == null ? "" : j.numero;
+      return `<div class="an-jogador">${completa(squad) && String(squad.captain_id) === idDe(j) ? '<span class="an-capitao">C</span>' : ""}
+        ${foto ? `<span class="an-foto"><img src="${esc(foto)}" alt="">${numero !== "" ? `<b>${esc(numero)}</b>` : ""}</span>` : VFN.generateJerseyAvatar(numero)}<span>${esc(j.nome)}</span></div>`;
+    };
     return `<div class="anuncio anuncio-${formato === "9x16" ? "9x16" : "1x1"}">
       <img class="an-escudo" src="assets/logo.png" alt="">
       <div class="an-cabecalho"><span>ACD Vila Franca das Naves</span><h1>Convocatória</h1></div>
       <div class="an-jogo">${casa ? vfn : adv}<span class="an-vs">vs</span>${casa ? adv : vfn}</div>
       <p class="an-info">${esc(VFN.dataLonga(jogo.date))}${hora && hora !== "00:00" ? " · " + esc(hora) : ""} · ${esc(jogo.competition || "")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</p>
-      <div class="an-grelha">${convocados.map(j => `<div class="an-jogador">${String(squad.captain_id) === idDe(j) ? '<span class="an-capitao">C</span>' : ""}${VFN.generateJerseyAvatar(j.numero)}<span>${esc(j.nome)}</span></div>`).join("")}</div>
+      <div class="an-grelha">${convocados.map(cartao).join("")}</div>
       <p class="an-rodape">${casa ? "Em casa" : "Fora"}${jogo.venue ? " · " + esc(jogo.venue) : ""} · Força VFN!</p>
     </div>`;
   }
 
-  function exportarAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
+  async function exportarAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
     const nome = VFN.slug(H().nomeAdversario(dados, jogo));
-    return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
+    const fotos = await fotosDosJogadores(jogadoresDosIds(squad.player_ids, pessoa));
+    return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
   /* ---------- Presenças no telemóvel ---------- */

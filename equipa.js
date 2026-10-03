@@ -112,15 +112,16 @@ function convocatoriaAtual() {
 function renderConvocatoria() {
   const c = convocatoriaAtual();
   $("eqConvAcoes").hidden = !c;
-  $("eqConvocatoria").innerHTML = c ? VFNComp.renderSquadView(dados, c.jogo, c.squad, pessoa, { eu }) : H.vazio("A convocatória do próximo jogo ainda não foi publicada.");
+  $("eqConvocatoria").innerHTML = c ? VFNComp.renderSquadView(dados, c.jogo, c.squad, pessoa, { eu, todos: jogadores }) : H.vazio("A convocatória do próximo jogo ainda não foi publicada.");
   // resumo no início: convocado ou não
   const resumo = $("eqConvResumo");
   resumo.hidden = !c || !eu;
   if (c && eu) {
     const sim = (c.squad.player_ids || []).map(String).includes(String(eu.id));
+    const conc = c.squad.squad_status === "completa" && c.squad.concentration_time ? ` · concentração ${String(c.squad.concentration_time).slice(0, 5)}${c.squad.concentration_location ? " em " + c.squad.concentration_location : ""}` : "";
     const nome = H.nomeAdversario(dados, c.jogo);
     resumo.className = `card eq-conv-resumo ${sim ? "sim" : "nao"}`;
-    resumo.innerHTML = `${VFN.icone(sim ? "circle-check" : "circle-off", 26)}<div><strong>${sim ? "Estás convocado" : "Não estás convocado"}</strong><span>${esc(VFN.jogoEmCasa(c.jogo) ? "VFN vs " + nome : nome + " vs VFN")} · ${esc(VFN.dataLonga(c.jogo.date, true))}</span></div><button type="button" class="btn btn-ghost btn-sm" data-ir-vista="convocatoria">Ver convocatória</button>`;
+    resumo.innerHTML = `${VFN.icone(sim ? "circle-check" : "circle-off", 26)}<div><strong>${sim ? "Estás convocado" : "Não estás convocado"}</strong><span>${esc(VFN.jogoEmCasa(c.jogo) ? "VFN vs " + nome : nome + " vs VFN")} · ${esc(VFN.dataLonga(c.jogo.date, true))}${sim ? esc(conc) : ""}</span></div><button type="button" class="btn btn-ghost btn-sm" data-ir-vista="convocatoria">Ver convocatória</button>`;
   }
 }
 
