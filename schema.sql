@@ -400,6 +400,18 @@ insert into public.staff (id, name, full_name, role, date_of_birth, photo_url) v
   ('1635906', 'Ricardo Isento', 'Ricardo Manuel Mendes Isento', 'treinador', date '1975-10-25', 'https://tonybalde18.github.io/vfn-relatorios/assets/staff/1635906.png')
 on conflict (id) do nothing;
 
+-- [v4 Tarefa 4] Equipas novas (logos em assets/opponents/<id>.png)
+alter table public.teams add column if not exists city text; -- já usada no admin (Equipas)
+insert into public.teams (id, name, city, logo_url) values
+  ('8062',  'AD São Romão',        'São Romão, Seia',             'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/8062.png'),
+  ('5668',  'Ginásio Figueirense', 'Figueira de Castelo Rodrigo', 'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/5668.png'),
+  ('3546',  'Aguiar da Beira',     'Aguiar da Beira',             'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/3546.png'),
+  ('10485', 'Os Vilanovenses',     'Gouveia',                     'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/10485.png'),
+  ('3583',  'Fornos de Algodres',  'Fornos de Algodres',          'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/3583.png'),
+  ('6837',  'Manteigas',           'Manteigas',                   'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6837.png'),
+  ('6845',  'Vila Cortez',         'Guarda',                      'https://tonybalde18.github.io/vfn-relatorios/assets/opponents/6845.png')
+on conflict (id) do nothing;
+
 -- Logos das equipas com o caminho absoluto do GitHub Pages
 update public.teams
 set logo_url = 'https://tonybalde18.github.io/vfn-relatorios/' || logo_url
