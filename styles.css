@@ -1851,3 +1851,29 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
   color: #fff; background: radial-gradient(120% 90% at 50% 0%, #13294B 0%, #0A1628 70%);
   border: 0; box-shadow: 0 10px 30px rgba(10, 22, 40, .25); -webkit-backdrop-filter: none; backdrop-filter: none;
 }
+
+/* ---------- v8: jornadas e marcadores no mesmo estilo escuro da classificação (.tabela-escura) ----------
+   escuro só onde há tabelas/dados densos; calendário, plantel, multas, convocatória e formulários ficam claros */
+.tabela-escura .empty-state, .tabela-escura .muted { color: rgba(255,255,255,.65); }
+.tabela-escura .team-inline span, .tabela-escura .player-cell, .tabela-escura .player-cell span { color: #fff; }
+.tabela-escura .player-cell small { color: rgba(255,255,255,.6); }
+.tabela-escura .team-logo-placeholder { background: rgba(255,255,255,.15); color: #fff; }
+.tabela-marcadores { padding: 10px; }
+.tabela-marcadores .nota-marcadores { color: rgba(255,255,255,.6); }
+/* jornadas: mantêm os cards por jornada, só mudam as cores */
+.jornadas-lista.tabela-escura { padding: 12px; }
+.tabela-escura .jornada-grupo + .jornada-grupo { margin-top: 14px; }
+.tabela-escura .jornada-titulo { color: #FFD700; }
+.tabela-escura .jornada-titulo .muted { color: rgba(255,255,255,.55); }
+.tabela-escura .jornada-jogo { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.1); color: #fff; }
+.tabela-escura .jornada-jogo:hover { background: rgba(255,255,255,.1); }
+.tabela-escura .jornada-jogo.is-vfn-game { background: rgba(255,215,0,.16); border-color: rgba(255,215,0,.55); }
+.tabela-escura .jj-equipa span { color: #fff; }
+.tabela-escura .jj-resultado { background: #FFD700; color: #0A1628; }
+.tabela-escura .jj-resultado.por-jogar { background: rgba(255,255,255,.12); color: rgba(255,255,255,.75); }
+.tabela-escura .jj-data { color: rgba(255,255,255,.6); }
+.tabela-escura .jj-tag { background: #FFD700; color: #0A1628; }
+.tabela-escura .jj-golos ul { color: rgba(255,255,255,.75); }
+.tabela-escura .jj-golos b { color: #FFD700; }
+.tabela-escura .jj-marcadores { color: rgba(255,255,255,.6); }
+.tabela-escura .jj-centro { color: inherit; }

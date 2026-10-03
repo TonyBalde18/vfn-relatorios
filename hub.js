@@ -220,8 +220,8 @@
   function marcadoresHTML(jogadores, n) {
     const top = marcadores(jogadores, n);
     if (!top.length) return vazio("Ainda sem golos registados.");
-    return `<table class="scorers-table"><thead><tr><th scope="col"></th><th scope="col" class="team-col">Jogador</th><th scope="col" title="Golos">G</th><th scope="col" title="Assistências">Ass</th><th scope="col" title="Jogos">J</th></tr></thead>
-      <tbody>${top.map((j, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span></span></td><td class="pts-col" data-contar="${j.golos}">${j.golos}</td><td data-contar="${j.assistencias}">${j.assistencias}</td><td data-contar="${j.jogos}">${j.jogos}</td></tr>`).join("")}</tbody></table>`;
+    return `<div class="tabela-escura tabela-marcadores"><table class="scorers-table"><thead><tr><th scope="col"></th><th scope="col" class="team-col">Jogador</th><th scope="col" title="Golos">G</th><th scope="col" title="Assistências">Ass</th><th scope="col" title="Jogos">J</th></tr></thead>
+      <tbody>${top.map((j, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col"><span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span></span></td><td class="pts-col" data-contar="${j.golos}">${j.golos}</td><td data-contar="${j.assistencias}">${j.assistencias}</td><td data-contar="${j.jogos}">${j.jogos}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   /* ---------- Melhores marcadores do campeonato ---------- */
@@ -278,8 +278,8 @@
   function marcadoresVFNCompeticaoHTML(dados, jogadoresVFN, competicao, n) {
     const lista = golosVFNNaCompeticao(dados, jogadoresVFN, competicao).sort((a, b) => b.golos - a.golos || a.nome.localeCompare(b.nome, "pt")).slice(0, n || 10);
     if (!lista.length) return vazio(VFN.semVFN(competicao) ? "O VFN não joga esta competição." : "Ainda sem golos do VFN nesta competição.");
-    return `<table class="scorers-table"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Jogador</th><th scope="col">Golos</th></tr></thead>
-      <tbody>${lista.map((m, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col">${m.jogador ? `<span class="player-cell">${VFN.avatarJogador(m.jogador, "avatar-xs")}<span>${esc(m.nome)}</span></span>` : esc(m.nome)}</td><td class="pts-col">${m.golos}</td></tr>`).join("")}</tbody></table>`;
+    return `<div class="tabela-escura tabela-marcadores"><table class="scorers-table"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Jogador</th><th scope="col">Golos</th></tr></thead>
+      <tbody>${lista.map((m, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col">${m.jogador ? `<span class="player-cell">${VFN.avatarJogador(m.jogador, "avatar-xs")}<span>${esc(m.nome)}</span></span>` : esc(m.nome)}</td><td class="pts-col">${m.golos}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   /** Tabela classificativa mostrada nas Jornadas para as competições sem o VFN ("" nas outras). */
@@ -290,7 +290,7 @@
   function marcadoresCampeonatoHTML(dados, jogadoresVFN, competicao, n) {
     const lista = marcadoresCampeonato(dados, jogadoresVFN, competicao).slice(0, n || 10);
     if (!lista.length) return vazio("Ainda não há marcadores registados nesta competição.");
-    return `<table class="scorers-table" data-ordenar="marcadores-campeonato"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col" data-tipo="texto">Jogador</th><th scope="col" class="team-col" data-tipo="texto">Clube</th><th scope="col" data-tipo="numero">Golos</th></tr></thead>
+    return `<div class="tabela-escura tabela-marcadores"><table class="scorers-table" data-ordenar="marcadores-campeonato"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col" data-tipo="texto">Jogador</th><th scope="col" class="team-col" data-tipo="texto">Clube</th><th scope="col" data-tipo="numero">Golos</th></tr></thead>
       <tbody>${lista.map((m, i) => {
         const t = equipa(dados, m.teamId);
         const clube = (t && t.name) || "—";
@@ -299,7 +299,7 @@
           <td class="team-col"><span class="team-inline">${logoEquipa(t, clube)}<span>${esc(clube)}</span></span></td>
           <td class="pts-col" data-contar="${m.golos}">${m.golos}</td></tr>`;
       }).join("")}</tbody></table>
-      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : temMarcadoresPorJogo(dados, competicao) ? "Golos do VFN: relatórios dos jogos desta competição. Outras equipas: marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p>`;
+      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : temMarcadoresPorJogo(dados, competicao) ? "Golos do VFN: relatórios dos jogos desta competição. Outras equipas: marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p></div>`;
   }
 
   /* ---------- Plantel ---------- */
