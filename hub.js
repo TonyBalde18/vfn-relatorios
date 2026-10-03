@@ -453,6 +453,19 @@
     return chave || "MCEN";
   }
 
+  /**
+   * 11 mais utilizado: o GR com mais minutos entra sempre (posição principal GR; em caso de
+   * empate, o primeiro da lista); os outros 10 lugares são os jogadores de campo com mais minutos.
+   * lista: [{ jogador, minutos }] (qualquer ordem). Sem GR com minutos, ficam 11 jogadores de campo.
+   */
+  function onzeMaisUtilizado(lista) {
+    const ordenada = [...lista].sort((a, b) => b.minutos - a.minutos);
+    const eGR = t => VFN.categoriaPosicao(t.jogador.posicao) === "GR";
+    const gr = ordenada.find(eGR);
+    const campo = ordenada.filter(t => !eGR(t));
+    return gr ? [gr, ...campo.slice(0, 10)] : campo.slice(0, 11);
+  }
+
   /** Lista de minutos: [{ jogador, minutos, jogos }], já ordenada. */
   function minutosListaHTML(lista) {
     if (!lista.length) return vazio("Ainda não há minutos registados.");
@@ -473,7 +486,7 @@
   function onzeCampoHTML(lista, opcoes) {
     const o = opcoes || {};
     if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
-    const onze = lista.slice(0, 11);
+    const onze = o.rotulo ? lista.slice(0, 11) : onzeMaisUtilizado(lista);
     const grupos = {};
     onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
     const marcadores = [];
@@ -930,6 +943,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();
