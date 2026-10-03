@@ -664,18 +664,18 @@ alter table public.players add column if not exists auth_user_id uuid references
 create unique index if not exists players_auth_user_idx on public.players (auth_user_id) where auth_user_id is not null;
 
 create or replace function public.vfn_player_id() returns text
-language sql stable security definer set search_path = public as $
+language sql stable security definer set search_path = public as $$
   select id from public.players where auth_user_id = auth.uid() limit 1
-$;
+$$;
 
 create or replace function public.vfn_is_player() returns boolean
-language sql stable security definer set search_path = public as $
+language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.players where auth_user_id = auth.uid())
-$;
+$$;
 
 -- o jogador liga a própria conta no primeiro login (email da conta = players.email)
 create or replace function public.vfn_ligar_minha_conta() returns text
-language plpgsql security definer set search_path = public as $
+language plpgsql security definer set search_path = public as $$
 declare pid text;
 begin
   select id into pid from public.players where auth_user_id = auth.uid() limit 1;
@@ -684,13 +684,13 @@ begin
   where auth_user_id is null and email is not null and lower(email) = lower(auth.email())
   returning id into pid;
   return pid;
-end $;
+end $$;
 revoke all on function public.vfn_ligar_minha_conta() from public, anon;
 grant execute on function public.vfn_ligar_minha_conta() to authenticated;
 
 -- ligação manual pelo admin (no SQL Editor ou por rpc)
 create or replace function public.vfn_ligar_jogador(p_player_id text, p_email text) returns boolean
-language plpgsql security definer set search_path = public as $
+language plpgsql security definer set search_path = public as $$
 declare uid uuid;
 begin
   if auth.uid() is not null and not public.vfn_is_admin() then raise exception 'Só o admin pode ligar contas'; end if;
@@ -698,7 +698,7 @@ begin
   if uid is null then return false; end if;
   update public.players set auth_user_id = uid, email = p_email where id = p_player_id;
   return found;
-end $;
+end $$;
 revoke all on function public.vfn_ligar_jogador(text, text) from public, anon;
 grant execute on function public.vfn_ligar_jogador(text, text) to authenticated;
 
