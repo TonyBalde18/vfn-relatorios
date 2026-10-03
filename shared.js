@@ -495,7 +495,8 @@
     const duracao = 700, inicio = performance.now();
     const passo = agora => {
       if (el.textContent !== texto && !el.dataset.aContar) return; // o conteúdo mudou entretanto
-      const t = Math.min(1, (agora - inicio) / duracao);
+      // o tempo do frame pode ser anterior ao performance.now() do início: sem o max dava valores negativos
+      const t = Math.max(0, Math.min(1, (agora - inicio) / duracao));
       const v = fim * (1 - Math.pow(1 - t, 3)); // ease-out cúbico
       el.dataset.aContar = "1";
       el.textContent = t < 1 ? m[1] + formato.format(v) + m[3] : texto;
