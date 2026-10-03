@@ -52,7 +52,7 @@ function mostrarVista(vista) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === vista));
   $("viewTitle").textContent = TITULOS_VISTA[vista] || vista;
-  VFN.anim.tab($(`view-${vista}`));
+  VFN.anim.seccao($(`view-${vista}`)); // flash do escudo + fade-in
   if (vista === "plantel") VFN.anim.cascata($("plantelGrid").children);
   VFN.refreshAOS();
   if (vista === "hub" || vista === "jornadas") Object.values(graficos).forEach(g => g && g.resize());
@@ -233,7 +233,7 @@ function abrirJogador(id) {
   const p = presencaJogador(j.id);
   const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Pé dominante", j.info.pe], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]].filter(([k, v]) => k !== "Pé dominante" || v);
   $("mjCorpo").innerHTML = `
-    ${H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id))}
+    ${H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j))}
     <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
@@ -291,28 +291,8 @@ function relatoriosUnicos() {
   return [...porJogo.values()];
 }
 
-/** Minutos de cada jogador num relatório: titulares desde o 0', substituições por minuto. */
-function minutosDoRelatorio(matchData) {
-  const jogo = (matchData && matchData.jogo) || {};
-  const duracao = Number(jogo.duracaoJogo) || 90;
-  const periodos = {};
-  (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
-  (jogo.eventos || [])
-    .filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
-    .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
-    .forEach(e => {
-      const minuto = Math.min(Number(e.minuto) || 0, duracao);
-      const aberto = (periodos[e.jogadorSaiId] || []).find(p => p.fim === null);
-      if (aberto) aberto.fim = minuto;
-      (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
-    });
-  const minutos = {};
-  Object.entries(periodos).forEach(([id, lista]) => {
-    const total = lista.reduce((s, p) => s + Math.max(0, (p.fim === null ? duracao : p.fim) - p.inicio), 0);
-    if (total > 0) minutos[id] = total;
-  });
-  return minutos;
-}
+// minutos de cada jogador num relatório: H.minutosDoRelatorio (hub.js, partilhado com as tendências)
+const minutosDoRelatorio = H.minutosDoRelatorio;
 
 /** Os relatórios guardam o id local do plantel; na tabela players pode ser "1014939" ou "<uid>-3". */
 function jogadorDoRelatorio(idLocal) {
@@ -745,11 +725,12 @@ function renderCalendario() {
 
 function mostrarEsqueletos() {
   $("cardProximoJogo").innerHTML = H.esqueleto("hero");
-  $("hubResultados").innerHTML = H.esqueleto("linhas", 5);
-  $("hubClassificacao").innerHTML = H.esqueleto("linhas", 8);
+  $("hubResultados").innerHTML = H.esqueleto("resultados", 5);
+  $("hubClassificacao").innerHTML = H.esqueleto("tabela", 8);
+  $("dbCalMes").innerHTML = H.esqueleto("calendario");
   $("hubMarcadores").innerHTML = H.esqueleto("linhas", 5);
-  $("plantelGrid").innerHTML = H.esqueleto("cards", 8);
-  $("calendarioLista").innerHTML = H.esqueleto("jogos", 5);
+  $("plantelGrid").innerHTML = H.esqueleto("jogadores", 8);
+  $("calendarioLista").innerHTML = H.esqueleto("resultados", 5);
   $("minutosLista").innerHTML = H.esqueleto("linhas", 8);
 }
 
@@ -827,6 +808,8 @@ async function iniciar() {
   $("statsPosicao").addEventListener("change", renderTabelaStats);
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
+  // telemóvel: puxar para atualizar nos resultados (hub), calendário e jornadas
+  VFNComp.ligarPuxarParaAtualizar([$("view-hub"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
   $("btnFecharJogador").addEventListener("click", () => { $("modalJogador").hidden = true; });
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });

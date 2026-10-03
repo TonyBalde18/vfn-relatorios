@@ -739,6 +739,53 @@
     el.querySelectorAll("[data-parte]").forEach(b => { if (b.textContent !== por[b.dataset.parte]) { b.textContent = por[b.dataset.parte]; b.classList.remove("muda"); void b.offsetWidth; b.classList.add("muda"); } });
   }), 1000);
 
+  /* ---------- Puxar para atualizar (telemóvel) ----------
+     Em `zonas` (resultados, calendário, jornadas): com a página no topo, puxar para baixo
+     mais de 70px mostra o indicador e chama aoAtualizar() (assíncrono). */
+
+  function ligarPuxarParaAtualizar(zonas, aoAtualizar) {
+    if (!("ontouchstart" in window)) return;
+    let indicador = document.getElementById("vfnPuxar");
+    if (!indicador) {
+      indicador = document.createElement("div");
+      indicador.id = "vfnPuxar";
+      indicador.className = "vfn-puxar";
+      indicador.setAttribute("role", "status");
+      indicador.innerHTML = `<span class="vfn-puxar-ic">${VFN.icone("refresh-cw", 18)}</span><span class="vfn-puxar-txt">Puxa para atualizar</span>`;
+      document.body.appendChild(indicador);
+    }
+    const LIMIAR = 70;
+    let inicioY = null, dist = 0, ocupado = false;
+    const naZona = alvo => zonas.some(z => z && !z.closest("[hidden]") && z.offsetParent !== null && z.contains(alvo));
+    document.addEventListener("touchstart", e => {
+      if (ocupado || window.scrollY > 0 || !naZona(e.target) || e.target.closest(".modal-overlay, .vfn-drawer, .mapa-estadios, .bracket-scroll")) { inicioY = null; return; }
+      inicioY = e.touches[0].clientY; dist = 0;
+    }, { passive: true });
+    document.addEventListener("touchmove", e => {
+      if (inicioY === null) return;
+      dist = Math.max(0, e.touches[0].clientY - inicioY);
+      if (!dist) return;
+      const d = Math.min(dist, 120);
+      indicador.classList.add("visivel");
+      indicador.style.transform = `translate(-50%, ${d * 0.6}px)`;
+      indicador.querySelector(".vfn-puxar-ic").style.transform = `rotate(${d * 3}deg)`;
+      indicador.querySelector(".vfn-puxar-txt").textContent = dist > LIMIAR ? "Larga para atualizar" : "Puxa para atualizar";
+    }, { passive: true });
+    document.addEventListener("touchend", async () => {
+      if (inicioY === null) return;
+      inicioY = null;
+      if (dist <= LIMIAR) { indicador.classList.remove("visivel"); indicador.style.transform = ""; return; }
+      ocupado = true;
+      indicador.classList.add("a-atualizar");
+      indicador.querySelector(".vfn-puxar-txt").textContent = "A atualizar…";
+      try { await aoAtualizar(); } finally {
+        ocupado = false;
+        indicador.classList.remove("visivel", "a-atualizar");
+        indicador.style.transform = "";
+      }
+    });
+  }
+
   /* ---------- Segmented control (ex.: Classificação | Jornadas | Marcadores) ----------
      Botões [data-seg="x"] dentro de `controlo`; painéis [data-seg-painel="x"] dentro de `raiz`.
      A troca anima o painel novo (fade + slide). Devolve { definir(modo), atual() }. */
@@ -914,7 +961,7 @@
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
-    ligarSegmentos, apresentarClassificacao, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
+    ligarSegmentos, apresentarClassificacao, ligarPuxarParaAtualizar, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

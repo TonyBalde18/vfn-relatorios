@@ -1778,3 +1778,44 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .jds-tempo .ic { color: #FFD700; }
 @media (max-width: 520px) { .jds-equipa { width: 100px; } .jds-logo { width: 64px; height: 64px; } .jds-logo img { width: 48px; height: 48px; } .jds-contagem span { min-width: 52px; } .jds-contagem b { font-size: 1.35rem; } }
 @media (prefers-reduced-motion: reduce) { .jds-vs, .jds-contagem b.muda { animation: none; } }
+
+/* ---------- v6: melhorias visuais ---------- */
+/* carregamento: barra fina no topo (não tapa nada); o conteúdo usa skeletons com a forma dos cards */
+.vfn-spinner { left: 0; right: 0; top: 0; bottom: auto; height: 3px; padding: 0; gap: 0; border-radius: 0; background: rgba(255,215,0,.25); box-shadow: none; transform: none; overflow: hidden; }
+.vfn-spinner.is-visible { transform: none; }
+.vfn-spinner::before { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; background: #FFD700; animation: vfnBarraCarregar 1.1s ease-in-out infinite; }
+.vfn-spinner-ring, .vfn-spinner-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@keyframes vfnBarraCarregar { from { left: -35%; } to { left: 100%; } }
+.sk-jogador { display: grid; justify-items: center; gap: 8px; padding: 16px 10px; border: 1px solid var(--border-color); border-radius: 12px; background: #fff; }
+.sk-foto { width: 64px; height: 72px; border-radius: 10px; }
+.sk-linha { display: block; height: 12px; border-radius: 6px; }
+.sk-fina { height: 9px; }
+.sk-tabela { display: grid; gap: 6px; }
+.sk-tabela-linha { display: grid; grid-template-columns: 24px 26px 1fr 28px 28px 28px; align-items: center; gap: 10px; padding: 6px 4px; }
+.sk-pos, .sk-num { height: 12px; border-radius: 6px; }
+.sk-logo { width: 26px; height: 26px; border-radius: 50%; }
+.sk-cal-grelha { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.sk-cal-dia { height: max(42px, calc((80vh - 120px) / 6)); border-radius: 6px; }
+.sk-resultado { display: grid; grid-template-columns: 24px 32px 1fr 54px; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border-color); }
+.sk-chip { width: 24px; height: 24px; border-radius: 6px; }
+.sk-col { display: grid; gap: 6px; }
+.sk-placar { height: 26px; border-radius: 6px; }
+/* puxar para atualizar */
+.vfn-puxar { position: fixed; left: 50%; top: 6px; z-index: 1300; display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--vfn-navy); color: #fff; font-size: .8rem; font-weight: 700; box-shadow: 0 6px 18px rgba(10,22,40,.3); opacity: 0; transform: translate(-50%, -60px); pointer-events: none; transition: opacity .2s ease; }
+.vfn-puxar.visivel { opacity: 1; }
+.vfn-puxar-ic { display: inline-flex; color: #FFD700; }
+.vfn-puxar.a-atualizar .vfn-puxar-ic { animation: vfn-spin .8s linear infinite; }
+/* transição entre secções: flash rápido do escudo */
+.vfn-flash { position: fixed; inset: 0; z-index: 1600; display: grid; place-items: center; pointer-events: none; opacity: 0; }
+.vfn-flash img { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 6px 18px rgba(10,22,40,.35)); }
+.vfn-flash.ativo { animation: vfnFlash .2s ease-out; }
+@keyframes vfnFlash { 0% { opacity: 0; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05); } }
+/* cards clicáveis: elevação suave */
+.match-item, .historico-item, .pres-card, .br-jogo, .team-card, .player-card, .sk-jogador, .att-linha { transition: transform .2s ease, box-shadow .2s ease; }
+.match-item:hover, .historico-item:hover, .pres-card:hover, .team-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,22,40,.12); }
+/* tendências (últimos 3 jogos vs 3 anteriores) */
+.tendencia { display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px; font-size: .72rem; font-weight: 800; line-height: 1.4; vertical-align: 1px; }
+.tendencia.bom { background: #DCFCE7; color: #15803d; }
+.tendencia.mau { background: #FEE2E2; color: #b91c1c; }
+.tendencia.neutro { background: #E2E8F0; color: #475569; }
+@media (prefers-reduced-motion: reduce) { .vfn-flash.ativo, .vfn-spinner::before, .vfn-puxar.a-atualizar .vfn-puxar-ic { animation: none; } }

@@ -437,6 +437,15 @@
       if (!temGsap() || !els.length) return;
       window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: DURACAO, ease: "power3.out", stagger: 0.03, clearProps: "opacity,transform" });
     },
+    /** Navegação entre secções principais: flash rápido (100ms) do escudo ao centro e fade-in da secção. */
+    seccao(painel) {
+      if (!semMovimento()) {
+        let f = document.getElementById("vfnFlash");
+        if (!f) { f = document.createElement("div"); f.id = "vfnFlash"; f.className = "vfn-flash"; f.setAttribute("aria-hidden", "true"); f.innerHTML = `<img src="${LOGO_VFN}" alt="">`; document.body.appendChild(f); }
+        f.classList.remove("ativo"); void f.offsetWidth; f.classList.add("ativo");
+      }
+      anim.tab(painel);
+    },
     /** Mudança de tab: fade-in com um pequeno deslize horizontal. */
     tab(painel) {
       if (!temGsap() || !painel) return;
@@ -529,8 +538,21 @@
     })).observe(document.body, { attributes: true, attributeFilter: ["hidden"], attributeOldValue: true, subtree: true });
   }
 
+  // micro-interação: botões encolhem para 0.97 ao carregar e voltam com mola (GSAP)
+  const SELETOR_PRESSAO = ".btn, .icon-btn, .filter-chip, .seg-control button, .nav-item, .public-nav button, .conv-op, .att-op, .att-cell, .eq-sair, .link-btn";
+  function ligarPressao() {
+    const largar = e => { const b = e.target.closest && e.target.closest(SELETOR_PRESSAO); if (b && b.dataset.premido) { delete b.dataset.premido; window.gsap.to(b, { scale: 1, duration: 0.6, ease: "elastic.out(1, 0.4)", clearProps: "transform" }); } };
+    document.addEventListener("pointerdown", e => {
+      const b = e.target.closest && e.target.closest(SELETOR_PRESSAO);
+      if (!b || b.disabled || !temGsap()) return;
+      b.dataset.premido = "1";
+      window.gsap.to(b, { scale: 0.97, duration: 0.08, ease: "power1.out" });
+    });
+    ["pointerup", "pointercancel", "pointerout"].forEach(t => document.addEventListener(t, largar));
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    if (temGsap()) document.documentElement.classList.add("gsap-on");
+    if (temGsap()) { document.documentElement.classList.add("gsap-on"); ligarPressao(); }
     observarModais();
     observarKpis();
   });

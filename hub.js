@@ -387,15 +387,17 @@
       else if (p <= 3) distincoes.push(`<span class="distincao">${VFN.icone(icone, 14)} Top 3 · ${titulo.replace(/^Melhor marcador$/, "golos").replace(/^Mais /, "")}</span>`);
     });
     if (String(j.id) === capitaoAtivo(todos)) distincoes.unshift(`<span class="distincao capitao">${VFN.badgeCapitao()} Capitão</span>`);
+    // tendências (últimos 3 jogos vs 3 anteriores): só golos e minutos nas barras
+    const tend = o.tendencias ? { golos: o.tendencias.golos, minutos: o.tendencias.minutos, cartoes: o.tendencias.cartoes, presencas: o.tendencias.presencas } : {};
     const barras = [["Jogos", "jogos", ""], ["Minutos", "minutos", "'"], ["Golos", "golos", ""], ["Assistências", "assistencias", ""]].map(([rotulo, k, suf]) => `
-      <div class="ficha-barra"><span>${rotulo}</span><span class="barra"><i style="width:${Math.round((Number(j[k]) || 0) / max(k) * 100)}%"></i></span><strong>${Number(j[k]) || 0}${suf}</strong></div>`).join("");
-    const cartoes = `<div class="ficha-cartoes"><span class="cartao amarelo" title="Amarelos">${j.cartoesA || 0}</span><span class="cartao vermelho" title="Vermelhos">${j.cartoesV || 0}</span></div>`;
+      <div class="ficha-barra"><span>${rotulo}</span><span class="barra"><i style="width:${Math.round((Number(j[k]) || 0) / max(k) * 100)}%"></i></span><strong>${Number(j[k]) || 0}${suf}${tend[k] !== undefined ? badgeTendencia(tend[k], false, rotulo) : ""}</strong></div>`).join("");
+    const cartoes = `<div class="ficha-cartoes"><span class="cartao amarelo" title="Amarelos">${j.cartoesA || 0}</span><span class="cartao vermelho" title="Vermelhos">${j.cartoesV || 0}</span>${badgeTendencia(tend.cartoes, true, "Cartões")}</div>`;
     const aneis = [];
     if (o.jogosEquipa > 0) aneis.push(anelHTML((Number(j.minutos) || 0) / (o.jogosEquipa * 90) * 100, "Utilização", `${j.minutos || 0}' de ${o.jogosEquipa * 90}' possíveis`));
     const registos = (o.presencas || []).filter(r => r.status);
     if (registos.length) {
       const presentes = registos.filter(r => r.status === "P" || r.status === "A").length;
-      aneis.push(anelHTML(presentes / registos.length * 100, "Presença", `${presentes} de ${registos.length} sessões`));
+      aneis.push(anelHTML(presentes / registos.length * 100, "Presença", `${presentes} de ${registos.length} sessões`).replace("<span>Presença</span>", `<span>Presença${badgeTendencia(tend.presencas, false, "Presenças")}</span>`));
     }
     if (Number(j.jogos) > 0) aneis.push(`<div class="anel anel-num"><strong>${((Number(j.golos) || 0) / Number(j.jogos)).toFixed(2).replace(".", ",")}</strong><span>Golos/jogo</span></div>`);
     return `<div class="ficha-visual">
@@ -416,9 +418,9 @@
   }
 
   /** Opções da ficha visual de um jogador: presenças da época e jogos disputados. */
-  function opcoesFicha(dados, id) {
+  function opcoesFicha(dados, id, jogador, eDoJogador) {
     const presencas = dados.attendance ? dados.attendance.filter(a => String(a.player_id) === String(id)).map(a => ({ data: a.session_date, status: a.status })) : null;
-    return { presencas, jogosEquipa: jogosDisputados(dados) };
+    return { presencas, jogosEquipa: jogosDisputados(dados), tendencias: tendenciasJogador(dados, jogador || { id }, { eDoJogador }) };
   }
 
   /* ---------- Calendário ---------- */
@@ -571,6 +573,83 @@
       for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y) });
     });
     return resultado;
+  }
+
+  /* ---------- Tendências do jogador (últimos 3 jogos vs os 3 anteriores) ---------- */
+
+  /** Minutos de cada jogador num relatório: titulares desde o 0', substituições pelo minuto. */
+  function minutosDoRelatorio(matchData) {
+    const jogo = (matchData && matchData.jogo) || {};
+    const duracao = Number(jogo.duracaoJogo) || 90;
+    const periodos = {};
+    (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
+    (jogo.eventos || []).filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
+      .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+      .forEach(e => {
+        const minuto = Math.min(Number(e.minuto) || 0, duracao);
+        const aberto = (periodos[e.jogadorSaiId] || []).find(p => p.fim === null);
+        if (aberto) aberto.fim = minuto;
+        (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
+      });
+    const minutos = {};
+    Object.entries(periodos).forEach(([id, lista]) => {
+      const total = lista.reduce((s, p) => s + Math.max(0, (p.fim === null ? duracao : p.fim) - p.inicio), 0);
+      if (total > 0) minutos[id] = total;
+    });
+    return minutos;
+  }
+
+  /** Compara os k mais recentes com os k anteriores (k ≤ 3): 1 sobe, -1 desce, 0 igual; null sem dados. */
+  function comparar(valoresRecentesPrimeiro) {
+    const n = valoresRecentesPrimeiro.length;
+    if (n < 2) return null;
+    const k = Math.min(3, Math.floor(n / 2));
+    const soma = l => l.reduce((s, v) => s + v, 0);
+    const a = soma(valoresRecentesPrimeiro.slice(0, k)), b = soma(valoresRecentesPrimeiro.slice(k, 2 * k));
+    return a > b ? 1 : a < b ? -1 : 0;
+  }
+
+  /**
+   * Tendências de um jogador: { golos, minutos, cartoes, presencas } com 1/-1/0 (null = sem dados).
+   * Jogos: relatórios publicados (golos, cartões, minutos); sem relatórios, golos de matches.scorer_list.
+   * Presenças: últimas 3 sessões vs as 3 anteriores. o.eDoJogador(idLocal) liga os ids dos relatórios ao jogador.
+   */
+  function tendenciasJogador(dados, jogador, o) {
+    const opcoes = o || {};
+    const id = String(jogador.idBD || jogador.id);
+    const eDele = opcoes.eDoJogador || (idLocal => String(idLocal) === id || id.endsWith("-" + idLocal) || String(jogador.id) === String(idLocal));
+    const t = { golos: null, minutos: null, cartoes: null, presencas: null };
+    const relatorios = (dados.match_reports || []).filter(r => VFN.estadoRelatorio(r) === "published" && (r.match_data || {}).jogo)
+      .map(r => ({ r, data: (r.match_data.preJogo || {}).data || r.match_date || "" })).filter(x => x.data)
+      .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    if (relatorios.length >= 2) {
+      const porJogo = relatorios.map(({ r }) => {
+        const jogo = r.match_data.jogo;
+        const ev = (jogo.eventos || []).filter(e => e.equipa === "VFN" && eDele(e.jogadorId));
+        const min = Object.entries(minutosDoRelatorio(r.match_data)).filter(([idl]) => eDele(idl)).reduce((s, [, m]) => s + m, 0);
+        return { golos: ev.filter(e => e.tipo === "Golo").length, cartoes: ev.filter(e => /^Cartão/.test(e.tipo)).length, minutos: min };
+      });
+      ["golos", "cartoes", "minutos"].forEach(k => { t[k] = comparar(porJogo.map(x => x[k])); });
+    } else {
+      const jogos = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && Array.isArray(j.scorer_list))
+        .sort((a, b) => (VFN.paraData(b.date) || 0) - (VFN.paraData(a.date) || 0));
+      if (jogos.length >= 2) t.golos = comparar(jogos.map(j => j.scorer_list.filter(s => String(s.player_id) === id).reduce((s, x) => s + (Number(x.count) || 1), 0)));
+    }
+    if (dados.attendance) {
+      const sessoes = dados.attendance.filter(a => String(a.player_id) === id && a.status)
+        .sort((a, b) => String(b.session_date).localeCompare(String(a.session_date)));
+      t.presencas = comparar(sessoes.map(a => a.status === "P" || a.status === "A" ? 1 : 0));
+    }
+    return t;
+  }
+
+  /** Badge discreto ↑ ↓ → (verde = melhor; nos cartões subir é pior). */
+  function badgeTendencia(valor, piorQuandoSobe, rotulo) {
+    if (valor === null || valor === undefined) return "";
+    const seta = valor > 0 ? "↑" : valor < 0 ? "↓" : "→";
+    const bom = valor === 0 ? "neutro" : (valor > 0) !== !!piorQuandoSobe ? "bom" : "mau";
+    const texto = valor > 0 ? "a subir" : valor < 0 ? "a descer" : "estável";
+    return `<span class="tendencia ${bom}" title="${esc(rotulo)}: ${texto} (últimos 3 jogos vs 3 anteriores)" aria-label="${esc(rotulo)} ${texto}">${seta}</span>`;
   }
 
   /* ---------- Presenças: quem mais e quem menos ---------- */
@@ -991,7 +1070,18 @@
 
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
 
+  /**
+   * Skeletons com a forma dos componentes (shimmer): "jogadores" (cards com foto e linhas),
+   * "tabela" (classificação), "calendario" (grelha do mês), "resultados" (linhas de jogo);
+   * "cards", "linhas", "jogos", "hero" ficam como blocos simples.
+   */
   function esqueleto(tipo, n) {
+    const osso = (classe, estilo) => `<span class="skeleton ${classe}"${estilo ? ` style="${estilo}"` : ""}></span>`;
+    const repetir = (k, f) => Array.from({ length: k }, (_, i) => f(i)).join("");
+    if (tipo === "jogadores") return repetir(n || 8, () => `<div class="sk-jogador" aria-hidden="true">${osso("sk-foto")}${osso("sk-linha", "width:70%")}${osso("sk-linha sk-fina", "width:40%")}</div>`);
+    if (tipo === "tabela") return `<div class="sk-tabela" aria-hidden="true">${repetir(n || 8, i => `<div class="sk-tabela-linha">${osso("sk-pos")}${osso("sk-logo")}${osso("sk-linha", `width:${55 - (i % 3) * 8}%`)}${osso("sk-num")}${osso("sk-num")}${osso("sk-num")}</div>`)}</div>`;
+    if (tipo === "calendario") return `<div class="sk-calendario" aria-hidden="true">${osso("sk-linha", "width:40%;margin:0 auto 10px;height:16px")}<div class="sk-cal-grelha">${repetir(35, () => osso("sk-cal-dia"))}</div></div>`;
+    if (tipo === "resultados") return repetir(n || 5, () => `<div class="sk-resultado" aria-hidden="true">${osso("sk-chip")}${osso("sk-logo")}<span class="sk-col">${osso("sk-linha", "width:65%")}${osso("sk-linha sk-fina", "width:40%")}</span>${osso("sk-placar")}</div>`);
     const classe = { cards: "skeleton skeleton-card", linhas: "skeleton skeleton-row", jogos: "skeleton skeleton-match", hero: "skeleton skeleton-hero" }[tipo] || "skeleton skeleton-row";
     return Array.from({ length: n || 1 }, () => `<div class="${classe}" aria-hidden="true"></div>`).join("");
   }
@@ -1011,6 +1101,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

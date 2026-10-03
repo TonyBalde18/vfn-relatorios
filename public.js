@@ -51,7 +51,7 @@ function mostrarVista(vista) {
     if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   window.scrollTo({ top: 0 });
-  VFN.anim.tab($(`view-${vista}`));
+  VFN.anim.seccao($(`view-${vista}`)); // flash do escudo + fade-in
   if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
   if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
   if (vista === "marcadores") VFN.anim.contar($("pubMarcadores"));
@@ -75,7 +75,7 @@ function abrirJogador(id) {
   $("pjNome").textContent = j.nomeCompleto;
   $("pjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ");
   // sem presenças na página pública (não são públicas)
-  $("pjVisual").innerHTML = H.fichaVisualHTML(j, jogadores, { jogosEquipa: H.jogosDisputados(dados) });
+  $("pjVisual").innerHTML = H.fichaVisualHTML(j, jogadores, { jogosEquipa: H.jogosDisputados(dados), tendencias: H.tendenciasJogador(dados, j) });
   $("pjStats").innerHTML = ""; // os números estão na ficha visual
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
@@ -105,9 +105,10 @@ function mostrarEsqueletos() {
   $("pubProximoJogo").innerHTML = H.esqueleto("hero");
   $("pubUltimoResultado").innerHTML = H.esqueleto("hero");
   $("pubForma").innerHTML = H.esqueleto("linhas");
-  $("pubPlantel").innerHTML = H.esqueleto("cards", 8);
-  $("pubClassificacao").innerHTML = H.esqueleto("linhas", 8);
-  $("pubCalendario").innerHTML = H.esqueleto("jogos", 5);
+  $("pubPlantel").innerHTML = H.esqueleto("jogadores", 8);
+  $("pubClassificacao").innerHTML = H.esqueleto("tabela", 8);
+  $("pubCalendario").innerHTML = H.esqueleto("resultados", 5);
+  $("pubCalMes").innerHTML = H.esqueleto("calendario");
   $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubHubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubMinutos").innerHTML = H.esqueleto("linhas", 6);
@@ -189,6 +190,8 @@ async function iniciar() {
   mostrarEsqueletos();
   await carregarDados();
   renderTudo();
+  // telemóvel: puxar para atualizar nos resultados (hub), calendário e jornadas
+  VFNComp.ligarPuxarParaAtualizar([$("view-hub"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
   setInterval(H.atualizarContagens, 30000);
 }
 

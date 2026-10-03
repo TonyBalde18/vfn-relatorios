@@ -67,7 +67,7 @@ function mostrarVista(vista) {
     if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   window.scrollTo({ top: 0 });
-  VFN.anim.tab($(`view-${vista}`));
+  VFN.anim.seccao($(`view-${vista}`)); // flash do escudo + fade-in
   VFN.refreshAOS();
 }
 
@@ -241,7 +241,7 @@ function abrirPresencasJogador(id) {
 const COLUNAS_STATS = [["nome", "Jogador", "texto"], ["jogos", "J", "numero"], ["minutos", "Min", "numero"], ["golos", "Golos", "numero"], ["assistencias", "Ass", "numero"], ["cartoesA", "Am.", "numero"], ["cartoesV", "Verm.", "numero"]];
 
 function renderEstatisticas() {
-  $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id)) : H.vazio("Só para jogadores.");
+  $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id, eu)) : H.vazio("Só para jogadores.");
   const posicao = $("eqStatsPosicao").value;
   const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
   if (!lista.length) { $("eqStatsTabela").innerHTML = '<tbody><tr><td class="empty-state">Sem jogadores nesta posição.</td></tr></tbody>'; return; }
@@ -258,7 +258,7 @@ function abrirJogador(id) {
   $("ejNome").textContent = j.nomeCompleto;
   $("ejMeta").innerHTML = esc([j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ")) + (j.disponibilidade ? " " + VFN.badgeDisponibilidade(j.disponibilidade) : "");
   $("ejStats").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]].map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
-  $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id));
+  $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j));
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
 }
@@ -403,6 +403,8 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
+  // telemóvel: puxar para atualizar no início (resultados), calendário e competições
+  VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
 
   cliente = VFN.criarClienteSupabase();
   if (!cliente) { mostrarLogin("Supabase não configurado (config.js)."); return; }

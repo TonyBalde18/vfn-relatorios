@@ -736,7 +736,7 @@ async function renderFichaAdmin(jogador) {
   if (caixa.hidden) { caixa.innerHTML = ""; return; }
   const desenhar = () => {
     const id = idJogadorBD(jogador);
-    caixa.innerHTML = VFNHub.fichaVisualHTML(jogadorParaFicha(jogador), plantel.map(jogadorParaFicha), VFNHub.opcoesFicha({ matches: jogosCalendario, attendance: cacheAdmin.attendance }, id));
+    caixa.innerHTML = VFNHub.fichaVisualHTML(jogadorParaFicha(jogador), plantel.map(jogadorParaFicha), VFNHub.opcoesFicha({ matches: jogosCalendario, attendance: cacheAdmin.attendance, match_reports: relatoriosAdmin }, id, jogador, idLocal => String(idLocal) === String(jogador.id)));
   };
   desenhar();
   if (!tabelasCarregadas.has("attendance")) { await carregarTabelaAdmin("attendance", "presencasErro"); if (jogadorEmEdicao === jogador) desenhar(); }

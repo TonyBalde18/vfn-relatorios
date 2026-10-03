@@ -640,7 +640,7 @@ function initTabs() {
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       btn.classList.add("active");
       el("tab-" + btn.dataset.tab).classList.add("active");
-      VFN.anim.tab(el("tab-" + btn.dataset.tab));
+      VFN.anim.seccao(el("tab-" + btn.dataset.tab)); // flash do escudo + fade-in
       el("currentSectionTitle").textContent = titulos[btn.dataset.tab] || btn.dataset.tab;
       el("appSidebar").classList.remove("is-open");
     });
