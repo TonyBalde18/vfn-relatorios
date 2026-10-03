@@ -76,7 +76,7 @@
       <div class="hero-teams">${casa ? vfn : adv}<span class="hero-vs">vs</span>${casa ? adv : vfn}</div>
       <div class="hero-meta">
         <span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(jogo.date, true))}</span>
-        <span>${casa ? VFN.icone("house", 16) + " Casa" : VFN.icone("bus", 16) + " Fora"}${VFN.etiquetaJornada(jogo) ? ` · ${esc(VFN.etiquetaJornada(jogo))}` : ""}${jogo.venue ? ` · ${esc(jogo.venue)}` : ""}</span>
+        <span>${casa ? VFN.icone("house", 16) + " Casa" : VFN.icone("bus", 16) + " Fora"}${VFN.etiquetaJornada(jogo) ? ` · ${esc(VFN.etiquetaJornada(jogo))}` : ""}${VFN.estadioDoJogo(jogo, dados.teams).nome ? ` · ${esc(VFN.estadioDoJogo(jogo, dados.teams).nome)}` : ""}</span>
       </div>
       <div class="hero-countdown" aria-live="off"><span>Faltam</span><strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></div>`;
   }
@@ -884,7 +884,7 @@
       ({ casa, fora } = VFN.equipasDoJogo(j, dados.teams));
       estado = VFN.estadoJogo(j) || "agendado";
       if (estado === "jogado") { gc = j.score_home; gf = j.score_away; }
-      data = j.date; comp = j.competition; local = j.venue || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = VFN.etiquetaJornada(j, true);
+      data = j.date; comp = j.competition; local = VFN.estadioDoJogo(j, dados.teams).nome || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = VFN.etiquetaJornada(j, true);
       relatorio = relatorioDoJogo(dados, j.id);
       eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
       // sem eventos no relatório, os golos do VFN não são conhecidos; o lado VFN fica à esquerda/direita conforme casa/fora

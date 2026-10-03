@@ -846,6 +846,40 @@
     return "";
   }
 
+  /* ---------- Estádios (teams.stadium, stadium_lat, stadium_lng) ---------- */
+
+  const ESTADIO_VFN = { nome: "Estádio do Picoto", lat: 40.7277, lng: -7.2645 };
+
+  /** Estádio de uma equipa: { nome, lat, lng } (o VFN usa o Picoto por omissão). */
+  function estadioDaEquipa(t) {
+    const e = t || {};
+    const vfn = eVFN(e.name);
+    const num = v => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v))) ? null : Number(v);
+    return {
+      nome: e.stadium || (vfn ? ESTADIO_VFN.nome : ""),
+      lat: num(e.stadium_lat) ?? (vfn ? ESTADIO_VFN.lat : null),
+      lng: num(e.stadium_lng) ?? (vfn ? ESTADIO_VFN.lng : null)
+    };
+  }
+
+  /**
+   * Estádio de um jogo do VFN: em casa o do VFN, fora o do adversário. O campo escrito no
+   * jogo (venue) tem prioridade no nome; as coordenadas vêm sempre da equipa da casa.
+   */
+  function estadioDoJogo(jogo, equipas) {
+    const casa = jogoEmCasa(jogo);
+    const t = casa ? equipaVFN(equipas) : (equipas || []).find(x => String(x.id) === String(jogo.opponent_team_id));
+    const e = estadioDaEquipa(t || (casa ? { name: "VFN" } : null));
+    return { ...e, nome: jogo.venue || e.nome };
+  }
+
+  /** Distância em km entre dois pontos (fórmula de haversine). */
+  function distanciaKm(lat1, lng1, lat2, lng2) {
+    const rad = x => x * Math.PI / 180, R = 6371;
+    const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
+
   /* ---------- Cores das equipas (teams.color_primary / color_secondary) ---------- */
 
   const COR_HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -1073,7 +1107,7 @@
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    BASE_SITE, LOGO_VFN, urlLogoEquipa, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,

@@ -479,7 +479,7 @@ function jogosParaConvocatoria() {
 
 /** Local de concentração por omissão: o estádio do jogo (o campo do jogo ou o da equipa da casa). */
 function localPorOmissaoConv(jogo) {
-  return (jogo && jogo.venue) || "";
+  return jogo ? VFN.estadioDoJogo(jogo, equipasCalendario).nome : "";
 }
 
 function carregarConvocatoria(matchId) {
@@ -979,6 +979,9 @@ function initCalendarioAdmin() {
   el("btnJogoGuardar").addEventListener("click", guardarJogo);
   ["jogoCompeticao", "jogoGolosVFN", "jogoGolosAdv"].forEach(id => el(id).addEventListener("input", atualizarPenaltisJogo));
   el("jogoCompeticao").addEventListener("change", atualizarPenaltisJogo);
+  // local: estádio automático (casa → VFN, fora → adversário) até ser escrito à mão
+  el("jogoLocal").addEventListener("input", () => { localJogoManual = el("jogoLocal").value.trim() !== ""; });
+  ["jogoCasaFora", "jogoAdversarioEquipa"].forEach(id => el(id).addEventListener("change", preencherLocalJogo));
   el("jogoFase").innerHTML = '<option value="">— Fase —</option>' + VFN.FASES_TACA.map(([k, nome]) => `<option value="${k}">${escapeHtml(nome)}</option>`).join("");
   el("jogoCompeticao").addEventListener("change", atualizarCamposTaca);
   initMarcadoresJogo();
@@ -1025,6 +1028,16 @@ function scorerListDoModal(golosVFN, jogado) {
   });
   if (porJogador.size) return [...porJogador.values()];
   return jogado && golosVFN === 0 ? [] : null;
+}
+
+let localJogoManual = false;
+
+/** Estádio por omissão do jogo do formulário (só substitui se o local não foi escrito à mão). */
+function preencherLocalJogo() {
+  const casa = el("jogoCasaFora").value === "Casa";
+  const estadio = VFN.estadioDoJogo({ home_away: casa ? "Casa" : "Fora", opponent_team_id: el("jogoAdversarioEquipa").value }, equipasCalendario).nome;
+  el("jogoLocal").placeholder = estadio || "Opcional";
+  if (!localJogoManual) el("jogoLocal").value = estadio;
 }
 
 /** Nas taças por eliminatórias o jogo tem fase (a jornada fica a null); nas ligas tem jornada. */
@@ -1116,6 +1129,8 @@ function abrirModalJogo(jogo) {
   el("jogoGolosVFN").value = g ? g.vfn : "";
   el("jogoGolosAdv").value = g ? g.adv : "";
   el("jogoLocal").value = jogo ? jogo.venue || "" : "";
+  localJogoManual = !!(jogo && jogo.venue);
+  preencherLocalJogo();
   marcadoresJogo = (jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : []).map(s => ({ player_id: String(s.player_id || ""), count: Number(s.count) || 1 }));
   renderMarcadoresJogo();
   el("jogoPenaltis").value = jogo && jogo.winner_id ? (String(jogo.winner_id) === String(jogo.opponent_team_id) ? "adv" : "vfn") : "";

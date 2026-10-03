@@ -780,6 +780,48 @@ alter table public.squads add constraint squads_squad_status_check check (squad_
 -- convocatórias v5 que já tinham onze passam a 'completa'
 update public.squads set squad_status = 'completa' where squad_status = 'lista' and coalesce(array_length(lineup, 1), 0) = 11;
 
+-- [v6 Tarefa 3] Estádio automático nos jogos: coordenadas do estádio de cada equipa (mapa e meteorologia)
+alter table public.teams add column if not exists stadium_lat double precision;
+alter table public.teams add column if not exists stadium_lng double precision;
+
+-- VFN: Estádio do Picoto (cria o registo do VFN em teams se ainda não existir)
+insert into public.teams (id, name, city, logo_url)
+select 'vfn', 'ACD Vila Franca das Naves', 'Vila Franca das Naves', 'https://tonybalde18.github.io/vfn-relatorios/assets/logo.png'
+where not exists (select 1 from public.teams where name ilike '%vila franca%');
+update public.teams set stadium = 'Estádio do Picoto', stadium_lat = 40.7277, stadium_lng = -7.2645
+where name ilike '%vila franca%';
+
+-- Coordenadas aproximadas por localidade (ajustáveis na ficha da equipa, no admin).
+-- Só preenche quem ainda não tem coordenadas, para não apagar ajustes feitos na app.
+update public.teams t set stadium_lat = v.lat, stadium_lng = v.lng
+from (values
+  ('8063', 40.5669, -7.4506),  -- Gonçalense
+  ('11082', 40.8976, -7.0823), -- Freixo de Numão
+  ('6306', 40.5200, -7.4400),  -- Mileu Guarda
+  ('6846', 41.0833, -7.1500),  -- GD Foz Côa
+  ('16479', 40.4167, -7.7000), -- Seia FC
+  ('11073', 40.4300, -7.6300), -- Paços da Serra
+  ('11085', 40.5200, -7.3800), -- Casal Cinza
+  ('6840', 40.5550, -7.4600),  -- UFC Arcozelo
+  ('338084', 40.3700, -7.6400),-- CCR Vila Verde
+  ('391027', 40.8200, -6.9800),-- Palmares FC
+  ('6839', 40.7790, -7.3490),  -- Trancoso (corrigido: o valor do pedido, 40.36/-7.10, é o Sabugal)
+  ('6836', 40.3520, -7.0900),  -- SC Sabugal (corrigido: o valor do pedido, 40.77/-7.10, não é o Sabugal)
+  ('4344', 40.4964, -7.5919),  -- CD Gouveia
+  ('6843', 40.7800, -7.0200),  -- Pinhelenses
+  ('6838', 40.6000, -6.8400),  -- Vilar Formoso
+  ('6841', 40.9500, -7.2600),  -- Sp. Mêda
+  ('6845', 40.5300, -7.1000),  -- Vila Cortez
+  ('8062', 40.5450, -7.4250),  -- AD São Romão
+  ('5668', 40.8800, -6.9600),  -- Ginásio Figueirense
+  ('3546', 40.6700, -7.5500),  -- Aguiar da Beira
+  ('10485', 40.4900, -7.5600), -- Os Vilanovenses
+  ('3583', 40.5900, -7.5400),  -- Fornos de Algodres
+  ('6837', 40.3900, -7.5300),  -- Manteigas
+  ('11074', 40.5600, -7.4700)  -- SC Celoricense
+) as v(id, lat, lng)
+where t.id = v.id and t.stadium_lat is null;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

@@ -242,7 +242,7 @@
         ${fase ? `<div><dt>Fase</dt><dd>${esc(fase)}</dd></div>` : jogo.jornada ? `<div><dt>Jornada</dt><dd>${esc(jogo.jornada)}</dd></div>` : ""}
         <div><dt>Data</dt><dd>${esc(VFN.dataLonga(jogo.date))}</dd></div>
         <div><dt>Hora</dt><dd>${hora && hora !== "00:00" ? esc(hora) : "—"}</dd></div>
-        <div><dt>Local</dt><dd>${esc(jogo.venue || (casa ? "Casa" : "—"))}</dd></div>
+        <div><dt>Local</dt><dd>${esc(VFN.estadioDoJogo(jogo, dados.teams).nome || (casa ? "Casa" : "—"))}</dd></div>
       </dl>
       <button type="button" class="btn btn-ghost btn-sm" data-jogo="vfn:${esc(jogo.id)}">${VFN.icone("eye", 16)} Ver detalhe do jogo</button>`;
     if (!o.comRelatorios) return `<section class="dia-bloco">${resumo}</section>`;
