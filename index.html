@@ -280,7 +280,7 @@
     <div class="card" data-aos="fade-up">
       <div class="section-header-row">
         <h2 class="section-title">Multas</h2>
-        <button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Adicionar Multa</button>
+        <div class="joia-acoes"><span id="joiaEstado" class="joia-estado" role="status"></span><button type="button" id="btnJoiaMes" class="btn btn-ghost btn-sm">Lançar Joia do Mês</button><button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Adicionar Multa</button></div>
       </div>
       <div class="toolbar"><label class="toolbar-label" for="multasMes">Mês</label><select id="multasMes"></select><label class="sr-only" for="multasFiltroJogador">Jogador</label><select id="multasFiltroJogador"></select><label class="sr-only" for="multasFiltroTipo">Tipo</label><select id="multasFiltroTipo"></select><label class="sr-only" for="multasFiltroEstado">Estado</label><select id="multasFiltroEstado"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select><button type="button" id="btnExportarMultas" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar Excel</button></div>
       <p id="multasErro" class="form-error" role="alert"></p>

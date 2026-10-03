@@ -134,6 +134,7 @@ function initMultas() {
   el("btnTipoMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalTipoMulta"));
   el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
+  el("btnJoiaMes").addEventListener("click", lancarJoiaDoMes);
   el("btnMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalMulta"));
   el("btnMultaGuardar").addEventListener("click", guardarMulta);
 }
@@ -156,9 +157,56 @@ function multasDoPeriodo() {
     .sort((a, b) => String(b.match_date || "").localeCompare(String(a.match_date || "")));
 }
 
+/* ---------- Joia mensal (tipo 1) ---------- */
+
+const INICIO_JOIA = "2026-10"; // a joia começa em outubro de 2026
+
+/** Jogadores do plantel com e sem a joia do mês (AAAA-MM). */
+function estadoJoia(mes) {
+  const tipo = VFN.tipoMultaPorId(VFN.ID_JOIA);
+  const temJoia = idBD => cacheAdmin.fines.some(f => String(f.player_id) === idBD && String(f.match_date || "").startsWith(mes) && (Number(f.fine_type_id) === VFN.ID_JOIA || (tipo && f.infraction_type === tipo.tipo)));
+  const ids = plantel.map(idJogadorBD);
+  return { tipo, lancados: ids.filter(temJoia), emFalta: ids.filter(id => !temJoia(id)) };
+}
+
+function renderEstadoJoia() {
+  const mes = VFN.mesAtual();
+  const nomeMes = VFN.MESES_LONGOS[Number(mes.slice(5)) - 1].toLowerCase();
+  const { lancados, emFalta } = estadoJoia(mes);
+  const antes = mes < INICIO_JOIA;
+  el("btnJoiaMes").disabled = antes || !emFalta.length || !plantel.length;
+  el("btnJoiaMes").textContent = emFalta.length && lancados.length ? `Lançar joia em falta (${emFalta.length})` : "Lançar Joia do Mês";
+  el("joiaEstado").textContent = antes ? "A joia mensal começa em outubro de 2026." : !emFalta.length && lancados.length ? `Joia de ${nomeMes} já lançada (${lancados.length} jogadores).` : lancados.length ? `Joia de ${nomeMes}: ${lancados.length} lançadas, ${emFalta.length} em falta.` : `Joia de ${nomeMes} por lançar.`;
+  el("joiaEstado").classList.toggle("feito", !emFalta.length && lancados.length > 0);
+}
+
+async function lancarJoiaDoMes() {
+  await carregarTiposMulta();
+  const mes = VFN.mesAtual();
+  const { tipo, emFalta } = estadoJoia(mes);
+  if (!tipo) { alert("O tipo 1 (Joia Mensal) não existe nos tipos de multa."); return; }
+  if (!emFalta.length) { renderEstadoJoia(); return; }
+  const nomeMes = VFN.MESES_LONGOS[Number(mes.slice(5)) - 1].toLowerCase();
+  if (!confirm(`Lançar a joia de ${nomeMes} (${VFN.formatoEuro.format(tipo.valor)}) para ${emFalta.length} jogador${emFalta.length === 1 ? "" : "es"}?`)) return;
+  const botao = el("btnJoiaMes");
+  botao.disabled = true;
+  try {
+    for (const idBD of emFalta) {
+      const gravada = await guardarLinhaMulta({ player_id: idBD, infraction_type: tipo.tipo, fine_type_id: tipo.id, amount: tipo.valor, match_date: `${mes}-01`, description: "Joia mensal", paid: false, paid_date: null });
+      cacheAdmin.fines.push(gravada);
+    }
+    mostrarErroAdmin("multasErro", null);
+  } catch (e) {
+    mostrarErroAdmin("multasErro", e);
+  } finally {
+    renderMultas();
+  }
+}
+
 function renderMultas() {
   renderFiltrosMultas();
   renderTiposMulta();
+  renderEstadoJoia();
   const lista = multasDoPeriodo();
   const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);

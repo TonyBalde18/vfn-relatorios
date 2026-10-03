@@ -422,6 +422,40 @@ grant select on public.sessions_public to anon, authenticated;
 -- [v4 Tarefa 6] Capitão do jogo (automático: Toneca → Silvestre → Marco → Macedo)
 alter table public.match_reports add column if not exists captain_id text references public.players(id) on delete set null;
 
+-- [v4 Tarefa 2] Joia mensal automática (tipo 1) para todo o plantel, no dia 1 de cada mês
+-- às 8h (UTC), a partir de outubro de 2026. Não duplica: salta quem já tem a joia desse mês
+-- (também as lançadas com o botão "Lançar Joia do Mês" no admin).
+-- O pg_cron existe em todos os planos do Supabase; se a linha seguinte der erro de permissões,
+-- ativa-o em Database → Extensions (pg_cron) e corre o resto. Sem pg_cron, usa o botão no admin.
+create extension if not exists pg_cron;
+
+create or replace function public.vfn_lancar_joia_mensal() returns integer
+language plpgsql security definer set search_path = public as $$
+declare
+  inicio date := date_trunc('month', current_date)::date;
+  tipo record;
+  n integer;
+begin
+  if inicio < date '2026-10-01' then return 0; end if;
+  select id, name, amount into tipo from public.fine_types where id = 1;
+  if not found then return 0; end if;
+  insert into public.fines (player_id, infraction_type, fine_type_id, amount, match_date, description, paid)
+  select p.id, tipo.name, tipo.id, tipo.amount, inicio, 'Joia mensal', false
+  from public.players p
+  where not exists (
+    select 1 from public.fines f
+    where f.player_id = p.id
+      and (f.fine_type_id = 1 or f.infraction_type = tipo.name)
+      and f.match_date >= inicio and f.match_date < (inicio + interval '1 month')
+  );
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.vfn_lancar_joia_mensal() from public, anon, authenticated;
+
+-- (re)agenda o job; correr de novo substitui o job com o mesmo nome
+select cron.schedule('vfn-joia-mensal', '0 8 1 * *', 'select public.vfn_lancar_joia_mensal();');
+
 -- [v4 Tarefa 4] Equipas novas (logos em assets/opponents/<id>.png)
 alter table public.teams add column if not exists city text; -- já usada no admin (Equipas)
 insert into public.teams (id, name, city, logo_url) values

@@ -1370,3 +1370,8 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
   #dbMultasTabela td:nth-child(4) { grid-column: 1; }
   #dbMultasTabela td:nth-child(5) { grid-column: 2; text-align: right; font-size: .78rem; color: var(--text-muted); }
 }
+
+/* ---------- v4: joia mensal ---------- */
+.joia-acoes { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.joia-estado { font-size: .78rem; color: var(--text-muted); }
+.joia-estado.feito { color: #15803d; font-weight: 700; }
