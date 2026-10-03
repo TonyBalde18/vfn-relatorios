@@ -678,6 +678,56 @@
     </div>`;
   }
 
+  /* ---------- Estatísticas iniciais do hub ---------- */
+
+  /** Idade (anos completos) numa data. */
+  function idade(nascimento, ref) {
+    const n = VFN.paraData(nascimento);
+    if (!n) return null;
+    const r = ref || new Date();
+    return r.getFullYear() - n.getFullYear() - (r < new Date(r.getFullYear(), n.getMonth(), n.getDate()) ? 1 : 0);
+  }
+
+  /** Maior vitória, maior derrota e sequência atual (ex.: 3 V) dos jogos do VFN. */
+  function registosEpoca(dados) {
+    const jogados = VFN.ultimosJogos(dados.matches, 999); // mais recente primeiro
+    const comDif = jogados.map(j => { const g = VFN.golosJogo(j); return { j, g, dif: g.vfn - g.adv }; });
+    const melhor = comDif.filter(x => x.dif > 0).sort((a, b) => b.dif - a.dif || b.g.vfn - a.g.vfn)[0] || null;
+    const pior = comDif.filter(x => x.dif < 0).sort((a, b) => a.dif - b.dif || b.g.adv - a.g.adv)[0] || null;
+    let seq = null;
+    if (jogados.length) {
+      const letra = VFN.letraResultado(jogados[0]);
+      let n = 0;
+      while (n < jogados.length && VFN.letraResultado(jogados[n]) === letra) n++;
+      seq = { letra, n };
+    }
+    return { melhor, pior, seq };
+  }
+
+  /** Tiles: atletas, idade média, treinos por semana, lesionados e registos da época (com contagem animada). */
+  function estatisticasIniciaisHTML(dados, jogadores) {
+    const lista = jogadores || [];
+    const idades = lista.map(j => idade(j.info ? j.info.nascimento : j.nascimento)).filter(x => x !== null && x > 0);
+    const media = idades.length ? (idades.reduce((s, x) => s + x, 0) / idades.length).toFixed(1).replace(".", ",") : "—";
+    const desde = new Date(Date.now() - 30 * 86400000);
+    const dias = new Set([...(dados.sessions || []).filter(s => s.session_type === "treino").map(s => s.session_date),
+      ...(dados.attendance || []).filter(a => a.session_type === "treino").map(a => a.session_date)].filter(d => d && VFN.paraData(d) >= desde && VFN.paraData(d) <= new Date()));
+    const porSemana = (dias.size / (30 / 7)).toFixed(1).replace(".", ",");
+    const lesionados = lista.filter(j => j.disponibilidade === "lesionado");
+    const { melhor, pior, seq } = registosEpoca(dados);
+    const jogoTxt = x => x ? `${esc(VFN.jogoEmCasa(x.j) ? "vs " : "@ ")}${esc(nomeAdversario(dados, x.j))} · ${esc(VFN.dataCurta(x.j.date))}` : "";
+    const tile = (rotulo, valor, detalhe, classe) => `<div class="summary-tile ${classe || ""}"><span>${rotulo}</span><strong>${valor}</strong>${detalhe ? `<small>${detalhe}</small>` : ""}</div>`;
+    return `<div class="summary-tiles hub-inicio">
+      ${tile("Atletas", lista.length, "no plantel")}
+      ${tile("Idade média", media, idades.length < lista.length ? `${idades.length} com data de nascimento` : "anos")}
+      ${tile("Treinos por semana", porSemana, "últimos 30 dias")}
+      ${tile("Lesionados", lesionados.length, lesionados.map(j => esc(j.nome)).join(", ") || "ninguém", lesionados.length ? "tile-pendente" : "tile-pago")}
+      ${tile("Maior vitória", melhor ? `${melhor.g.vfn}–${melhor.g.adv}` : "—", jogoTxt(melhor), "tile-pago")}
+      ${tile("Maior derrota", pior ? `${pior.g.vfn}–${pior.g.adv}` : "—", jogoTxt(pior), "tile-pendente")}
+      ${tile("Sequência atual", seq ? `${seq.n} ${seq.letra}` : "—", !seq ? "" : seq.n === 1 ? { V: "vitória", E: "empate", D: "derrota" }[seq.letra] + " no último jogo" : { V: "vitórias seguidas", E: "empates seguidos", D: "derrotas seguidas" }[seq.letra], seq ? "seq-" + seq.letra : "")}
+    </div>`;
+  }
+
   /* ---------- Desempenho por competição ---------- */
 
   function desempenhoPorCompeticaoHTML(dados) {
@@ -1101,6 +1151,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

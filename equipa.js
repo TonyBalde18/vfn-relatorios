@@ -97,6 +97,7 @@ function renderInicio() {
   } else {
     $("eqBoasVindas").innerHTML = `<div class="eq-ola"><div><span class="muted">Olá,</span><h2>${esc((perfil && perfil.full_name) || utilizador.email)}</h2><p class="muted">Entraste como equipa técnica: vês os dados do plantel, sem as secções pessoais.</p></div></div>`;
   }
+  $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores);
   $("eqProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);

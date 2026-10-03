@@ -1819,3 +1819,8 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .tendencia.mau { background: #FEE2E2; color: #b91c1c; }
 .tendencia.neutro { background: #E2E8F0; color: #475569; }
 @media (prefers-reduced-motion: reduce) { .vfn-flash.ativo, .vfn-spinner::before, .vfn-puxar.a-atualizar .vfn-puxar-ic { animation: none; } }
+
+/* ---------- v6: estatísticas iniciais do hub ---------- */
+.hub-inicio { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
+.hub-inicio .summary-tile small { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; color: var(--text-muted); }
+.hub-inicio .seq-V strong { color: #15803d; } .hub-inicio .seq-E strong { color: #475569; } .hub-inicio .seq-D strong { color: #b91c1c; }
