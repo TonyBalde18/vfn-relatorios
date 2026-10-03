@@ -350,13 +350,23 @@
   }
 
   /** Gera a imagem PNG do relatório (html2canvas) e partilha-a (telemóvel) ou descarrega-a. */
-  async function exportarImagemDividas(multas, o) {
+  function exportarImagemDividas(multas, o) {
+    return exportarImagemHTML(renderDebtReport(multas, { ...o, imagem: true }), { nome: `dividas_vfn_${new Date().toISOString().slice(0, 10)}.png`, titulo: "Multas por pagar — VFN", largura: 540, partilhar: o.partilhar });
+  }
+
+  /**
+   * HTML → PNG (html2canvas, escala 2) num documento à parte com o CSS do site.
+   * o: { nome, titulo, largura (px), fundo, partilhar }. No telemóvel abre a partilha (WhatsApp...);
+   * no computador descarrega o ficheiro.
+   */
+  async function exportarImagemHTML(html, o) {
     if (!window.html2canvas) { alert("A biblioteca de imagens não carregou. Verifica a ligação à internet."); return; }
-    // documento à parte (só o relatório e o CSS): o html2canvas copia apenas este documento
+    // documento à parte (só o conteúdo e o CSS): o html2canvas copia apenas este documento
     const palco = document.createElement("iframe");
     palco.className = "dividas-palco";
+    palco.style.width = (o.largura || 540) + "px";
     palco.setAttribute("aria-hidden", "true");
-    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"></head><body style="margin:0;background:#fff">${renderDebtReport(multas, { ...o, imagem: true })}</body></html>`;
+    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"></head><body style="margin:0;background:${o.fundo || "#fff"}">${html}</body></html>`;
     document.body.appendChild(palco);
     try {
       await new Promise(r => { palco.onload = r; });
@@ -365,14 +375,14 @@
       await Promise.all([...doc.querySelectorAll("img")].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
       const alvo = doc.body.firstElementChild;
       palco.style.height = alvo.scrollHeight + "px";
-      const canvas = await window.html2canvas(alvo, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+      const canvas = await window.html2canvas(alvo, { scale: 2, backgroundColor: o.fundo || "#ffffff", useCORS: true, logging: false });
       const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
-      const nome = `dividas_vfn_${new Date().toISOString().slice(0, 10)}.png`;
+      const nome = o.nome || "vfn.png";
       const ficheiro = new File([blob], nome, { type: "image/png" });
       // no telemóvel abre a partilha (WhatsApp, email...); no computador descarrega o PNG
       const tatil = window.matchMedia && matchMedia("(pointer: coarse)").matches;
       if (o.partilhar !== false && tatil && navigator.canShare && navigator.canShare({ files: [ficheiro] })) {
-        try { await navigator.share({ files: [ficheiro], title: "Multas por pagar — VFN" }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+        try { await navigator.share({ files: [ficheiro], title: o.titulo || "VFN" }); return; } catch (e) { if (e && e.name === "AbortError") return; }
       }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -382,6 +392,91 @@
     } finally {
       palco.remove();
     }
+  }
+
+  /* ---------- Convocatória (tabela squads) ---------- */
+
+  const MIN_CONVOCADOS = 18, MAX_CONVOCADOS = 23;
+
+  /** Convocatória de um jogo (a mais recente, se houver várias). */
+  function convocatoriaDoJogo(squads, matchId) {
+    return (squads || []).filter(s => String(s.match_id) === String(matchId))
+      .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))[0] || null;
+  }
+
+  /** Próximo jogo do VFN com convocatória (só publicadas, se `publicadas`). Devolve { jogo, squad } ou null. */
+  function proximaConvocatoria(dados, publicadas) {
+    const limite = Date.now() - 3 * 3600 * 1000;
+    const jogos = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) !== "cancelado" && (VFN.paraData(j.date) || 0) >= limite)
+      .sort((a, b) => VFN.paraData(a.date) - VFN.paraData(b.date));
+    for (const jogo of jogos) {
+      const squad = convocatoriaDoJogo(dados.squads, jogo.id);
+      if (squad && (!publicadas || squad.published)) return { jogo, squad };
+    }
+    return null;
+  }
+
+  /** Jogadores (objetos) de uma lista de ids, ordenados por posição (GR, defesas, médios, avançados). */
+  function jogadoresDosIds(ids, pessoa) {
+    return VFN.ordenarPorPosicao((ids || []).map(id => pessoa(id)).filter(Boolean));
+  }
+
+  const idDe = j => String(j.idBD || j.id);
+
+  /**
+   * Vista da convocatória: jogo, aviso convocado/não convocado (o: { eu }), onze no campo com o
+   * capitão e lista dos convocados com foto, número e posição.
+   */
+  function renderSquadView(dados, jogo, squad, pessoa, o) {
+    const opcoes = o || {};
+    const nome = H().nomeAdversario(dados, jogo);
+    const casa = VFN.jogoEmCasa(jogo);
+    const convocados = jogadoresDosIds(squad.player_ids, pessoa);
+    const onze = (squad.lineup || []).map(id => pessoa(id)).filter(Boolean);
+    const suplentes = jogadoresDosIds(squad.subs, pessoa);
+    const eu = opcoes.eu ? String(opcoes.eu.id) : "";
+    const souConvocado = eu && (squad.player_ids || []).map(String).includes(eu);
+    const souTitular = eu && (squad.lineup || []).map(String).includes(eu);
+    const aviso = eu ? `<div class="conv-aviso ${souConvocado ? "sim" : "nao"}">${VFN.icone(souConvocado ? "circle-check" : "circle-off", 22)}<div><strong>${souConvocado ? "Estás convocado!" : "Não foste convocado para este jogo."}</strong>${souConvocado ? `<span>${souTitular ? "No onze inicial" : "Suplente"}${String(squad.captain_id) === eu ? " · Capitão" : ""}</span>` : ""}</div></div>` : "";
+    const linha = j => `<li${idDe(j) === eu ? ' class="eu"' : ""}>${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${esc(j.numero === "" || j.numero == null ? "—" : j.numero)}</b><span class="conv-nome">${esc(j.nome)}${String(squad.captain_id) === idDe(j) ? " " + VFN.badgeCapitao() : ""}</span><small class="muted">${esc(j.posicao)}</small></li>`;
+    return `<div class="conv-topo">${H().logoEquipa(H().equipa(dados, jogo.opponent_team_id), nome, "conv-logo")}
+        <div><strong>${casa ? "VFN vs " + esc(nome) : esc(nome) + " vs VFN"}</strong><span>${esc(VFN.dataLonga(jogo.date, true))} · ${esc(VFN.nomeCurtoCompeticao(jogo.competition))}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</span></div>
+        ${squad.published ? "" : '<span class="estado-relatorio rascunho">Rascunho</span>'}</div>
+      ${aviso}
+      <div class="conv-grelha">
+        <section><h4 class="perfil-subtitulo">Onze inicial <small class="muted">${esc(squad.formation || "")}</small></h4>
+          ${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id })}</section>
+        <section><h4 class="perfil-subtitulo">Convocados <small class="muted">${convocados.length}</small></h4>
+          <ul class="conv-lista">${convocados.map(linha).join("")}</ul>
+          ${suplentes.length ? `<p class="muted conv-suplentes">Suplentes: ${suplentes.map(j => esc(j.nome)).join(", ")}</p>` : ""}</section>
+      </div>`;
+  }
+
+  /**
+   * Anúncio da convocatória para as redes sociais (formato "1x1" ou "9x16"):
+   * escudo e gradiente do clube, jogo, e grelha de camisolas numeradas com o nome (capitão com "C").
+   */
+  function renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
+    const nome = H().nomeAdversario(dados, jogo);
+    const casa = VFN.jogoEmCasa(jogo);
+    const convocados = jogadoresDosIds(squad.player_ids, pessoa);
+    const logoAdv = VFN.urlLogoEquipa(H().equipa(dados, jogo.opponent_team_id), nome);
+    const equipaLado = (logo, texto) => `<div class="an-equipa">${logo ? `<img src="${esc(logo)}" alt="" crossorigin="anonymous">` : `<span class="an-sem-logo">${esc(texto.slice(0, 2).toUpperCase())}</span>`}<strong>${esc(texto)}</strong></div>`;
+    const vfn = equipaLado("assets/logo.png", "VFN"), adv = equipaLado(logoAdv, nome);
+    const hora = VFN.horaIso(jogo.date);
+    return `<div class="anuncio anuncio-${formato === "9x16" ? "9x16" : "1x1"}">
+      <img class="an-escudo" src="assets/logo.png" alt="">
+      <div class="an-cabecalho"><span>ACD Vila Franca das Naves</span><h1>Convocatória</h1></div>
+      <div class="an-jogo">${casa ? vfn : adv}<span class="an-vs">vs</span>${casa ? adv : vfn}</div>
+      <p class="an-info">${esc(VFN.dataLonga(jogo.date))}${hora && hora !== "00:00" ? " · " + esc(hora) : ""} · ${esc(jogo.competition || "")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</p>
+      <div class="an-grelha">${convocados.map(j => `<div class="an-jogador">${String(squad.captain_id) === idDe(j) ? '<span class="an-capitao">C</span>' : ""}${VFN.generateJerseyAvatar(j.numero)}<span>${esc(j.nome)}</span></div>`).join("")}</div>
+      <p class="an-rodape">${casa ? "Em casa" : "Fora"}${jogo.venue ? " · " + esc(jogo.venue) : ""} · Força VFN!</p>
+    </div>`;
+  }
+
+  function exportarAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
+    const nome = VFN.slug(H().nomeAdversario(dados, jogo));
+    return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
   /* ---------- Presenças no telemóvel ---------- */
@@ -438,7 +533,8 @@
   window.VFNComp = {
     renderMatchCard, renderPlayerCard, renderBracket,
     abrirDrawer, fecharDrawer,
-    dividasPorPessoa, renderDebtReport, exportarImagemDividas,
+    dividasPorPessoa, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
+    MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     eventosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };

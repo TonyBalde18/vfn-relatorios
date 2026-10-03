@@ -11,9 +11,9 @@
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
-const TABS_GESTAO = ["multas", "presencas", "calendario", "resultados", "jornadas", "historico", "classificacao", "adversarios"];
+const TABS_GESTAO = ["multas", "convocatoria", "presencas", "calendario", "resultados", "jornadas", "historico", "classificacao", "adversarios"];
 
-const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [], fine_types: [], staff: [] };
+const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [], fine_types: [], staff: [], squads: [] };
 let colunaTipoMulta = true; // fines.fine_type_id (v4); passa a false se a BD ainda não a tiver
 const tabelasCarregadas = new Set();
 let filtroCalendarioAdmin = "todos";
@@ -423,6 +423,144 @@ async function apagarMulta(multa) {
   } catch (e) {
     alert(mensagemErro(e));
   }
+}
+
+/* =========================================================
+   CONVOCATÓRIA (tabela squads)
+   Escolhe-se o jogo, os 18–23 convocados (titular ou suplente),
+   a formação e o capitão (automático pela ordem, mas alterável).
+   ========================================================= */
+
+const conv = { matchId: "", papel: new Map(), formation: "4-3-3", captain: "", id: null, published: false };
+
+function initConvocatoria() {
+  criarOpcoesFormacao(el("convFormacao"));
+  el("convJogo").addEventListener("change", () => carregarConvocatoria(el("convJogo").value));
+  el("convFormacao").addEventListener("change", () => { conv.formation = el("convFormacao").value; renderConvocatoria(); });
+  el("convCapitao").addEventListener("change", () => { conv.captain = el("convCapitao").value; renderConvocatoria(); });
+  el("convPlantel").addEventListener("click", e => {
+    const b = e.target.closest("[data-conv-papel]");
+    if (!b) return;
+    const id = b.dataset.convId;
+    if (b.dataset.convPapel) conv.papel.set(id, b.dataset.convPapel); else conv.papel.delete(id);
+    renderConvocatoria();
+  });
+  el("btnConvGuardar").addEventListener("click", () => guardarConvocatoria(conv.published));
+  el("btnConvPublicar").addEventListener("click", () => guardarConvocatoria(!conv.published));
+  el("btnConvAnuncio1").addEventListener("click", () => exportarAnuncioAdmin("1x1"));
+  el("btnConvAnuncio2").addEventListener("click", () => exportarAnuncioAdmin("9x16"));
+}
+
+/** Jogos do VFN a partir de ontem (os próximos primeiro) e os já com convocatória. */
+function jogosParaConvocatoria() {
+  const limite = Date.now() - 24 * 3600 * 1000;
+  return VFN.jogosDoVFN(jogosCalendario)
+    .filter(j => VFN.estadoJogo(j) !== "cancelado" && ((VFN.paraData(j.date) || 0) >= limite || VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id)))
+    .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+}
+
+function carregarConvocatoria(matchId) {
+  const squad = VFNComp.convocatoriaDoJogo(cacheAdmin.squads, matchId);
+  conv.matchId = matchId;
+  conv.papel = new Map();
+  (squad ? squad.lineup || [] : []).forEach(id => conv.papel.set(String(id), "titular"));
+  (squad ? (squad.player_ids || []).filter(id => !conv.papel.has(String(id))) : []).forEach(id => conv.papel.set(String(id), "suplente"));
+  conv.formation = squad && squad.formation || "4-3-3";
+  conv.captain = squad && squad.captain_id && squad.captain_id !== capitaoAutoConv() ? String(squad.captain_id) : "";
+  conv.id = squad ? squad.id : null;
+  conv.published = !!(squad && squad.published);
+  el("convErro").textContent = "";
+  renderConvocatoria();
+}
+
+const idsConv = papel => VFN.ordenarPorPosicao([...conv.papel].filter(([, p]) => p === papel).map(([id]) => jogadorPorIdBD(id)).filter(Boolean)).map(idJogadorBD);
+
+function capitaoAutoConv() {
+  return VFN.capitaoAutomatico(idsConv("titular"), { estado: id => (jogadorPorIdBD(id) || {}).disponibilidade || "" });
+}
+
+/** Capitão efetivo: o escolhido (se estiver no onze) ou o automático. */
+function capitaoConv() {
+  return conv.captain && idsConv("titular").includes(conv.captain) ? conv.captain : capitaoAutoConv();
+}
+
+/** Linha de squads a partir do estado do formulário. */
+function squadDoFormulario(publicado) {
+  const lineup = idsConv("titular"), subs = idsConv("suplente");
+  return { ...(conv.id ? { id: conv.id } : {}), match_id: conv.matchId, player_ids: [...lineup, ...subs], lineup, subs, captain_id: capitaoConv() || null, formation: conv.formation, published: !!publicado };
+}
+
+function renderConvocatoria() {
+  if (!el("convPlantel")) return;
+  const jogos = jogosParaConvocatoria();
+  const sel = el("convJogo");
+  if (!conv.matchId || !jogos.some(j => j.id === conv.matchId)) {
+    const proximo = VFN.proximoJogo(jogosCalendario);
+    const inicial = proximo && jogos.some(j => j.id === proximo.id) ? proximo.id : jogos[0] ? jogos[0].id : "";
+    if (inicial) { carregarConvocatoria(inicial); return; }
+  }
+  sel.innerHTML = jogos.length ? jogos.map(j => `<option value="${escapeHtml(j.id)}">${escapeHtml(`${VFN.dataCurta(j.date)} · ${nomeAdversarioJogo(j)} (${VFN.jogoEmCasa(j) ? "C" : "F"}) · ${VFN.nomeCurtoCompeticao(j.competition)}`)}${VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id) ? " ✓" : ""}</option>`).join("") : '<option value="">Sem jogos agendados</option>';
+  sel.value = conv.matchId;
+  el("convFormacao").value = conv.formation;
+
+  const titulares = idsConv("titular"), suplentes = idsConv("suplente");
+  const total = titulares.length + suplentes.length;
+  const auto = capitaoAutoConv();
+  el("convCapitao").innerHTML = `<option value="">Automático${auto ? " (" + escapeHtml((jogadorPorIdBD(auto) || {}).nome || "") + ")" : ""}</option>` + titulares.map(id => `<option value="${escapeHtml(id)}">${escapeHtml((jogadorPorIdBD(id) || {}).nome || id)}</option>`).join("");
+  el("convCapitao").value = conv.captain && titulares.includes(conv.captain) ? conv.captain : "";
+  el("convCapitaoAuto").textContent = "Ordem automática: Toneca, Silvestre, Marco, Macedo (o primeiro no onze e disponível).";
+  const ok = (v, cond) => `<span class="conv-contador ${cond ? "ok" : "falta"}">${v}</span>`;
+  el("convResumo").innerHTML = `${ok(`${total} convocados`, total >= VFNComp.MIN_CONVOCADOS && total <= VFNComp.MAX_CONVOCADOS)} ${ok(`${titulares.length}/11 titulares`, titulares.length === 11)} ${ok(`${suplentes.length} suplentes`, suplentes.length > 0)} <span class="muted">Para publicar: ${VFNComp.MIN_CONVOCADOS}–${VFNComp.MAX_CONVOCADOS} convocados e 11 titulares.</span>`;
+  const estado = el("convEstado");
+  estado.hidden = !conv.id;
+  estado.className = `estado-relatorio ${conv.published ? "publicado" : "rascunho"}`;
+  estado.textContent = conv.published ? "Publicada" : "Rascunho";
+  el("btnConvPublicar").innerHTML = conv.published ? `${VFN.icone("undo-2", 16)} Despublicar` : `${VFN.icone("send", 16)} Publicar`;
+  [el("btnConvGuardar"), el("btnConvPublicar"), el("btnConvAnuncio1"), el("btnConvAnuncio2")].forEach(b => { b.disabled = !conv.matchId; });
+
+  el("convPlantel").innerHTML = VFN.ordenarPorPosicao(plantel).map(j => {
+    const id = idJogadorBD(j);
+    const papel = conv.papel.get(id) || "";
+    const indisponivel = ["lesionado", "suspenso", "indisponivel"].includes(j.disponibilidade);
+    const botao = (valor, rotulo, titulo) => `<button type="button" class="conv-op${papel === valor ? " ativo" : ""}" data-conv-id="${escapeHtml(id)}" data-conv-papel="${valor}" aria-pressed="${papel === valor}" title="${titulo}">${rotulo}</button>`;
+    return `<div class="conv-linha${papel ? " " + papel : ""}${indisponivel ? " indisponivel" : ""}">
+      ${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${escapeHtml(j.numero || "—")}</b>
+      <span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small></span>
+      ${j.disponibilidade && j.disponibilidade !== "disponivel" ? VFN.badgeDisponibilidade(j.disponibilidade, true) : "<span></span>"}
+      <span class="conv-escolha" role="group" aria-label="Convocatória de ${escapeHtml(j.nome)}">${botao("titular", "T", "Titular")}${botao("suplente", "S", "Suplente")}${botao("", "—", "Não convocado")}</span>
+    </div>`;
+  }).join("") || '<p class="empty-state">Plantel vazio.</p>';
+
+  const jogo = jogosCalendario.find(j => j.id === conv.matchId);
+  el("convPreview").innerHTML = jogo ? VFNComp.renderSquadView({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squadDoFormulario(conv.published), jogadorPorIdBD) : '<p class="empty-state">Escolhe um jogo.</p>';
+}
+
+async function guardarConvocatoria(publicar) {
+  const linha = squadDoFormulario(publicar);
+  const total = linha.player_ids.length;
+  const erro = !conv.matchId ? "Escolhe o jogo."
+    : publicar && (total < VFNComp.MIN_CONVOCADOS || total > VFNComp.MAX_CONVOCADOS) ? `Para publicar, convoca entre ${VFNComp.MIN_CONVOCADOS} e ${VFNComp.MAX_CONVOCADOS} jogadores (tens ${total}).`
+    : publicar && linha.lineup.length !== 11 ? `Para publicar, escolhe 11 titulares (tens ${linha.lineup.length}).` : "";
+  el("convErro").textContent = erro;
+  if (erro) return;
+  if (publicar && !conv.published && !confirm("Publicar a convocatória? Os jogadores passam a vê-la na Área do Jogador.")) return;
+  try {
+    const gravada = await dadosClube.guardar("squads", linha);
+    cacheAdmin.squads = cacheAdmin.squads.filter(s => String(s.id) !== String(gravada.id)).concat(gravada);
+    conv.id = gravada.id;
+    conv.published = !!gravada.published;
+    renderConvocatoria();
+  } catch (e) {
+    el("convErro").textContent = /squads/i.test(e.message || "") && /does not exist|schema cache|could not find/i.test(e.message || "") ? "Falta a tabela squads: corre a secção de 03/10/2026 do schema.sql." : mensagemErro(e);
+  }
+}
+
+function exportarAnuncioAdmin(formato) {
+  const jogo = jogosCalendario.find(j => j.id === conv.matchId);
+  if (!jogo) return;
+  const squad = squadDoFormulario(conv.published);
+  if (!squad.player_ids.length) { el("convErro").textContent = "Escolhe primeiro os convocados."; return; }
+  VFNComp.exportarAnuncioConvocatoria({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squad, jogadorPorIdBD, formato);
 }
 
 /* =========================================================
@@ -1797,6 +1935,9 @@ async function abrirTabGestao(tab) {
   if (tab === "multas") {
     await Promise.all([carregarTabelaAdmin("fines", "multasErro"), carregarTiposMulta()]);
     renderMultas();
+  } else if (tab === "convocatoria") {
+    await carregarTabelaAdmin("squads", "convErro");
+    renderConvocatoria();
   } else if (tab === "presencas") {
     await Promise.all([carregarTabelaAdmin("attendance", "presencasErro"), carregarTabelaAdmin("sessions", "presencasErro"), carregarTabelaAdmin("fines", "presencasErro"), carregarTiposMulta()]);
     renderPresencas();
@@ -1835,6 +1976,7 @@ async function verificarPapelAdmin() {
 
 function initAdmin() {
   initMultas();
+  initConvocatoria();
   initPresencas();
   initCalendarioAdmin();
   initResultados();

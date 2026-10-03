@@ -46,6 +46,7 @@
     <button class="tab-btn nav-item" data-tab="analise"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Análise</span></button>
     <button class="tab-btn nav-item" data-tab="equipa"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Equipa</span></button>
     <button class="tab-btn nav-item" data-tab="multas"><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
+    <button class="tab-btn nav-item" data-tab="convocatoria"><span class="nav-icon"><i data-icon="clipboard-list"></i></span><span class="nav-label">Convocatória</span></button>
     <button class="tab-btn nav-item" data-tab="presencas"><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="tab-btn nav-item" data-tab="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
     <button class="tab-btn nav-item" data-tab="resultados"><span class="nav-icon"><i data-icon="list-ordered"></i></span><span class="nav-label">Resultados</span></button>
@@ -313,6 +314,39 @@
           <thead><tr><th>Nº</th><th>Tipo</th><th class="num">Valor</th><th>Paga</th><th>Acções</th></tr></thead>
           <tbody id="tiposMultaBody"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: CONVOCATÓRIA -->
+  <section id="tab-convocatoria" class="tab-panel">
+    <div class="card" data-aos="fade-up">
+      <div class="section-header-row">
+        <h2 class="section-title">Convocatória</h2>
+        <span id="convEstado" class="estado-relatorio" hidden></span>
+      </div>
+      <div class="grid grid-3">
+        <div class="field"><label for="convJogo">Jogo</label><select id="convJogo"></select></div>
+        <div class="field"><label for="convFormacao">Formação</label><select id="convFormacao"></select></div>
+        <div class="field"><label for="convCapitao">Capitão</label><select id="convCapitao"></select><small id="convCapitaoAuto" class="muted"></small></div>
+      </div>
+      <div id="convResumo" class="conv-resumo" role="status"></div>
+      <p id="convErro" class="form-error" role="alert"></p>
+      <div class="conv-acoes">
+        <button type="button" id="btnConvGuardar" class="btn btn-ghost btn-sm"><i data-icon="save" data-size="16"></i> Guardar rascunho</button>
+        <button type="button" id="btnConvPublicar" class="btn btn-accent btn-sm"><i data-icon="send" data-size="16"></i> Publicar</button>
+        <button type="button" id="btnConvAnuncio1" class="btn btn-ghost btn-sm"><i data-icon="image" data-size="16"></i> Exportar 1:1</button>
+        <button type="button" id="btnConvAnuncio2" class="btn btn-ghost btn-sm"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button>
+      </div>
+    </div>
+    <div class="conv-layout">
+      <div class="card" data-aos="fade-up">
+        <div class="section-header-row"><h2 class="section-title">Plantel</h2><span class="muted">Titular (T) · Suplente (S) · fora (—)</span></div>
+        <div id="convPlantel" class="conv-plantel"></div>
+      </div>
+      <div class="card" data-aos="fade-up">
+        <h2 class="section-title">Pré-visualização</h2>
+        <div id="convPreview"></div>
       </div>
     </div>
   </section>

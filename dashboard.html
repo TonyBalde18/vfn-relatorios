@@ -36,6 +36,7 @@
   <nav class="sidebar-nav" aria-label="Navegação principal">
     <button class="nav-item active" data-view="hub"><span class="nav-icon"><i data-icon="house"></i></span><span class="nav-label">Hub</span></button>
     <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
+    <button class="nav-item" data-view="convocatoria"><span class="nav-icon"><i data-icon="clipboard-list"></i></span><span class="nav-label">Convocatória</span></button>
     <button class="nav-item" data-view="disponibilidade"><span class="nav-icon"><i data-icon="clipboard-check"></i></span><span class="nav-label">Disponibilidade</span></button>
     <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
     <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
@@ -116,7 +117,16 @@
     </div>
   </section>
 
-  <!-- ESTATÍSTICAS -->
+  <!-- CONVOCATÓRIA (só leitura; criada no admin) -->
+  <section id="view-convocatoria" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Convocatória</h2><label class="sr-only" for="dbConvJogo">Jogo</label><select id="dbConvJogo" class="compact-select"></select></div>
+      <div id="dbConvocatoria"></div>
+      <div class="conv-acoes" id="dbConvAcoes" hidden><button type="button" class="btn btn-ghost btn-sm" data-anuncio="1x1"><i data-icon="image" data-size="16"></i> Exportar 1:1</button><button type="button" class="btn btn-ghost btn-sm" data-anuncio="9x16"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button></div>
+    </div>
+  </section>
+
+  <!-- DISPONIBILIDADE -->
   <section id="view-disponibilidade" class="view">
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Disponibilidade pré-jogo <small class="muted">convocáveis vs indisponíveis</small></h2>

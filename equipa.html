@@ -60,6 +60,7 @@
 
 <nav class="public-nav" aria-label="Secções">
   <button type="button" class="active" data-view="inicio"><span aria-hidden="true"><i data-icon="house"></i></span>Início</button>
+  <button type="button" data-view="convocatoria"><span aria-hidden="true"><i data-icon="clipboard-list"></i></span>Convocatória</button>
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Calendário</button>
   <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
   <button type="button" data-view="presencas"><span aria-hidden="true"><i data-icon="calendar-check"></i></span>Presenças</button>
@@ -74,6 +75,7 @@
   <!-- INÍCIO -->
   <section id="view-inicio" class="view active">
     <article id="eqBoasVindas" class="card eq-boas-vindas" data-aos="fade-up"></article>
+    <article id="eqConvResumo" class="card eq-conv-resumo" data-aos="fade-up" hidden></article>
     <div class="public-stack two-col">
       <article id="eqProximoJogo" class="card hub-hero" data-aos="fade-up"></article>
       <div class="public-stack">
@@ -83,6 +85,15 @@
           <div id="eqResultados"></div>
         </article>
       </div>
+    </div>
+  </section>
+
+  <!-- CONVOCATÓRIA -->
+  <section id="view-convocatoria" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Convocatória do próximo jogo</h2>
+      <div id="eqConvocatoria"></div>
+      <div class="conv-acoes" id="eqConvAcoes" hidden><button type="button" class="btn btn-ghost btn-sm" data-anuncio="1x1"><i data-icon="image" data-size="16"></i> Exportar 1:1</button><button type="button" class="btn btn-ghost btn-sm" data-anuncio="9x16"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button></div>
     </div>
   </section>
 

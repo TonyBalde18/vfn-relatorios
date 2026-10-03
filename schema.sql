@@ -744,6 +744,27 @@ create policy "Players read fine_types" on public.fine_types for select to authe
 -- [{"player_id": "872514", "player_name": "Toneca", "team_id": "<id do VFN>", "count": 1}]
 alter table public.matches add column if not exists scorer_list jsonb;
 
+-- [v5 Tarefa 8] Convocatórias: 18–23 convocados, onze inicial (por posição), suplentes, capitão e formação
+create table if not exists public.squads (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid references public.matches(id) on delete cascade,
+  player_ids text[],           -- todos os convocados
+  lineup text[],               -- onze inicial (por ordem de posição)
+  subs text[],                 -- suplentes
+  captain_id text references public.players(id) on delete set null,
+  formation text default '4-3-3',
+  published boolean default false,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists squads_match_idx on public.squads (match_id);
+alter table public.squads enable row level security;
+drop policy if exists "Staff manages squads" on public.squads;
+drop policy if exists "Players read published squads" on public.squads;
+create policy "Staff manages squads" on public.squads for all to authenticated
+  using (public.vfn_is_admin() or public.vfn_is_staff()) with check (public.vfn_is_admin() or public.vfn_is_staff());
+create policy "Players read published squads" on public.squads for select to authenticated
+  using (published = true and public.vfn_is_player());
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

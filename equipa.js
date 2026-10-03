@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
 let cliente = null;
 let utilizador = null;
 let perfil = null; // profiles (equipa técnica) ou null
-let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], attendance: [], fines: [], match_reports: [], staff: [] };
+let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], attendance: [], fines: [], match_reports: [], staff: [], squads: [] };
 let jogadores = [];
 let eu = null; // o jogador com sessão iniciada (null para a equipa técnica)
 
@@ -25,8 +25,8 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
 
 /* ---------- Dados ---------- */
 
-const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", attendance: "attendance", fines: "fines", match_reports: "match_reports", staff: "staff" };
-const OPCIONAIS = ["external_players", "staff"];
+const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", attendance: "attendance", fines: "fines", match_reports: "match_reports", staff: "staff", squads: "squads" };
+const OPCIONAIS = ["external_players", "staff", "squads"];
 
 async function carregarDados() {
   const chaves = Object.keys(TABELAS);
@@ -100,6 +100,28 @@ function renderInicio() {
   $("eqProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
+}
+
+/* ---------- Convocatória ---------- */
+
+/** Jogadores só veem convocatórias publicadas; a equipa técnica vê também rascunhos. */
+function convocatoriaAtual() {
+  return VFNComp.proximaConvocatoria(dados, !!eu || !perfil);
+}
+
+function renderConvocatoria() {
+  const c = convocatoriaAtual();
+  $("eqConvAcoes").hidden = !c;
+  $("eqConvocatoria").innerHTML = c ? VFNComp.renderSquadView(dados, c.jogo, c.squad, pessoa, { eu }) : H.vazio("A convocatória do próximo jogo ainda não foi publicada.");
+  // resumo no início: convocado ou não
+  const resumo = $("eqConvResumo");
+  resumo.hidden = !c || !eu;
+  if (c && eu) {
+    const sim = (c.squad.player_ids || []).map(String).includes(String(eu.id));
+    const nome = H.nomeAdversario(dados, c.jogo);
+    resumo.className = `card eq-conv-resumo ${sim ? "sim" : "nao"}`;
+    resumo.innerHTML = `${VFN.icone(sim ? "circle-check" : "circle-off", 26)}<div><strong>${sim ? "Estás convocado" : "Não estás convocado"}</strong><span>${esc(VFN.jogoEmCasa(c.jogo) ? "VFN vs " + nome : nome + " vs VFN")} · ${esc(VFN.dataLonga(c.jogo.date, true))}</span></div><button type="button" class="btn btn-ghost btn-sm" data-ir-vista="convocatoria">Ver convocatória</button>`;
+  }
 }
 
 /* ---------- Calendário ---------- */
@@ -303,6 +325,7 @@ function renderCabecalho() {
 function renderTudo() {
   renderCabecalho();
   renderInicio();
+  renderConvocatoria();
   renderCalendario();
   renderMultas();
   renderPresencas();
@@ -353,6 +376,12 @@ async function iniciar() {
   VFN.initAOS();
   document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("eqAvatar").addEventListener("click", () => { if (eu) abrirJogador(eu.id); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
+  $("eqConvAcoes").addEventListener("click", e => {
+    const b = e.target.closest("[data-anuncio]");
+    const c = b && convocatoriaAtual();
+    if (c) VFNComp.exportarAnuncioConvocatoria(dados, c.jogo, c.squad, pessoa, b.dataset.anuncio);
+  });
   $("eqMultasJogador").addEventListener("change", renderMultas);
   $("eqMultasEstado").addEventListener("change", renderMultas);
   $("eqPresencasMes").addEventListener("change", renderPresencas);

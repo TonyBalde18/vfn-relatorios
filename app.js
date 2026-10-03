@@ -630,7 +630,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Jornadas AF Guarda", historico: "Histórico de relatórios", classificacao: "Classificação", adversarios: "Adversários" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", convocatoria: "Convocatória", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Jornadas AF Guarda", historico: "Histórico de relatórios", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador

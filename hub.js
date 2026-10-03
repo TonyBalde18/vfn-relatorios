@@ -422,9 +422,13 @@
       </li>`).join("")}</ol>`;
   }
 
-  /** Os 11 com mais minutos, colocados no campo pela posição do perfil. */
-  function onzeCampoHTML(lista) {
-    if (!lista.length) return vazio("Ainda não há minutos registados.");
+  /**
+   * Onze no campo, colocado pela posição do perfil. lista: [{ jogador, minutos }].
+   * o: { rotulo(t) em vez dos minutos, capitao: id com o badge "C", ordenado: já vem como onze }
+   */
+  function onzeCampoHTML(lista, opcoes) {
+    const o = opcoes || {};
+    if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
     const onze = lista.slice(0, 11);
     const grupos = {};
     onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
@@ -438,9 +442,12 @@
     });
     return `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
       <span class="mini-pitch-lines" aria-hidden="true"></span>
-      ${marcadores.map(({ t, x, y }) => `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`).join("")}
+      ${marcadores.map(({ t, x, y }) => {
+        const capitao = o.capitao && String(o.capitao) === String(t.jogador.idBD || t.jogador.id);
+        return `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}${capitao ? VFN.badgeCapitao("no-campo") : ""}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${o.rotulo ? esc(o.rotulo(t)) : t.minutos + "'"}</b></span></div>`;
+      }).join("")}
     </div>
-    ${onze.length < 11 ? `<p class="muted readonly-note">Só ${onze.length} jogadores com minutos registados.</p>` : ""}`;
+    ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
   }
 
   /* ---------- Desempenho por competição ---------- */

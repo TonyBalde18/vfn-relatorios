@@ -8,13 +8,13 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Jornadas AF Guarda", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [], fine_types: [], staff: [] };
+let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [], fine_types: [], staff: [], squads: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroEstado = "";
@@ -27,7 +27,7 @@ let appIniciada = false;
 /* ---------- Dados ---------- */
 
 // tabelas que podem ainda não existir (SQL por correr): sem aviso
-const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff"];
+const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads"];
 
 async function carregarDados() {
   const tabelas = Object.keys(dados);
@@ -427,6 +427,33 @@ function renderMinutos() {
   $("onzeCampo").innerHTML = H.onzeCampoHTML(lista);
 }
 
+/* ---------- Convocatória (só leitura) ---------- */
+
+function renderConvocatoriaDash() {
+  const jogosComConv = VFN.jogosDoVFN(dados.matches).filter(j => VFNComp.convocatoriaDoJogo(dados.squads, j.id))
+    .sort((a, b) => (VFN.paraData(b.date) || 0) - (VFN.paraData(a.date) || 0));
+  const sel = $("dbConvJogo");
+  const proxima = VFNComp.proximaConvocatoria(dados, false);
+  const atual = jogosComConv.some(j => j.id === sel.value) ? sel.value : proxima ? proxima.jogo.id : jogosComConv[0] ? jogosComConv[0].id : "";
+  sel.innerHTML = jogosComConv.map(j => `<option value="${esc(j.id)}">${esc(`${VFN.dataCurta(j.date)} · ${H.nomeAdversario(dados, j)} · ${VFN.nomeCurtoCompeticao(j.competition)}`)}</option>`).join("");
+  sel.value = atual;
+  sel.hidden = !jogosComConv.length;
+  const jogo = dados.matches.find(j => j.id === atual);
+  const squad = jogo && VFNComp.convocatoriaDoJogo(dados.squads, jogo.id);
+  $("dbConvAcoes").hidden = !squad;
+  $("dbConvocatoria").innerHTML = squad ? VFNComp.renderSquadView(dados, jogo, squad, jogadorPorIdDash) : H.vazio("Ainda não há convocatórias (criam-se no admin).");
+}
+
+function initConvocatoriaDash() {
+  $("dbConvJogo").addEventListener("change", renderConvocatoriaDash);
+  $("dbConvAcoes").addEventListener("click", e => {
+    const b = e.target.closest("[data-anuncio]");
+    const jogo = b && dados.matches.find(j => j.id === $("dbConvJogo").value);
+    const squad = jogo && VFNComp.convocatoriaDoJogo(dados.squads, jogo.id);
+    if (squad) VFNComp.exportarAnuncioConvocatoria(dados, jogo, squad, jogadorPorIdDash, b.dataset.anuncio);
+  });
+}
+
 /* ---------- Disponibilidade pré-jogo e resumo financeiro ---------- */
 
 function renderDisponibilidade() {
@@ -713,6 +740,7 @@ function mostrarEsqueletos() {
 function renderTudo() {
   renderBannerProximoJogo();
   renderDisponibilidade();
+  renderConvocatoriaDash();
   renderResumoFinanceiro();
   renderHub();
   renderPlantel();
@@ -778,6 +806,7 @@ async function iniciar() {
     if (jogadores.some(j => String(j.id) === avatar.dataset.jogador)) abrirJogador(avatar.dataset.jogador);
   });
   initMultasPresencasDash();
+  initConvocatoriaDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
