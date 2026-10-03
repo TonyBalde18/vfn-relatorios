@@ -147,29 +147,22 @@
     return Number(j.gc) > Number(j.gf) ? j.casa.id : j.fora.id;
   }
 
-  /** Bracket com as fases em colunas; as equipas isentas entram quando o sorteio da fase seguinte é lançado. */
-  function bracketHTML(dados, competicao) {
+  /**
+   * Confrontos da taça por fase: [{ fase, nome, jogos: [{ ...jogo, vencedor, veioDaFaseAnterior: Set }] }].
+   * As equipas isentas entram quando o sorteio da fase seguinte é lançado.
+   */
+  function confrontosPorFase(dados, competicao) {
     const jogos = jogosDaJornada(dados, competicao);
-    if (!jogos.length) return vazio("Ainda não há jogos desta taça.");
     const vencedoresAnteriores = new Set();
-    const colunas = VFN.FASES_TACA.map(([fase, nome]) => {
-      const daFase = jogos.filter(j => j.fase === fase).sort((a, b) => String(a.data || "9999").localeCompare(String(b.data || "9999")));
-      const html = daFase.map(j => {
-        const v = vencedorConfronto(j);
-        const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
-        const linha = (eq, golos) => `<div class="br-equipa${v ? (v === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}">
-          ${logoEquipa(equipa(dados, eq.id), eq.nome, "br-logo")}<span class="br-nome">${esc(eq.nome)}</span>${vencedoresAnteriores.has(eq.id) ? `<span class="br-veio" title="Passou a fase anterior">${VFN.icone("chevrons-right", 12)}</span>` : ""}
-          <strong class="br-golos">${temRes ? Number(golos) : ""}</strong></div>`;
-        return `<button type="button" class="br-jogo" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">
-          ${linha(j.casa, j.gc)}${linha(j.fora, j.gf)}
-          <small class="br-data">${j.data ? esc(VFN.dataCurta(j.data)) : "Data por definir"}${temRes && !v ? " · empate: falta o vencedor" : v && Number(j.gc) === Number(j.gf) ? " · após penáltis" : ""}</small>
-        </button>`;
-      }).join("");
-      daFase.forEach(j => { const v = vencedorConfronto(j); if (v) vencedoresAnteriores.add(v); });
-      return `<section class="br-fase${daFase.length ? "" : " vazia"}"><h4>${esc(nome)}</h4><div class="br-jogos">${html || '<p class="br-sorteio">Por sortear</p>'}</div></section>`;
+    return VFN.FASES_TACA.map(([fase, nome]) => {
+      const daFase = jogos.filter(j => j.fase === fase).sort((a, b) => String(a.data || "9999").localeCompare(String(b.data || "9999")))
+        .map(j => ({ ...j, vencedor: vencedorConfronto(j), veioDaFaseAnterior: new Set([j.casa.id, j.fora.id].filter(id => vencedoresAnteriores.has(id))) }));
+      daFase.forEach(j => { if (j.vencedor) vencedoresAnteriores.add(j.vencedor); });
+      return { fase, nome, jogos: daFase };
     });
-    return `<p class="bracket-dica">${VFN.icone("move-horizontal", 14)} Desliza para ver as fases seguintes.</p><div class="bracket-scroll"><div class="bracket">${colunas.join("")}</div></div>`;
   }
+
+  const bracketHTML = (dados, competicao) => window.VFNComp.renderBracket(dados, competicao);
 
   function classificacaoHTML(dados, competicao) {
     if (VFN.eliminatorias(competicao)) return bracketHTML(dados, competicao);
@@ -253,13 +246,7 @@
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
     const capitao = capitaoAtivo(jogadores);
-    return lista.map(j => `<button type="button" class="player-card" data-id="${esc(j.id)}">
-      ${VFN.avatarJogador(j)}${String(j.id) === capitao ? VFN.badgeCapitao("no-card") : ""}
-      <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
-      <strong>${esc(j.nome)}</strong>
-      <small>${esc(j.posicao)}</small>
-      ${o.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
-    </button>`).join("");
+    return lista.map(j => window.VFNComp.renderPlayerCard(j, { capitao: String(j.id) === capitao, disponibilidade: o.disponibilidade })).join("");
   }
 
   /** Capitão ativo do plantel: o primeiro da lista de prioridade que está disponível. */
@@ -344,23 +331,8 @@
     return VFN.ultimosJogos(dados.matches, 999).filter(j => (VFN.paraData(j.date) || 0) <= limite).slice(0, n || 5);
   }
 
-  function itemJogoHTML(dados, j, proximo) {
-    const d = VFN.paraData(j.date);
-    const nome = nomeAdversario(dados, j);
-    const g = VFN.golosJogo(j);
-    const estado = VFN.estadoJogo(j) || "agendado";
-    const hora = VFN.horaIso(j.date);
-    const eProximo = proximo && proximo.id === j.id;
-    return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}">
-        <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
-        <div class="match-main">
-          <div class="match-line">${tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
-          <div class="match-opponent">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
-          ${estado === "jogado" && g ? (f => `<div class="form-row form-row-sm match-forma" title="Forma nos ${f.length} jogos até este (mais recente à esquerda)">${f.map(x => VFN.chipForma(VFN.letraResultado(x))).join("")}</div>`)(formaAteJogo(dados, j, 5)) : ""}
-        </div>
-        <div class="match-side">${estado === "jogado" && g ? `<button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
-      </article>`;
-  }
+  // apresentação em components.js (VFNComp.renderMatchCard)
+  const itemJogoHTML = (dados, j, proximo) => window.VFNComp.renderMatchCard(dados, j, { proximo });
 
   /** Calendário por meses (dashboard). */
   function calendarioHTML(dados, filtro) {
@@ -824,6 +796,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

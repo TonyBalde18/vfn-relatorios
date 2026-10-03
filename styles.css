@@ -1403,3 +1403,4 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .modal-overlay:not([hidden]) { animation: vfnFundoEntra .2s ease-out; }
 @keyframes vfnFundoEntra { from { background-color: rgba(10,22,40,0); backdrop-filter: none; } }
 @media (prefers-reduced-motion: reduce) { .modal-overlay:not([hidden]) { animation: none; } }
+.bracket.uma-fase { grid-template-columns: minmax(220px, 360px); min-width: 0; }

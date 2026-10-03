@@ -2,13 +2,78 @@
    VFN — Componentes reutilizáveis (admin, dashboard e página pública)
    Só apresentação: recebem os dados já carregados e devolvem HTML
    ou ligam eventos. Expostos em window.VFNComp.
-   Depende de shared.js (VFN) e hub.js (VFNHub).
+   Depende de shared.js (VFN: formatos, datas, regras) e hub.js (VFNHub:
+   cálculos sobre os dados, ex. confrontosPorFase, relatorioDoJogo).
+   As consultas ao Supabase ficam nos ficheiros de cada página.
+
+   renderMatchCard(dados, jogo, { proximo })      cartão de jogo
+   renderPlayerCard(jogador, { capitao, ... })    cartão de jogador
+   renderCalendarDay(data, eventos, opcoes)       célula do calendário
+   renderAttendanceDrawer({ jogador, sessoes })   histórico de presenças
+   renderMatchEvents(relatorio, nomeJogador)      timeline de eventos
+   renderBracket(dados, competicao, fase?)        bracket da taça
+   renderDebtReport(multas, { pessoa })           relatório de dívidas
    ========================================================= */
 (function () {
   "use strict";
 
   const esc = VFN.escapeHtml;
   const H = () => window.VFNHub;
+
+  /* ---------- Cartões ---------- */
+
+  /** Cartão de um jogo do VFN (calendário e listas). o: { proximo: jogo seguinte, para o destacar } */
+  function renderMatchCard(dados, j, o) {
+    const opcoes = o || {};
+    const d = VFN.paraData(j.date);
+    const nome = H().nomeAdversario(dados, j);
+    const g = VFN.golosJogo(j);
+    const estado = VFN.estadoJogo(j) || "agendado";
+    const hora = VFN.horaIso(j.date);
+    const eProximo = opcoes.proximo && opcoes.proximo.id === j.id;
+    const forma = estado === "jogado" && g ? H().formaAteJogo(dados, j, 5) : [];
+    return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}">
+        <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
+        <div class="match-main">
+          <div class="match-line">${H().tagCompeticao(j.competition)}${j.jornada ? `<small>J${esc(j.jornada)}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>
+          <div class="match-opponent">${H().logoEquipa(H().equipa(dados, j.opponent_team_id), nome)}<strong>${esc(nome)}</strong></div>
+          ${forma.length ? `<div class="form-row form-row-sm match-forma" title="Forma nos ${forma.length} jogos até este (mais recente à esquerda)">${forma.map(x => VFN.chipForma(VFN.letraResultado(x))).join("")}</div>` : ""}
+        </div>
+        <div class="match-side">${estado === "jogado" && g ? `<button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>` : `<span class="match-time">${hora && hora !== "00:00" ? esc(hora) : ""}</span>`}${VFN.badgeEstado(j)}</div>
+      </article>`;
+  }
+
+  /** Cartão de um jogador do plantel. o: { capitao: true para o badge C, disponibilidade: mostrar o estado } */
+  function renderPlayerCard(j, o) {
+    const opcoes = o || {};
+    return `<button type="button" class="player-card" data-id="${esc(j.id)}">
+      ${VFN.avatarJogador(j)}${opcoes.capitao ? VFN.badgeCapitao("no-card") : ""}
+      <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
+      <strong>${esc(j.nome)}</strong>
+      <small>${esc(j.posicao)}</small>
+      ${opcoes.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
+    </button>`;
+  }
+
+  /** Bracket de uma taça por eliminatórias (fases em colunas). Com `fase`, mostra só essa fase. */
+  function renderBracket(dados, competicao, fase) {
+    const fases = H().confrontosPorFase(dados, competicao).filter(f => !fase || f.fase === fase);
+    if (!fases.some(f => f.jogos.length)) return H().vazio("Ainda não há jogos desta taça.");
+    const colunas = fases.map(f => {
+      const html = f.jogos.map(j => {
+        const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
+        const linha = (eq, golos) => `<div class="br-equipa${j.vencedor ? (j.vencedor === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}">
+          ${H().logoEquipa(H().equipa(dados, eq.id), eq.nome, "br-logo")}<span class="br-nome">${esc(eq.nome)}</span>${j.veioDaFaseAnterior.has(eq.id) ? `<span class="br-veio" title="Passou a fase anterior">${VFN.icone("chevrons-right", 12)}</span>` : ""}
+          <strong class="br-golos">${temRes ? Number(golos) : ""}</strong></div>`;
+        return `<button type="button" class="br-jogo" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">
+          ${linha(j.casa, j.gc)}${linha(j.fora, j.gf)}
+          <small class="br-data">${j.data ? esc(VFN.dataCurta(j.data)) : "Data por definir"}${temRes && !j.vencedor ? " · empate: falta o vencedor" : j.vencedor && Number(j.gc) === Number(j.gf) ? " · após penáltis" : ""}</small>
+        </button>`;
+      }).join("");
+      return `<section class="br-fase${f.jogos.length ? "" : " vazia"}"><h4>${esc(f.nome)}</h4><div class="br-jogos">${html || '<p class="br-sorteio">Por sortear</p>'}</div></section>`;
+    });
+    return `<p class="bracket-dica">${VFN.icone("move-horizontal", 14)} Desliza para ver as fases seguintes.</p><div class="bracket-scroll"><div class="bracket${fase ? " uma-fase" : ""}">${colunas.join("")}</div></div>`;
+  }
 
   /* ---------- Drawer (bottom-sheet no telemóvel, painel ao centro no computador) ---------- */
 
@@ -371,6 +436,7 @@
   }
 
   window.VFNComp = {
+    renderMatchCard, renderPlayerCard, renderBracket,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, renderDebtReport, exportarImagemDividas,
     listaPresencasHTML, renderAttendanceDrawer,
