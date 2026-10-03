@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="styles.css?v=5">
 <link rel="stylesheet" href="hub.css?v=5">
 </head>
@@ -224,6 +225,9 @@
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Equipas</h2><label class="sr-only" for="dbEquipasPesquisa">Pesquisar equipa</label><input type="search" id="dbEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
       <div id="dbEquipasGrid" class="teams-grid"></div>
+      <h3 class="subsecao-titulo">Mapa dos estádios</h3>
+      <div id="mapaDash" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
+      <p class="muted mapa-aviso"></p>
     </div>
   </section>
 
@@ -287,6 +291,7 @@
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="config.js?v=5"></script>
 <script src="shared.js?v=5"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>

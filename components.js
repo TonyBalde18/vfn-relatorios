@@ -552,6 +552,60 @@
     return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
+  /* ---------- Mapa dos estádios (Leaflet + OpenStreetMap, sem chave) ---------- */
+
+  const CENTRO_GUARDA = [40.53, -7.26];
+
+  /** Conteúdo do popup de uma equipa: nome, estádio, cidade e distância ao VFN (em linha reta). */
+  function popupEstadioHTML(t, vfn) {
+    const e = VFN.estadioDaEquipa(t);
+    const ev = VFN.estadioDaEquipa(vfn);
+    const souVFN = VFN.eVFN(t.name);
+    const km = !souVFN && e.lat != null && ev.lat != null ? VFN.distanciaKm(ev.lat, ev.lng, e.lat, e.lng) : null;
+    return `<div class="mapa-popup"><strong>${esc(t.full_name || t.name)}</strong>
+      ${e.nome ? `<span>${esc(e.nome)}</span>` : ""}${t.city ? `<span>${esc(t.city)}</span>` : ""}
+      ${km != null ? `<span class="mapa-km">${Math.round(km)} km do Picoto <small>(em linha reta)</small></span>` : ""}</div>`;
+  }
+
+  /**
+   * Mapa interativo com um pin por equipa (logo 32×32; VFN 40×40, sempre por cima).
+   * Só se cria quando o contentor fica visível (o Leaflet precisa do tamanho). Devolve { render }.
+   */
+  function criarMapaEstadios(contentor, obterEquipas) {
+    if (!contentor) return { render() {} };
+    let mapa = null, camada = null;
+    const desenhar = () => {
+      if (!mapa) return;
+      camada.clearLayers();
+      const equipas = obterEquipas() || [];
+      const vfn = equipas.find(t => VFN.eVFN(t.name)) || { name: "ACD Vila Franca das Naves" };
+      const lista = equipas.some(t => VFN.eVFN(t.name)) ? equipas : [...equipas, vfn];
+      let semCoordenadas = 0;
+      lista.forEach(t => {
+        const e = VFN.estadioDaEquipa(t);
+        if (e.lat == null || e.lng == null) { semCoordenadas++; return; }
+        const souVFN = VFN.eVFN(t.name);
+        const tam = souVFN ? 40 : 32;
+        const url = VFN.urlLogoEquipa(t, t.name) || VFN.LOGO_VFN;
+        const icone = window.L.divIcon({ className: `mapa-pin${souVFN ? " vfn" : ""}`, html: `<img src="${esc(url)}" alt="" width="${tam}" height="${tam}">`, iconSize: [tam, tam], iconAnchor: [tam / 2, tam / 2], popupAnchor: [0, -tam / 2] });
+        window.L.marker([e.lat, e.lng], { icon: icone, title: t.name, zIndexOffset: souVFN ? 1000 : 0 }).bindPopup(popupEstadioHTML(t, vfn)).addTo(camada);
+      });
+      const aviso = contentor.parentElement && contentor.parentElement.querySelector(".mapa-aviso");
+      if (aviso) aviso.textContent = semCoordenadas ? `${semCoordenadas} equipa${semCoordenadas === 1 ? "" : "s"} sem coordenadas do estádio.` : "";
+    };
+    const iniciar = () => {
+      if (mapa || !window.L) { if (mapa) mapa.invalidateSize(); return; }
+      mapa = window.L.map(contentor, { scrollWheelZoom: false }).setView(CENTRO_GUARDA, 9);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap" }).addTo(mapa);
+      camada = window.L.layerGroup().addTo(mapa);
+      desenhar();
+    };
+    if (window.IntersectionObserver) new IntersectionObserver(entradas => { if (entradas.some(e => e.isIntersecting)) iniciar(); }).observe(contentor);
+    else iniciar();
+    if (!window.L) contentor.innerHTML = '<p class="empty-state">O mapa não carregou. Verifica a ligação à internet.</p>';
+    return { render: desenhar };
+  }
+
   /* ---------- Presenças no telemóvel ---------- */
 
   const NOMES_ESTADO = { P: "Presente", A: "Atraso", F: "Falta", J: "Justificada" };
@@ -609,6 +663,7 @@
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
+    criarMapaEstadios, popupEstadioHTML,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
   };
 })();

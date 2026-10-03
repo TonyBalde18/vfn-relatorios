@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
@@ -496,6 +497,9 @@
       <div class="toolbar"><input type="search" id="equipasPesquisa" placeholder="Pesquisar equipa..." aria-label="Pesquisar equipa"></div>
       <p id="adversariosErro" class="form-error" role="alert"></p>
       <div id="equipasGrid" class="teams-grid"></div>
+      <h3 class="subsecao-titulo">Mapa dos estádios</h3>
+      <div id="mapaAdmin" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
+      <p class="muted mapa-aviso"></p>
     </div>
   </section>
 
@@ -653,6 +657,10 @@
     </div>
     <label class="check-inline"><input type="checkbox" id="equipaSemCores"> Sem cores definidas</label>
     <div class="grid grid-2">
+      <div class="field"><label for="equipaLat">Latitude do estádio</label><input type="text" id="equipaLat" inputmode="decimal" placeholder="Ex: 40.7277"></div>
+      <div class="field"><label for="equipaLng">Longitude do estádio</label><input type="text" id="equipaLng" inputmode="decimal" placeholder="Ex: -7.2645"><small class="muted">Para o mapa e a meteorologia. No Google Maps: clique direito no estádio → copiar as coordenadas.</small></div>
+    </div>
+    <div class="grid grid-2">
       <div class="field"><label for="equipaLogo">Logo (URL)</label><input type="url" id="equipaLogo" placeholder="https://..."></div>
       <div class="field"><label for="equipaLogoUpload">Ou carregar logo</label><input type="file" id="equipaLogoUpload" accept="image/*"></div>
     </div>
@@ -695,6 +703,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="config.js?v=5"></script>
 <script src="shared.js?v=5"></script>
 <script src="hub.js?v=5"></script>

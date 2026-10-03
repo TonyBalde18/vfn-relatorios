@@ -1858,7 +1858,11 @@ function dadosEquipasAdmin() {
   return { matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga, external_players: jogadoresExternos };
 }
 
+let mapaAdmin = null;
+
 function renderAdversarios() {
+  if (!mapaAdmin) mapaAdmin = VFNComp.criarMapaEstadios(el("mapaAdmin"), () => equipasCalendario);
+  else mapaAdmin.render();
   const termo = el("equipasPesquisa").value.trim().toLocaleLowerCase("pt-PT");
   const equipas = [...equipasCalendario]
     .filter(t => !termo || [t.name, t.full_name, t.city].some(v => String(v || "").toLocaleLowerCase("pt-PT").includes(termo)))
@@ -1889,6 +1893,8 @@ function abrirModalEquipa(equipa) {
   el("equipaNome").value = equipa ? equipa.name : "";
   el("equipaNomeCompleto").value = equipa ? equipa.full_name || "" : "";
   el("equipaEstadio").value = equipa ? equipa.stadium || "" : "";
+  el("equipaLat").value = equipa && equipa.stadium_lat != null ? equipa.stadium_lat : "";
+  el("equipaLng").value = equipa && equipa.stadium_lng != null ? equipa.stadium_lng : "";
   const cores = VFN.coresEquipa(equipa && !VFN.eVFN(equipa.name) ? equipa : null);
   el("equipaSemCores").checked = !cores.primaria;
   el("equipaCorPrincipal").value = cores.primaria && cores.primaria.length === 7 ? cores.primaria : "#cbd5e1";
@@ -2024,14 +2030,17 @@ async function guardarEquipa() {
       full_name: el("equipaNomeCompleto").value.trim() || null,
       stadium: el("equipaEstadio").value.trim() || null,
       color_primary: semCores ? null : el("equipaCorPrincipal").value,
-      color_secondary: semCores ? null : el("equipaCorSecundaria").value
+      color_secondary: semCores ? null : el("equipaCorSecundaria").value,
+      stadium_lat: el("equipaLat").value === "" ? null : Number(String(el("equipaLat").value).replace(",", ".")),
+      stadium_lng: el("equipaLng").value === "" ? null : Number(String(el("equipaLng").value).replace(",", "."))
     };
+    if ((extra.stadium_lat !== null && !(Math.abs(extra.stadium_lat) <= 90)) || (extra.stadium_lng !== null && !(Math.abs(extra.stadium_lng) <= 180))) { el("equipaErro").textContent = "Coordenadas inválidas (latitude entre -90 e 90, longitude entre -180 e 180)."; botao.disabled = false; return; }
     Object.entries(extra).forEach(([k, v]) => { if (v !== null || (equipaEmEdicaoAdmin && k in equipaEmEdicaoAdmin)) linha[k] = v; });
     let equipa;
     try {
       equipa = await dadosClube.guardar("teams", linha);
     } catch (e) {
-      if (!/full_name|stadium|color_/i.test(e.message || "")) throw e;
+      if (!/full_name|stadium|color_|stadium_l/i.test(e.message || "")) throw e;
       Object.keys(extra).forEach(k => delete linha[k]);
       equipa = await dadosClube.guardar("teams", linha);
       alert("Equipa guardada sem nome completo, cores e estádio: corre a secção de 03/10/2026 do schema.sql.");

@@ -128,8 +128,11 @@ function renderConvocatoria() {
 /* ---------- Calendário ---------- */
 
 let calendario = null;
+let mapaEquipa = null;
 
 function renderCalendario() {
+  if (!mapaEquipa) mapaEquipa = VFNComp.criarMapaEstadios($("mapaEquipa"), () => dados.teams);
+  else mapaEquipa.render();
   if (calendario) { calendario.render(); return; }
   calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), {
     obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),

@@ -1614,3 +1614,16 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .anuncio-9x16 .an-foto { width: 70px; height: 79px; }
 .anuncio-9x16 .an-foto b { font-size: .8rem; }
 @media (max-width: 560px) { .conv-topo { grid-template-columns: 40px 1fr; } .conv-topo .conv-fase, .conv-topo .estado-relatorio { grid-column: 2; justify-self: start; } }
+
+/* ---------- v6: mapa dos estádios (Leaflet) ---------- */
+.mapa-estadios { width: 100%; height: 420px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background: #E8EEF3; z-index: 0; }
+@media (max-width: 640px) { .mapa-estadios { height: 340px; } }
+.mapa-card { margin-top: 16px; }
+.mapa-aviso:empty { display: none; }
+.mapa-pin { display: grid; place-items: center; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(10,22,40,.35); border: 2px solid #fff; }
+.mapa-pin img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
+.mapa-pin.vfn { border-color: #FFD700; box-shadow: 0 0 0 3px rgba(255,215,0,.45), 0 3px 10px rgba(10,22,40,.4); }
+.mapa-popup { display: grid; gap: 2px; font-family: Inter, Arial, sans-serif; }
+.mapa-popup strong { color: var(--vfn-navy); }
+.mapa-popup span { font-size: .78rem; color: #475569; }
+.mapa-popup .mapa-km { margin-top: 4px; font-weight: 700; color: var(--vfn-navy); }

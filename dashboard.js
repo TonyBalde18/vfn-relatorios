@@ -690,8 +690,12 @@ function initJornadas() {
 
 /* ---------- Equipas (só leitura) ---------- */
 
+let mapaDash = null;
+
 function renderEquipas() {
   $("dbEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("dbEquipasPesquisa").value);
+  if (!mapaDash) mapaDash = VFNComp.criarMapaEstadios($("mapaDash"), () => dados.teams);
+  else mapaDash.render();
 }
 
 function abrirEquipa(teamId) {

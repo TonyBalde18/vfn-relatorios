@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="styles.css?v=5">
 <link rel="stylesheet" href="hub.css?v=5">
 </head>
@@ -101,6 +102,7 @@
   <section id="view-calendario" class="view">
     <h2 class="public-section-title">Calendário</h2>
     <div id="eqCalMes" class="card cal-mensal"></div>
+    <div class="card mapa-card" data-aos="fade-up"><h2 class="hub-card-title">Mapa dos estádios <small class="muted">toca num emblema</small></h2><div id="mapaEquipa" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div><p class="muted mapa-aviso"></p></div>
   </section>
 
   <!-- MULTAS (só leitura) -->
@@ -189,6 +191,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="config.js?v=5"></script>
 <script src="shared.js?v=5"></script>
 <script src="hub.js?v=5"></script>

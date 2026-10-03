@@ -86,8 +86,11 @@ function fecharJogador() {
 }
 
 let calendarioMensal = null;
+let mapaPub = null;
 
 function renderCalendario() {
+  if (!mapaPub) mapaPub = VFNComp.criarMapaEstadios($("mapaPub"), () => dados.teams);
+  else mapaPub.render();
   if (!calendarioMensal) {
     calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: () => dados, perfil: "publico" });
     VFNComp.ligarAlternanciaCalendario($("pubCalModos"), $("pubCalMes"), $("pubCalLista"), "vfnCalModoPublico");
