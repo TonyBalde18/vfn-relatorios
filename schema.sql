@@ -597,6 +597,14 @@ where competition = 'Taça 2ª Liga FDM'
   and (opponent_team_id = '6838' or opponent ilike '%vilar formoso%')
   and phase is null;
 
+-- [Tarefa 2] Taça de Honra Comunilog passa a eliminatórias (bracket, sem tabela classificativa).
+-- Fases: '1eliminatoria', 'oitavos', 'quartos', 'meias', 'final'. Os jogos já existentes são da
+-- 1ª eliminatória; as equipas isentas entram nos oitavos quando o sorteio for lançado.
+update public.league_results set phase = '1eliminatoria', jornada = null
+where competition = 'Taça de Honra Comunilog' and phase is null;
+update public.matches set phase = '1eliminatoria', jornada = null
+where competition = 'Taça de Honra Comunilog' and phase is null;
+
 -- ---------------------------------------------------------------------
 -- STORAGE — logos de equipas usam o mesmo bucket das fotografias
 -- (pasta <uid>/teams/...), por isso as políticas existentes chegam.

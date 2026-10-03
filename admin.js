@@ -1059,7 +1059,7 @@ async function apagarOutroJogo(jogo) {
 
 function renderClassificacaoAdmin() {
   const select = el("classificacaoCompeticao");
-  const comps = VFN.COMPETICOES_CLASSIFICACAO; // 2ª Liga Zero Graus e Taça de Honra Comunilog
+  const comps = VFN.COMPETICOES_CLASSIFICACAO; // 2ª Liga (tabela) e as duas taças (bracket)
   const atual = select.value;
   const proximo = VFN.proximoJogo(jogosCalendario);
   select.innerHTML = comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");

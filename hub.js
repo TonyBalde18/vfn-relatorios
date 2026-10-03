@@ -123,7 +123,7 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    // só as competições com classificação: 2ª Liga Zero Graus e Taça de Honra Comunilog
+    // 2ª Liga Zero Graus (tabela) e as duas taças (bracket por eliminatórias)
     return VFN.COMPETICOES_CLASSIFICACAO;
   }
 

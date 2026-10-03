@@ -607,7 +607,8 @@
 
   /* ---------- Taças por eliminatórias ---------- */
 
-  const COMPETICOES_ELIMINATORIAS = ["Taça 2ª Liga FDM"];
+  // as duas taças jogam-se por eliminatórias (bracket, sem tabela classificativa)
+  const COMPETICOES_ELIMINATORIAS = ["Taça 2ª Liga FDM", "Taça de Honra Comunilog"];
   const FASES_TACA = [["1eliminatoria", "1ª Eliminatória"], ["oitavos", "Oitavos-de-final"], ["quartos", "Quartos-de-final"], ["meias", "Meias-finais"], ["final", "Final"]];
 
   function eliminatorias(competicao) {
