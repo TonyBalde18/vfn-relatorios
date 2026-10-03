@@ -339,7 +339,7 @@
     const max = k => Math.max(1, ...todos.map(x => Number(x[k]) || 0));
     const posicaoNo = k => [...todos].sort((a, b) => (Number(b[k]) || 0) - (Number(a[k]) || 0)).findIndex(x => x.id === j.id) + 1;
     const distincoes = [];
-    [["golos", "Melhor marcador", "goal"], ["assistencias", "Mais assistências", "target"], ["minutos", "Mais minutos", "timer"], ["jogos", "Mais jogos", "shirt"]].forEach(([k, titulo, icone]) => {
+    [["golos", "Melhor marcador", "bola"], ["assistencias", "Mais assistências", "target"], ["minutos", "Mais minutos", "timer"], ["jogos", "Mais jogos", "shirt"]].forEach(([k, titulo, icone]) => {
       if (!(Number(j[k]) > 0)) return;
       const p = posicaoNo(k);
       if (p === 1) distincoes.push(`<span class="distincao ouro">${VFN.icone(icone, 14)} ${titulo}</span>`);
@@ -487,9 +487,10 @@
     const o = opcoes || {};
     if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
     const onze = o.rotulo ? lista.slice(0, 11) : onzeMaisUtilizado(lista);
+    // com formação (convocatória): linhas da formação escolhida; sem formação: posição do perfil
+    const marcadores = o.formacao ? posicoesDaFormacao(onze, o.formacao) : [];
     const grupos = {};
-    onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
-    const marcadores = [];
+    if (!o.formacao) onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
     Object.entries(grupos).forEach(([pos, doGrupo]) => {
       const [x, y] = POSICOES_CAMPO[pos];
       doGrupo.forEach((t, i) => {
@@ -505,6 +506,30 @@
       }).join("")}
     </div>
     ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
+  }
+
+  /** Linhas de uma formação, da defesa para o ataque: "4-3-3" → [4, 3, 3]; "4-4-2 Losango" → [4, 1, 2, 1, 2]. */
+  function linhasFormacao(formacao) {
+    const f = String(formacao || "");
+    if (/losango/i.test(f)) return [4, 1, 2, 1, 2];
+    const linhas = (f.match(/\d/g) || []).map(Number);
+    return linhas.length && linhas.reduce((s, n) => s + n, 0) === 10 ? linhas : [4, 3, 3];
+  }
+
+  /**
+   * Coloca o onze nas linhas da formação escolhida: o 1.º é o GR e os restantes enchem as linhas
+   * por ordem (a lista vem ordenada GR → defesas → médios → avançados).
+   */
+  function posicoesDaFormacao(onze, formacao) {
+    const linhas = linhasFormacao(formacao);
+    const resultado = [];
+    if (onze[0]) resultado.push({ t: onze[0], x: 50, y: 89 });
+    let i = 1;
+    linhas.forEach((n, l) => {
+      const y = 73 - l * (60 / Math.max(1, linhas.length - 1));
+      for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y) });
+    });
+    return resultado;
   }
 
   /* ---------- Presenças: quem mais e quem menos ---------- */
@@ -622,15 +647,16 @@
     // nas taças a jornada pode vir a null: agrupa pelo nº da fase (1 = 1ª eliminatória ... 5 = final)
     const taca = VFN.eliminatorias(competicao);
     const numero = (phase, jornada) => taca ? VFN.numeroFase(VFN.faseDoJogo(phase, jornada)) : Number(jornada) || 0;
+    // marcadores separados por equipa: [{ nome, golos }] da casa e de fora
+    const doLado = (lista, teamId) => (Array.isArray(lista) ? lista : []).filter(s => String(s.team_id) === String(teamId)).map(s => ({ nome: s.player_name || "?", golos: Number(s.count) || 1 }));
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
-      const lista = Array.isArray(r.scorer_list) && r.scorer_list.length ? r.scorer_list.map(s => `${s.player_name}${Number(s.count) > 1 ? " (" + s.count + ")" : ""}`).join(", ") : "";
-      return { origem: "liga", id: r.id, jornada: numero(r.phase, r.jornada), fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, marcadores: [lista, r.scorers].filter(Boolean).join(" · "), data: r.match_date || null, registo: r };
+      return { origem: "liga", id: r.id, jornada: numero(r.phase, r.jornada), fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, golosCasa: doLado(r.scorer_list, casa.id), golosFora: doLado(r.scorer_list, fora.id), notas: r.scorers || "", data: r.match_date || null, registo: r };
     });
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
       const jogado = VFN.estadoJogo(j) === "jogado";
-      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, marcadores: "", data: j.date };
+      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, golosCasa: doLado(j.scorer_list, casa.id), golosFora: doLado(j.scorer_list, fora.id), notas: "", data: j.date };
     });
     return [...liga, ...vfn];
   }
@@ -675,7 +701,8 @@
             <button type="button" class="jj-centro" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo"><span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>${data ? `<small class="jj-data">${data}</small>` : ""}</button>
             ${lado(j.fora, "jj-fora")}
             <span class="jj-acoes">${acoes}</span>
-            ${j.marcadores ? `<p class="jj-marcadores">${VFN.icone("goal", 14)} ${esc(j.marcadores)}</p>` : ""}
+            ${j.golosCasa.length || j.golosFora.length ? `<div class="jj-golos">${[j.golosCasa, j.golosFora].map((lista, i) => `<ul class="${i ? "jj-golos-fora" : "jj-golos-casa"}">${lista.map(g => `<li>${VFN.icone("bola", 12)} ${esc(g.nome)}${g.golos > 1 ? ` <b>×${g.golos}</b>` : ""}</li>`).join("")}</ul>`).join("")}</div>` : ""}
+            ${j.notas ? `<p class="jj-marcadores">${esc(j.notas)}</p>` : ""}
           </div>`;
         }).join("")}
       </section>`).join("");
@@ -822,7 +849,7 @@
 
   /* ---------- Detalhe do jogo (modal) ---------- */
 
-  const ICONE_EVENTO = { "Golo": "goal", "Auto-golo": "goal", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x", "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat", "Nota": "sticky-note" };
+  const ICONE_EVENTO = { "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x", "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat", "Nota": "sticky-note" };
 
   /** Relatório associado a um jogo do VFN (o publicado mais recente; senão o mais recente). */
   function relatorioDoJogo(dados, matchId) {

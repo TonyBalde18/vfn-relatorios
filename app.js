@@ -52,7 +52,7 @@ const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "C
 const TIPOS_SEM_EQUIPA = ["Paragem para hidratação", "Intervalo"];
 // emojis só para o Word e para as <option>; na interface usam-se ícones Lucide
 const ICONES_LUCIDE_EVENTO = {
-  "Golo": "goal", "Auto-golo": "goal", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
+  "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
   "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage",
   "Substituição": "repeat", "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note"
 };
@@ -1900,7 +1900,7 @@ function renderPlantelSummary() {
   const totalAmarelos = plantel.reduce((s, p) => s + (Number(p.cartoesAmarelos) || 0), 0);
   const totalVermelhos = plantel.reduce((s, p) => s + (Number(p.cartoesVermelhos) || 0), 0);
 
-  container.appendChild(criarStatCard("Top 3 Golos", "goal", topGolos, p => `${p.nome} — ${p.golos}`));
+  container.appendChild(criarStatCard("Top 3 Golos", "bola", topGolos, p => `${p.nome} — ${p.golos}`));
   container.appendChild(criarStatCard("Top 3 Assistências", "target", topAssist, p => `${p.nome} — ${p.assistencias}`));
   container.appendChild(criarStatCard("Top 3 Minutos Jogados", "timer", topMinutos, p => `${p.nome} — ${p.minutosTotais}'`));
 
@@ -2453,7 +2453,13 @@ async function gerarRelatorioWord() {
 
 let plantelDoSupabase = false;
 
+// a aplicação só se inicia uma vez: vários eventos de autenticação seguidos (SIGNED_IN, INITIAL_SESSION,
+// renovação do token) ou sair e voltar a entrar duplicavam todos os listeners (ex.: "+ Marcador" a inserir 2)
+let aplicacaoIniciada = false;
+
 function initAplicacao() {
+  if (aplicacaoIniciada) return;
+  aplicacaoIniciada = true;
   if (!plantelDoSupabase) carregarPlantel();
   // primeiro login com Supabase vazio: envia o plantel local para a tabela players
   if (!plantelDoSupabase && supabaseClient && currentUser) sincronizarPlantelSupabase();
@@ -2490,6 +2496,8 @@ function mostrarLogin(mensagem) {
   el("btnLocalMode").hidden = supabaseConfigurado();
 }
 
+let aEntrar = false; // entrada em curso (à espera do plantel): ignora eventos de autenticação repetidos
+
 async function iniciarAutenticacao() {
   iniciarSupabase();
   if (supabaseClient) {
@@ -2498,7 +2506,8 @@ async function iniciarAutenticacao() {
     else mostrarLogin();
     supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       currentUser = session && session.user;
-      if (currentUser && !document.querySelector("#appShell:not([hidden])")) { plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); }
+      if (currentUser && !aplicacaoIniciada && !aEntrar) { aEntrar = true; plantelDoSupabase = await carregarPlantelSupabase(); mostrarAplicacao(); initAplicacao(); aEntrar = false; }
+      else if (currentUser && aplicacaoIniciada) mostrarAplicacao(); // voltou a entrar depois de sair
       if (!currentUser && _event !== "INITIAL_SESSION") mostrarLogin("Sessão terminada.");
     });
   } else mostrarLogin();

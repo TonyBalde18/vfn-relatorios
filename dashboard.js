@@ -249,7 +249,7 @@ function renderEstatisticas() {
   $("statsEquipa").innerHTML = [["Jogos", t.J], ["Vitórias", t.V], ["Empates", t.E], ["Derrotas", t.D], ["Golos marcados", t.GM], ["Golos sofridos", t.GS]]
     .map(([l, v]) => `<div class="summary-tile"><span>${l}</span><strong>${v}</strong></div>`).join("");
 
-  const categorias = [["goal", "Golos", "golos"], ["target", "Assistências", "assistencias"], ["timer", "Minutos", "minutos"], ["shirt", "Jogos", "jogos"], ["square", "Amarelos", "cartoesA"]];
+  const categorias = [["bola", "Golos", "golos"], ["target", "Assistências", "assistencias"], ["timer", "Minutos", "minutos"], ["shirt", "Jogos", "jogos"], ["square", "Amarelos", "cartoesA"]];
   $("statsTop").innerHTML = categorias.map(([icone, titulo, campo]) => {
     const top = [...jogadores].filter(j => j[campo] > 0).sort((a, b) => b[campo] - a[campo] || a.nome.localeCompare(b.nome, "pt")).slice(0, 5);
     return `<article class="card top-card" data-aos="fade-up"><h2 class="hub-card-title">${VFN.icone(icone, 18, campo === "cartoesA" ? "card-amarelo" : "")} ${titulo}</h2>${top.length ? `<ol>${top.map(j => `<li><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span><strong>${j[campo]}</strong></li>`).join("")}</ol>` : H.vazio("Sem dados.")}</article>`;

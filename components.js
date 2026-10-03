@@ -212,7 +212,7 @@
   function renderMatchEvents(relatorio, nomeJogador) {
     const eventos = H().eventosDoRelatorio(relatorio, nomeJogador);
     if (!eventos.length) return '<p class="muted">Sem eventos registados.</p>';
-    return `<ol class="ev-lista">${eventos.map(e => `<li class="${e.neutro ? "neutro" : e.vfn ? "vfn" : "adv"}"><span class="ev-min">${e.minuto}${e.acrescimo ? "+" + e.acrescimo : ""}'</span><span class="ev-tipo">${esc(e.tipo)}</span><span class="ev-texto">${esc(e.texto)}</span></li>`).join("")}</ol>`;
+    return `<ol class="ev-lista">${eventos.map(e => `<li class="${e.neutro ? "neutro" : e.vfn ? "vfn" : "adv"}"><span class="ev-min">${e.minuto}${e.acrescimo ? "+" + e.acrescimo : ""}'</span><span class="ev-tipo">${/^(Golo|Auto-golo)$/.test(e.tipo) ? VFN.icone("bola", 14) + " " : ""}${esc(e.tipo)}</span><span class="ev-texto">${esc(e.texto)}</span></li>`).join("")}</ol>`;
   }
 
   /** Onze, suplentes, formação e capitão a partir do relatório. */
@@ -481,7 +481,7 @@
       ${aviso}
       <div class="conv-grelha">
         <section><h4 class="perfil-subtitulo">Onze inicial <small class="muted">${esc(squad.formation || "")}</small></h4>
-          ${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id })}</section>
+          ${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3" })}</section>
         <section><h4 class="perfil-subtitulo">Convocados <small class="muted">${convocados.length}</small></h4>
           <ul class="conv-lista">${convocados.map(linha).join("")}</ul>
           ${suplentes.length ? `<p class="muted conv-suplentes">Suplentes: ${suplentes.map(j => esc(j.nome)).join(", ")}</p>` : ""}</section>

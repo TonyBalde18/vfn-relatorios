@@ -399,6 +399,8 @@
    * no SVG e voltaria a processá-lo). Tamanho: 20px; nas tabelas o CSS reduz a 16px.
    */
   function icone(nome, tamanho, classe) {
+    // golos: bola de futebol (emoji) em vez do ícone de baliza
+    if (nome === "bola") return `<span class="ic ic-bola${classe ? " " + classe : ""}" style="font-size:${Math.round((tamanho || 20) * 0.9)}px" aria-hidden="true">⚽</span>`;
     const no = window.lucide && window.lucide.icons && window.lucide.icons[nomeLucide(nome)];
     if (!no) return "";
     const filhos = no[2] || [];
