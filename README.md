@@ -38,7 +38,7 @@ const SUPABASE_ANON_KEY = 'a-tua-chave-anon';
 
 ### Contas dos jogadores (equipa.html)
 
-0. Uma vez: Supabase → Authentication → URL Configuration → **Site URL** = `https://tonybalde18.github.io/vfn-relatorios/equipa.html` (o link do convite abre esta página, onde o jogador define a password).
+0. Uma vez: Supabase → Authentication → URL Configuration: **Site URL** = `https://tonybalde18.github.io/vfn-relatorios/` e, em **Redirect URLs**, acrescentar `https://tonybalde18.github.io/vfn-relatorios/equipa.html`. O convite chega ao Site URL e o `index.html` reencaminha-o para `equipa.html`, onde o jogador define a password.
 1. Supabase → Authentication → **Invite user** com o email do jogador.
 2. No admin, na ficha do jogador, preenche **Email da conta** com o mesmo email.
 3. O jogador abre o link do convite, define a password e entra em `equipa.html`; a conta liga-se sozinha ao jogador (`players.auth_user_id`). Sem email na ficha, vê um ecrã de boas-vindas até o admin o indicar.

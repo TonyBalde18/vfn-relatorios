@@ -2,6 +2,8 @@
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
+<!-- convites e recuperação de password chegam ao Site URL (esta página): seguem para a Área do Jogador -->
+<script>if(/type=(invite|recovery)/.test(location.hash))location.replace("equipa.html"+location.hash);</script>
 <script>try{if(!sessionStorage.getItem("vfnSplash")){document.documentElement.classList.add("vfn-splash-on");setTimeout(function(){document.documentElement.classList.remove("vfn-splash-on")},3000)}}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ACD Vila Franca das Naves — Relatórios de Jogo</title>
