@@ -63,18 +63,89 @@
       const html = f.jogos.map(j => {
         const temRes = j.gc != null && j.gf != null && j.gc !== "" && j.gf !== "";
         // fundo suave com a cor principal da equipa (teams.color_primary)
-        const linha = (eq, golos) => `<div class="br-equipa${j.vencedor ? (j.vencedor === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}${VFN.coresEquipa(H().equipa(dados, eq.id)).primaria ? " com-cor" : ""}"${VFN.estiloCorEquipa(H().equipa(dados, eq.id), 0.14)}>
+        const linha = (eq, golos) => `<div data-eq="${esc(eq.id)}" class="br-equipa${j.vencedor ? (j.vencedor === eq.id ? " vence" : " sai") : ""}${VFN.eVFN(eq.nome) ? " is-vfn" : ""}${VFN.coresEquipa(H().equipa(dados, eq.id)).primaria ? " com-cor" : ""}"${VFN.estiloCorEquipa(H().equipa(dados, eq.id), 0.14)}>
           ${H().logoEquipa(H().equipa(dados, eq.id), eq.nome, "br-logo")}<span class="br-nome">${esc(eq.nome)}</span>${j.veioDaFaseAnterior.has(eq.id) ? `<span class="br-veio" title="Passou a fase anterior">${VFN.icone("chevrons-right", 12)}</span>` : ""}
           <strong class="br-golos">${temRes ? Number(golos) : ""}</strong></div>`;
-        return `<button type="button" class="br-jogo" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">
+        return `<button type="button" class="br-jogo"${j.vencedor ? ` data-vencedor="${esc(j.vencedor)}" data-vencedor-logo="${esc(VFN.urlLogoEquipa(H().equipa(dados, j.vencedor), j.vencedor === j.casa.id ? j.casa.nome : j.fora.nome))}"` : ""} data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo">
           ${linha(j.casa, j.gc)}${linha(j.fora, j.gf)}
           <small class="br-data">${j.data ? esc(VFN.dataCurta(j.data)) : "Data por definir"}${temRes && !j.vencedor ? " · empate: falta o vencedor" : j.vencedor && Number(j.gc) === Number(j.gf) ? " · após penáltis" : ""}</small>
         </button>`;
       }).join("");
       return `<section class="br-fase${f.jogos.length ? "" : " vazia"}"><h4>${esc(f.nome)}</h4><div class="br-jogos">${html || '<p class="br-sorteio">Por sortear</p>'}</div></section>`;
     });
-    return `<p class="bracket-dica">${VFN.icone("move-horizontal", 14)} Desliza para ver as fases seguintes.</p><div class="bracket-scroll"><div class="bracket${fase ? " uma-fase" : ""}">${colunas.join("")}</div></div>`;
+    // as ligações entre fases (SVG) são desenhadas com D3 por ligarBrackets, quando o bracket aparece no ecrã
+    return `<p class="bracket-dica">${VFN.icone("move-horizontal", 14)} Desliza para ver as fases seguintes.</p><div class="bracket-scroll"><div class="bracket${fase ? " uma-fase" : ""}" data-bracket>${colunas.join("")}<svg class="br-ligacoes" aria-hidden="true"></svg></div></div>`;
   }
+
+  /* ---------- Bracket: ligações entre fases com D3 ----------
+     Cada vencedor liga-se (path SVG) ao confronto da fase seguinte em que joga; a linha desenha-se
+     e o emblema do vencedor "viaja" pelo caminho. Corre sozinho em qualquer página (MutationObserver). */
+
+  const semMovimento = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function desenharLigacoes(bracket, animar) {
+    const d3 = window.d3;
+    const svg = bracket.querySelector(".br-ligacoes");
+    if (!d3 || !svg || bracket.offsetWidth === 0) return;
+    const caixa = bracket.getBoundingClientRect();
+    const fases = [...bracket.querySelectorAll(".br-fase")];
+    const ligacoes = [];
+    fases.forEach((f, i) => {
+      const seguinte = fases[i + 1];
+      if (!seguinte) return;
+      f.querySelectorAll(".br-jogo[data-vencedor]").forEach(jogo => {
+        const destino = [...seguinte.querySelectorAll(".br-equipa[data-eq]")].find(e => e.dataset.eq === jogo.dataset.vencedor);
+        if (!destino) return;
+        const a = jogo.getBoundingClientRect(), b = destino.getBoundingClientRect();
+        const x1 = a.right - caixa.left, y1 = a.top + a.height / 2 - caixa.top;
+        const x2 = b.left - caixa.left, y2 = b.top + b.height / 2 - caixa.top;
+        const meio = (x1 + x2) / 2;
+        ligacoes.push({ d: `M${x1},${y1} C${meio},${y1} ${meio},${y2} ${x2},${y2}`, fase: i, logo: jogo.dataset.vencedorLogo || "" });
+      });
+    });
+    const s = d3.select(svg).attr("width", bracket.scrollWidth).attr("height", bracket.scrollHeight);
+    s.selectAll("*").remove();
+    const caminhos = s.selectAll("path").data(ligacoes).join("path").attr("class", "br-ligacao").attr("d", l => l.d);
+    if (!animar || semMovimento()) return;
+    caminhos.each(function (l) {
+      const comp = this.getTotalLength();
+      const atraso = l.fase * 450;
+      d3.select(this).attr("stroke-dasharray", comp).attr("stroke-dashoffset", comp)
+        .transition().delay(atraso).duration(700).ease(d3.easeCubicOut).attr("stroke-dashoffset", 0)
+        .on("end", function () { d3.select(this).attr("stroke-dasharray", null); });
+      if (!l.logo) return;
+      // o vencedor "avança" para o confronto seguinte
+      const caminho = this;
+      const viajante = s.append("image").attr("href", l.logo).attr("width", 22).attr("height", 22).attr("class", "br-viajante").attr("opacity", 0);
+      viajante.transition().delay(atraso).duration(800).ease(d3.easeCubicInOut).attr("opacity", 1)
+        .attrTween("transform", () => t => { const p = caminho.getPointAtLength(t * comp); return `translate(${p.x - 11},${p.y - 11})`; })
+        .transition().duration(300).attr("opacity", 0).remove();
+    });
+  }
+
+  /** Liga os brackets novos: desenha (com animação na primeira vez) e redesenha quando o tamanho muda. */
+  function ligarBrackets(raiz) {
+    (raiz || document).querySelectorAll("[data-bracket]:not([data-ligado])").forEach(bracket => {
+      bracket.dataset.ligado = "1";
+      let primeira = true;
+      const desenhar = () => { if (bracket.offsetWidth === 0) return; desenharLigacoes(bracket, primeira); primeira = false; };
+      if (window.ResizeObserver) new ResizeObserver(() => desenhar()).observe(bracket);
+      else setTimeout(desenhar, 50);
+      // os emblemas podem chegar depois e mudar a altura das linhas
+      bracket.querySelectorAll("img").forEach(img => { if (!img.complete) img.addEventListener("load", () => desenharLigacoes(bracket, false), { once: true }); });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!window.MutationObserver) return;
+    let pendente = false;
+    new MutationObserver(() => {
+      if (pendente) return;
+      pendente = true;
+      requestAnimationFrame(() => { pendente = false; ligarBrackets(); });
+    }).observe(document.body, { childList: true, subtree: true });
+    ligarBrackets();
+  });
 
   /* ---------- Drawer (bottom-sheet no telemóvel, painel ao centro no computador) ---------- */
 
@@ -658,7 +729,7 @@
   }
 
   window.VFNComp = {
-    renderMatchCard, renderPlayerCard, renderBracket,
+    renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,

@@ -1627,3 +1627,12 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .mapa-popup strong { color: var(--vfn-navy); }
 .mapa-popup span { font-size: .78rem; color: #475569; }
 .mapa-popup .mapa-km { margin-top: 4px; font-weight: 700; color: var(--vfn-navy); }
+
+/* ---------- v6: bracket com ligações D3 ---------- */
+.bracket { position: relative; }
+.br-ligacoes { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.br-fase { position: relative; z-index: 1; background: transparent; }
+.br-fase h4 { background: rgba(10,22,40,.04); border-radius: 6px; padding: 4px 0; }
+.br-ligacao { fill: none; stroke: #16a34a; stroke-width: 2.5; stroke-linecap: round; opacity: .75; }
+.br-viajante { filter: drop-shadow(0 2px 3px rgba(10,22,40,.35)); }
+.bracket { gap: 28px; }
