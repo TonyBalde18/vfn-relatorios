@@ -36,6 +36,13 @@ const SUPABASE_URL = 'https://o-teu-projeto.supabase.co';
 const SUPABASE_ANON_KEY = 'a-tua-chave-anon';
 ```
 
+### Atualização v6 (03/10/2026)
+
+1. No SQL Editor corre a secção **"ATUALIZAÇÃO 03/10/2026 (v6)"** do `schema.sql` (depois da v5). Cria as colunas novas (convocatória em dois momentos, coordenadas dos estádios, situações dos relatórios), o **bucket privado `report-images`** e as políticas de Storage.
+2. Se o `insert into storage.buckets` der erro de permissões, cria o bucket à mão: Storage → New bucket → `report-images`, **sem** "Public bucket"; depois corre só as políticas.
+3. As coordenadas dos estádios são aproximadas: ajusta-as na ficha de cada equipa (admin → Adversários), em Latitude/Longitude.
+4. Bibliotecas novas por CDN: Leaflet (mapa, tiles OpenStreetMap), D3 (bracket) e a API Open-Meteo (meteorologia), todas sem chave.
+
 ### Contas dos jogadores (equipa.html)
 
 0. Uma vez: Supabase → Authentication → URL Configuration: **Site URL** = `https://tonybalde18.github.io/vfn-relatorios/` e, em **Redirect URLs**, acrescentar `https://tonybalde18.github.io/vfn-relatorios/equipa.html`. O convite chega ao Site URL e o `index.html` reencaminha-o para `equipa.html`, onde o jogador define a password.
