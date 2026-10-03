@@ -10,6 +10,10 @@
   const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
   // Competições com classificação e jornadas AF Guarda (nomes usados em matches e league_results)
   const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog", "Taça 2ª Liga FDM"];
+  // Competições acompanhadas só nas Jornadas AF Guarda (o VFN não participa: adversários possíveis nas taças)
+  const COMPETICOES_SEM_VFN = ["1ª Divisão Cima-Tavfer"];
+  const COMPETICOES_JORNADAS = [...COMPETICOES_CLASSIFICACAO, ...COMPETICOES_SEM_VFN];
+  const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
 
   const AF_GUARDA = { src: "assets/sponsors/af-guarda.png", alt: "Associação de Futebol da Guarda" };
   const SPONSORS = {
@@ -149,6 +153,7 @@
     const s = String(competicao || "").toUpperCase();
     if (s.includes("HONRA")) return "Taça de Honra";
     if (s.includes("TAÇA") || s.includes("TACA")) return "Taça 2ª Liga";
+    if (s.includes("DIVISÃO") || s.includes("DIVISAO")) return "1ª Divisão";
     if (s.includes("AMIG")) return "Amigável";
     if (s.includes("LIGA")) return "2ª Liga";
     return competicao || "—";
@@ -1053,7 +1058,7 @@
   if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
 
   window.VFN = {
-    COMPETICOES, COMPETICOES_CLASSIFICACAO, AF_GUARDA,
+    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, semVFN, AF_GUARDA,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, SPONSORS, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,

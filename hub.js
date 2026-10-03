@@ -211,8 +211,14 @@
       });
     });
     const vfn = VFN.equipaVFN(dados.teams);
-    (jogadoresVFN || []).filter(j => j.golos > 0).forEach(j => mapa.set(`vfn:${j.id}`, { nome: j.nome, teamId: String(vfn.id), golos: j.golos, vfn: true, jogador: j }));
+    // o VFN não joga nas competições só acompanhadas (ex.: 1ª Divisão)
+    if (!VFN.semVFN(competicao)) (jogadoresVFN || []).filter(j => j.golos > 0).forEach(j => mapa.set(`vfn:${j.id}`, { nome: j.nome, teamId: String(vfn.id), golos: j.golos, vfn: true, jogador: j }));
     return [...mapa.values()].sort((a, b) => b.golos - a.golos || a.nome.localeCompare(b.nome, "pt"));
+  }
+
+  /** Tabela classificativa mostrada nas Jornadas para as competições sem o VFN ("" nas outras). */
+  function classificacaoJornadasHTML(dados, competicao) {
+    return VFN.semVFN(competicao) ? classificacaoHTML(dados, competicao) : "";
   }
 
   function marcadoresCampeonatoHTML(dados, jogadoresVFN, competicao, n) {
@@ -227,7 +233,7 @@
           <td class="team-col"><span class="team-inline">${logoEquipa(t, clube)}<span>${esc(clube)}</span></span></td>
           <td class="pts-col" data-contar="${m.golos}">${m.golos}</td></tr>`;
       }).join("")}</tbody></table>
-      <p class="muted nota-marcadores">Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda.</p>`;
+      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p>`;
   }
 
   /* ---------- Plantel ---------- */
@@ -452,7 +458,7 @@
 
   /** Posição do VFN na classificação no fim de cada jornada com resultados. */
   function posicoesPorJornada(dados, competicao) {
-    if (VFN.eliminatorias(competicao)) return [];
+    if (VFN.eliminatorias(competicao) || VFN.semVFN(competicao)) return [];
     const comResultado = (a, b) => a != null && b != null && a !== "" && b !== "";
     const jornadas = [...new Set(jogosDaJornada(dados, competicao).filter(x => x.jornada && comResultado(x.gc, x.gf)).map(x => x.jornada))].sort((a, b) => a - b);
     return jornadas.map(n => {
@@ -470,10 +476,12 @@
     const pontos = posicoesPorJornada(dados, competicao);
     const caixa = canvas.closest(".chart-box");
     const aviso = caixa && caixa.nextElementSibling && caixa.nextElementSibling.classList.contains("empty-state") ? caixa.nextElementSibling : null;
+    // taças e competições sem o VFN não têm gráfico de posição
+    const semGrafico = VFN.eliminatorias(competicao) || VFN.semVFN(competicao);
     if (caixa) caixa.hidden = !pontos.length || !window.Chart;
-    if (aviso) aviso.hidden = !!pontos.length || VFN.eliminatorias(competicao);
+    if (aviso) aviso.hidden = !!pontos.length || semGrafico;
     const titulo = caixa && caixa.previousElementSibling;
-    if (titulo && titulo.classList.contains("subsecao-titulo")) titulo.hidden = VFN.eliminatorias(competicao);
+    if (titulo && titulo.classList.contains("subsecao-titulo")) titulo.hidden = semGrafico;
     if (!pontos.length || !window.Chart) return null;
     const total = Math.max(...pontos.map(p => p.equipas));
     return new Chart(canvas, {
@@ -810,6 +818,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, minutosListaHTML, onzeCampoHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML
   };
 })();

@@ -1103,7 +1103,7 @@ function dadosJornadas() {
 }
 
 function initJornadas() {
-  el("jornadasCompeticao").innerHTML = VFN.COMPETICOES_CLASSIFICACAO.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  el("jornadasCompeticao").innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option>${escapeHtml(c)}</option>`).join("");
   el("jornadasCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadasAdmin(); });
   el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
   el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
@@ -1158,6 +1158,10 @@ function renderJornadasAdmin() {
   el("jornadaFase").closest(".field").hidden = !taca;
   el("jornadaVencedor").closest(".field").hidden = !taca;
   renderVencedorForm();
+  // competições sem o VFN (1ª Divisão): classificação calculada aqui, fora do separador Classificação
+  const tabela = VFNHub.classificacaoJornadasHTML(dados, filtrosJornadas.competicao);
+  el("jornadasClassificacaoWrap").hidden = !tabela;
+  el("jornadasClassificacao").innerHTML = tabela;
   el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
   el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 })), filtrosJornadas.competicao, 15);
 }
