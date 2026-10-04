@@ -2508,11 +2508,16 @@ function mostrarAplicacao() {
   el("sidebarUserName").textContent = currentUser ? (currentUser.user_metadata && (currentUser.user_metadata.full_name || currentUser.user_metadata.name) || currentUser.email) : "Modo local";
 }
 
+/** O modo local (sem login, dados no localStorage) só existe no computador de desenvolvimento. */
+const MODO_LOCAL_PERMITIDO = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === "file:";
+
 function mostrarLogin(mensagem) {
   el("appShell").hidden = true;
   el("loginScreen").hidden = false;
-  el("loginMessage").textContent = mensagem || "";
-  el("btnLocalMode").hidden = supabaseConfigurado();
+  // no site publicado, se a biblioteca do Supabase não carregar NÃO há alternativa sem login
+  const semSupabase = !supabaseConfigurado();
+  el("btnLocalMode").hidden = !(semSupabase && MODO_LOCAL_PERMITIDO);
+  el("loginMessage").textContent = mensagem || (semSupabase && !MODO_LOCAL_PERMITIDO ? "Não foi possível ligar ao servidor. Verifica a ligação à internet e recarrega a página." : "");
 }
 
 let aEntrar = false; // entrada em curso (à espera do plantel): ignora eventos de autenticação repetidos
@@ -2566,7 +2571,7 @@ async function iniciarAutenticacao() {
     const { error } = await supabaseClient.auth.signInWithPassword({ email: el("loginEmail").value, password: el("loginPassword").value });
     if (error) el("loginMessage").textContent = error.message;
   });
-  el("btnLocalMode").addEventListener("click", () => { localMode = true; mostrarAplicacao(); initAplicacao(); });
+  el("btnLocalMode").addEventListener("click", () => { if (!MODO_LOCAL_PERMITIDO || supabaseConfigurado()) return; localMode = true; mostrarAplicacao(); initAplicacao(); });
   el("btnLogout").addEventListener("click", async () => { if (supabaseClient) await supabaseClient.auth.signOut(); else { localMode = false; mostrarLogin(); } });
 }
 
