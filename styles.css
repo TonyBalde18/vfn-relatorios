@@ -484,6 +484,20 @@ td select, td input { min-width: 100px; }
 .player-modal-box { max-width: 680px; }.player-modal-profile { display: flex; align-items: center; gap: 20px; margin: -24px -24px 4px; padding: 24px; background: linear-gradient(135deg, var(--coffee-bean), var(--dark-khaki)); color: #fff; }.player-modal-profile h3 { color: #fff; font-size: 1.65rem; }.player-modal-profile p { margin: 4px 0 10px; color: var(--old-gold); }.player-modal-photo { width: 150px; height: 150px; flex: 0 0 150px; display: grid; place-items: center; overflow: hidden; border: 4px solid var(--old-gold); border-radius: 50%; background: #3b3433; }.player-modal-photo img { width: 100%; height: 100%; object-fit: cover; }.player-silhouette { width: 82px; height: 105px; }.player-modal-stats { display: flex; gap: 18px; flex-wrap: wrap; }.player-modal-stat strong { display: block; color: #fff; font-size: 1.2rem; }.player-modal-stat span { color: var(--silver); font-size: .68rem; }
 .modal-box h3 { color: var(--dark-khaki); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+/* cabeçalho de modal com botão de fechar (×) */
+.modal-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal-x { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.modal-x:hover, .modal-x:focus-visible { background: rgba(10, 22, 40, .08); color: var(--vfn-navy); }
+/* Jornadas: o formulário muda-se para o modal ao editar um resultado */
+.modal-box.modal-resultado { max-width: 720px; }
+.modal-resultado .jornada-form { grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 0; border: 0; background: none; }
+.modal-resultado .jf-jornada, .modal-resultado .jf-data { grid-column: span 3; }
+.modal-resultado .jf-vencedor { grid-column: 1 / -1; }
+.modal-resultado .jf-casa { grid-column: 1 / span 2; }
+.modal-resultado .jf-golos { grid-column: span 1; }
+.modal-resultado .jf-fora { grid-column: span 2; }
+.modal-resultado .jf-acoes { padding-top: 6px; border-top: 1px solid var(--border-color); }
+@media (max-width: 560px) { .modal-resultado .jf-casa, .modal-resultado .jf-fora { grid-column: 1 / -1; } .modal-resultado .jf-golos { grid-column: span 3; } }
 
 /* ---------- Tactical sections ---------- */
 .tatical-card { border-top: 4px solid var(--dark-khaki); }

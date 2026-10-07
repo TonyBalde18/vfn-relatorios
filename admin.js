@@ -1548,6 +1548,28 @@ function limparFormJornada(manterJornada) {
   el("btnGuardarResultadoLiga").textContent = "Adicionar resultado";
   el("btnCancelarResultadoLiga").hidden = true;
   mostrarErroAdmin("jornadasErro", null);
+  devolverFormJornada();
+}
+
+/*
+ * Editar um resultado abre o formulário das Jornadas num modal (o mesmo formulário, que se muda
+ * para lá e volta ao fechar); adicionar um resultado continua no topo da página.
+ */
+let ancoraFormJornada = null;
+
+function abrirFormJornadaEmModal() {
+  const form = document.querySelector(".jornada-form");
+  if (!form) return;
+  if (!ancoraFormJornada) { ancoraFormJornada = document.createComment("formulário das Jornadas"); form.before(ancoraFormJornada); }
+  el("modalResultadoLigaCorpo").append(form, el("jornadasErro"));
+  abrirModalAdmin("modalResultadoLiga");
+}
+
+function devolverFormJornada() {
+  const form = document.querySelector(".jornada-form");
+  if (!ancoraFormJornada || !form || !el("modalResultadoLigaCorpo").contains(form)) return;
+  ancoraFormJornada.after(form, el("jornadasErro"));
+  fecharModalAdmin("modalResultadoLiga");
 }
 
 function editarResultadoLiga(r) {
@@ -1568,7 +1590,8 @@ function editarResultadoLiga(r) {
   renderMarcadoresForm();
   el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
   el("btnCancelarResultadoLiga").hidden = false;
-  el("jornadaNumero").focus();
+  mostrarErroAdmin("jornadasErro", null);
+  abrirFormJornadaEmModal();
 }
 
 async function guardarResultadoLiga() {
@@ -2323,9 +2346,12 @@ function initAdmin() {
   ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });
   });
+  // modal de edição das Jornadas: fechar (×, fora ou Esc) = cancelar a edição
+  el("modalResultadoLiga").addEventListener("click", e => { if (e.target.id === "modalResultadoLiga" || e.target.closest("[data-fechar-resultado]")) limparFormJornada(); });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
+    if (!el("modalResultadoLiga").hidden) limparFormJornada();
   });
   verificarPapelAdmin();
 
