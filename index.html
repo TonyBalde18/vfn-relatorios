@@ -141,16 +141,6 @@
     <aside class="pre-game-side">
       <div id="liveSummary" class="card live-summary"></div>
       <div class="card next-match-card"><h2 class="section-title">Próximo jogo</h2><div id="nextMatchBody" class="next-match-body"><p class="empty-state">A carregar calendário…</p></div></div>
-      <div class="card coachpad-card">
-        <h2 class="section-title">Plano Tático (CoachPad)</h2>
-        <div class="pitch-controls">
-          <label for="coachpadInputPre" class="btn btn-ghost btn-sm file-btn">Carregar imagem do CoachPad</label>
-          <input type="file" id="coachpadInputPre" accept="image/*" hidden>
-          <button type="button" id="btnRemoveCoachpadPre" class="btn btn-ghost btn-sm" hidden>Remover Imagem</button>
-        </div>
-        <div id="coachpadPreviewPre" class="coachpad-preview" hidden><img id="coachpadImgPre" alt="Imagem do CoachPad"></div>
-        <small class="muted">A mesma imagem aparece no separador Jogo e no relatório Word.</small>
-      </div>
     </aside>
     </div>
   </section>
@@ -168,14 +158,6 @@
           <div class="pitch" id="pitch"></div>
           <p class="pitch-hint">Arrasta um jogador da lista para uma posição (ou toca no jogador e depois na posição). Arrasta entre posições para trocar e para a lista para tirar do onze. Os menus ao lado também funcionam.</p>
           <div id="pitchJogadores" class="pitch-jogadores" data-alvo="lista" aria-label="Jogadores para o onze"></div>
-          <div class="pitch-controls">
-            <label for="coachpadInput" class="btn btn-ghost btn-sm file-btn">Usar Imagem do CoachPad</label>
-            <input type="file" id="coachpadInput" accept="image/*" hidden>
-            <button type="button" id="btnRemoveCoachpad" class="btn btn-ghost btn-sm" hidden>Remover Imagem</button>
-          </div>
-          <div id="coachpadPreview" class="coachpad-preview" hidden>
-            <img id="coachpadImg" alt="Imagem do CoachPad">
-          </div>
         </div>
         <div class="lineup-panel">
           <h3>Titulares (Onze Inicial)</h3>

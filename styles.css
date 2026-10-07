@@ -375,9 +375,6 @@ input:focus, select:focus, textarea:focus {
   text-overflow: ellipsis;
   pointer-events: none;
 }
-.pitch-controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.coachpad-preview { width: 100%; max-width: 340px; text-align: center; }
-.coachpad-preview img { max-width: 100%; border-radius: 6px; border: 1px solid var(--border-color); }
 
 /* ---------- Titulares / Suplentes (dropdowns) ---------- */
 .lineup-panel h3 { font-size: 0.9rem; color: var(--charcoal); margin-bottom: 10px; margin-top: 18px; }

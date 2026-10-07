@@ -138,7 +138,6 @@ function estadoInicial() {
       suplentes: new Array(7).fill(null),
       capitaoId: null, // id local do capitão (automático pela ordem de prioridade)
       capitaoManual: false, // escolhido à mão no Jogo
-      coachpad: null, // { dataUrl, tipo, largura, altura }
       eventos: [],
       statsAplicadas: {}, // contribuição deste jogo já somada ao plantel (id -> campos)
       presencasAplicadas: false // jogos/minutos só contam depois de gerar o relatório
@@ -405,11 +404,7 @@ function guardarRascunho() {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
   } catch (e) {
-    try {
-      const copiaSemImagem = JSON.parse(JSON.stringify(state));
-      if (copiaSemImagem.jogo) copiaSemImagem.jogo.coachpad = null;
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data: copiaSemImagem }));
-    } catch (e2) { /* ignora */ }
+    /* sem espaço no localStorage: fica só no Supabase */
   }
   sincronizarRascunhoSupabase();
   if (typeof guardarRelatorioDoJogo === "function") guardarRelatorioDoJogo(); // relatório ligado ao jogo (rascunho automático)
@@ -439,6 +434,7 @@ function aplicarDadosEstado(dados) {
   state.preJogo.proximoJogo = Object.assign(base.preJogo.proximoJogo, dados.preJogo && dados.preJogo.proximoJogo || {});
   state.jogo = Object.assign(base.jogo, dados.jogo);
   state.jogo.eventos = (state.jogo.eventos || []).map(migrarEvento);
+  delete state.jogo.coachpad; // CoachPad removido (v11)
   // rascunhos antigos: considera os eventos já refletidos no plantel para não os contar duas vezes
   if (!dados.jogo || !dados.jogo.statsAplicadas) state.jogo.statsAplicadas = contribuicaoDoJogo();
   state.analise = Object.assign(base.analise, dados.analise || {});
@@ -636,12 +632,6 @@ function initPreJogo() {
   el("pjFormacaoPrevista").addEventListener("change", e => state.preJogo.formacaoPrevista = e.target.value);
   el("pjNotasAdversario").addEventListener("input", e => state.preJogo.notasAdversario = e.target.value);
   el("pjLocal").addEventListener("input", e => state.preJogo.local = e.target.value);
-
-  el("coachpadInputPre").addEventListener("change", handleCoachpadUpload);
-  el("btnRemoveCoachpadPre").addEventListener("click", () => {
-    state.jogo.coachpad = null;
-    renderCoachpad();
-  });
 
   const grupoCasaFora = el("pjCasaFora");
   grupoCasaFora.querySelectorAll(".toggle-btn").forEach(btn => {
@@ -926,12 +916,6 @@ function initJogo() {
     renderEventos(true);
   });
   el("btnOrdenarEventos").addEventListener("click", () => renderEventos(true));
-
-  el("coachpadInput").addEventListener("change", handleCoachpadUpload);
-  el("btnRemoveCoachpad").addEventListener("click", () => {
-    state.jogo.coachpad = null;
-    renderCoachpad();
-  });
 }
 
 function formacaoAdversarioTexto() {
@@ -943,53 +927,6 @@ function renderFormacaoAdversarioOutro() {
   const input = el("jgFormacaoAdvOutro");
   input.hidden = state.jogo.formacaoAdversario !== "Outro";
   input.value = state.jogo.formacaoAdversarioOutro || "";
-}
-
-const COACHPAD_LADO_MAX = 1600;
-
-/**
- * Carrega a imagem do CoachPad (pré-jogo ou jogo) e reduz para no máximo 1600px,
- * para caber no rascunho (localStorage/Supabase) e no Word.
- */
-function handleCoachpadUpload(e) {
-  const input = e.target;
-  const file = input.files[0];
-  if (!file) return;
-  if (!/^image\//.test(file.type)) { alert("Escolhe um ficheiro de imagem (PNG ou JPG)."); input.value = ""; return; }
-  const reader = new FileReader();
-  reader.onerror = () => alert("Não foi possível ler a imagem do CoachPad.");
-  reader.onload = function (ev) {
-    const img = new Image();
-    img.onerror = () => alert("Formato de imagem não suportado. Usa PNG ou JPG.");
-    img.onload = function () {
-      const escala = Math.min(1, COACHPAD_LADO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
-      const largura = Math.round(img.naturalWidth * escala);
-      const altura = Math.round(img.naturalHeight * escala);
-      const canvas = document.createElement("canvas");
-      canvas.width = largura;
-      canvas.height = altura;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#FFFFFF"; // fundo branco para PNG transparentes convertidos em JPG
-      ctx.fillRect(0, 0, largura, altura);
-      ctx.drawImage(img, 0, 0, largura, altura);
-      state.jogo.coachpad = { dataUrl: canvas.toDataURL("image/jpeg", 0.85), tipo: "jpg", largura, altura };
-      renderCoachpad();
-      guardarRascunho();
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-  input.value = "";
-}
-
-function renderCoachpad() {
-  [["coachpadPreview", "coachpadImg", "btnRemoveCoachpad"], ["coachpadPreviewPre", "coachpadImgPre", "btnRemoveCoachpadPre"]].forEach(([previewId, imgId, btnId]) => {
-    const preview = el(previewId);
-    if (!preview) return;
-    if (state.jogo.coachpad) el(imgId).src = state.jogo.coachpad.dataUrl;
-    preview.hidden = !state.jogo.coachpad;
-    el(btnId).hidden = !state.jogo.coachpad;
-  });
 }
 
 /* ---- Onze inicial / suplentes: exclusividade de jogadores ---- */
@@ -1498,7 +1435,6 @@ function renderJogo() {
   renderTitulares();
   renderBench();
   renderFormacaoAdversarioOutro();
-  renderCoachpad();
   renderEventos(false);
 }
 
@@ -2355,26 +2291,6 @@ async function gerarRelatorioWord() {
       pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [linhaCabecalhoMin, ...linhasMin] }));
     }
     pagina2.push(new Paragraph({ spacing: { before: 80 }, children: [new TextRun({ text: "* Calculado com base nas substituições registadas.", italics: true, size: 14, color: COR_CHARCOAL })] }));
-
-    if (state.jogo.coachpad) {
-      try {
-        const buf = dataUrlParaArrayBuffer(state.jogo.coachpad.dataUrl);
-        const larguraMax = 460;
-        const escala = Math.min(1, larguraMax / state.jogo.coachpad.largura);
-        const w = Math.round(state.jogo.coachpad.largura * escala);
-        const h = Math.round(state.jogo.coachpad.altura * escala);
-        pagina2.push(new Paragraph({
-          spacing: { before: 320 },
-          alignment: AlignmentType.CENTER,
-          children: [new ImageRun({ data: buf, type: state.jogo.coachpad.tipo === "png" ? "png" : "jpg", transformation: { width: w, height: h } })]
-        }));
-        pagina2.push(new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 60 },
-          children: [new TextRun({ text: "Posicionamento Tático", italics: true, size: 18, color: COR_CHARCOAL })]
-        }));
-      } catch (e) { /* imagem inválida - ignora */ }
-    }
 
     // ================= 5. ANÁLISE TÁTICA (5 momentos em 2 colunas + adversário) =================
     const pagina3 = [];
