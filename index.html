@@ -204,47 +204,74 @@
     </div>
   </section>
 
-  <!-- TAB 3: ANÁLISE -->
+  <!-- TAB 3: ANÁLISE — mesma ordem do relatório gerado:
+       Resumo Rápido · Síntese · Evolução do Jogo · Momentos e Situações · Análise Tática · Tópicos para o Treino -->
   <section id="tab-analise" class="tab-panel">
+    <!-- 1. Resumo rápido: resultado, marcadores e data (automático, a partir do jogo) -->
     <div id="analysisSummary" class="card analysis-summary"></div>
-    <div id="taticalSections"></div>
 
-    <div class="card"><h2 class="section-title">Observações do jogo</h2><div class="grid grid-2"><div class="field"><label for="primeiroTempoText">1.º tempo</label><textarea id="primeiroTempoText" rows="5"></textarea></div><div class="field"><label for="segundoTempoText">2.º tempo</label><textarea id="segundoTempoText" rows="5"></textarea></div></div><div class="field"><label for="destaquesText">Momentos de destaque</label><textarea id="destaquesText" rows="3"></textarea></div></div>
-
-    <div class="card"><h2 class="section-title">Síntese</h2><div class="grid grid-2"><div class="field"><label for="positivosText">Pontos Positivos</label><textarea id="positivosText" rows="5"></textarea></div><div class="field"><label for="melhorarText">Pontos a Melhorar</label><textarea id="melhorarText" rows="5"></textarea></div></div></div>
-
+    <!-- 2. Síntese -->
     <div class="card">
-      <h2 class="section-title">Análise do Adversário</h2>
+      <h2 class="section-title">Síntese</h2>
+      <p class="muted section-hint">Um parágrafo para quem só lê isto: o resultado em contexto, o que decidiu o jogo e a conclusão principal. É a primeira coisa no relatório.</p>
+      <div class="field"><label for="sinteseText" class="sr-only">Síntese</label><textarea id="sinteseText" rows="5" placeholder="Ex.: Vitória justa frente a um adversário fechado. A pressão alta na 2.ª parte decidiu o jogo; continuamos a sofrer em transição defensiva."></textarea></div>
+    </div>
+
+    <!-- 3. Evolução do jogo -->
+    <div class="card">
+      <h2 class="section-title">Evolução do Jogo</h2>
+      <p class="muted section-hint">A narrativa: como o jogo foi mudando (resultado, domínio, momentos de viragem, efeito das substituições). A avaliação de cada momento do jogo fica na Análise Tática.</p>
+      <div class="grid grid-2">
+        <div class="field"><label for="primeiroTempoText">1.ª parte</label><textarea id="primeiroTempoText" rows="5"></textarea></div>
+        <div class="field"><label for="segundoTempoText">2.ª parte</label><textarea id="segundoTempoText" rows="5"></textarea></div>
+      </div>
+    </div>
+
+    <!-- 4. Momentos e situações (texto + imagens) -->
+    <div class="card">
+      <div class="section-header-row"><h2 class="section-title">Momentos e Situações</h2><label for="situacaoUpload" class="btn btn-accent btn-sm file-btn">+ Adicionar Situação</label><input type="file" id="situacaoUpload" accept="image/png,image/jpeg,image/svg+xml" multiple hidden></div>
+      <div class="field"><label for="destaquesText">Momentos de destaque</label><textarea id="destaquesText" rows="3" placeholder="Um por linha. Ex.: 23' — golo de canto ensaiado"></textarea></div>
+      <p class="muted">Situações de jogo: até 10 imagens (PNG, JPG ou SVG) com legenda. Arrasta para reordenar. Ficam no relatório (treinador e dirigentes) e no Word.</p>
+      <p id="situacoesErro" class="form-error" role="alert"></p>
+      <ol id="situacoesLista" class="situacoes-lista"></ol>
+    </div>
+
+    <!-- 5. Análise tática: os 5 momentos do jogo e o adversário -->
+    <div class="card">
+      <h2 class="section-title">Análise Tática</h2>
+      <p class="muted section-hint">Os 5 momentos do jogo (avaliação e análise) e o adversário. Os momentos avaliados como Médio ou Mau aparecem nos Tópicos para o Treino.</p>
+    </div>
+    <div id="taticalSections"></div>
+    <div class="card">
+      <h2 class="section-title">Adversário</h2>
       <div class="field">
         <label for="advEstilo">Estilo de Jogo</label>
-        <textarea id="advEstilo" rows="4" placeholder="Como joga o adversário..."></textarea>
+        <small class="muted">Como joga: organização, saída de bola, pressão, bolas paradas. Descrição, sem juízos.</small>
+        <textarea id="advEstilo" rows="4" placeholder="Ex.: 4-4-2 compacto em bloco médio, saída longa para o ponta-de-lança..."></textarea>
+      </div>
+      <div class="field">
+        <label for="advPontosFortes">Pontos Fortes</label>
+        <small class="muted">Onde são perigosos e o que nos criou problemas: o que temos de anular.</small>
+        <textarea id="advPontosFortes" rows="4" placeholder="Ex.: segundas bolas, cruzamentos do lado direito..."></textarea>
+      </div>
+      <div class="field">
+        <label for="advVulnerabilidades">Vulnerabilidades</label>
+        <small class="muted">O que podemos explorar no próximo confronto (2.ª volta).</small>
+        <textarea id="advVulnerabilidades" rows="4" placeholder="Ex.: espaço nas costas dos laterais, lentos a reagir à perda..."></textarea>
       </div>
       <div class="field">
         <label>Jogadores-Chave que se Destacaram</label>
         <div id="jogadoresChaveList" class="dynamic-list"></div>
         <button type="button" id="btnAddJogadorChave" class="btn btn-ghost btn-sm">+ Adicionar Jogador</button>
       </div>
-      <div class="grid grid-2">
-        <div class="field">
-          <label for="advPontosFortes">Pontos Fortes</label>
-          <textarea id="advPontosFortes" rows="4" placeholder="Pontos fortes do adversário..."></textarea>
-        </div>
-        <div class="field">
-          <label for="advVulnerabilidades">Vulnerabilidades a Explorar na 2ª Volta</label>
-          <textarea id="advVulnerabilidades" rows="4" placeholder="O que podemos explorar..."></textarea>
-        </div>
-      </div>
     </div>
 
-    <div class="card"><h2 class="section-title">Tópicos para o Treino</h2><textarea id="topicosText" rows="5"></textarea></div>
-
-    <div class="card"><h2 class="section-title">Notas individuais</h2><div id="notasIndividuaisList" class="dynamic-list"></div><button type="button" id="btnAddNotaIndividual" class="btn btn-ghost btn-sm">+ Adicionar nota</button></div>
-
+    <!-- 6. Tópicos para o treino (antes "Pontos a Melhorar"): partem da evolução e da análise -->
     <div class="card">
-      <div class="section-header-row"><h2 class="section-title">Situações de Jogo</h2><label for="situacaoUpload" class="btn btn-accent btn-sm file-btn">+ Adicionar Situação</label><input type="file" id="situacaoUpload" accept="image/png,image/jpeg,image/svg+xml" multiple hidden></div>
-      <p class="muted">Até 10 imagens (PNG, JPG ou SVG) com legenda. Arrasta para reordenar. Ficam no relatório (treinador e dirigentes) e no Word.</p>
-      <p id="situacoesErro" class="form-error" role="alert"></p>
-      <ol id="situacoesLista" class="situacoes-lista"></ol>
+      <h2 class="section-title">Tópicos para o Treino</h2>
+      <p class="muted section-hint">Um tópico por linha: o que trabalhar nos próximos treinos a partir do que a Evolução do Jogo e a Análise Tática mostraram.</p>
+      <div id="topicosOrigem" class="topicos-origem" aria-live="polite"></div>
+      <div class="field"><label for="topicosText" class="sr-only">Tópicos para o Treino</label><textarea id="topicosText" rows="5" placeholder="Ex.: Transição defensiva — reação nos 5 segundos após a perda"></textarea></div>
     </div>
   </section>
 

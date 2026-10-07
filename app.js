@@ -194,19 +194,17 @@ function estadoInicial() {
         transicoesDefensivas: { avaliacao: null, texto: "" },
         bolasParadas: { avaliacao: null, texto: "" }
       },
-      positivos: "",
-      aMelhorar: "",
+      sintese: "", // parágrafo executivo (v9; substitui "Pontos positivos")
       adversario: {
         estilo: "",
         jogadoresChave: [],
         pontosFortes: "",
         vulnerabilidades: ""
       },
-      topicosTreino: "",
-      primeiroTempo: "",
-      segundoTempo: "",
-      destaques: "",
-      notasIndividuais: [], // [{ jogadorId, nota }]
+      topicosTreino: "", // "Tópicos para o Treino" (v9; absorveu "Pontos a melhorar")
+      primeiroTempo: "", // Evolução do Jogo: 1.ª parte
+      segundoTempo: "", // Evolução do Jogo: 2.ª parte
+      destaques: "", // Momentos e Situações (com as imagens em situacoes)
       situacoes: [] // [{ path (bucket report-images) | data (modo local), caption, order }]
     },
     relatorioId: "", // linha de match_reports deste relatório
@@ -493,10 +491,25 @@ function aplicarDadosEstado(dados) {
   if (dados.analise && dados.analise.seccoes) {
     state.analise.seccoes = Object.assign(base.analise.seccoes, dados.analise.seccoes);
   }
-  if (!Array.isArray(state.analise.notasIndividuais)) state.analise.notasIndividuais = [];
+  migrarEstruturaRelatorio(state.analise);
   if (!Array.isArray(state.analise.situacoes)) state.analise.situacoes = [];
   state.relatorioId = dados.relatorioId || "";
   state.estadoRelatorio = dados.estadoRelatorio || dados._status || "draft";
+}
+
+/**
+ * Relatórios anteriores à v9 (estrutura nova): "Pontos positivos" passam para a Síntese (se ainda
+ * não houver síntese), "Pontos a melhorar" juntam-se aos Tópicos para o Treino (sem repetir linhas)
+ * e as Notas individuais deixam de existir.
+ */
+function migrarEstruturaRelatorio(analise) {
+  const linhas = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+  if (typeof analise.sintese !== "string") analise.sintese = "";
+  if (!analise.sintese.trim() && linhas(analise.positivos).length) analise.sintese = linhas(analise.positivos).join("\n");
+  if (linhas(analise.aMelhorar).length) analise.topicosTreino = [...new Set([...linhas(analise.topicosTreino), ...linhas(analise.aMelhorar)])].join("\n");
+  delete analise.positivos;
+  delete analise.aMelhorar;
+  delete analise.notasIndividuais;
 }
 
 function carregarRascunho() {
@@ -1493,6 +1506,7 @@ function initAnalise() {
       btn.addEventListener("click", () => {
         state.analise.seccoes[sec.key].avaliacao = btn.dataset.val;
         card.querySelectorAll(".avaliacao-btn").forEach(b => b.classList.toggle("active", b === btn));
+        renderTopicosOrigem();
       });
     });
 
@@ -1503,13 +1517,11 @@ function initAnalise() {
   });
 
   el("btnAddJogadorChave").addEventListener("click", () => { state.analise.adversario.jogadoresChave.push({ nome: "", posicao: "", descricao: "" }); renderJogadoresChave(); });
-  el("positivosText").addEventListener("input", e => state.analise.positivos = e.target.value);
-  el("melhorarText").addEventListener("input", e => state.analise.aMelhorar = e.target.value);
+  el("sinteseText").addEventListener("input", e => state.analise.sintese = e.target.value);
   el("topicosText").addEventListener("input", e => state.analise.topicosTreino = e.target.value);
   el("primeiroTempoText").addEventListener("input", e => state.analise.primeiroTempo = e.target.value);
   el("segundoTempoText").addEventListener("input", e => state.analise.segundoTempo = e.target.value);
   el("destaquesText").addEventListener("input", e => state.analise.destaques = e.target.value);
-  el("btnAddNotaIndividual").addEventListener("click", () => { state.analise.notasIndividuais.push({ jogadorId: "", nota: "" }); renderNotasIndividuais(); });
 
   el("advEstilo").addEventListener("input", e => state.analise.adversario.estilo = e.target.value);
   el("advPontosFortes").addEventListener("input", e => state.analise.adversario.pontosFortes = e.target.value);
@@ -1581,32 +1593,6 @@ function renderJogadoresChave() {
   });
 }
 
-/** Notas individuais por jogador (convocados primeiro, depois o resto do plantel). */
-function renderNotasIndividuais() {
-  const container = el("notasIndividuaisList");
-  if (!container) return;
-  container.innerHTML = "";
-  const convocados = new Set([...state.jogo.titulares, ...state.jogo.suplentes].filter(Boolean).map(Number));
-  state.analise.notasIndividuais.forEach((n, idx) => {
-    const row = document.createElement("div");
-    row.className = "dynamic-row nota-individual";
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", "Jogador");
-    const ordem = [...plantel].sort((x, y) => (convocados.has(y.id) - convocados.has(x.id)) || x.nome.localeCompare(y.nome, "pt"));
-    select.innerHTML = '<option value="">— Jogador —</option>' + ordem.map(j => `<option value="${j.id}" ${Number(n.jogadorId) === j.id ? "selected" : ""}>${escapeHtml(j.nome)}${convocados.has(j.id) ? "" : " (não convocado)"}</option>`).join("");
-    select.addEventListener("change", () => { n.jogadorId = select.value ? Number(select.value) : ""; });
-    const texto = document.createElement("textarea");
-    texto.rows = 2; texto.placeholder = "Ex: Boa exibição, forte nos duelos"; texto.value = n.nota || "";
-    texto.setAttribute("aria-label", "Nota");
-    texto.addEventListener("input", () => { n.nota = texto.value; });
-    const remover = document.createElement("button");
-    remover.type = "button"; remover.className = "remove-btn"; remover.innerHTML = VFN.icone("x", 16); remover.setAttribute("aria-label", "Remover nota");
-    remover.addEventListener("click", () => { state.analise.notasIndividuais.splice(idx, 1); renderNotasIndividuais(); });
-    row.append(select, texto, remover);
-    container.appendChild(row);
-  });
-}
-
 function renderTopicos() {
   const container = el("topicosList");
   container.innerHTML = "";
@@ -1649,31 +1635,41 @@ function renderAnalise() {
   });
 
   renderJogadoresChave();
-  el("positivosText").value = state.analise.positivos;
-  el("melhorarText").value = state.analise.aMelhorar;
+  el("sinteseText").value = state.analise.sintese || "";
   el("topicosText").value = state.analise.topicosTreino;
   el("primeiroTempoText").value = state.analise.primeiroTempo || "";
   el("segundoTempoText").value = state.analise.segundoTempo || "";
   el("destaquesText").value = state.analise.destaques || "";
-  renderNotasIndividuais();
 
   renderAnalysisSummary();
+  renderTopicosOrigem();
 
   el("advEstilo").value = state.analise.adversario.estilo;
   el("advPontosFortes").value = state.analise.adversario.pontosFortes;
   el("advVulnerabilidades").value = state.analise.adversario.vulnerabilidades;
 }
 
+/** 1. Resumo rápido: resultado, marcadores e data (do separador Jogo e do Pré-Jogo). */
 function renderAnalysisSummary() {
-  const avaliadas = Object.values(state.analise.seccoes).filter(sec => sec.avaliacao).length;
-  const resultado = `${state.jogo.golosVFN} - ${state.jogo.golosAdversario}`;
+  const resultado = `VFN ${state.jogo.golosVFN} – ${state.jogo.golosAdversario} ${state.preJogo.adversario || "Adversário"}`;
+  const marcadores = VFNRelatorio.extrair({ match_data: state }, nomeJogador).marcadores;
+  const data = state.preJogo.data ? new Date(state.preJogo.data + "T00:00:00").toLocaleDateString("pt-PT") : "—";
   el("analysisSummary").innerHTML = `
     <h2>Resumo rápido</h2>
     <div><span class="summary-label">Resultado</span><span class="summary-value">${escapeHtml(resultado)}</span></div>
-    <div><span class="summary-label">Formação</span><span class="summary-value">${escapeHtml(state.jogo.formacaoVFN)}</span></div>
-    <div><span class="summary-label">Nº eventos</span><span class="summary-value">${state.jogo.eventos.length}</span></div>
-    <div><span class="summary-label">Avaliações preenchidas</span><span class="summary-value">${avaliadas}/5</span></div>
+    <div class="summary-marcadores"><span class="summary-label">Marcadores</span><span class="summary-value">${escapeHtml(marcadores || "—")}</span></div>
+    <div><span class="summary-label">Data</span><span class="summary-value">${escapeHtml(data)}</span></div>
   `;
+}
+
+/** Tópicos para o Treino: mostra os momentos do jogo avaliados como Médio/Mau (a origem dos tópicos). */
+function renderTopicosOrigem() {
+  const caixa = el("topicosOrigem");
+  if (!caixa) return;
+  const aTrabalhar = SECCOES_TATICAS.filter(s => ["Mau", "Medio"].includes((state.analise.seccoes[s.key] || {}).avaliacao));
+  caixa.innerHTML = aTrabalhar.length
+    ? `<span class="muted">Da Análise Tática:</span>${aTrabalhar.map(s => { const a = state.analise.seccoes[s.key].avaliacao; return `<span class="rel-aval aval-${a === "Medio" ? "Médio" : a}">${escapeHtml(s.titulo)} · ${a === "Medio" ? "Médio" : a}</span>`; }).join("")}`
+    : "";
 }
 
 /* =========================================================
@@ -2239,14 +2235,43 @@ async function gerarRelatorioWord() {
       children: [new TextRun({ text: `Formação VFN: ${state.jogo.formacaoVFN}   ·   Formação ${nomeAdversario}: ${formacaoAdversarioTexto()}`, size: 20, color: COR_CHARCOAL, italics: true })]
     }));
 
-    if (state.preJogo.notasAdversario) {
-      pagina1.push(new Paragraph({ spacing: { before: 300, after: 60 }, children: [new TextRun({ text: "Notas Prévias Sobre o Adversário", bold: true, size: 20, color: COR_DARK_KHAKI })] }));
-      pagina1.push(new Paragraph({ children: [new TextRun({ text: state.preJogo.notasAdversario, size: 18 })] }));
-    }
+    // Estrutura (v9): 1. Resumo Rápido + 2. Síntese (capa: os dirigentes leem e param aqui) ·
+    // 3. Evolução do Jogo + 4. Momentos e Situações · 5. Análise Tática + 6. Tópicos para o Treino · anexo: Ficha de Jogo
+    const linhasTexto = t => String(t || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+    const tituloSeccao = (texto, antes) => new Paragraph({ spacing: { before: antes ?? 260, after: 120 }, children: [new TextRun({ text: texto, bold: true, size: 24, color: COR_DARK_KHAKI })] });
+    const subtituloSeccao = texto => new Paragraph({ spacing: { before: 140, after: 60 }, children: [new TextRun({ text: texto, bold: true, size: 20, color: COR_CHARCOAL })] });
+    const paragrafosTexto = (t, vazio) => linhasTexto(t).length
+      ? linhasTexto(t).map(p => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: p, size: 20 })] }))
+      : [new Paragraph({ children: [new TextRun({ text: vazio || "— por preencher —", italics: true, size: 18, color: COR_SILVER })] })];
+    const dadosRelatorio = VFNRelatorio.extrair({ match_data: state }, nomeJogador);
+
+    // 1. Resumo rápido: resultado e data já acima; marcadores
+    pagina1.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120 },
+      children: [new TextRun({ text: "Marcadores: ", bold: true, size: 20, color: COR_CHARCOAL }), new TextRun({ text: dadosRelatorio.marcadores || "—", size: 20, color: COR_CHARCOAL })]
+    }));
+
+    // 2. Síntese
+    pagina1.push(tituloSeccao("SÍNTESE", 400));
+    pagina1.push(...paragrafosTexto(state.analise.sintese));
 
     pagina1.push(new Paragraph({ children: [new PageBreak()] }));
 
-    // ================= PÁGINA 2 — FICHA DE JOGO =================
+    // ================= 3. EVOLUÇÃO DO JOGO + 4. MOMENTOS E SITUAÇÕES =================
+    const paginaEvolucao = [];
+    paginaEvolucao.push(tituloSeccao("EVOLUÇÃO DO JOGO", 0));
+    paginaEvolucao.push(subtituloSeccao("1.ª parte"), ...paragrafosTexto(state.analise.primeiroTempo));
+    paginaEvolucao.push(subtituloSeccao("2.ª parte"), ...paragrafosTexto(state.analise.segundoTempo));
+    paginaEvolucao.push(tituloSeccao("MOMENTOS E SITUAÇÕES"));
+    linhasTexto(state.analise.destaques).forEach(p => paginaEvolucao.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "• " + p, size: 18 })] })));
+    // situações de jogo (imagens do bucket report-images, com legenda)
+    const situacoesWord = await VFNRelatorio.situacoesParaWord({ match_data: state }, supabaseClient, null);
+    paginaEvolucao.push(...situacoesWord);
+    if (!linhasTexto(state.analise.destaques).length && !situacoesWord.length) paginaEvolucao.push(...paragrafosTexto(""));
+    paginaEvolucao.push(new Paragraph({ children: [new PageBreak()] }));
+
+    // ================= ANEXO — FICHA DE JOGO (eventos, linha do tempo, minutos) =================
     const pagina2 = [];
     pagina2.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 160 }, children: [new TextRun({ text: "FICHA DE JOGO", bold: true, size: 28, color: COR_DARK_KHAKI })] }));
     const eventosOrdenados = [...state.jogo.eventos].sort(compararEventos);
@@ -2321,9 +2346,7 @@ async function gerarRelatorioWord() {
       } catch (e) { /* imagem inválida - ignora */ }
     }
 
-    pagina2.push(new Paragraph({ children: [new PageBreak()] }));
-
-    // ================= PÁGINA 3 — ANÁLISE TÁTICA (2 colunas) =================
+    // ================= 5. ANÁLISE TÁTICA (5 momentos em 2 colunas + adversário) =================
     const pagina3 = [];
     pagina3.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: "ANÁLISE TÁTICA", bold: true, size: 28, color: COR_DARK_KHAKI })] }));
 
@@ -2360,44 +2383,30 @@ async function gerarRelatorioWord() {
       pagina3.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: [new TableRow({ children: celulas })] }));
     }
 
-    pagina3.push(new Paragraph({ children: [new PageBreak()] }));
+    // adversário: três campos com propósitos distintos
+    pagina3.push(new Paragraph({ spacing: { before: 200, after: 80 }, shading: { type: ShadingType.SOLID, color: COR_DARK_KHAKI, fill: COR_DARK_KHAKI }, children: [new TextRun({ text: "  ADVERSÁRIO — " + nomeAdversario.toUpperCase(), bold: true, color: COR_OLD_GOLD, size: 20 })] }));
+    [["Estilo de Jogo", state.analise.adversario.estilo], ["Pontos Fortes", state.analise.adversario.pontosFortes], ["Vulnerabilidades", state.analise.adversario.vulnerabilidades]].forEach(([rotulo, texto]) => {
+      pagina3.push(new Paragraph({ spacing: { before: 100, after: 40 }, children: [new TextRun({ text: rotulo + ": ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: texto || "—", size: 18 })] }));
+    });
+    const jogadoresChaveValidos = state.analise.adversario.jogadoresChave.filter(jc => jc.nome);
+    if (jogadoresChaveValidos.length) {
+      pagina3.push(new Paragraph({ spacing: { before: 100, after: 40 }, children: [new TextRun({ text: "Jogadores-Chave", bold: true, size: 18, color: COR_CHARCOAL })] }));
+      jogadoresChaveValidos.forEach(jc => {
+        const posicaoTxt = jc.posicao ? ` (${jc.posicao})` : "";
+        pagina3.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: `• ${jc.nome}${posicaoTxt}`, bold: true, size: 18 }), new TextRun({ text: jc.descricao ? " — " + jc.descricao : "", size: 18 })] }));
+      });
+    }
+    if (state.preJogo.notasAdversario) {
+      pagina3.push(new Paragraph({ spacing: { before: 100, after: 40 }, children: [new TextRun({ text: "Notas prévias: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.preJogo.notasAdversario, size: 18 })] }));
+    }
 
-    // ================= PÁGINA 4 — SÍNTESE =================
+    // ================= 6. TÓPICOS PARA O TREINO (ligados à evolução e à análise) =================
     const pagina4 = [];
-
-    const blocoPositivos = [
-      new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: "PONTOS POSITIVOS", bold: true, size: 22, color: "67A23F" })] })
-    ];
-    const positivosValidos = String(state.analise.positivos || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
-    if (positivosValidos.length === 0) {
-      blocoPositivos.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
-    } else {
-      positivosValidos.forEach(p => blocoPositivos.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "✅ " + p, size: 18 })] })));
+    pagina4.push(tituloSeccao("TÓPICOS PARA O TREINO", 360));
+    if (dadosRelatorio.aTrabalhar.length) {
+      pagina4.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "A partir da análise: " + dadosRelatorio.aTrabalhar.map(s => `${s.titulo} (${s.avaliacao})`).join(", "), italics: true, size: 18, color: COR_CHARCOAL })] }));
     }
-
-    const blocoMelhorar = [
-      new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: "PONTOS A MELHORAR", bold: true, size: 22, color: "E7A601" })] })
-    ];
-    const melhorarValidos = String(state.analise.aMelhorar || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
-    if (melhorarValidos.length === 0) {
-      blocoMelhorar.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
-    } else {
-      melhorarValidos.forEach(p => blocoMelhorar.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "⚠️ " + p, size: 18 })] })));
-    }
-
-    pagina4.push(new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: SEM_BORDAS,
-      rows: [new TableRow({
-        children: [
-          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { right: 200 }, children: blocoPositivos }),
-          new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: CELULA_SEM_BORDAS, margins: { left: 200 }, children: blocoMelhorar })
-        ]
-      })]
-    }));
-
-    pagina4.push(new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: "TÓPICOS PARA O TREINO", bold: true, size: 24, color: COR_DARK_KHAKI })] }));
-    const topicosValidos = String(state.analise.topicosTreino || "").split(/\n+/).map(t => t.trim()).filter(Boolean);
+    const topicosValidos = linhasTexto(state.analise.topicosTreino);
     if (topicosValidos.length === 0) {
       pagina4.push(new Paragraph({ children: [new TextRun({ text: "— nenhum registado —", italics: true, size: 18 })] }));
     } else {
@@ -2405,25 +2414,8 @@ async function gerarRelatorioWord() {
         pagina4.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${idx + 1}. ${t}`, size: 18 })] }));
       });
     }
-
-    pagina4.push(new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: "ANÁLISE DO ADVERSÁRIO", bold: true, size: 24, color: COR_DARK_KHAKI })] }));
-    pagina4.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "Estilo de Jogo: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.estilo || "—", size: 18 })] }));
-
-    pagina4.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: "Jogadores-Chave", bold: true, size: 18, color: COR_CHARCOAL })] }));
-    const jogadoresChaveValidos = state.analise.adversario.jogadoresChave.filter(jc => jc.nome);
-    if (jogadoresChaveValidos.length === 0) {
-      pagina4.push(new Paragraph({ children: [new TextRun({ text: "—", size: 18 })] }));
-    } else {
-      jogadoresChaveValidos.forEach(jc => {
-        const posicaoTxt = jc.posicao ? ` (${jc.posicao})` : "";
-        pagina4.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: `• ${jc.nome}${posicaoTxt}`, bold: true, size: 18 }), new TextRun({ text: jc.descricao ? " — " + jc.descricao : "", size: 18 })] }));
-      });
-    }
-
-    pagina4.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: "Pontos Fortes: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.pontosFortes || "—", size: 18 })] }));
-    // situações de jogo (imagens do bucket report-images, com legenda)
-    const situacoesWord = await VFNRelatorio.situacoesParaWord({ match_data: state }, supabaseClient, t => new Paragraph({ spacing: { before: 280, after: 100 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 22, color: "0A1628" })] }));
-    pagina4.push(new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: "Vulnerabilidades a Explorar na 2ª Volta: ", bold: true, size: 18, color: COR_CHARCOAL }), new TextRun({ text: state.analise.adversario.vulnerabilidades || "—", size: 18 })] }));
+    pagina4.push(new Paragraph({ children: [new PageBreak()] }));
+    pagina4.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: "ANEXO", bold: true, size: 18, color: COR_SILVER })] }));
 
     const footer = new Footer({
       children: [new Paragraph({
@@ -2443,7 +2435,7 @@ async function gerarRelatorioWord() {
       sections: [{
         properties: {},
         footers: { default: footer },
-        children: [...pagina1, ...pagina2, ...pagina3, ...pagina4, ...situacoesWord]
+        children: [...pagina1, ...paginaEvolucao, ...pagina3, ...pagina4, ...pagina2]
       }]
     });
 

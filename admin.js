@@ -1720,8 +1720,11 @@ function linhaRelatorio() {
     first_half_notes: state.analise.primeiroTempo || null,
     second_half_notes: state.analise.segundoTempo || null,
     highlights: state.analise.destaques || null,
-    areas_to_improve: state.analise.aMelhorar || null,
-    individual_notes: (state.analise.notasIndividuais || []).filter(n => n.jogadorId && n.nota).map(n => ({ player: nomeJogador(n.jogadorId), note: n.nota })),
+    // v9: "Pontos a melhorar" passou a "Tópicos para o treino"; a coluna mantém o nome.
+    // A Síntese só vive em match_data.analise.sintese (sem coluna própria).
+    // As Notas individuais foram removidas: a coluna individual_notes deixa de ser escrita
+    // (opcional, no Supabase: alter table public.match_reports drop column if exists individual_notes;)
+    areas_to_improve: state.analise.topicosTreino || null,
     created_by: currentUser ? currentUser.id : null,
     ...(colunaCapitao ? { captain_id: state.jogo.capitaoId ? idJogadorBD(plantel.find(p => p.id === Number(state.jogo.capitaoId)) || { id: state.jogo.capitaoId }) : null } : {}),
     ...(colunaSituacoes ? { situations: (state.analise.situacoes || []).map(({ path, caption, order }) => ({ path: path || null, caption: caption || "", order })) } : {})

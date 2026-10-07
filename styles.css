@@ -396,6 +396,8 @@ td select, td input { min-width: 100px; }
 .analysis-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: var(--dark-khaki); color: #fff; }
 .analysis-summary h2 { grid-column: 1 / -1; color: var(--old-gold); font-size: 1rem; }
 .summary-value { font-size: 1.2rem; font-weight: 700; }.summary-label { display: block; color: var(--silver); font-size: 0.75rem; }
+.analysis-summary .summary-marcadores { grid-column: span 2; }
+.analysis-summary .summary-marcadores .summary-value { font-size: .95rem; line-height: 1.35; }
 .season-stats-card { background: linear-gradient(135deg, #fff, #fffbe0); }.season-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }.season-stat { padding: 9px; border-radius: 7px; background: rgba(255,215,0,.16); text-align: center; }.season-stat strong { display: block; color: var(--dark-khaki); font-size: 1.25rem; }.season-stat span { color: var(--text-muted); font-size: .7rem; }
 #taticalSections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }.tatical-card { margin-bottom: 0; }.tatical-card:last-child { grid-column: 1 / -1; }
 .team-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 220px; gap: 10px; margin-bottom: 14px; }.team-quick-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }.team-quick-stats span { padding: 9px 13px; border-radius: 7px; background: #FAF9F6; color: var(--text-muted); font-size: .8rem; }.team-quick-stats strong { color: var(--dark-khaki); font-size: 1rem; margin-right: 4px; }
@@ -1052,19 +1054,20 @@ button.jj-centro:focus-visible, button.result-score:focus-visible { outline: 2px
 .aval-Bom { background: #dcfce7; color: #166534; }
 .aval-Médio { background: #fef3c7; color: #92400e; }
 .aval-Mau { background: #fee2e2; color: #991b1b; }
-.rel-notas { width: 100%; border-collapse: collapse; }
-.rel-notas th, .rel-notas td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top; font-size: .88rem; }
-.rel-notas th { width: 35%; white-space: nowrap; background: transparent; color: var(--vfn-navy); text-transform: none; letter-spacing: 0; font-weight: 700; }
-.dynamic-row.nota-individual { display: grid; grid-template-columns: minmax(170px, 260px) 1fr auto; align-items: start; gap: 10px; }
-.nota-individual textarea { width: 100%; min-width: 0; }
+/* v9: estrutura do relatório (resumo rápido, síntese, tópicos ligados à análise) */
+.rel-marcadores { display: flex; justify-content: center; align-items: center; gap: 6px; margin: -6px 0 10px; font-size: .86rem; font-weight: 600; color: var(--vfn-navy); text-align: center; }
+.rel-sintese { padding: 10px 12px; border-top: 0; border-left: 4px solid var(--vfn-yellow); border-radius: 6px; background: rgba(255, 215, 0, .1); }
+.rel-sintese p { font-size: .95rem; }
+.rel-adversario { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color); }
+.rel-origem { font-size: .82rem; font-style: italic; color: var(--text-muted); }
+.rel-bloco ol { margin: 0; padding-left: 20px; }
+.section-hint { margin: -4px 0 10px; font-size: .82rem; }
+.topicos-origem { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; font-size: .82rem; }
+.topicos-origem:empty { display: none; }
 .header-actions .estado-relatorio, .estado-relatorio[role=status] { align-self: center; }
 @media (max-width: 900px) {
   .historico-grid, .rel-grelha { grid-template-columns: 1fr; }
   .rel-resultado { font-size: 1.7rem; }
-}
-@media (max-width: 640px) {
-  .dynamic-row.nota-individual { grid-template-columns: 1fr auto; }
-  .dynamic-row.nota-individual textarea { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* ---------- Splash (primeira visita da sessão) ---------- */

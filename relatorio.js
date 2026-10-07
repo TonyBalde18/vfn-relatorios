@@ -28,6 +28,8 @@
     const eventos = (jogo.eventos || []).slice().sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0) || (Number(a.acrescimo) || 0) - (Number(b.acrescimo) || 0));
     const vfnEm = t => eventos.filter(e => e.equipa === "VFN" && e.tipo === t);
     const casa = pre.casaFora !== "Fora";
+    const seccoes = SECCOES.map(([k, t]) => ({ titulo: t, avaliacao: AVALIACAO[((an.seccoes || {})[k] || {}).avaliacao] || "", texto: ((an.seccoes || {})[k] || {}).texto || "" })).filter(s => s.avaliacao || s.texto);
+    const golos = eventos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").map(e => ({ min: minuto(e), vfn: (e.tipo === "Golo") === (e.equipa === "VFN"), texto: e.equipa === "VFN" ? nome(e.jogadorId) + (e.assistId ? ` (assist. ${nome(e.assistId)})` : "") : (e.detalhe || "Adversário") + (e.tipo === "Auto-golo" ? " (autogolo)" : "") }));
     return {
       competicao: r.competition || pre.competicao || "",
       jornada: pre.jornada || "",
@@ -43,20 +45,35 @@
       onze: (jogo.titulares || []).filter(Boolean).map(id => nome(id) + (String(id) === String(jogo.capitaoId) ? " (C)" : "")),
       suplentes: (jogo.suplentes || []).filter(Boolean).map(nome),
       substituicoes: vfnEm("Substituição").map(e => ({ min: minuto(e), sai: nome(e.jogadorSaiId), entra: nome(e.jogadorId) })),
-      golos: eventos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").map(e => ({ min: minuto(e), vfn: (e.tipo === "Golo") === (e.equipa === "VFN"), texto: e.equipa === "VFN" ? nome(e.jogadorId) + (e.assistId ? ` (assist. ${nome(e.assistId)})` : "") : (e.detalhe || "Adversário") + (e.tipo === "Auto-golo" ? " (autogolo)" : "") })),
+      golos,
       amarelos: vfnEm("Cartão Amarelo").map(e => ({ min: minuto(e), nome: nome(e.jogadorId) })),
       vermelhos: vfnEm("Cartão Vermelho").map(e => ({ min: minuto(e), nome: nome(e.jogadorId) })),
+      // estrutura do relatório (v9): Resumo Rápido · Síntese · Evolução do Jogo · Momentos e Situações · Análise Tática · Tópicos para o Treino
+      marcadores: marcadoresTexto(golos),
+      // relatórios antigos sem síntese: os "Pontos positivos" fazem as vezes dela
+      sintese: an.sintese || an.positivos || "",
       primeiroTempo: r.first_half_notes || an.primeiroTempo || "",
       segundoTempo: r.second_half_notes || an.segundoTempo || "",
       destaques: r.highlights || an.destaques || "",
-      seccoes: SECCOES.map(([k, t]) => ({ titulo: t, avaliacao: AVALIACAO[((an.seccoes || {})[k] || {}).avaliacao] || "", texto: ((an.seccoes || {})[k] || {}).texto || "" })).filter(s => s.avaliacao || s.texto),
-      positivos: an.positivos || "",
-      aMelhorar: r.areas_to_improve || an.aMelhorar || "",
-      topicos: an.topicosTreino || "",
-      notasIndividuais: (an.notasIndividuais || []).filter(n => n && n.nota).map(n => ({ jogador: nome(n.jogadorId), nota: n.nota })),
-      adversarioAnalise: an.adversario || {}
+      seccoes,
+      adversarioAnalise: an.adversario || {},
+      notasPreviasAdversario: pre.notasAdversario || "",
+      // "Pontos a melhorar" passou a "Tópicos para o treino": nos relatórios antigos junta as duas listas, sem repetir
+      // (areas_to_improve: nos antigos é "Pontos a melhorar"; desde a v9 é uma cópia dos tópicos)
+      topicos: [...new Set([...paragrafos(an.topicosTreino), ...paragrafos(an.aMelhorar), ...paragrafos(r.areas_to_improve)])].join("\n"),
+      // momentos do jogo avaliados como Mau/Médio: a origem dos tópicos para o treino
+      aTrabalhar: seccoes.filter(s => s.avaliacao === "Mau" || s.avaliacao === "Médio")
     };
   }
+
+  /** "VFN: Toneca 12', Marco 60' · Adversário: 45'" (vazio sem golos). */
+  function marcadoresTexto(golos) {
+    const lado = vfn => golos.filter(g => g.vfn === vfn).map(g => `${g.texto.replace(/ \(assist\. .*\)$/, "")} ${g.min}`).join(", ");
+    return [golos.some(g => g.vfn) ? `VFN: ${lado(true)}` : "", golos.some(g => !g.vfn) ? `Adversário: ${lado(false)}` : ""].filter(Boolean).join(" · ");
+  }
+
+  /** "Transições Defensivas (Mau), Bolas Paradas (Médio)": momentos que originam os tópicos para o treino. */
+  const textoATrabalhar = lista => lista.map(s => `${s.titulo} (${s.avaliacao})`).join(", ");
 
   /**
    * Completa um relatório com os dados do jogo do calendário (data, adversário, resultado...)
@@ -78,7 +95,8 @@
   }
 
   const paragrafos = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
-  const blocoTexto = (titulo, texto) => texto ? `<section class="rel-bloco"><h4>${esc(titulo)}</h4>${paragrafos(texto).map(p => `<p>${esc(p)}</p>`).join("")}</section>` : "";
+  const blocoTexto = (titulo, texto, classe) => texto ? `<section class="rel-bloco${classe ? " " + classe : ""}"><h4>${esc(titulo)}</h4>${paragrafos(texto).map(p => `<p>${esc(p)}</p>`).join("")}</section>` : "";
+  const subTexto = (titulo, texto) => texto ? `<h5>${esc(titulo)}</h5>${paragrafos(texto).map(p => `<p>${esc(p)}</p>`).join("")}` : "";
 
   /** Vista só de leitura do relatório. ctx: { nomeJogador, logoEquipa(teamId, nome) } */
   function html(r, ctx) {
@@ -93,23 +111,43 @@
         ${d.casa ? adv : vfn}
       </div>
       <p class="rel-meta">${esc([d.competicao, d.jornada ? "Jornada " + d.jornada : "", VFN.dataDDMMAAAA(d.data), d.local].filter(Boolean).join(" · "))}</p>
+      ${d.marcadores ? `<p class="rel-marcadores">${VFN.icone("bola", 14)} ${esc(d.marcadores)}</p>` : ""}
+      ${blocoTexto("Síntese", d.sintese, "rel-sintese")}
+      ${d.primeiroTempo || d.segundoTempo ? `<section class="rel-bloco"><h4>Evolução do Jogo</h4>${subTexto("1.ª parte", d.primeiroTempo)}${subTexto("2.ª parte", d.segundoTempo)}</section>` : ""}
+      ${d.destaques || situacoesDe(r).length ? `<section class="rel-bloco"><h4>Momentos e Situações</h4>${paragrafos(d.destaques).map(p => `<p>${esc(p)}</p>`).join("")}${situacoesGaleria(r)}</section>` : ""}
+      ${d.seccoes.length || temAdversario(d) ? `<section class="rel-bloco"><h4>Análise Tática</h4>${d.seccoes.map(s => `<div class="rel-seccao"><h5>${esc(s.titulo)}${s.avaliacao ? ` <span class="rel-aval aval-${esc(s.avaliacao)}">${esc(s.avaliacao)}</span>` : ""}</h5>${paragrafos(s.texto).map(p => `<p>${esc(p)}</p>`).join("")}</div>`).join("")}${adversarioHTML(d)}</section>` : ""}
+      ${d.topicos ? `<section class="rel-bloco"><h4>Tópicos para o Treino</h4>${d.aTrabalhar.length ? `<p class="rel-origem">A partir de: ${esc(textoATrabalhar(d.aTrabalhar))}</p>` : ""}<ol>${paragrafos(d.topicos).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : ""}
+      <section class="rel-bloco"><h4>Ficha do Jogo</h4>
       <div class="rel-grelha">
-        <section class="rel-bloco"><h4>Equipa</h4>
+        <div>
           ${d.formacao ? `<p><strong>Formação:</strong> ${esc(d.formacao)}${d.formacaoAdv ? ` · adversário ${esc(d.formacaoAdv)}` : ""}</p>` : ""}
           ${lista("Onze inicial", d.onze)}${lista("Suplentes", d.suplentes)}
           ${d.substituicoes.length ? `<div class="rel-lista"><h5>Substituições</h5><ul>${d.substituicoes.map(s => `<li>${esc(s.min)} ${esc(s.sai)} ↘ ${esc(s.entra)} ↗</li>`).join("")}</ul></div>` : ""}
-        </section>
-        <section class="rel-bloco"><h4>Eventos</h4>
+        </div>
+        <div>
           ${d.golos.length ? `<div class="rel-lista"><h5>Golos</h5><ul>${d.golos.map(g => `<li class="${g.vfn ? "golo-vfn" : "golo-adv"}">${esc(g.min)} ${esc(g.texto)}</li>`).join("")}</ul></div>` : "<p class=\"muted\">Sem golos registados.</p>"}
           ${d.amarelos.length ? `<div class="rel-lista"><h5>Amarelos</h5><ul>${d.amarelos.map(c => `<li>${esc(c.min)} ${esc(c.nome)}</li>`).join("")}</ul></div>` : ""}
           ${d.vermelhos.length ? `<div class="rel-lista"><h5>Vermelhos</h5><ul>${d.vermelhos.map(c => `<li>${esc(c.min)} ${esc(c.nome)}</li>`).join("")}</ul></div>` : ""}
-        </section>
+        </div>
       </div>
-      ${blocoTexto("1.º tempo", d.primeiroTempo)}${blocoTexto("2.º tempo", d.segundoTempo)}
-      ${d.seccoes.length ? `<section class="rel-bloco"><h4>Análise tática</h4>${d.seccoes.map(s => `<div class="rel-seccao"><h5>${esc(s.titulo)}${s.avaliacao ? ` <span class="rel-aval aval-${esc(s.avaliacao)}">${esc(s.avaliacao)}</span>` : ""}</h5>${paragrafos(s.texto).map(p => `<p>${esc(p)}</p>`).join("")}</div>`).join("")}</section>` : ""}
-      ${blocoTexto("Momentos de destaque", d.destaques)}${blocoTexto("Pontos positivos", d.positivos)}${blocoTexto("Pontos a melhorar", d.aMelhorar)}${blocoTexto("Tópicos para o treino", d.topicos)}
-      ${situacoesHTML(r)}
-      ${d.notasIndividuais.length ? `<section class="rel-bloco"><h4>Notas individuais</h4><table class="rel-notas"><tbody>${d.notasIndividuais.map(n => `<tr><th scope="row">${esc(n.jogador)}</th><td>${esc(n.nota)}</td></tr>`).join("")}</tbody></table></section>` : ""}`;
+      </section>`;
+  }
+
+  /** Adversário na Análise Tática: três campos com propósitos distintos (+ jogadores-chave e notas prévias). */
+  const camposAdversario = d => {
+    const a = d.adversarioAnalise || {};
+    return [["Estilo de Jogo", a.estilo], ["Pontos Fortes", a.pontosFortes], ["Vulnerabilidades", a.vulnerabilidades]].filter(([, v]) => v);
+  };
+  const jogadoresChave = d => ((d.adversarioAnalise || {}).jogadoresChave || []).filter(j => j && j.nome);
+  const temAdversario = d => camposAdversario(d).length > 0 || jogadoresChave(d).length > 0 || !!d.notasPreviasAdversario;
+
+  function adversarioHTML(d) {
+    if (!temAdversario(d)) return "";
+    const chave = jogadoresChave(d);
+    return `<div class="rel-seccao rel-adversario"><h5>Adversário — ${esc(d.adversario)}</h5>
+      ${camposAdversario(d).map(([t, v]) => `<p><strong>${esc(t)}:</strong> ${esc(v)}</p>`).join("")}
+      ${chave.length ? `<p><strong>Jogadores-chave:</strong> ${chave.map(j => esc(j.nome + (j.posicao ? ` (${j.posicao})` : "") + (j.descricao ? " — " + j.descricao : ""))).join("; ")}</p>` : ""}
+      ${d.notasPreviasAdversario ? `<p><strong>Notas prévias:</strong> ${esc(d.notasPreviasAdversario)}</p>` : ""}</div>`;
   }
 
   /* ---------- Word ---------- */
@@ -154,31 +192,49 @@
     const corpo = [
       new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: "RELATÓRIO DE JOGO · ACD VILA FRANCA DAS NAVES · ÉPOCA 2026/27", bold: true, size: 18, color: CINZA })] }),
       new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [new TableRow({ children: lados })] }),
-      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 160 }, children: [new TextRun({ text: [d.competicao, d.jornada ? "Jornada " + d.jornada : "", VFN.dataDDMMAAAA(d.data), d.local].filter(Boolean).join("  ·  "), size: 20, color: CINZA })] }),
-      titulo("Equipa")
+      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 160 }, children: [new TextRun({ text: [d.competicao, d.jornada ? "Jornada " + d.jornada : "", VFN.dataDDMMAAAA(d.data), d.local].filter(Boolean).join("  ·  "), size: 20, color: CINZA })] })
     ];
+    const subtitulo = t => new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: t, bold: true, size: 21, color: NAVY })] });
+    // 1. Resumo rápido (resultado e data já no cabeçalho)
+    if (d.marcadores) corpo.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80 }, children: [new TextRun({ text: "Marcadores: ", bold: true, size: 20, color: CINZA }), new TextRun({ text: d.marcadores, size: 20 })] }));
+    // 2. Síntese
+    if (d.sintese) corpo.push(titulo("Síntese"), ...texto(d.sintese));
+    // 3. Evolução do jogo
+    if (d.primeiroTempo || d.segundoTempo) {
+      corpo.push(titulo("Evolução do Jogo"));
+      if (d.primeiroTempo) corpo.push(subtitulo("1.ª parte"), ...texto(d.primeiroTempo));
+      if (d.segundoTempo) corpo.push(subtitulo("2.ª parte"), ...texto(d.segundoTempo));
+    }
+    // 4. Momentos e situações
+    const situacoes = await situacoesParaWord(r, ctx.cliente, null);
+    if (d.destaques || situacoes.length) corpo.push(titulo("Momentos e Situações"), ...texto(d.destaques), ...situacoes);
+    // 5. Análise tática: os 5 momentos e o adversário
+    if (d.seccoes.length || temAdversario(d)) {
+      corpo.push(titulo("Análise Tática"));
+      d.seccoes.forEach(s => { corpo.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: s.titulo, bold: true, size: 21, color: NAVY }), new TextRun({ text: s.avaliacao ? `  ·  ${s.avaliacao}` : "", bold: true, size: 20, color: s.avaliacao === "Bom" ? "15803D" : s.avaliacao === "Mau" ? "B91C1C" : "A16207" })] }), ...texto(s.texto)); });
+      if (temAdversario(d)) {
+        corpo.push(subtitulo(`Adversário — ${d.adversario}`));
+        camposAdversario(d).forEach(([t, v]) => corpo.push(linha(t, v)));
+        const chave = jogadoresChave(d);
+        if (chave.length) corpo.push(linha("Jogadores-chave", chave.map(j => j.nome + (j.posicao ? ` (${j.posicao})` : "") + (j.descricao ? " — " + j.descricao : "")).join("; ")));
+        if (d.notasPreviasAdversario) corpo.push(linha("Notas prévias", d.notasPreviasAdversario));
+      }
+    }
+    // 6. Tópicos para o treino (ligados aos momentos avaliados como Mau/Médio)
+    if (d.topicos) {
+      corpo.push(titulo("Tópicos para o Treino"));
+      if (d.aTrabalhar.length) corpo.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "A partir de: " + textoATrabalhar(d.aTrabalhar), italics: true, size: 18, color: CINZA })] }));
+      paragrafos(d.topicos).forEach((t, i) => corpo.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: `${i + 1}. ${t}`, size: 20 })] })));
+    }
+    // anexo: ficha do jogo
+    corpo.push(titulo("Ficha do Jogo"));
     if (d.formacao) corpo.push(linha("Formação", d.formacao + (d.formacaoAdv ? `  (adversário: ${d.formacaoAdv})` : "")));
     if (d.onze.length) corpo.push(linha("Onze inicial", d.onze.join(", ")));
     if (d.suplentes.length) corpo.push(linha("Suplentes", d.suplentes.join(", ")));
     if (d.substituicoes.length) corpo.push(linha("Substituições", d.substituicoes.map(s => `${s.min} ${s.sai} → ${s.entra}`).join("; ")));
-    corpo.push(titulo("Eventos"));
     corpo.push(linha("Golos", d.golos.length ? d.golos.map(g => `${g.min} ${g.texto}${g.vfn ? "" : " [adv.]"}`).join("; ") : "—"));
     if (d.amarelos.length) corpo.push(linha("Amarelos", d.amarelos.map(c => `${c.min} ${c.nome}`).join("; ")));
     if (d.vermelhos.length) corpo.push(linha("Vermelhos", d.vermelhos.map(c => `${c.min} ${c.nome}`).join("; ")));
-    if (d.primeiroTempo) corpo.push(titulo("1.º tempo"), ...texto(d.primeiroTempo));
-    if (d.segundoTempo) corpo.push(titulo("2.º tempo"), ...texto(d.segundoTempo));
-    if (d.seccoes.length) {
-      corpo.push(titulo("Análise tática"));
-      d.seccoes.forEach(s => { corpo.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: s.titulo, bold: true, size: 21, color: NAVY }), new TextRun({ text: s.avaliacao ? `  ·  ${s.avaliacao}` : "", bold: true, size: 20, color: s.avaliacao === "Bom" ? "15803D" : s.avaliacao === "Mau" ? "B91C1C" : "A16207" })] }), ...texto(s.texto)); });
-    }
-    [["Momentos de destaque", d.destaques], ["Pontos positivos", d.positivos], ["Pontos a melhorar", d.aMelhorar], ["Tópicos para o treino", d.topicos]].forEach(([t, v]) => { if (v) corpo.push(titulo(t), ...texto(v)); });
-    corpo.push(...await situacoesParaWord(r, ctx.cliente, titulo));
-    if (d.notasIndividuais.length) {
-      corpo.push(titulo("Notas individuais"));
-      corpo.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: d.notasIndividuais.map(n => new TableRow({ children: [
-        new TableCell({ width: { size: 28, type: WidthType.PERCENTAGE }, shading: { type: ShadingType.SOLID, color: "F1F5F9", fill: "F1F5F9" }, children: [new Paragraph({ children: [new TextRun({ text: n.jogador, bold: true, size: 20 })] })] }),
-        new TableCell({ width: { size: 72, type: WidthType.PERCENTAGE }, children: [new Paragraph({ children: [new TextRun({ text: n.nota, size: 20 })] })] })] })) }));
-    }
     const doc = new Document({
       styles: { default: { document: { run: { font: "Calibri", size: 20 } } } },
       sections: [{ properties: { page: { margin: { top: 900, bottom: 900, left: 1000, right: 1000 } } }, footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "ACD Vila Franca das Naves · Relatório de jogo · Época 2026/27", size: 16, color: CINZA })] })] }) }, children: corpo }]
@@ -219,11 +275,17 @@
 
   /** Galeria (só leitura). As imagens carregam depois com carregarSituacoes(contentor, r, cliente). */
   function situacoesHTML(r) {
+    const galeria = situacoesGaleria(r);
+    return galeria ? `<section class="rel-bloco"><h4>Situações de jogo</h4>${galeria}</section>` : "";
+  }
+
+  /** Só a grelha das situações (na secção "Momentos e Situações"). */
+  function situacoesGaleria(r) {
     const lista = situacoesDe(r);
     if (!lista.length) return "";
-    return `<section class="rel-bloco"><h4>Situações de jogo</h4><div class="rel-situacoes">${lista.map((s, i) => `
+    return `<div class="rel-situacoes">${lista.map((s, i) => `
       <figure class="rel-situacao"><button type="button" class="rel-situacao-img" data-situacao="${i}" aria-label="Ampliar situação ${i + 1}"><img alt="${esc(s.caption || "Situação " + (i + 1))}" loading="lazy"></button>
-        ${s.caption ? `<figcaption>${esc(s.caption)}</figcaption>` : ""}</figure>`).join("")}</div></section>`;
+        ${s.caption ? `<figcaption>${esc(s.caption)}</figcaption>` : ""}</figure>`).join("")}</div>`;
   }
 
   /** Preenche as imagens da galeria e liga a lightbox. */
@@ -297,14 +359,14 @@
     });
   }
 
-  /** Parágrafos do Word com as situações (imagem + legenda). titulo(texto) devolve o parágrafo do título. */
+  /** Parágrafos do Word com as situações (imagem + legenda). titulo(texto) devolve o parágrafo do título (null: sem título). */
   async function situacoesParaWord(r, cliente, titulo) {
     const D = window.docx;
     const lista = situacoesDe(r);
     if (!D || !lista.length) return [];
     const urls = await urlsSituacoes(lista, cliente).catch(() => []);
     const imagens = await Promise.all(urls.map(u => imagemParaWord(u, 520)));
-    const blocos = [titulo("Situações de jogo")];
+    const blocos = titulo ? [titulo("Situações de jogo")] : [];
     lista.forEach((s, i) => {
       const im = imagens[i];
       if (im) blocos.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 160 }, children: [new D.ImageRun({ data: im.data, type: "png", transformation: { width: im.width, height: im.height } })] }));
@@ -313,5 +375,5 @@
     return blocos;
   }
 
-  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesHTML, carregarSituacoes, abrirLightbox, situacoesParaWord };
+  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesHTML, situacoesGaleria, carregarSituacoes, abrirLightbox, situacoesParaWord };
 })();
