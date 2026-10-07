@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
 let cliente = null;
 let utilizador = null;
 let perfil = null; // profiles (equipa técnica) ou null
-let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], attendance: [], fines: [], match_reports: [], staff: [], squads: [] };
+let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], fines: [], fine_types: [], match_reports: [], staff: [], squads: [] };
 let jogadores = [];
 let eu = null; // o jogador com sessão iniciada (null para a equipa técnica)
 
@@ -25,8 +25,21 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
 
 /* ---------- Dados ---------- */
 
-const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", attendance: "attendance", fines: "fines", match_reports: "match_reports", staff: "staff", squads: "squads" };
-const OPCIONAIS = ["external_players", "staff", "squads"];
+/*
+ * v10: a área do jogador já não lê presenças (attendance) e as multas (fines) são pedidas à parte:
+ * um jogador só pede as suas (player_id = o seu id); a equipa técnica pede todas.
+ * Para que a base de dados também só devolva as próprias multas a um jogador, correr no Supabase:
+ *
+ *   drop policy if exists "Players read fines" on public.fines;
+ *   create policy "Players read own fines" on public.fines for select to authenticated
+ *     using (player_id in (select id from public.players where auth_user_id = auth.uid()));
+ *   drop policy if exists "Players read attendance" on public.attendance;
+ *
+ * ("fines staff read" continua a dar todas as multas à equipa técnica; os valores de cada infração vêm de
+ * fine_types, que os jogadores já podem ler.)
+ */
+const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads" };
+const OPCIONAIS = ["external_players", "staff", "squads", "fine_types"];
 
 async function carregarDados() {
   const chaves = Object.keys(TABELAS);
@@ -42,6 +55,13 @@ async function carregarDados() {
   dados.match_reports = dados.match_reports.filter(r => VFN.estadoRelatorio(r) === "published");
   jogadores = dados.players.map(p => ({ ...H.jogadorDeLinha(p), eEu: !!p.e_eu }));
   eu = jogadores.find(j => j.eEu) || null;
+  VFN.definirTiposMulta(dados.fine_types);
+  // multas: o jogador só pede as suas; a equipa técnica todas
+  let pedidoMultas = cliente.from("fines").select("*");
+  if (eu) pedidoMultas = pedidoMultas.eq("player_id", eu.id);
+  const multas = await pedidoMultas;
+  if (multas.error) falhas.push("fines");
+  dados.fines = multas.error ? [] : (multas.data || []).filter(f => !eu || String(f.player_id) === String(eu.id));
   const aviso = $("avisoDados");
   aviso.hidden = !falhas.length;
   if (falhas.length) aviso.textContent = falhas.includes("players")
@@ -73,31 +93,23 @@ function mostrarVista(vista) {
 
 /* ---------- Início ---------- */
 
-function presencaDe(id) {
-  const t = { P: 0, A: 0, F: 0, J: 0 };
-  dados.attendance.filter(a => String(a.player_id) === String(id) && t[a.status] !== undefined).forEach(a => { t[a.status]++; });
-  const total = t.P + t.A + t.F + t.J;
-  return { ...t, total, pct: total ? Math.round((t.P + t.A) / total * 100) : null };
-}
-
 function renderInicio() {
   const euro = v => VFN.formatoEuro.format(v);
   if (eu) {
     const minhas = dados.fines.filter(f => String(f.player_id) === String(eu.id));
     const pendente = minhas.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-    const p = presencaDe(eu.id);
     $("eqBoasVindas").innerHTML = `<div class="eq-ola">${VFN.avatarJogador(eu, "avatar-sm")}<div><span class="muted">Olá,</span><h2>${esc(eu.nome)}</h2>
         <p>${esc(eu.posicao)}${eu.numero !== "" ? " · Nº " + esc(eu.numero) : ""} ${eu.disponibilidade ? VFN.badgeDisponibilidade(eu.disponibilidade) : ""}</p></div></div>
       <div class="summary-tiles eq-kpis">
-        <div class="summary-tile"><span>Presença</span><strong>${p.pct === null ? "—" : p.pct + "%"}</strong></div>
         <div class="summary-tile tile-pendente"><span>Multas por pagar</span><strong>${euro(pendente)}</strong></div>
         <div class="summary-tile"><span>Golos</span><strong>${eu.golos}</strong></div>
+        <div class="summary-tile"><span>Assistências</span><strong>${eu.assistencias}</strong></div>
         <div class="summary-tile"><span>Minutos</span><strong>${eu.minutos}'</strong></div>
       </div>`;
   } else {
     $("eqBoasVindas").innerHTML = `<div class="eq-ola"><div><span class="muted">Olá,</span><h2>${esc((perfil && perfil.full_name) || utilizador.email)}</h2><p class="muted">Entraste como equipa técnica: vês os dados do plantel, sem as secções pessoais.</p></div></div>`;
   }
-  $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores);
+  $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores, { semIdadeMedia: true });
   $("eqProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
@@ -170,9 +182,9 @@ function renderCalendario() {
   if (calendario) { calendario.render(); return; }
   calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), {
     obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),
-    perfil: "staff", // detalhe com eventos, escalação e presenças (só leitura)
-    nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome,
-    nomePresenca: id => (pessoa(id) || {}).nome
+    perfil: "staff", // detalhe com eventos e escalação (só leitura; sem presenças)
+    semPresencas: true,
+    nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome
   });
 }
 
@@ -192,6 +204,15 @@ function linhasMultasHTML(lista, comJogador) {
     }).join("")}</tbody></table></div>`;
 }
 
+/** Valor de cada infração (fine_types): só o tipo, o valor e quem paga — sem dados de jogadores. */
+function tabelaValoresMultasHTML() {
+  const tipos = VFN.TIPOS_MULTA;
+  if (!tipos.length) return H.vazio("Sem tipos de multa definidos.");
+  return `<div class="table-wrap"><table class="fines-table eq-valores-multas">
+    <thead><tr><th scope="col">Infração</th><th scope="col" class="num">Valor</th><th scope="col">Paga</th></tr></thead>
+    <tbody>${tipos.map(t => `<tr><td class="fine-infraction">${esc(t.tipo)}${t.descricao ? `<span class="fine-desc">${esc(t.descricao)}</span>` : ""}</td><td class="num">${VFN.formatoEuro.format(t.valor)}</td><td>${t.pagador === "treinador" ? "Treinador" : "Jogador"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
 const porData = (a, b) => String(b.match_date || "").localeCompare(String(a.match_date || ""));
 
 function renderMultas() {
@@ -207,6 +228,10 @@ function renderMultas() {
     $("eqMinhasMultasResumo").innerHTML = "";
     $("eqMinhasMultas").innerHTML = H.vazio("Só para jogadores.");
   }
+  $("eqTabelaMultas").innerHTML = tabelaValoresMultasHTML();
+  // jogadores: só as suas multas (sem dados dos outros); a equipa técnica vê as do plantel
+  $("eqMultasEquipa").hidden = !!eu;
+  if (eu) return;
   $("eqDividas").innerHTML = VFNComp.renderDebtReport(dados.fines, { pessoa });
   const sel = $("eqMultasJogador");
   const atual = sel.value;
@@ -218,56 +243,6 @@ function renderMultas() {
     .filter(f => !estado || (estado === "pago" ? f.paid : !f.paid))
     .sort(porData);
   $("eqMultasTodas").innerHTML = linhasMultasHTML(todas, true);
-}
-
-/* ---------- Presenças ---------- */
-
-function sessoesDoMes(mes) {
-  const mapa = new Map();
-  const juntar = (data, tipo) => { if (data && String(data).startsWith(mes)) mapa.set(`${data}|${tipo}`, { data, tipo }); };
-  dados.sessions.forEach(s => juntar(s.session_date, s.session_type));
-  dados.attendance.forEach(a => juntar(a.session_date, a.session_type));
-  VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) !== "cancelado").forEach(j => juntar(VFN.dataIso(j.date), "jogo"));
-  return [...mapa.values()].sort((a, b) => a.data.localeCompare(b.data) || (a.tipo === "treino" ? -1 : 1));
-}
-
-function estadoPresenca(id, s) {
-  const r = dados.attendance.find(a => String(a.player_id) === String(id) && a.session_date === s.data && a.session_type === s.tipo);
-  return r && r.status || "";
-}
-
-function renderPresencas() {
-  if (eu) {
-    const p = presencaDe(eu.id);
-    $("eqMinhaPresencaInfo").textContent = p.pct === null ? "" : `· ${p.pct}% na época`;
-    $("eqMeuHeatmap").innerHTML = VFN.heatmapPresencasHTML(dados.attendance.filter(a => String(a.player_id) === String(eu.id)).map(a => ({ data: a.session_date, status: a.status })), { individual: true });
-  } else {
-    $("eqMeuHeatmap").innerHTML = VFN.heatmapPresencasHTML(dados.attendance.map(a => ({ data: a.session_date, status: a.status })));
-  }
-  const selMes = $("eqPresencasMes");
-  const meses = VFN.mesesDaEpoca(new Date());
-  const mes = selMes.value || (meses.some(m => m.valor === VFN.mesAtual()) ? VFN.mesAtual() : meses[0].valor);
-  selMes.innerHTML = meses.map(m => `<option value="${m.valor}" ${m.valor === mes ? "selected" : ""}>${m.rotulo}</option>`).join("");
-  const sessoes = sessoesDoMes(mes);
-  if (!sessoes.length) { $("eqPresencasLista").innerHTML = H.vazio("Sem sessões neste mês."); return; }
-  const linhas = [...jogadores].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => {
-    const totais = { P: 0, A: 0, F: 0, J: 0 };
-    sessoes.forEach(s => { const e = estadoPresenca(j.id, s); if (totais[e] !== undefined) totais[e]++; });
-    return { jogador: j, id: j.id, totais };
-  });
-  // a lista aparece sempre aqui (no admin/dashboard só no telemóvel em vertical)
-  $("eqPresencasLista").innerHTML = VFNComp.listaPresencasHTML(linhas).replace('class="att-lista"', 'class="att-lista sempre"');
-}
-
-function abrirPresencasJogador(id) {
-  const j = pessoa(id);
-  if (!j) return;
-  const sessoes = sessoesDoMes($("eqPresencasMes").value);
-  const p = presencaDe(id);
-  VFNComp.abrirDrawer({
-    titulo: "Presenças · " + $("eqPresencasMes").selectedOptions[0].textContent,
-    corpo: VFNComp.renderAttendanceDrawer({ jogador: j, epoca: { P: p.P, A: p.A, F: p.F, J: p.J }, editavel: false, sessoes: sessoes.map(s => ({ data: s.data, tipo: s.tipo, estado: estadoPresenca(id, s) })) })
-  });
 }
 
 /* ---------- Estatísticas ---------- */
@@ -367,7 +342,6 @@ function renderTudo() {
   renderCompeticoes();
   renderCalendario();
   renderMultas();
-  renderPresencas();
   renderEstatisticas();
   $("eqDisponibilidade").innerHTML = H.disponibilidadeHTML(dados, jogadores);
   renderRelatorios();
@@ -427,8 +401,6 @@ async function iniciar() {
   $("eqMultasJogador").addEventListener("change", renderMultas);
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
   $("eqMultasEstado").addEventListener("change", renderMultas);
-  $("eqPresencasMes").addEventListener("change", renderPresencas);
-  $("eqPresencasLista").addEventListener("click", e => { const b = e.target.closest("[data-presencas-jogador]"); if (b && !e.target.closest("[data-jogador]")) abrirPresencasJogador(b.dataset.presencasJogador); });
   $("eqRelatoriosLista").addEventListener("click", e => { const b = e.target.closest("[data-relatorio]"); if (b) abrirRelatorio(b.dataset.relatorio); });
   H.ligarDetalheJogo(() => dados, { nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome, verRelatorio: id => abrirRelatorio(id) });
   // qualquer foto de jogador abre a ficha

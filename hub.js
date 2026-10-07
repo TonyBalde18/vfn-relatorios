@@ -768,8 +768,8 @@
     return { melhor, pior, seq };
   }
 
-  /** Tiles: atletas, idade média, treinos por semana, lesionados e registos da época (com contagem animada). */
-  function estatisticasIniciaisHTML(dados, jogadores) {
+  /** Tiles: atletas, idade média (o.semIdadeMedia: sem ela), treinos por semana, lesionados e registos da época. */
+  function estatisticasIniciaisHTML(dados, jogadores, o) {
     const lista = jogadores || [];
     const idades = lista.map(j => idade(j.info ? j.info.nascimento : j.nascimento)).filter(x => x !== null && x > 0);
     const media = idades.length ? (idades.reduce((s, x) => s + x, 0) / idades.length).toFixed(1).replace(".", ",") : "—";
@@ -783,7 +783,7 @@
     const tile = (rotulo, valor, detalhe, classe) => `<div class="summary-tile ${classe || ""}"><span>${rotulo}</span><strong>${valor}</strong>${detalhe ? `<small>${detalhe}</small>` : ""}</div>`;
     return `<div class="summary-tiles hub-inicio">
       ${tile("Atletas", lista.length, "no plantel")}
-      ${tile("Idade média", media, idades.length < lista.length ? `${idades.length} com data de nascimento` : "anos")}
+      ${o && o.semIdadeMedia ? "" : tile("Idade média", media, idades.length < lista.length ? `${idades.length} com data de nascimento` : "anos")}
       ${tile("Treinos por semana", porSemana, "últimos 30 dias")}
       ${tile("Lesionados", lesionados.length, lesionados.map(j => esc(j.nome)).join(", ") || "ninguém", lesionados.length ? "tile-pendente" : "tile-pago")}
       ${tile("Maior vitória", melhor ? `${melhor.g.vfn}–${melhor.g.adv}` : "—", jogoTxt(melhor), "tile-pago")}

@@ -351,7 +351,7 @@
   }
 
   /**
-   * Conteúdo do drawer de um dia. o: { perfil: "publico" | "staff" | "admin", nomeRelatorio(idLocal), nomePresenca(playerId) }.
+   * Conteúdo do drawer de um dia. o: { perfil: "publico" | "staff" | "admin", nomeRelatorio(idLocal), nomePresenca(playerId), semPresencas }.
    */
   function detalheDiaHTML(dados, dia, o) {
     const { jogos, treinos, aniversarios } = eventosDoDia(dados, dia);
@@ -365,7 +365,7 @@
       <h4>${VFN.icone("traffic-cone", 16)} Treino</h4>
       <dl class="dia-info"><div><dt>Hora</dt><dd>${esc(t.start_time ? String(t.start_time).slice(0, 5) : "—")}</dd></div><div><dt>Local</dt><dd>${esc(t.location || "—")}</dd></div>${staff && t.notes ? `<div><dt>Notas</dt><dd>${esc(t.notes)}</dd></div>` : ""}</dl>
     </section>`));
-    if (staff && passado && (jogos.length || treinos.length)) blocos.push(`<section class="dia-bloco"><h4>${VFN.icone("calendar-check", 16)} Presenças</h4>${presencasDiaHTML(dados, dia, o.nomePresenca || (() => ""))}</section>`);
+    if (staff && !o.semPresencas && passado && (jogos.length || treinos.length)) blocos.push(`<section class="dia-bloco"><h4>${VFN.icone("calendar-check", 16)} Presenças</h4>${presencasDiaHTML(dados, dia, o.nomePresenca || (() => ""))}</section>`);
     if (!jogos.length && !treinos.length) blocos.push('<p class="muted dia-vazio">Sem treinos nem jogos neste dia.</p>');
     if (o.perfil === "admin") blocos.push(`<div class="dia-acoes"><button type="button" class="btn btn-ghost btn-sm" data-cal-acao="treino" data-dia="${dia}">${VFN.icone("traffic-cone", 16)} Adicionar treino</button><button type="button" class="btn btn-accent btn-sm" data-cal-acao="jogo" data-dia="${dia}">${VFN.icone("plus", 16)} Adicionar jogo</button></div>`);
     return blocos.join("");

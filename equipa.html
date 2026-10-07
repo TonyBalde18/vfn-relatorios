@@ -65,7 +65,6 @@
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Calendário</button>
   <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="trophy"></i></span>Competições</button>
   <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
-  <button type="button" data-view="presencas"><span aria-hidden="true"><i data-icon="calendar-check"></i></span>Presenças</button>
   <button type="button" data-view="estatisticas"><span aria-hidden="true"><i data-icon="chart-column"></i></span>Estatísticas</button>
   <button type="button" data-view="disponibilidade"><span aria-hidden="true"><i data-icon="clipboard-check"></i></span>Plantel</button>
   <button type="button" data-view="relatorios"><span aria-hidden="true"><i data-icon="file-text"></i></span>Relatórios</button>
@@ -149,6 +148,12 @@
       <div id="eqMinhasMultas"></div>
     </div>
     <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Valores das multas <small class="muted">quanto custa cada infração</small></h2>
+      <div id="eqTabelaMultas"></div>
+    </div>
+    <!-- só para a equipa técnica (os jogadores só veem as suas multas) -->
+    <div id="eqMultasEquipa" hidden>
+    <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Multas do plantel <small class="muted">por pagar</small></h2>
       <div id="eqDividas"></div>
     </div>
@@ -157,18 +162,6 @@
         <div class="toolbar toolbar-inline"><label class="sr-only" for="eqMultasJogador">Jogador</label><select id="eqMultasJogador" class="compact-select"></select><label class="sr-only" for="eqMultasEstado">Estado</label><select id="eqMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select></div></div>
       <div id="eqMultasTodas"></div>
     </div>
-  </section>
-
-  <!-- PRESENÇAS (só leitura) -->
-  <section id="view-presencas" class="view">
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">As minhas presenças <small id="eqMinhaPresencaInfo" class="muted"></small></h2>
-      <div id="eqMeuHeatmap"></div>
-    </div>
-    <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Presenças do plantel</h2><label class="sr-only" for="eqPresencasMes">Mês</label><select id="eqPresencasMes" class="compact-select"></select></div>
-      <p class="muted">Toca num jogador para ver o histórico do mês.</p>
-      <div id="eqPresencasLista"></div>
     </div>
   </section>
 
