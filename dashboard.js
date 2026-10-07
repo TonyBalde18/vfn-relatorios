@@ -52,7 +52,7 @@ function mostrarVista(vista) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === vista));
   $("viewTitle").textContent = TITULOS_VISTA[vista] || vista;
-  VFN.anim.seccao($(`view-${vista}`)); // flash do escudo + fade-in
+  VFN.anim.seccao($(`view-${vista}`)); // fade-in da secção
   if (vista === "plantel") VFN.anim.cascata($("plantelGrid").children);
   VFN.refreshAOS();
   if (vista === "hub" || vista === "jornadas") Object.values(graficos).forEach(g => g && g.resize());

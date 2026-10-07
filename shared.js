@@ -547,13 +547,8 @@
       if (!temGsap() || !els.length) return;
       window.gsap.fromTo(els, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: DURACAO, ease: "power3.out", stagger: 0.03, clearProps: "opacity,transform" });
     },
-    /** Navegação entre secções principais: flash rápido (100ms) do escudo ao centro e fade-in da secção. */
+    /** Navegação entre secções principais: só o fade-in da secção (v10: sem o flash do escudo, que confundia). */
     seccao(painel) {
-      if (!semMovimento()) {
-        let f = document.getElementById("vfnFlash");
-        if (!f) { f = document.createElement("div"); f.id = "vfnFlash"; f.className = "vfn-flash"; f.setAttribute("aria-hidden", "true"); f.innerHTML = `<img src="${LOGO_VFN}" alt="">`; document.body.appendChild(f); }
-        f.classList.remove("ativo"); void f.offsetWidth; f.classList.add("ativo");
-      }
       anim.tab(painel);
     },
     /** Mudança de tab: fade-in com um pequeno deslize horizontal. */

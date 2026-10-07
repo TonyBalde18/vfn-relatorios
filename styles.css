@@ -1103,11 +1103,10 @@ button.jj-centro:focus-visible, button.result-score:focus-visible { outline: 2px
 /* ---------- Splash (primeira visita da sessão) ---------- */
 html.vfn-splash-on body { visibility: hidden; }
 .vfn-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--vfn-navy); color: #FFD700; visibility: visible; pointer-events: none; animation: splashEntrar .6s ease-out both; transition: opacity .4s ease; }
-.vfn-splash img { width: 120px; height: 120px; object-fit: contain; animation: splashLogo 1.1s ease-out both; }
+.vfn-splash img { width: 120px; height: 120px; object-fit: contain; } /* logo estático (v10) */
 .vfn-splash span { font-weight: 800; letter-spacing: .04em; font-size: .95rem; opacity: 0; animation: splashEntrar .5s .5s ease-out forwards; }
 .vfn-splash.sair { opacity: 0; }
 @keyframes splashEntrar { from { opacity: 0; } to { opacity: 1; } }
-@keyframes splashLogo { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
 
 /* ---------- Forma no calendário ---------- */
 .match-forma { margin-top: 2px; }
@@ -1858,11 +1857,6 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .vfn-puxar.visivel { opacity: 1; }
 .vfn-puxar-ic { display: inline-flex; color: #FFD700; }
 .vfn-puxar.a-atualizar .vfn-puxar-ic { animation: vfn-spin .8s linear infinite; }
-/* transição entre secções: flash rápido do escudo */
-.vfn-flash { position: fixed; inset: 0; z-index: 1600; display: grid; place-items: center; pointer-events: none; opacity: 0; }
-.vfn-flash img { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 6px 18px rgba(10,22,40,.35)); }
-.vfn-flash.ativo { animation: vfnFlash .2s ease-out; }
-@keyframes vfnFlash { 0% { opacity: 0; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05); } }
 /* cards clicáveis: elevação suave */
 .match-item, .historico-item, .pres-card, .br-jogo, .team-card, .player-card, .sk-jogador, .att-linha { transition: transform .2s ease, box-shadow .2s ease; }
 .match-item:hover, .historico-item:hover, .pres-card:hover, .team-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,22,40,.12); }
@@ -1871,7 +1865,7 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .tendencia.bom { background: #DCFCE7; color: #15803d; }
 .tendencia.mau { background: #FEE2E2; color: #b91c1c; }
 .tendencia.neutro { background: #E2E8F0; color: #475569; }
-@media (prefers-reduced-motion: reduce) { .vfn-flash.ativo, .vfn-spinner::before, .vfn-puxar.a-atualizar .vfn-puxar-ic { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .vfn-spinner::before, .vfn-puxar.a-atualizar .vfn-puxar-ic { animation: none; } }
 
 /* ---------- v6: estatísticas iniciais do hub ---------- */
 .hub-inicio { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }

@@ -67,7 +67,7 @@ function mostrarVista(vista) {
     if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   window.scrollTo({ top: 0 });
-  VFN.anim.seccao($(`view-${vista}`)); // flash do escudo + fade-in
+  VFN.anim.seccao($(`view-${vista}`)); // fade-in da secção
   VFN.refreshAOS();
 }
 
