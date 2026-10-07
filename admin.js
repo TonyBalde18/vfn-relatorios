@@ -2286,6 +2286,9 @@ async function apagarEquipa() {
 
 async function abrirTabGestao(tab) {
   document.body.classList.toggle("tab-gestao", TABS_GESTAO.includes(tab));
+  // skeleton só na primeira vez que o separador pede os dados (depois vêm da cache)
+  const esqueletos = { multas: ["fines", "multasBody", "", 6], presencas: ["attendance", "presencasGrelha", "linhas", 8], convocatoria: ["squads", "convPlantel", "linhas", 6], adversarios: ["opponents", "equipasGrid", "cards", 6] };
+  if (esqueletos[tab] && !tabelasCarregadas.has(esqueletos[tab][0])) VFNHub.mostrarEsqueleto(...esqueletos[tab].slice(1));
   if (tab === "multas") {
     await Promise.all([carregarTabelaAdmin("fines", "multasErro"), carregarTiposMulta()]);
     renderMultas();

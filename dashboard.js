@@ -738,6 +738,16 @@ function mostrarEsqueletos() {
   $("plantelGrid").innerHTML = H.esqueleto("jogadores", 8);
   $("calendarioLista").innerHTML = H.esqueleto("resultados", 5);
   $("minutosLista").innerHTML = H.esqueleto("linhas", 8);
+  // restantes vistas (competições, multas, presenças, convocatória, equipas, relatórios, estatísticas)
+  H.mostrarEsqueleto("hubPresencas", "linhas", 4);
+  H.mostrarEsqueleto("dbJornTabela", "tabela", 8);
+  H.mostrarEsqueleto("dbJornLista", "resultados", 6);
+  H.mostrarEsqueleto("dbMultasBody", "", 6);
+  H.mostrarEsqueleto("dbPresencasGrelha", "linhas", 8);
+  H.mostrarEsqueleto("dbConvocatoria", "linhas", 6);
+  H.mostrarEsqueleto("dbEquipasGrid", "cards", 6);
+  H.mostrarEsqueleto("historicoLista", "linhas", 6);
+  H.mostrarEsqueleto("statsTop", "linhas", 3);
 }
 
 function renderTudo() {

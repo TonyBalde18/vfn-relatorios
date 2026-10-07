@@ -1213,6 +1213,22 @@
     return Array.from({ length: n || 1 }, () => `<div class="${classe}" aria-hidden="true"></div>`).join("");
   }
 
+/**
+   * Mostra um skeleton num contentor enquanto os dados chegam (o render seguinte substitui-o).
+   * Num <tbody> desenha linhas da tabela com o nº de colunas do cabeçalho.
+   */
+  function mostrarEsqueleto(alvo, tipo, n) {
+    const e = typeof alvo === "string" ? document.getElementById(alvo) : alvo;
+    if (!e) return;
+    if (e.tagName === "TBODY") {
+      const tabela = e.closest("table");
+      const cols = (tabela && tabela.querySelectorAll("thead th").length) || 1;
+      e.innerHTML = Array.from({ length: n || 5 }, (_, i) => `<tr class="sk-tr" aria-hidden="true"><td colspan="${cols}"><span class="skeleton sk-linha" style="width:${92 - (i % 3) * 12}%"></span></td></tr>`).join("");
+      return;
+    }
+    e.innerHTML = esqueleto(tipo, n);
+  }
+
   /* ---------- Rodapé ---------- */
 
   function competicaoAtiva(dados) {
@@ -1227,7 +1243,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

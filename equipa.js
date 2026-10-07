@@ -348,6 +348,24 @@ function renderTudo() {
   VFN.refreshAOS();
 }
 
+/* ---------- Skeletons enquanto os dados chegam do Supabase ---------- */
+
+function mostrarEsqueletos() {
+  H.mostrarEsqueleto("eqBoasVindas", "linhas", 2);
+  H.mostrarEsqueleto("eqHubInicio", "linhas", 2);
+  H.mostrarEsqueleto("eqProximoJogo", "hero");
+  H.mostrarEsqueleto("eqResultados", "resultados", 5);
+  H.mostrarEsqueleto("eqConvocatoria", "linhas", 5);
+  H.mostrarEsqueleto("eqJornTabela", "tabela", 8);
+  H.mostrarEsqueleto("eqJornLista", "resultados", 6);
+  H.mostrarEsqueleto("eqCalMes", "calendario");
+  H.mostrarEsqueleto("eqMinhasMultas", "linhas", 4);
+  H.mostrarEsqueleto("eqTabelaMultas", "linhas", 5);
+  H.mostrarEsqueleto("eqMinhaFicha", "cards", 1);
+  H.mostrarEsqueleto("eqDisponibilidade", "jogadores", 8);
+  H.mostrarEsqueleto("eqRelatoriosLista", "linhas", 4);
+}
+
 /* ---------- Autenticação ---------- */
 
 function mostrarEcra(id) {
@@ -369,6 +387,8 @@ async function entrarComSessao(sessao) {
   // não dá o modo equipa técnica: o jogador entra pela ligação players.auth_user_id
   perfil = await VFN.obterPapel(cliente, utilizador);
   if (!perfil || !["admin", "treinador", "dirigente"].includes(perfil.role)) perfil = null;
+  mostrarEcra("eqShell");
+  mostrarEsqueletos();
   await carregarDados();
   if (!eu && !perfil) {
     $("esperaEmail").textContent = utilizador.email || "";

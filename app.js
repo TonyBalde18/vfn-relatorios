@@ -870,6 +870,11 @@ let relatoriosAdmin = []; // match_reports (eventos para o detalhe do jogo)
 let calendarioCarregado = false;
 
 async function carregarCalendario() {
+  if (!calendarioCarregado && window.VFNHub) {
+    // skeletons até chegarem os jogos, resultados e relatórios
+    [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["historicoBody", "", 5]]
+      .forEach(([id, tipo, n]) => VFNHub.mostrarEsqueleto(id, tipo, n));
+  }
   try {
     [jogosCalendario, equipasCalendario] = await Promise.all([dadosClube.listar("matches"), dadosClube.listar("teams")]);
     jogosCalendario = VFN.normalizarLinhas(jogosCalendario); // nomes antigos da competição → nome oficial
