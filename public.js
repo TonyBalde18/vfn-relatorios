@@ -15,7 +15,7 @@ let dados = { teams: [], matches: [], league_results: [], external_players: [], 
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
-const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Zero Graus
+const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Futebol Zero Graus Produções
 
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });

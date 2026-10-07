@@ -46,7 +46,7 @@ const FORMACOES_SLOTS = {
   ]
 };
 
-const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
+const COMPETICOES = ["2ª Liga Futebol Zero Graus Produções", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
 const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Paragem para hidratação", "Intervalo", "Nota"];
 // eventos que normalmente não são de nenhuma equipa (a equipa fica vazia ao escolher o tipo)
 const TIPOS_SEM_EQUIPA = ["Paragem para hidratação", "Intervalo"];

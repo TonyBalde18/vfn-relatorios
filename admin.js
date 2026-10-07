@@ -1434,7 +1434,7 @@ async function apagarOutroJogo(jogo) {
 
 function renderClassificacaoAdmin() {
   const select = el("classificacaoCompeticao");
-  const comps = VFN.COMPETICOES_TABELA; // 2ª Liga e 1ª Divisão (as taças têm bracket nas Jornadas)
+  const comps = VFN.COMPETICOES_TABELA; // 2ª Liga e 1ª Liga (as taças têm bracket nas Jornadas)
   const atual = select.value;
   const proximo = VFN.proximoJogo(jogosCalendario);
   select.innerHTML = comps.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");

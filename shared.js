@@ -7,14 +7,14 @@
    ========================================================= */
 
 (function () {
-  const COMPETICOES = ["2ª Liga Zero Graus", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
+  const COMPETICOES = ["2ª Liga Futebol Zero Graus Produções", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
   // Competições com classificação e jornadas AF Guarda (nomes usados em matches e league_results)
-  const COMPETICOES_CLASSIFICACAO = ["2ª Liga Zero Graus", "Taça de Honra Comunilog", "Taça 2ª Liga FDM"];
+  const COMPETICOES_CLASSIFICACAO = ["2ª Liga Futebol Zero Graus Produções", "Taça de Honra Comunilog", "Taça 2ª Liga FDM"];
   // Competições acompanhadas só nas Jornadas AF Guarda (o VFN não participa: adversários possíveis nas taças)
-  const COMPETICOES_SEM_VFN = ["1ª Divisão Cima-Tavfer"];
+  const COMPETICOES_SEM_VFN = ["1ª Liga Futebol Cima-Tavfer"];
   const COMPETICOES_JORNADAS = [...COMPETICOES_CLASSIFICACAO, ...COMPETICOES_SEM_VFN];
   // Competições com tabela classificativa (as taças têm bracket)
-  const COMPETICOES_TABELA = ["2ª Liga Zero Graus", ...COMPETICOES_SEM_VFN];
+  const COMPETICOES_TABELA = ["2ª Liga Futebol Zero Graus Produções", ...COMPETICOES_SEM_VFN];
   const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
 
 
@@ -134,11 +134,31 @@
    * Nome oficial da competição. Aliases antigos (ex.: "2ª LIGA FUTEBOL ZERO GRAUS PRODUÇÕES",
    * "AF Guarda Taça de Honra 2026/27") passam aos nomes usados na classificação e nas jornadas.
    */
+  /*
+   * v10: nomes novos das competições. Os registos antigos na BD passam aos nomes novos ao carregar
+   * (abaixo); para os atualizar também no Supabase, correr manualmente (SQL Editor):
+   *
+   *   update public.matches        set competition = '2ª Liga Futebol Zero Graus Produções' where competition in ('2ª Liga Zero Graus', '2ª Divisão');
+   *   update public.league_results set competition = '2ª Liga Futebol Zero Graus Produções' where competition in ('2ª Liga Zero Graus', '2ª Divisão');
+   *   update public.match_reports  set competition = '2ª Liga Futebol Zero Graus Produções' where competition in ('2ª Liga Zero Graus', '2ª Divisão');
+   *   update public.matches        set competition = '1ª Liga Futebol Cima-Tavfer' where competition in ('1ª Divisão Cima-Tavfer', '1ª Divisão');
+   *   update public.league_results set competition = '1ª Liga Futebol Cima-Tavfer' where competition in ('1ª Divisão Cima-Tavfer', '1ª Divisão');
+   *   update public.matches        set competition = 'Taça 2ª Liga FDM' where competition = 'Taça 2ª Liga';
+   *   update public.league_results set competition = 'Taça 2ª Liga FDM' where competition = 'Taça 2ª Liga';
+   *   update public.matches        set competition = 'Taça de Honra Comunilog' where competition = 'Taça de Honra';
+   *   update public.league_results set competition = 'Taça de Honra Comunilog' where competition = 'Taça de Honra';
+   *
+   *   update public.standings      set competition = '2ª Liga Futebol Zero Graus Produções' where competition in ('2ª Liga Zero Graus', '2ª Divisão');  -- tabela antiga, já não usada pela app
+   *
+   * (Não há tabela "competitions": os nomes vivem em matches/league_results/match_reports.competition; standings já não é usada.)
+   */
   function normalizarCompeticao(competicao) {
     const s = String(competicao || "").toUpperCase();
     if (s.includes("FDM")) return COMPETICOES_CLASSIFICACAO[2];
-    if (s.includes("ZERO") && s.includes("LIGA") && !s.includes("TAÇA")) return COMPETICOES_CLASSIFICACAO[0];
     if (s.includes("HONRA")) return COMPETICOES_CLASSIFICACAO[1];
+    if (s.includes("TAÇA") || s.includes("TACA")) return /2/.test(s) ? COMPETICOES_CLASSIFICACAO[2] : competicao;
+    if (s.includes("CIMA") || /^1ª? ?(DIVIS|LIGA)/.test(s)) return COMPETICOES_SEM_VFN[0];
+    if (s.includes("ZERO") || /^2ª? ?(DIVIS|LIGA)/.test(s)) return COMPETICOES_CLASSIFICACAO[0];
     return competicao;
   }
 
@@ -158,9 +178,9 @@
     const s = String(competicao || "").toUpperCase();
     if (s.includes("HONRA")) return "Taça de Honra";
     if (s.includes("TAÇA") || s.includes("TACA")) return "Taça 2ª Liga";
-    if (s.includes("DIVISÃO") || s.includes("DIVISAO")) return "1ª Divisão";
     if (s.includes("AMIG")) return "Amigável";
-    if (s.includes("LIGA")) return "2ª Liga";
+    if (s.includes("CIMA") || /^1ª? ?(DIVIS|LIGA)/.test(s)) return "1ª Liga";
+    if (s.includes("LIGA") || s.includes("DIVIS")) return "2ª Liga";
     return competicao || "—";
   }
 

@@ -123,7 +123,7 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    // tabelas: 2ª Liga Zero Graus e 1ª Divisão Cima-Tavfer (as taças têm bracket, na vista de cada competição)
+    // tabelas: 2ª Liga Futebol Zero Graus Produções e 1ª Liga Futebol Cima-Tavfer (as taças têm bracket, na vista de cada competição)
     return VFN.COMPETICOES_TABELA;
   }
 
@@ -169,14 +169,14 @@
    * classe da linha, ícone e texto da legenda.
    */
   const ZONAS_TABELA = {
-    "2ª Liga Zero Graus": [
-      { pos: [1], classe: "zona-campeao", icone: "🟡", texto: "1.º lugar — Campeão · Promoção à 1ª Divisão AF Guarda" },
-      { pos: [2], classe: "zona-promocao", icone: "🟢", texto: "2.º lugar — Promoção à 1ª Divisão AF Guarda" }
+    "2ª Liga Futebol Zero Graus Produções": [
+      { pos: [1], classe: "zona-campeao", icone: "🟡", texto: "1.º lugar — Campeão · Promoção à 1ª Liga AF Guarda" },
+      { pos: [2], classe: "zona-promocao", icone: "🟢", texto: "2.º lugar — Promoção à 1ª Liga AF Guarda" }
     ],
-    "1ª Divisão Cima-Tavfer": [
+    "1ª Liga Futebol Cima-Tavfer": [
       { pos: [1], classe: "zona-campeao", icone: "🏆", texto: "1.º lugar — Campeão · Promoção ao Campeonato de Portugal" },
       { pos: [2], classe: "zona-promocao", icone: "🟢", texto: "2.º lugar — Qualificação para a Taça de Portugal 2027/28" },
-      { pos: [13, 14], classe: "zona-descida", icone: "🔴", texto: "13.º e 14.º — Despromoção à 2ª Divisão AF Guarda" }
+      { pos: [13, 14], classe: "zona-descida", icone: "🔴", texto: "13.º e 14.º — Despromoção à 2ª Liga AF Guarda" }
     ]
   };
 
@@ -264,7 +264,7 @@
   /**
    * Golos do VFN numa competição: soma de matches.scorer_list dos jogos dessa competição.
    * Sem marcadores por jogo, a 2ª Liga usa o total da época (players.stats); as taças ficam vazias.
-   * O VFN não joga nas competições só acompanhadas (ex.: 1ª Divisão).
+   * O VFN não joga nas competições só acompanhadas (ex.: 1ª Liga).
    */
   function golosVFNNaCompeticao(dados, jogadoresVFN, competicao) {
     if (VFN.semVFN(competicao)) return [];
