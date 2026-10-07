@@ -226,9 +226,18 @@
 
 /* ---------- v5: página pública ---------- */
 .public-header-texto { flex: 1; min-width: 0; }
-.public-entrar { flex-shrink: 0; color: #fff; border-color: rgba(255,255,255,.35); }
-.public-entrar:hover { color: var(--vfn-navy); background: var(--vfn-yellow); }
-@media (max-width: 420px) { .public-entrar { padding: 6px 8px; font-size: 0; gap: 0; } .public-entrar .ic { width: 18px; height: 18px; } }
+/* Área do Jogador: botão claro (cadeado + texto), também no telemóvel */
+.public-entrar { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 0; border-radius: 999px; background: var(--vfn-yellow); color: var(--vfn-navy); font-size: .85rem; font-weight: 800; white-space: nowrap; box-shadow: 0 2px 10px rgba(255,215,0,.3); }
+.public-entrar:hover, .public-entrar:focus-visible { background: #fff; color: var(--vfn-navy); }
+@media (max-width: 420px) { .public-entrar { padding: 7px 11px; font-size: .78rem; gap: 5px; } .public-header-texto span { display: none; } }
+.area-jogador-cta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 16px; padding: 14px 18px; border: 2px solid var(--vfn-yellow); background: linear-gradient(135deg, var(--vfn-navy), #13284a); color: #fff; text-decoration: none; }
+.area-jogador-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,22,40,.2); }
+.area-jogador-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--vfn-yellow); color: var(--vfn-navy); }
+.area-jogador-ic svg { width: 22px; height: 22px; }
+.area-jogador-texto strong { display: block; color: var(--vfn-yellow); font-size: 1.05rem; }
+.area-jogador-texto small { display: block; color: rgba(255,255,255,.8); font-size: .8rem; }
+.area-jogador-seta { font-weight: 800; color: var(--vfn-yellow); white-space: nowrap; }
+@media (max-width: 480px) { .area-jogador-cta { grid-template-columns: auto minmax(0, 1fr); } .area-jogador-seta { display: none; } }
 /* sem fichas de equipas na página pública: os logos não são clicáveis */
 .public-page:not(.equipa-page) [data-equipa] { cursor: default; }
 

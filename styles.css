@@ -1954,3 +1954,6 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .onze-chip b { color: var(--vfn-navy); font-variant-numeric: tabular-nums; }
 .onze-dica { margin: 0 0 8px; font-size: .76rem; }
 @media (max-width: 720px) { .onze-tatico { grid-template-columns: minmax(0, 1fr); } .onze-banco ul { max-height: 260px; } }
+
+/* login do admin: entrada clara para os jogadores (v10) */
+.area-jogador-login { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; font-weight: 700; }
