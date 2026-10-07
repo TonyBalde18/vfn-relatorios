@@ -303,3 +303,11 @@
 :where(html.tema-escuro) .pres-nome { color: var(--heading); }
 :where(html.tema-escuro) .pres-pct b { color: var(--heading); }
 /* ===== FIM TEMA ESCURO ===== */
+
+/* v11: classificação larga no PC (≥ 1280px) */
+@media (min-width: 1280px) {
+  /* página pública: a secção sai do limite de 1000px do .public-main (até 1400px, 24px de margem mínima) */
+  .full-width-section { width: min(1400px, calc(100vw - 48px)); margin-left: calc(50% - min(700px, 50vw - 24px)); }
+  /* dashboard: a classificação ocupa as 3 colunas da grelha */
+  .hub-grid > .card-classificacao { grid-column: 1 / -1; }
+}

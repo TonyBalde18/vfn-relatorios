@@ -2002,6 +2002,19 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .classificacao-comp { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: .85rem; font-weight: 700; }
 .classificacao-comp .comp-logo { max-height: 18px; }
 
+/* classificação: quando a tabela tem espaço (≥ 880px de largura, ex. PC com a secção larga) mostra a
+   forma recente e células maiores, estilo FM; mais estreita fica como antes */
+.classificacao-bloco { container-type: inline-size; container-name: classificacao; }
+.standings-compact .col-forma { display: none; }
+@container classificacao (min-width: 880px) {
+  .standings-compact .col-forma { display: table-cell; }
+  .standings-compact th, .standings-compact td { padding: 11px 10px; font-size: .95rem; }
+  .standings-compact th { font-size: .74rem; }
+  .standings-compact .team-inline span { max-width: 360px; }
+  .standings-compact .team-logo, .standings-compact .team-logo-placeholder { width: 30px; height: 30px; }
+  .standings-compact .col-forma .form-row { justify-content: center; }
+}
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

@@ -189,6 +189,16 @@
 
   const comSinal = n => (n > 0 ? "+" : "") + n;
 
+  /** Últimos n resultados de uma equipa numa competição (mais recente à esquerda): ["V", "E", ...]. */
+  function formaNaCompeticao(dados, teamId, competicao, n) {
+    const t = equipa(dados, teamId);
+    if (t && VFN.eVFN(t.name)) {
+      return VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j))
+        .sort((a, b) => (VFN.paraData(b.date) || 0) - (VFN.paraData(a.date) || 0)).slice(0, n || 5).map(j => VFN.letraResultado(j));
+    }
+    return jogosDaEquipa(dados, teamId).filter(j => j.competicao === competicao).slice(0, n || 5).map(j => j.letra);
+  }
+
   /** Tabela classificativa (taças: bracket), sempre no estilo escuro, com DG, zonas e legenda. */
   function classificacaoHTML(dados, competicao) {
     const cabecalho = `<p class="classificacao-comp">${VFN.nomeCompeticaoHTML(competicao)}</p>`;
@@ -199,13 +209,13 @@
     return `<div class="classificacao-bloco tabela-escura" data-competicao="${esc(competicao)}">
       ${cabecalho}
       <div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
-      <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero" title="Diferença de golos">DG</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
+      <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero" title="Diferença de golos">DG</th><th scope="col" data-tipo="numero">Pts</th><th scope="col" class="col-forma" title="Últimos 5 jogos nesta competição (mais recente à esquerda)">Forma</th></tr></thead>
       <tbody>${linhas.map((s, i) => {
         const t = equipa(dados, s.team_id);
         const nome = (t && t.name) || s.team_name || "—";
         const zona = zonaDaPosicao(competicao, i + 1);
         const dg = (Number(s.goals_for) || 0) - (Number(s.goals_against) || 0);
-        return `<tr class="${[VFN.eVFN(nome) ? "is-vfn-row" : "", zona ? zona.classe : ""].filter(Boolean).join(" ")}"><td class="pos-col">${i + 1}</td><td class="team-col"><span class="team-inline">${logoEquipa(t, nome)}<span>${esc(nome)}</span></span></td><td>${Number(s.played) || 0}</td><td>${Number(s.won) || 0}</td><td>${Number(s.drawn) || 0}</td><td>${Number(s.lost) || 0}</td><td class="hide-xs">${Number(s.goals_for) || 0}</td><td class="hide-xs">${Number(s.goals_against) || 0}</td><td class="dg-col${dg > 0 ? " pos" : dg < 0 ? " neg" : ""}" data-v="${dg}">${comSinal(dg)}</td><td class="pts-col">${Number(s.points) || 0}</td></tr>`;
+        return `<tr class="${[VFN.eVFN(nome) ? "is-vfn-row" : "", zona ? zona.classe : ""].filter(Boolean).join(" ")}"><td class="pos-col">${i + 1}</td><td class="team-col"><span class="team-inline">${logoEquipa(t, nome)}<span>${esc(nome)}</span></span></td><td>${Number(s.played) || 0}</td><td>${Number(s.won) || 0}</td><td>${Number(s.drawn) || 0}</td><td>${Number(s.lost) || 0}</td><td class="hide-xs">${Number(s.goals_for) || 0}</td><td class="hide-xs">${Number(s.goals_against) || 0}</td><td class="dg-col${dg > 0 ? " pos" : dg < 0 ? " neg" : ""}" data-v="${dg}">${comSinal(dg)}</td><td class="pts-col">${Number(s.points) || 0}</td><td class="col-forma"><span class="form-row form-row-sm">${formaNaCompeticao(dados, s.team_id, competicao, 5).map(l => VFN.chipForma(l)).join("") || '<span class="muted">—</span>'}</span></td></tr>`;
       }).join("")}</tbody></table></div>
       ${legendaZonasHTML(competicao)}
     </div>`;
@@ -1276,7 +1286,7 @@
   window.VFNHub = {
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
-    competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
+    competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
