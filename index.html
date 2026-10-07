@@ -155,7 +155,11 @@
       <h2 class="section-title">Onze Inicial e Suplentes</h2>
       <div class="pitch-layout">
         <div class="pitch-wrap" id="pitchArrastar">
-          <div class="pitch" id="pitch"></div>
+          <!-- campo: as linhas são estáticas (atrás); #pitch por cima recebe as posições de renderPitch() -->
+          <div class="pitch-campo">
+            <div class="pitch-linhas" aria-hidden="true"><span class="pl-meio"></span><span class="pl-circulo"></span><span class="pl-ponto"></span><span class="pl-area pl-cima"></span><span class="pl-pequena pl-cima"></span><span class="pl-penalti pl-cima"></span><span class="pl-meialua pl-cima"></span><span class="pl-area pl-baixo"></span><span class="pl-pequena pl-baixo"></span><span class="pl-penalti pl-baixo"></span><span class="pl-meialua pl-baixo"></span></div>
+            <div class="pitch" id="pitch"></div>
+          </div>
           <p class="pitch-hint">Arrasta um jogador da lista para uma posição (ou toca no jogador e depois na posição). Arrasta entre posições para trocar e para a lista para tirar do onze. Os menus ao lado também funcionam.</p>
           <div id="pitchJogadores" class="pitch-jogadores" data-alvo="lista" aria-label="Jogadores para o onze"></div>
         </div>

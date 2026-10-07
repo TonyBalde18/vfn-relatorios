@@ -310,33 +310,38 @@ input:focus, select:focus, textarea:focus {
 }
 .pitch-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .pitch-hint { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin: 0; max-width: 300px; }
-.pitch {
+/* Campo do onze (admin, separador Jogo): 2:3, ataque em cima. As linhas são divs estáticas em .pitch-linhas,
+   à escala de um campo de 68 × 105 m; #pitch (.pitch) fica por cima, transparente, com as posições. */
+.pitch-campo {
   position: relative;
   width: 100%;
   max-width: 340px;
   aspect-ratio: 2 / 3;
-  background: #2E7D32;
-  background-image: linear-gradient(rgba(255,255,255,0.05) 0 50%, transparent 50%);
   border: 2px solid #fff;
   border-radius: 6px;
   overflow: hidden;
+  background: repeating-linear-gradient(180deg, #2f7d3b 0 10%, #2a7235 10% 20%); /* faixas de relva */
 }
-.pitch::before {
-  content: "";
-  position: absolute;
-  left: 50%; top: 0; bottom: 0;
-  width: 0; border-left: 2px solid rgba(255,255,255,0.7);
-  transform: translateX(-50%);
-}
-.pitch::after {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%;
-  width: 70px; height: 70px;
-  border: 2px solid rgba(255,255,255,0.7);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
+.pitch { position: absolute; inset: 0; overflow: hidden; }
+.pitch-linhas { position: absolute; inset: 0; pointer-events: none; --linha: 2px solid rgba(255, 255, 255, .7); }
+.pitch-linhas span { position: absolute; display: block; }
+.pl-meio { left: 0; right: 0; top: 50%; border-top: var(--linha); transform: translateY(-1px); }
+.pl-circulo { left: 50%; top: 50%; width: 26.9%; aspect-ratio: 1; border: var(--linha); border-radius: 50%; transform: translate(-50%, -50%); } /* 9,15 m de raio */
+.pl-ponto, .pl-penalti { left: 50%; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .8); transform: translate(-50%, -50%); }
+.pl-ponto { top: 50%; }
+.pl-area { left: 20.35%; width: 59.3%; height: 15.7%; border: var(--linha); } /* grande área 40,3 × 16,5 m */
+.pl-pequena { left: 36.55%; width: 26.9%; height: 5.2%; border: var(--linha); } /* pequena área 18,3 × 5,5 m */
+.pl-area.pl-cima, .pl-pequena.pl-cima { top: -2px; border-top: 0; }
+.pl-area.pl-baixo, .pl-pequena.pl-baixo { bottom: -2px; border-bottom: 0; }
+.pl-penalti.pl-cima { top: 10.5%; } /* marca de penálti a 11 m */
+.pl-penalti.pl-baixo { top: 89.5%; }
+/* meia-lua: arco de 9,15 m à volta da marca de penálti, só a parte fora da grande área (3,65 m de fundo, 14,6 m de corda) */
+.pl-meialua { left: 39.25%; width: 21.5%; height: 3.5%; overflow: hidden; }
+.pl-meialua.pl-cima { top: 15.7%; }
+.pl-meialua.pl-baixo { bottom: 15.7%; }
+.pl-meialua::before { content: ""; position: absolute; left: -12.65%; width: 125.3%; aspect-ratio: 1; box-sizing: border-box; border: var(--linha); border-radius: 50%; }
+.pl-meialua.pl-cima::before { bottom: 0; }
+.pl-meialua.pl-baixo::before { top: 0; }
 .pitch-slot {
   position: absolute;
   transform: translate(-50%, -50%);
