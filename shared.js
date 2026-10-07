@@ -16,6 +16,8 @@
   // Competições com tabela classificativa (as taças têm bracket)
   const COMPETICOES_TABELA = ["2ª Liga Futebol Zero Graus Produções", ...COMPETICOES_SEM_VFN];
   const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
+  // Seletores de competição (tabela classificativa e jornadas), por esta ordem; nas taças a "tabela" é o bracket
+  const COMPETICOES_SELETOR = [COMPETICOES_SEM_VFN[0], COMPETICOES_CLASSIFICACAO[0], COMPETICOES_CLASSIFICACAO[2], COMPETICOES_CLASSIFICACAO[1]];
 
   // Formações e posições de cada uma no campo (x, y em %; campo vertical, ataque em cima)
   const FORMACOES = ["4-3-3", "4-4-2", "4-4-2 Losango", "4-2-3-1", "3-5-2", "5-3-2"];
@@ -1253,7 +1255,7 @@
   if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
 
   window.VFN = {
-    FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, semVFN,
+    FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,

@@ -133,7 +133,7 @@ let graficoPosicaoEq = null;
 
 function renderCompeticoes() {
   const comp = $("eqJornCompeticao"), jor = $("eqJornJornada"), eq = $("eqJornEquipa");
-  comp.innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option value="${esc(c)}">${esc(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
+  comp.innerHTML = VFN.COMPETICOES_SELETOR.map(c => `<option value="${esc(c)}">${esc(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
   comp.value = filtrosComp.competicao;
   const jornadas = H.jornadasDisponiveis(dados, filtrosComp.competicao);
   jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${esc(VFN.rotuloJornada(filtrosComp.competicao, n))}</option>`).join("");

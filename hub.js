@@ -123,15 +123,15 @@
   /* ---------- Classificação ---------- */
 
   function competicoesComClassificacao(dados) {
-    // tabelas: 2ª Liga Futebol Zero Graus Produções e 1ª Liga Futebol Cima-Tavfer (as taças têm bracket, na vista de cada competição)
-    return VFN.COMPETICOES_TABELA;
+    // 1ª Liga, 2ª Liga, Taça 2ª Liga e Taça de Honra (nas taças a classificação é o bracket)
+    return VFN.COMPETICOES_SELETOR;
   }
 
   function competicaoPreferida(dados) {
     const comps = competicoesComClassificacao(dados);
     const proximo = VFN.proximoJogo(dados.matches);
     if (proximo && comps.includes(proximo.competition)) return proximo.competition;
-    return comps[0] || "";
+    return VFN.COMPETICOES_CLASSIFICACAO[0]; // a liga do VFN
   }
 
   function opcoesCompeticaoHTML(dados, selecionada) {

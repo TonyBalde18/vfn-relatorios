@@ -123,7 +123,7 @@ let graficoPosicaoPub = null;
 
 function renderJornadas() {
   const comp = $("pubJornCompeticao"), jor = $("pubJornJornada"), eq = $("pubJornEquipa");
-  comp.innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option value="${VFN.escapeHtml(c)}">${VFN.escapeHtml(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
+  comp.innerHTML = VFN.COMPETICOES_SELETOR.map(c => `<option value="${VFN.escapeHtml(c)}">${VFN.escapeHtml(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
   comp.value = filtrosJornadas.competicao;
   const jornadas = H.jornadasDisponiveis(dados, filtrosJornadas.competicao);
   jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${VFN.escapeHtml(VFN.rotuloJornada(filtrosJornadas.competicao, n))}</option>`).join("");
@@ -132,15 +132,27 @@ function renderJornadas() {
   eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${VFN.escapeHtml(t.id)}">${VFN.escapeHtml(t.nome)}</option>`).join("");
   eq.value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
   $("pubJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
-  const tabela = H.classificacaoJornadasHTML(dados, filtrosJornadas.competicao);
-  $("pubJornClassificacaoWrap").hidden = !tabela;
-  $("pubJornClassificacao").innerHTML = tabela;
+  // classificação (ou bracket, nas taças) da competição escolhida
+  $("pubJornClassTitulo").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
+  $("pubJornClassificacao").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
   $("pubJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
   $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
   graficoPosicaoPub = H.graficoPosicao($("pubChartPosicao"), dados, filtrosJornadas.competicao, graficoPosicaoPub);
 }
 
+/* Tabela: seletor de competição (1ª Liga, 2ª Liga, Taça 2ª Liga, Taça de Honra); nas taças mostra o bracket */
+let competicaoTabela = "";
+
+function renderClassificacaoPub() {
+  if (!competicaoTabela) competicaoTabela = H.competicaoPreferida(dados);
+  $("pubClassCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicaoTabela);
+  $("pubClassTitulo").textContent = VFN.eliminatorias(competicaoTabela) ? "Bracket" : "Classificação";
+  $("pubClassNome").textContent = competicaoTabela;
+  $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoTabela);
+}
+
 function initJornadas() {
+  $("pubClassCompeticao").addEventListener("change", e => { competicaoTabela = e.target.value; renderClassificacaoPub(); });
   $("pubJornCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadas(); });
   $("pubJornJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadas(); });
   $("pubJornEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadas(); });
@@ -154,7 +166,7 @@ function renderTudo() {
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
   $("pubForma").innerHTML = H.formaHTML(dados, 5) || H.vazio("Ainda não há jogos disputados.");
 
-  $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, LIGA);
+  renderClassificacaoPub();
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
   $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
