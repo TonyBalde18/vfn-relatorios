@@ -1306,10 +1306,55 @@ function sincronizarStatsJogadores() {
     });
   });
   state.jogo.statsAplicadas = nova;
+  if (atualizarCombinacoes()) mudou = true;
   if (!mudou) return;
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   sincronizarPlantelDiferido();
   if (el("plantelBody")) renderPlantel();
+}
+
+/*
+ * Combinações golo–assistência (preparação para uma versão futura; ainda sem UI).
+ * Cada golo do VFN com assistId conta para o par (marcador, assistente). O resultado fica em
+ * players.stats.combinacoes de cada jogador envolvido: [{ marcadorId, assistenteId, count }], com os
+ * ids da tabela players. É recalculado de raiz a partir de todos os relatórios sempre que as stats são
+ * recalculadas (relatório aberto incluído), por isso não acumula erros. Conta os relatórios que já
+ * contaram para as stats (gerados ou publicados), um por jogo. players.stats é jsonb: sem alteração de
+ * schema (a view players_equipa não expõe este campo aos jogadores; acrescentar lá quando houver UI).
+ */
+function calcularCombinacoes() {
+  const contou = md => !!md && !!md.jogo && (md.jogo.presencasAplicadas || (md._status || md.estadoRelatorio) === "published");
+  const porJogo = new Map();
+  relatoriosAdmin.forEach(r => {
+    const md = r.match_data || {};
+    const chave = String((md.preJogo || {}).matchId || r.match_id || "r:" + r.id);
+    if (String(r.id) !== String(state.relatorioId) && (contou(md) || VFN.estadoRelatorio(r) === "published")) porJogo.set(chave, md);
+  });
+  // o relatório aberto substitui a versão gravada do mesmo jogo
+  const chaveAtual = String(state.preJogo.matchId || "r:" + (state.relatorioId || "atual"));
+  if (contou(state)) porJogo.set(chaveAtual, state); else porJogo.delete(chaveAtual);
+  const idBD = idLocal => { const j = jogadorPorId(idLocal); return j ? idJogadorBD(j) : String(idLocal); };
+  const contagem = new Map();
+  porJogo.forEach(md => (md.jogo.eventos || [])
+    .filter(e => e.equipa === "VFN" && e.tipo === "Golo" && e.jogadorId && e.assistId && String(e.jogadorId) !== String(e.assistId))
+    .forEach(e => { const chave = `${idBD(e.jogadorId)}|${idBD(e.assistId)}`; contagem.set(chave, (contagem.get(chave) || 0) + 1); }));
+  return [...contagem].map(([chave, count]) => { const [marcadorId, assistenteId] = chave.split("|"); return { marcadorId, assistenteId, count }; })
+    .sort((a, b) => b.count - a.count || a.marcadorId.localeCompare(b.marcadorId));
+}
+
+/** Atualiza players.stats.combinacoes de cada jogador (só os pares em que entra). true se algo mudou. */
+function atualizarCombinacoes() {
+  if (!calendarioCarregado) return false; // sem os relatórios carregados apagaria as combinações dos outros jogos
+  const todas = calcularCombinacoes();
+  let mudou = false;
+  plantel.forEach(p => {
+    const id = idJogadorBD(p);
+    const minhas = todas.filter(c => c.marcadorId === id || c.assistenteId === id);
+    if (JSON.stringify((p.stats || {}).combinacoes || []) === JSON.stringify(minhas)) return;
+    p.stats = { ...(p.stats || {}), combinacoes: minhas };
+    mudou = true;
+  });
+  return mudou;
 }
 
 /** Golos do VFN guardam também { marcador: id, assistencia: id | null } no match_data. */
