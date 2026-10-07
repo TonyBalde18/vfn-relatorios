@@ -851,6 +851,73 @@
       <div class="heatmap-legenda">${legenda}</div>`;
   }
 
+  /* ---------- Tema claro / escuro ----------
+     Por omissão segue o sistema (prefers-color-scheme); o botão guarda a escolha em localStorage
+     ("vfnTema" = "claro" | "escuro"). O <head> de cada página já põe html.tema-escuro antes de pintar. */
+
+  const CHAVE_TEMA = "vfnTema";
+  const temaGuardado = () => { try { return localStorage.getItem(CHAVE_TEMA) || ""; } catch (e) { return ""; } };
+  const sistemaEscuro = () => !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+  const temaEscuro = () => document.documentElement.classList.contains("tema-escuro");
+
+  /** Cor de um token do tema (ex.: "--fg-muted"), para os gráficos. */
+  function corTema(token) {
+    return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  }
+
+  /** Gráficos (Chart.js) com as cores do tema: texto e grelha. */
+  function estilizarGraficos() {
+    if (!window.Chart) return;
+    const escuro = temaEscuro();
+    Chart.defaults.color = corTema("--fg-muted") || "#6B645F";
+    Chart.defaults.borderColor = escuro ? "rgba(255,255,255,.08)" : "rgba(10,22,40,.08)";
+    Chart.defaults.plugins.tooltip.backgroundColor = escuro ? "#1A2640" : "#0A1628";
+    Object.values(Chart.instances || {}).forEach(g => {
+      Object.values((g.options && g.options.scales) || {}).forEach(e => { if (e.grid) e.grid.color = Chart.defaults.borderColor; if (e.ticks) e.ticks.color = Chart.defaults.color; });
+      g.update("none");
+    });
+  }
+
+  function aplicarTema() {
+    const escolha = temaGuardado();
+    const escuro = escolha === "escuro" || (escolha !== "claro" && sistemaEscuro());
+    document.documentElement.classList.toggle("tema-escuro", escuro);
+    document.querySelectorAll("[data-tema-btn]").forEach(b => {
+      b.setAttribute("aria-pressed", String(escuro));
+      b.title = escuro ? "Mudar para o tema claro" : "Mudar para o tema escuro";
+      const r = b.querySelector(".tema-rotulo");
+      if (r) r.textContent = escuro ? "Tema claro" : "Tema escuro";
+      const ic = b.querySelector(".tema-ic");
+      if (ic) ic.innerHTML = icone(escuro ? "sun" : "moon", 16) || (escuro ? "☀" : "☾");
+    });
+    estilizarGraficos();
+  }
+
+  function alternarTema() {
+    try { localStorage.setItem(CHAVE_TEMA, temaEscuro() ? "claro" : "escuro"); } catch (e) { /* sem storage: só nesta página */ document.documentElement.classList.toggle("tema-escuro"); }
+    aplicarTema();
+  }
+
+  /** Botão claro/escuro: nas barras laterais (admin, dashboard), nos cabeçalhos (pública, área do jogador) e nos logins. */
+  function ligarBotoesTema() {
+    const botao = classe => `<button type="button" class="tema-btn ${classe}" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo">Tema escuro</span></button>`;
+    document.querySelectorAll(".sidebar-links").forEach(l => l.insertAdjacentHTML("beforeend", botao("tema-sidebar")));
+    document.querySelectorAll(".public-header").forEach(h => {
+      const antes = h.querySelector(".public-entrar, .eq-avatar, .eq-sair");
+      if (antes) antes.insertAdjacentHTML("beforebegin", botao("tema-cabecalho")); else h.insertAdjacentHTML("beforeend", botao("tema-cabecalho"));
+    });
+    document.querySelectorAll(".login-card").forEach(c => c.insertAdjacentHTML("beforeend", botao("tema-login")));
+    document.addEventListener("click", e => { if (e.target.closest("[data-tema-btn]")) alternarTema(); });
+    if (window.matchMedia) {
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      const mudou = () => { if (!temaGuardado()) aplicarTema(); };
+      if (mq.addEventListener) mq.addEventListener("change", mudou); else if (mq.addListener) mq.addListener(mudou);
+    }
+    aplicarTema();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ligarBotoesTema); else ligarBotoesTema();
+
   /* ---------- Splash (primeira visita da sessão) ---------- */
 
   function splash() {
@@ -1269,6 +1336,6 @@
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,
-    initSidebar, initAOS, refreshAOS
+    initSidebar, initAOS, refreshAOS, corTema, aplicarTema, alternarTema, estilizarGraficos
   };
 })();

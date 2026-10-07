@@ -128,15 +128,14 @@ function estiloGraficos() {
   if (!window.Chart) return false;
   Chart.defaults.font.family = "Inter, 'Segoe UI', Roboto, Arial, sans-serif";
   Chart.defaults.font.size = 12;
-  Chart.defaults.color = "#6B645F";
-  Chart.defaults.plugins.tooltip.backgroundColor = "#0A1628";
+  VFN.estilizarGraficos(); // cores do tema (claro/escuro)
   Chart.defaults.plugins.tooltip.padding = 10;
   Chart.defaults.plugins.tooltip.cornerRadius = 6;
   return true;
 }
 
 function eixoY(extra) {
-  return Object.assign({ beginAtZero: true, border: { display: false }, grid: { color: "rgba(10,22,40,.07)" }, ticks: { precision: 0 } }, extra || {});
+  return Object.assign({ beginAtZero: true, border: { display: false }, grid: { color: Chart.defaults.borderColor }, ticks: { precision: 0 } }, extra || {});
 }
 
 function renderGraficos() {

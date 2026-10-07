@@ -12,16 +12,41 @@
   --ambar: #E7A601;
   --vermelho: #B23A2E;
 
-  --bg-page: #F3F2EF;
-  --bg-card: #FFFFFF;
-  --border-color: #DAD8D2;
-  --text-main: var(--coffee-bean);
-  --text-muted: #6B645F;
-  --bg-page: #F4F5F8;
+  /* tokens do tema (v10): o tema escuro (html.tema-escuro) redefine-os */
+  --bg: #F4F5F8;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6F9;
+  --fg: #0A1628;
+  --fg-muted: #6B645F;
+  --heading: #0A1628;
+  --border: #DAD8D2;
+  --input-bg: #FFFFFF;
+  /* nomes usados nas regras: apontam para os tokens */
+  --bg-page: var(--bg);
+  --bg-card: var(--surface);
+  --card-bg: var(--surface);
+  --border-color: var(--border);
+  --text-main: var(--fg);
+  --text-muted: var(--fg-muted);
   --presente: #22c55e;
   --falta: #ef4444;
   --atraso: #f97316;
   --justificada: #94a3b8;
+}
+
+/* Tema escuro: segue o sistema (prefers-color-scheme) ou a escolha guardada no botão claro/escuro
+   (shared.js, VFN.tema); a classe é posta no <html> por um script no <head> de cada página. */
+html.tema-escuro {
+  color-scheme: dark;
+  --bg: #0B1220;
+  --surface: #131D30;
+  --surface-2: #1A2640;
+  --fg: #E4E9F2;
+  --fg-muted: #9AA7BA;
+  --heading: #F1F4F9;
+  --border: #2A3854;
+  --input-bg: #0F1828;
+  --charcoal: #A9B3C3;
 }
 
 * { box-sizing: border-box; }
@@ -1957,3 +1982,162 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 
 /* login do admin: entrada clara para os jogadores (v10) */
 .area-jogador-login { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; font-weight: 700; }
+
+/* botão tema claro/escuro (VFN.aplicarTema) */
+.tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.tema-ic { display: inline-grid; place-items: center; width: 18px; }
+.tema-sidebar { width: 100%; padding: 8px 12px; border-radius: 7px; color: var(--silver); font-size: .78rem; text-align: left; }
+.tema-sidebar:hover, .tema-sidebar:focus-visible { background: var(--dark-khaki); color: #fff; }
+.tema-cabecalho { flex-shrink: 0; justify-content: center; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; color: #fff; }
+.tema-cabecalho .tema-rotulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tema-cabecalho:hover, .tema-cabecalho:focus-visible { background: var(--vfn-yellow); border-color: var(--vfn-yellow); color: var(--vfn-navy); }
+.tema-login { justify-content: center; width: 100%; margin-top: 10px; padding: 6px; color: var(--fg-muted); font-size: .8rem; }
+.tema-login:hover { color: var(--heading); }
+/* tema escuro: componentes com fundo "quase branco" feitos à mão */
+:where(html.tema-escuro) .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+:where(html.tema-escuro) img.team-logo, :where(html.tema-escuro) .rel-logo { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); }
+:where(html.tema-escuro) ::placeholder { color: #6E7A8E; }
+
+/* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
+:where(html.tema-escuro) .login-card { background: var(--surface); }
+:where(html.tema-escuro) .login-card h1 { color: var(--heading); }
+:where(html.tema-escuro) .app-content .app-header .btn-ghost { border-color: var(--border); }
+:where(html.tema-escuro) .app-header .btn-ghost { border-color: var(--border); }
+:where(html.tema-escuro) .live-summary { background: color-mix(in srgb, #fffdf0 14%, var(--surface)); }
+:where(html.tema-escuro) .live-summary-row strong { color: var(--heading); }
+:where(html.tema-escuro) .section-title { color: var(--heading); }
+:where(html.tema-escuro) input[type=text],
+:where(html.tema-escuro) input[type=number],
+:where(html.tema-escuro) input[type=date],
+:where(html.tema-escuro) input[type=time],
+:where(html.tema-escuro) input[type=url],
+:where(html.tema-escuro) input[type=search],
+:where(html.tema-escuro) input[type=email],
+:where(html.tema-escuro) input[type=password],
+:where(html.tema-escuro) select,
+:where(html.tema-escuro) textarea { background: var(--input-bg); }
+:where(html.tema-escuro) .toggle-btn { background: var(--surface); }
+:where(html.tema-escuro) .lineup-label { color: var(--heading); }
+:where(html.tema-escuro) th { color: var(--heading); }
+:where(html.tema-escuro) .partial-score { color: var(--heading); }
+:where(html.tema-escuro) .tl-rotulo { color: var(--heading); }
+:where(html.tema-escuro) .season-stats-card { background: linear-gradient(135deg, var(--surface), color-mix(in srgb, #fffbe0 14%, var(--surface))); }
+:where(html.tema-escuro) .season-stat strong { color: var(--heading); }
+:where(html.tema-escuro) .team-quick-stats span { background: color-mix(in srgb, #FAF9F6 14%, var(--surface)); }
+:where(html.tema-escuro) .team-quick-stats strong { color: var(--heading); }
+:where(html.tema-escuro) .plantel-table td input:focus { background: var(--input-bg); }
+:where(html.tema-escuro) .stat-card { background: color-mix(in srgb, #FAF9F6 14%, var(--surface)); }
+:where(html.tema-escuro) .player-avatar.silhouette { color: var(--heading); }
+:where(html.tema-escuro) .stat-card h4 { color: var(--heading); }
+:where(html.tema-escuro) .stat-card .big-number { color: var(--heading); }
+:where(html.tema-escuro) .modal-box { background: var(--surface); }
+:where(html.tema-escuro) .modal-box h3 { color: var(--heading); }
+:where(html.tema-escuro) .modal-x:hover,
+:where(html.tema-escuro) .modal-x:focus-visible { color: var(--heading); }
+:where(html.tema-escuro) .avaliacao-btn { background: var(--surface); }
+:where(html.tema-escuro) .numbered .dynamic-row .num-badge { color: var(--heading); }
+:where(html.tema-escuro) .status-agendado { color: var(--heading); }
+:where(html.tema-escuro) .comp-tag.comp-amigavel { color: var(--heading); }
+:where(html.tema-escuro) .filter-chip { background: var(--surface); color: var(--heading); }
+:where(html.tema-escuro) .summary-tile { background: var(--surface); }
+:where(html.tema-escuro) .summary-tile strong { color: var(--heading); }
+:where(html.tema-escuro) .icon-btn { background: var(--surface); }
+:where(html.tema-escuro) .attendance-table .col-player { background: var(--surface); }
+:where(html.tema-escuro) .attendance-table .col-total { background: color-mix(in srgb, #F8FAFC 14%, var(--surface)); }
+:where(html.tema-escuro) .attendance-table tfoot td { background: color-mix(in srgb, #EEF1F6 14%, var(--surface)); }
+:where(html.tema-escuro) .attendance-table tfoot .col-player { background: color-mix(in srgb, #EEF1F6 14%, var(--surface)); }
+:where(html.tema-escuro) .att-cell { background: var(--surface); }
+:where(html.tema-escuro) .pos-col { color: var(--heading); }
+:where(html.tema-escuro) .team-card { background: var(--surface); }
+:where(html.tema-escuro) .team-card strong { color: var(--heading); }
+:where(html.tema-escuro) .next-match-teams { color: var(--heading); }
+:where(html.tema-escuro) .countdown { color: var(--heading); }
+:where(html.tema-escuro) .modal-box .modal-title { color: var(--heading); }
+:where(html.tema-escuro) .admin-notice { background: color-mix(in srgb, #FFF7D1 14%, var(--surface)); color: var(--heading); }
+:where(html.tema-escuro) .attendance-table tbody th { color: var(--heading); }
+:where(html.tema-escuro) .btn-ghost { color: var(--heading); }
+:where(html.tema-escuro) .results-title { color: var(--heading); }
+:where(html.tema-escuro) .skeleton { background: color-mix(in srgb, #E8EBF0 14%, var(--surface)); }
+:where(html.tema-escuro) .skeleton::after { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 60%, transparent), transparent); }
+:where(html.tema-escuro) body { background: radial-gradient(circle at 12% 0%, rgba(255, 215, 0, .22), transparent 38%),
+    radial-gradient(circle at 95% 18%, rgba(5, 91, 208, .18), transparent 42%),
+    radial-gradient(circle at 45% 105%, rgba(10, 22, 40, .12), transparent 50%),
+    color-mix(in srgb, #EEF1F6 14%, var(--surface)); }
+:where(html.tema-escuro) .player-card { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 78%, transparent), rgba(255, 255, 255, .58)); }
+:where(html.tema-escuro) .modal-box { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+:where(html.tema-escuro) .jornada-titulo { color: var(--heading); }
+:where(html.tema-escuro) .jornada-jogo { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+:where(html.tema-escuro) .jj-equipa { color: var(--heading); }
+:where(html.tema-escuro) .jj-resultado.por-jogar { background: color-mix(in srgb, #E2E6EE 14%, var(--surface)); }
+:where(html.tema-escuro) .ultimo-jogo strong { color: var(--heading); }
+:where(html.tema-escuro) .avatar-com-estado .disp-badge { border: 2px solid var(--border); }
+:where(html.tema-escuro) .alerta-suspensao { border: 1px solid var(--border); }
+:where(html.tema-escuro) .subsecao-titulo { color: var(--heading); }
+:where(html.tema-escuro) .perfil-equipa-cab h3 { color: var(--heading); }
+:where(html.tema-escuro) .perfil-stats div { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
+:where(html.tema-escuro) .perfil-stats strong { color: var(--heading); }
+:where(html.tema-escuro) .perfil-subtitulo { color: var(--heading); }
+:where(html.tema-escuro) .perfil-jogadores li strong { color: var(--heading); }
+:where(html.tema-escuro) button.result-score { color: var(--heading); }
+:where(html.tema-escuro) .dj-evento { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
+:where(html.tema-escuro) .dj-evento.lado-fora { background: color-mix(in srgb, #F1F5F9 14%, var(--surface)); }
+:where(html.tema-escuro) .dj-min { color: var(--heading); }
+:where(html.tema-escuro) .rel-bloco h4 { color: var(--heading); }
+:where(html.tema-escuro) .rel-marcadores { color: var(--heading); }
+:where(html.tema-escuro) .hm-cel { background: color-mix(in srgb, #ebedf0 14%, var(--surface)); }
+:where(html.tema-escuro) .hm-1 { background: color-mix(in srgb, #c6e9cf 14%, var(--surface)); }
+:where(html.tema-escuro) .link-btn { color: var(--heading); }
+:where(html.tema-escuro) .player-radar h4 { color: var(--heading); }
+:where(html.tema-escuro) .disp-coluna h3 { color: var(--heading); }
+:where(html.tema-escuro) .comp-table tbody th[scope="row"],
+:where(html.tema-escuro) .fin-table tbody th[scope="row"],
+:where(html.tema-escuro) .fin-table tfoot th { color: var(--heading); }
+:where(html.tema-escuro) .distincao { color: var(--heading); }
+:where(html.tema-escuro) .br-fase h4 { color: var(--heading); }
+:where(html.tema-escuro) .br-jogo { background: var(--surface); }
+:where(html.tema-escuro) .br-equipa.vence { background: color-mix(in srgb, #ECFDF5 14%, var(--surface)); }
+:where(html.tema-escuro) .br-equipa.is-vfn .br-nome { color: var(--heading); }
+:where(html.tema-escuro) .cal-titulo { color: var(--heading); }
+:where(html.tema-escuro) .cal-dia { background: var(--surface); }
+:where(html.tema-escuro) .cal-dia.com-jogo { background: color-mix(in srgb, #FFFBEA 14%, var(--surface)); }
+:where(html.tema-escuro) .cal-legenda .ic { color: var(--heading); }
+:where(html.tema-escuro) .drawer-painel { background: var(--card-bg, var(--surface)); }
+:where(html.tema-escuro) .drawer-topo h3 { color: var(--heading); }
+:where(html.tema-escuro) .dia-bloco h4 { color: var(--heading); }
+:where(html.tema-escuro) .dia-jogo-topo strong { color: var(--heading); }
+:where(html.tema-escuro) .abas button.ativa { color: var(--heading); }
+:where(html.tema-escuro) .ev-lista li { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
+:where(html.tema-escuro) .ev-lista li.neutro { background: color-mix(in srgb, #EFF6FF 14%, var(--surface)); }
+:where(html.tema-escuro) .att-nome { color: var(--heading); }
+:where(html.tema-escuro) .att-pct { color: var(--heading); }
+:where(html.tema-escuro) .att-resumo strong { color: var(--heading); }
+:where(html.tema-escuro) .att-op { background: var(--surface); }
+:where(html.tema-escuro) .dividas-total { background: color-mix(in srgb, #FEF2F2 14%, var(--surface)); }
+:where(html.tema-escuro) .dividas-nome { color: var(--heading); }
+:where(html.tema-escuro) .dividas-rodape { color: var(--fg-muted); }
+:where(html.tema-escuro) .cor-equipa-dot { border: 3px solid var(--border); }
+:where(html.tema-escuro) .perfil-nome-completo { color: var(--heading); }
+:where(html.tema-escuro) .perfil-jogadores .ext-nome { color: var(--heading); }
+:where(html.tema-escuro) .conv-nome { color: var(--heading); }
+:where(html.tema-escuro) .conv-op { background: var(--surface); }
+:where(html.tema-escuro) .conv-topo strong { color: var(--heading); }
+:where(html.tema-escuro) .eq-conv-resumo.nao > .ic { color: var(--fg-muted); }
+:where(html.tema-escuro) .cal-dia.com-aniversario { background: linear-gradient(180deg, color-mix(in srgb, #FFF1F5 14%, var(--surface)) 0%, var(--surface) 70%); }
+:where(html.tema-escuro) .cal-dia.com-aniversario.com-jogo { background: linear-gradient(180deg, color-mix(in srgb, #FFF1F5 14%, var(--surface)) 0%, color-mix(in srgb, #FFFBEA 14%, var(--surface)) 70%); }
+:where(html.tema-escuro) .aniv-lista strong { color: var(--heading); }
+:where(html.tema-escuro) .dia-aniversarios { background: color-mix(in srgb, #FFF7FA 14%, var(--surface)); }
+:where(html.tema-escuro) .anel strong { color: var(--heading); }
+:where(html.tema-escuro) .jj-golos b { color: var(--heading); }
+:where(html.tema-escuro) .mapa-estadios { background: color-mix(in srgb, #E8EEF3 14%, var(--surface)); }
+:where(html.tema-escuro) .mapa-ponto { border: 2px solid var(--border); }
+:where(html.tema-escuro) .mapa-popup strong { color: var(--heading); }
+:where(html.tema-escuro) .mapa-popup .mapa-km { color: var(--heading); }
+:where(html.tema-escuro) .situacao-item { background: var(--surface); }
+:where(html.tema-escuro) .situacao-num { color: var(--heading); }
+:where(html.tema-escuro) .situacao-thumb { background: color-mix(in srgb, #E2E8F0 14%, var(--surface)); }
+:where(html.tema-escuro) .rel-situacao-img { background: color-mix(in srgb, #E2E8F0 14%, var(--surface)); }
+:where(html.tema-escuro) .seg-control button.ativo { background: var(--surface); color: var(--heading); }
+:where(html.tema-escuro) .sk-jogador { background: var(--surface); }
+:where(html.tema-escuro) .onze-chip { background: var(--card-bg, var(--surface)); }
+:where(html.tema-escuro) .onze-chip b { color: var(--heading); }
+/* ===== FIM TEMA ESCURO ===== */

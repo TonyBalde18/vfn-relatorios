@@ -269,3 +269,31 @@
   .stats-compacta td.num { text-align: center; font-variant-numeric: tabular-nums; }
   table[data-ordenar].stats-compacta th[data-tipo]::after { display: none; }
 }
+
+/* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
+:where(html.tema-escuro) .login-alt a { color: var(--heading); }
+:where(html.tema-escuro) .hub-card-title { color: var(--heading); }
+:where(html.tema-escuro) .result-score { color: var(--heading); }
+:where(html.tema-escuro) .scout-block { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
+:where(html.tema-escuro) .player-card { background: linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, #F7F8FA 14%, var(--surface)) 100%); }
+:where(html.tema-escuro) .player-card strong { color: var(--heading); }
+:where(html.tema-escuro) .player-readonly h4 { color: var(--heading); }
+:where(html.tema-escuro) .info-grid div { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
+:where(html.tema-escuro) .info-grid dd { color: var(--heading); }
+:where(html.tema-escuro) .coach-notes { background: color-mix(in srgb, #FFFBEA 14%, var(--surface)); }
+:where(html.tema-escuro) .top-card li strong { color: var(--heading); }
+:where(html.tema-escuro) .sort-btn:hover { color: var(--heading); }
+:where(html.tema-escuro) .match-item { background: var(--surface); }
+:where(html.tema-escuro) .match-item.is-next { background: color-mix(in srgb, #FFFBEA 14%, var(--surface)); }
+:where(html.tema-escuro) .match-date { color: var(--heading); }
+:where(html.tema-escuro) .match-opponent strong { color: var(--heading); }
+:where(html.tema-escuro) .match-time { color: var(--heading); }
+:where(html.tema-escuro) .public-section-title { color: var(--heading); }
+:where(html.tema-escuro) .minutes-bar { background: color-mix(in srgb, #EEF1F6 14%, var(--surface)); }
+:where(html.tema-escuro) .minutes-list strong { color: var(--heading); }
+:where(html.tema-escuro) .eq-ola h2 { color: var(--heading); }
+:where(html.tema-escuro) .pres-ranking h3 { color: var(--heading); }
+:where(html.tema-escuro) .pres-card { background: var(--surface); }
+:where(html.tema-escuro) .pres-nome { color: var(--heading); }
+:where(html.tema-escuro) .pres-pct b { color: var(--heading); }
+/* ===== FIM TEMA ESCURO ===== */

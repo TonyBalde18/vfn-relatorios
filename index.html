@@ -2,6 +2,7 @@
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
+<script>try{var t=localStorage.getItem("vfnTema");if(t==="escuro"||(t!=="claro"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("tema-escuro")}catch(e){}</script>
 <!-- qualquer link de autenticação (convite, recuperação, magic link, ?code=) chega ao Site URL (esta página):
      segue para a Área do Jogador. O admin entra sempre com email e password. -->
 <script>if(/(access_token|refresh_token|token_hash|type=(invite|recovery|magiclink|signup)|error_description)/.test(location.hash+location.search)||/[?&]code=/.test(location.search))location.replace("equipa.html"+location.search+location.hash);</script>
