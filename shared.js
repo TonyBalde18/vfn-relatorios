@@ -891,6 +891,7 @@
       if (ic) ic.innerHTML = icone(escuro ? "sun" : "moon", 16) || (escuro ? "☀" : "☾");
     });
     estilizarGraficos();
+    document.dispatchEvent(new CustomEvent("vfn:tema", { detail: { escuro } }));
   }
 
   function alternarTema() {

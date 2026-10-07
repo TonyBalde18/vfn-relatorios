@@ -245,12 +245,57 @@ function renderMultas() {
   $("eqMultasTodas").innerHTML = linhasMultasHTML(todas, true);
 }
 
+/* ---------- Gráficos pessoais (Chart.js): só os dados do próprio jogador ---------- */
+
+let graficosPessoais = [];
+
+/**
+ * Minutos por jornada (barras) e golos/assistências acumulados (linhas), jogo a jogo, a partir dos
+ * relatórios publicados de competições oficiais (H.estatisticasPorJogo). "eu" é o jogador cuja conta
+ * (players.auth_user_id) é a do utilizador autenticado (players_equipa.e_eu).
+ */
+function renderGraficosPessoais() {
+  graficosPessoais.forEach(g => g.destroy());
+  graficosPessoais = [];
+  $("eqGraficosCard").hidden = !eu; // equipa técnica: sem gráficos pessoais
+  if (!eu) return;
+  const vazio = $("eqGraficosVazio");
+  const eDele = idLocal => { const j = jogadorDoRelatorio(idLocal); return !!j && String(j.id) === String(eu.id); };
+  const jogos = H.estatisticasPorJogo(dados, eDele);
+  const semDados = !window.Chart || !jogos.length;
+  $("eqGraficos").hidden = semDados;
+  vazio.hidden = !semDados;
+  vazio.textContent = !window.Chart ? "Não foi possível carregar os gráficos. Verifica a ligação à internet." : "Ainda não há relatórios publicados de jogos oficiais.";
+  if (semDados) return;
+  VFN.estilizarGraficos();
+  const escuro = document.documentElement.classList.contains("tema-escuro");
+  const cores = escuro ? { barras: "#FFD700", golos: "#4ade80", assist: "#60a5fa" } : { barras: "#13294B", golos: "#16a34a", assist: "#2563eb" };
+  const rotulos = jogos.map(j => j.rotulo);
+  const titulo = itens => { const j = jogos[itens[0].dataIndex]; return `${j.rotulo} (${j.competicao})`; };
+  const eixoY = extra => Object.assign({ beginAtZero: true, border: { display: false }, grid: { color: Chart.defaults.borderColor }, ticks: { precision: 0 } }, extra || {});
+  const eixoX = { grid: { display: false }, ticks: { maxRotation: 50, autoSkip: true } };
+  graficosPessoais.push(new Chart($("eqChartMinutos"), {
+    type: "bar",
+    data: { labels: rotulos, datasets: [{ label: "Minutos", data: jogos.map(j => j.minutos), backgroundColor: cores.barras, borderRadius: 4, maxBarThickness: 34 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: titulo, label: c => ` ${c.parsed.y}'` } } }, scales: { x: eixoX, y: eixoY({ suggestedMax: 90, title: { display: true, text: "min" } }) } }
+  }));
+  graficosPessoais.push(new Chart($("eqChartGolos"), {
+    type: "line",
+    data: { labels: rotulos, datasets: [
+      { label: "Golos", data: jogos.map(j => j.golosAcum), borderColor: cores.golos, backgroundColor: cores.golos, borderWidth: 2, pointRadius: 3, tension: .25 },
+      { label: "Assistências", data: jogos.map(j => j.assistAcum), borderColor: cores.assist, backgroundColor: cores.assist, borderWidth: 2, pointRadius: 3, tension: .25, borderDash: [6, 4] }
+    ] },
+    options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { title: titulo } } }, scales: { x: eixoX, y: eixoY() } }
+  }));
+}
+
 /* ---------- Estatísticas ---------- */
 
 const COLUNAS_STATS = [["nome", "Jogador", "texto"], ["jogos", "J", "numero"], ["minutos", "Min", "numero"], ["golos", "Golos", "numero"], ["assistencias", "Ass", "numero"], ["cartoesA", "Am.", "numero"], ["cartoesV", "Verm.", "numero"]];
 
 function renderEstatisticas() {
   $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id, eu)) : H.vazio("Só para jogadores.");
+  renderGraficosPessoais();
   const posicao = $("eqStatsPosicao").value;
   const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
   if (!lista.length) { $("eqStatsTabela").innerHTML = '<tbody><tr><td class="empty-state">Sem jogadores nesta posição.</td></tr></tbody>'; return; }
@@ -433,6 +478,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
+  document.addEventListener("vfn:tema", () => { if (eu) renderGraficosPessoais(); }); // cores dos gráficos no tema claro/escuro
   // telemóvel: puxar para atualizar no início (resultados), calendário e competições
   VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
 

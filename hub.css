@@ -25,6 +25,12 @@
 .hub-card-head .hub-card-title { margin: 0; }
 .compact-select { width: auto; min-width: 150px; padding: 6px 10px; font-size: .82rem; }
 .chart-box { position: relative; height: 240px; }
+/* área do jogador: gráficos pessoais lado a lado (um por baixo do outro no telemóvel) */
+.graficos-pessoais { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.graficos-pessoais figure { margin: 0; min-width: 0; }
+.graficos-pessoais figcaption { margin-bottom: 6px; font-size: .82rem; font-weight: 700; color: var(--text-muted); }
+.graficos-pessoais[hidden] { display: none; }
+@media (max-width: 760px) { .graficos-pessoais { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---------- Próximo jogo (destaque) ---------- */
 .hub-hero { background: linear-gradient(135deg, #0A1628 0%, #13294B 70%, #1b3867 100%); color: #fff; border: 0; overflow: hidden; position: relative; }

@@ -172,6 +172,14 @@
       <h2 class="hub-card-title">As minhas estatísticas</h2>
       <div id="eqMinhaFicha"></div>
     </div>
+    <div class="card" id="eqGraficosCard" data-aos="fade-up">
+      <h2 class="hub-card-title">A minha época jogo a jogo <small class="muted">só competições oficiais</small></h2>
+      <div class="graficos-pessoais" id="eqGraficos">
+        <figure><figcaption>Minutos jogados por jornada</figcaption><div class="chart-box"><canvas id="eqChartMinutos" role="img" aria-label="Gráfico de barras com os meus minutos jogados em cada jornada"></canvas></div></figure>
+        <figure><figcaption>Golos e assistências acumulados</figcaption><div class="chart-box"><canvas id="eqChartGolos" role="img" aria-label="Gráfico de linhas com os meus golos e assistências acumulados ao longo da época"></canvas></div></figure>
+      </div>
+      <p id="eqGraficosVazio" class="muted" hidden></p>
+    </div>
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Estatísticas da época</h2><label class="sr-only" for="eqStatsPosicao">Posição</label><select id="eqStatsPosicao" class="compact-select"><option value="">Todas as posições</option><option value="GR">Guarda-redes</option><option value="Def">Defesas</option><option value="Meio">Médios</option><option value="Ata">Avançados</option></select></div>
       <div class="table-wrap stats-wrap"><table id="eqStatsTabela" class="stats-table stats-compacta" data-ordenar="stats-equipa"></table></div>

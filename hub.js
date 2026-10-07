@@ -640,6 +640,39 @@
     return VFN.competicaoOficial(competicaoDoRelatorio(r, dados));
   }
 
+  /**
+   * Números de um jogador jogo a jogo, para os gráficos pessoais: [{ rotulo, data, minutos, golos,
+   * assistencias, golosAcum, assistAcum }] por ordem da data. Só relatórios publicados de competições
+   * oficiais (sem amigáveis). Não há tabelas match_players/goals: os dados vêm de match_reports.match_data
+   * (onze, substituições e eventos). eDele(idLocal) liga os ids dos relatórios ao jogador.
+   */
+  function estatisticasPorJogo(dados, eDele) {
+    const linhas = (dados.match_reports || [])
+      .filter(r => VFN.estadoRelatorio(r) === "published" && (r.match_data || {}).jogo && relatorioOficial(r, dados))
+      .map(r => {
+        const m = r.match_data, pre = m.preJogo || {};
+        const matchId = r.match_id || pre.matchId;
+        const jogo = (dados.matches || []).find(j => String(j.id) === String(matchId)) || null;
+        const data = (jogo && VFN.dataIso(jogo.date)) || pre.data || r.match_date || "";
+        const comp = competicaoDoRelatorio(r, dados);
+        const jornada = jogo ? VFN.etiquetaJornada(jogo, true) : pre.jornada ? "J" + pre.jornada : "";
+        const adversario = (jogo && nomeAdversario(dados, jogo)) || pre.adversario || r.opponent || "";
+        const ev = (m.jogo.eventos || []).filter(e => e.equipa === "VFN");
+        return {
+          data,
+          rotulo: [jornada || VFN.dataCurta(data), adversario].filter(Boolean).join(" · "),
+          competicao: VFN.nomeCurtoCompeticao(comp),
+          minutos: Object.entries(minutosDoRelatorio(m)).filter(([id]) => eDele(id)).reduce((s, [, v]) => s + v, 0),
+          golos: ev.filter(e => e.tipo === "Golo" && eDele(e.jogadorId)).length,
+          assistencias: ev.filter(e => e.tipo === "Golo" && e.assistId && eDele(e.assistId)).length
+        };
+      })
+      .filter(x => x.data)
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    let g = 0, a = 0;
+    return linhas.map(x => ({ ...x, golosAcum: (g += x.golos), assistAcum: (a += x.assistencias) }));
+  }
+
   /** Minutos de cada jogador num relatório: titulares desde o 0', substituições pelo minuto. */
   function minutosDoRelatorio(matchData) {
     const jogo = (matchData && matchData.jogo) || {};
@@ -1244,6 +1277,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();
