@@ -195,7 +195,7 @@
 .minutes-bar i { display: block; height: 100%; border-radius: 4px; background: #1d4ed8; }
 .minutes-list strong { text-align: right; color: var(--vfn-navy); font-variant-numeric: tabular-nums; }
 @media (max-width: 960px) { .minutes-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 520px) { .mini-pitch { aspect-ratio: 5 / 8; } .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 64px 42px; gap: 8px; } }
+@media (max-width: 520px) { .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 64px 42px; gap: 8px; } }
 .minutes-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
 .hub-grid .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 54px 42px; gap: 8px; }
 .hub-grid .mini-pitch { max-width: 380px; }

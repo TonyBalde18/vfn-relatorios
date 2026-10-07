@@ -480,12 +480,61 @@
 
   /* ---------- Onze mais utilizado e minutos ---------- */
 
-  // Posições no campo (x, y em %; o ataque é em cima)
+  // Posições no campo (x = lado, da esquerda para a direita; y = profundidade; o ataque é em cima)
   const POSICOES_CAMPO = {
     GR: [50, 89], DC: [50, 73], DD: [86, 68], DE: [14, 68],
     MDEF: [50, 57], MCEN: [50, 45], MOFE: [50, 33],
     ED: [84, 24], EE: [16, 24], PL: [50, 12]
   };
+  // Linhas do campo (de trás para a frente) para o onze sem formação
+  const LINHAS_CAMPO = [["DE", "DC", "DD"], ["MDEF", "MCEN", "MOFE"], ["EE", "PL", "ED"]];
+  const MAX_POR_LINHA = 5;
+  const GR_Y = 89, LINHA_Y_TRAS = 72, LINHA_Y_FRENTE = 13;
+
+  /** Largura (%) de cada jogador numa linha com n jogadores: nunca se sobrepõem. */
+  const larguraNaLinha = n => Math.min(26, Math.floor(100 / (n + 1)) - 1);
+
+  /**
+   * x (%) dos jogadores de uma linha, já ordenados da esquerda para a direita: usa o lado
+   * da posição (laterais e extremos abertos) se houver espaço; senão distribui por igual.
+   */
+  function xDaLinha(preferidos) {
+    const n = preferidos.length;
+    const minimo = larguraNaLinha(n) + 2;
+    const cabe = preferidos.every((x, i) => i === 0 || x - preferidos[i - 1] >= minimo) && preferidos[0] >= 12 && preferidos[n - 1] <= 88;
+    return cabe ? preferidos : preferidos.map((_, k) => Math.round((k + 1) * 100 / (n + 1)));
+  }
+
+  /**
+   * Onze sem formação, colocado em linhas pela posição do perfil: GR, defesa, meio-campo
+   * (em duas linhas quando há mais de 4 médios) e ataque. Devolve [{ t, x, y, largura }].
+   */
+  function posicoesPorLinhas(onze) {
+    const prof = t => POSICOES_CAMPO[posicaoNoCampo(t.jogador.posicao)];
+    const gr = onze.filter(t => posicaoNoCampo(t.jogador.posicao) === "GR");
+    const linhas = [];
+    LINHAS_CAMPO.forEach(codigos => {
+      const doGrupo = onze.filter(t => codigos.includes(posicaoNoCampo(t.jogador.posicao)));
+      if (!doGrupo.length) return;
+      // meio-campo com muitos jogadores (ou qualquer linha com mais de 5): parte por profundidade
+      const partes = doGrupo.length > (codigos[0] === "MDEF" ? 4 : MAX_POR_LINHA) ? 2 : 1;
+      const porProf = [...doGrupo].sort((a, b) => prof(b)[1] - prof(a)[1]);
+      const tamanho = Math.ceil(porProf.length / partes);
+      for (let p = 0; p < partes; p++) linhas.push(porProf.slice(p * tamanho, (p + 1) * tamanho));
+    });
+    const resultado = [];
+    // mais de um GR no onze (sem GR com minutos não acontece): o 2.º joga na linha da defesa
+    gr.slice(1).forEach(t => (linhas[0] || (linhas[0] = [])).unshift(t));
+    if (gr[0]) resultado.push({ t: gr[0], x: 50, y: GR_Y, largura: larguraNaLinha(1) });
+    const passo = linhas.length > 1 ? (LINHA_Y_TRAS - LINHA_Y_FRENTE) / (linhas.length - 1) : 0;
+    linhas.forEach((linha, l) => {
+      const y = linhas.length > 1 ? LINHA_Y_TRAS - l * passo : 45;
+      const ordenada = [...linha].sort((a, b) => prof(a)[0] - prof(b)[0]);
+      const xs = xDaLinha(ordenada.map(t => prof(t)[0]));
+      ordenada.forEach((t, k) => resultado.push({ t, x: xs[k], y: Math.round(y), largura: larguraNaLinha(ordenada.length) }));
+    });
+    return resultado;
+  }
   const SINONIMOS_POSICAO = { MDC: "MDEF", MD: "MDEF", MC: "MCEN", MOC: "MOFE", MO: "MOFE", AV: "PL", PA: "PL", ATA: "PL", EXD: "ED", EXE: "EE", LD: "DD", LE: "DE" };
 
   function posicaoNoCampo(posicao) {
@@ -529,21 +578,13 @@
     if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
     const onze = o.rotulo ? lista.slice(0, 11) : onzeMaisUtilizado(lista);
     // com formação (convocatória): linhas da formação escolhida; sem formação: posição do perfil
-    const marcadores = o.formacao ? posicoesDaFormacao(onze, o.formacao) : [];
-    const grupos = {};
-    if (!o.formacao) onze.forEach(t => { const p = posicaoNoCampo(t.jogador.posicao); (grupos[p] || (grupos[p] = [])).push(t); });
-    Object.entries(grupos).forEach(([pos, doGrupo]) => {
-      const [x, y] = POSICOES_CAMPO[pos];
-      doGrupo.forEach((t, i) => {
-        const desvio = (i - (doGrupo.length - 1) / 2) * 24; // lado a lado quando há vários na mesma posição
-        marcadores.push({ t, x: Math.min(90, Math.max(10, x + desvio)), y });
-      });
-    });
+    const marcadores = o.formacao ? posicoesDaFormacao(onze, o.formacao) : posicoesPorLinhas(onze);
     return `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
       <span class="mini-pitch-lines" aria-hidden="true"></span>
-      ${marcadores.map(({ t, x, y }) => {
+      ${marcadores.map(({ t, x, y, largura }) => {
         const capitao = o.capitao && String(o.capitao) === String(t.jogador.idBD || t.jogador.id);
-        return `<div class="pitch-player" style="left:${x}%;top:${y}%">${VFN.avatarJogador(t.jogador, "avatar-xs")}${capitao ? VFN.badgeCapitao("no-campo") : ""}<span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${o.rotulo ? esc(o.rotulo(t)) : t.minutos + "'"}</b></span></div>`;
+        const rotulo = o.rotulo ? o.rotulo(t) : t.minutos + "'";
+        return `<div class="pitch-player" style="left:${x}%;top:${y}%;width:${largura}%" title="${esc(t.jogador.nome)}${rotulo ? " · " + esc(rotulo) : ""}"><span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}</span><span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span>${rotulo ? `<b>${esc(rotulo)}</b>` : ""}</span></div>`;
       }).join("")}
     </div>
     ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
@@ -564,11 +605,11 @@
   function posicoesDaFormacao(onze, formacao) {
     const linhas = linhasFormacao(formacao);
     const resultado = [];
-    if (onze[0]) resultado.push({ t: onze[0], x: 50, y: 89 });
+    if (onze[0]) resultado.push({ t: onze[0], x: 50, y: GR_Y, largura: larguraNaLinha(1) });
     let i = 1;
     linhas.forEach((n, l) => {
-      const y = 73 - l * (60 / Math.max(1, linhas.length - 1));
-      for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y) });
+      const y = LINHA_Y_TRAS - l * ((LINHA_Y_TRAS - LINHA_Y_FRENTE) / Math.max(1, linhas.length - 1));
+      for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y), largura: larguraNaLinha(n) });
     });
     return resultado;
   }

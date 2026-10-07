@@ -1469,7 +1469,6 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .conv-lista li { display: grid; grid-template-columns: auto 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 4px; border-bottom: 1px solid var(--border-color); font-size: .84rem; }
 .conv-lista li.eu { background: rgba(255, 215, 0, .2); border-radius: 6px; }
 .conv-suplentes { margin: 8px 0 0; font-size: .78rem; }
-.pitch-player .badge-capitao.no-campo { position: absolute; top: -4px; right: 8px; }
 .eq-conv-resumo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .eq-conv-resumo > div { flex: 1; min-width: 160px; }
 .eq-conv-resumo strong { display: block; font-size: 1.05rem; }
@@ -1503,23 +1502,31 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .an-rodape { position: absolute; left: 0; right: 0; bottom: 14px; margin: 0; text-align: center; color: #FFD700; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 
 /* ---------- campo com jogadores (11 mais utilizado, convocatória): partilhado por todas as páginas ---------- */
-.mini-pitch { position: relative; width: 100%; max-width: 440px; margin: 0 auto; aspect-ratio: 3 / 4; border-radius: 10px; background: repeating-linear-gradient(180deg, #2f7d3b 0 12.5%, #2a7235 12.5% 25%); border: 2px solid rgba(255,255,255,.8); overflow: hidden; }
+/* Proporções de um campo real (68 × 105 m), na vertical: o ataque é em cima. Marcações à escala. */
+.mini-pitch { position: relative; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 68 / 105; border-radius: 10px; background: repeating-linear-gradient(180deg, #2f7d3b 0 10%, #2a7235 10% 20%); border: 2px solid rgba(255,255,255,.8); overflow: hidden; container-type: inline-size; }
 .mini-pitch-lines { position: absolute; inset: 0; pointer-events: none; }
 .mini-pitch-lines::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid rgba(255,255,255,.55); }
-.mini-pitch-lines::after { content: ""; position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; border: 2px solid rgba(255,255,255,.55); border-radius: 50%; transform: translate(-50%, -50%); }
-.mini-pitch::before, .mini-pitch::after { content: ""; position: absolute; left: 30%; right: 30%; height: 11%; border: 2px solid rgba(255,255,255,.55); }
+/* círculo central: 18,3 m de diâmetro em 68 m de largura */
+.mini-pitch-lines::after { content: ""; position: absolute; left: 50%; top: 50%; width: 27%; aspect-ratio: 1; border: 2px solid rgba(255,255,255,.55); border-radius: 50%; transform: translate(-50%, -50%); }
+/* grandes áreas: 40,3 m × 16,5 m */
+.mini-pitch::before, .mini-pitch::after { content: ""; position: absolute; left: 20.4%; right: 20.4%; height: 15.7%; border: 2px solid rgba(255,255,255,.55); }
 .mini-pitch::before { top: -2px; border-top: 0; }
 .mini-pitch::after { bottom: -2px; border-bottom: 0; }
-.pitch-player { position: absolute; z-index: 1; display: grid; justify-items: center; gap: 1px; width: 84px; transform: translate(-50%, -50%); text-align: center; }
-.pitch-player-name { max-width: 84px; padding: 1px 6px; border-radius: 4px; background: rgba(10,22,40,.82); color: #fff; font-size: .68rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pitch-player-min { color: #FFD700; font-size: .66rem; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
-@media (max-width: 520px) { .pitch-player { width: 64px; } .pitch-player-name { max-width: 64px; font-size: .6rem; } }
-.pitch-player-name b { color: #FFD700; font-weight: 800; }
-.pitch-player { width: 104px; } .pitch-player-name { max-width: 104px; }
-@media (max-width: 520px) { .pitch-player { width: 78px; } .pitch-player-name { max-width: 78px; } }
-.pitch-player-name { display: inline-flex; gap: 4px; }
-.pitch-player-name span { overflow: hidden; text-overflow: ellipsis; }
-.pitch-player-name b { flex: 0 0 auto; }
+/* a largura vem da linha (hub.js: larguraNaLinha), por isso os jogadores da mesma linha nunca se tocam */
+.pitch-player { position: absolute; z-index: 1; display: grid; justify-items: center; gap: 3px; width: 22%; transform: translate(-50%, -50%); text-align: center; }
+.pitch-player-avatar { position: relative; display: inline-grid; }
+.pitch-player .vfn-avatar.avatar-sm { width: 42px; height: 47px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.pitch-player .vfn-avatar.avatar-sm.has-photo { width: 44px; height: 44px; border: 2px solid #fff; }
+.pitch-player-name { display: grid; max-width: 100%; padding: 2px 6px; border-radius: 5px; background: rgba(10,22,40,.88); color: #fff; font-size: .74rem; font-weight: 700; line-height: 1.2; }
+.pitch-player-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pitch-player-name b { color: #FFD700; font-size: .7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* campo estreito (telemóvel, colunas do dashboard): avatar e letra mais pequenos, sempre legíveis */
+@container (max-width: 340px) {
+  .pitch-player .vfn-avatar.avatar-sm { width: 34px; height: 38px; }
+  .pitch-player .vfn-avatar.avatar-sm.has-photo { width: 36px; height: 36px; }
+  .pitch-player-name { padding: 1px 4px; font-size: .66rem; }
+  .pitch-player-name b { font-size: .64rem; }
+}
 
 /* ---------- v5: aniversários no calendário ---------- */
 .cal-dia.com-aniversario { background: linear-gradient(180deg, #FFF1F5 0%, #fff 70%); }
