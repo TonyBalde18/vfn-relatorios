@@ -270,6 +270,36 @@
     return String(jogo && jogo.status || "").trim().toLowerCase();
   }
 
+  /*
+   * Ícones dos eventos do jogo: imagens em assets/icons/<ficheiro>.png (PNG transparente, quadrado,
+   * 64×64 recomendado; aparecem a ~22px). Enquanto o ficheiro não existir fica o ícone Lucide.
+   */
+  const ICONES_EVENTO_FICHEIRO = {
+    "Golo": "golo", "Auto-golo": "autogolo", "Golo Anulado": "golo-anulado", "Penalty Falhado": "penalti-falhado",
+    "Cartão Amarelo": "cartao-amarelo", "Cartão Vermelho": "cartao-vermelho", "Lesão": "lesao", "Substituição": "substituicao",
+    "Tempo Acrescentado": "tempo-acrescentado", "Paragem para hidratação": "hidratacao", "Intervalo": "intervalo", "Nota": "nota"
+  };
+  const ICONES_EVENTO_LUCIDE = {
+    "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
+    "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat",
+    "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note"
+  };
+  const iconesEventoEmFalta = new Set(); // ficheiros que já falharam: não volta a pedir
+
+  /** Ícone de um tipo de evento: <img> de assets/icons/ (ou o ícone Lucide se a imagem não existir). */
+  function iconeEvento(tipo, tamanho) {
+    const t = tamanho || 22;
+    const ficheiro = ICONES_EVENTO_FICHEIRO[tipo] || "nota";
+    const lucide = icone(ICONES_EVENTO_LUCIDE[tipo] || "sticky-note", Math.round(t * .82));
+    if (iconesEventoEmFalta.has(ficheiro)) return `<span class="ev-icone sem-img" data-type="${escapeHtml(tipo)}" style="--ev-tam:${t}px">${lucide}</span>`;
+    return `<span class="ev-icone" data-type="${escapeHtml(tipo)}" style="--ev-tam:${t}px"><img class="ev-img" src="assets/icons/${ficheiro}.png" alt="" width="${t}" height="${t}" onerror="VFN.iconeEventoFalhou(this,'${ficheiro}')"><span class="ev-fallback">${lucide}</span></span>`;
+  }
+
+  function iconeEventoFalhou(img, ficheiro) {
+    iconesEventoEmFalta.add(ficheiro);
+    if (img.parentNode) img.parentNode.classList.add("sem-img");
+  }
+
   /** Entrada de matches.scorer_list que é um golo do adversário ({ team: "adversario", player_name, minute }). */
   function eGoloAdversario(s) {
     return !!s && s.team === "adversario";
@@ -1181,7 +1211,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,

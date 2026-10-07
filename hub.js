@@ -1073,7 +1073,6 @@
 
   /* ---------- Detalhe do jogo (modal) ---------- */
 
-  const ICONE_EVENTO = { "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x", "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat", "Nota": "sticky-note" };
 
   /** Relatório associado a um jogo do VFN (o publicado mais recente; senão o mais recente). */
   function relatorioDoJogo(dados, matchId) {
@@ -1136,7 +1135,7 @@
     const lado = (eq) => `<div class="dj-equipa">${logoEquipa(equipa(dados, eq.id) || { id: eq.id, name: eq.nome }, eq.nome, "dj-logo")}<strong>${esc(eq.nome)}</strong></div>`;
     const linhaEvento = e => `<li class="dj-evento lado-${e.lado || "centro"} tipo-${esc(String(e.tipo).toLowerCase().replace(/[^a-z]+/g, "-"))}">
         <span class="dj-min">${e.minuto != null ? `${e.minuto}${e.acrescimo ? "+" + e.acrescimo : ""}'` : ""}</span>
-        <span class="dj-ico" data-type="${esc(e.tipo)}">${VFN.icone(ICONE_EVENTO[e.tipo] || "sticky-note", 16)}</span>
+        <span class="dj-ico" data-type="${esc(e.tipo)}">${VFN.iconeEvento(e.tipo, 20)}</span>
         <span class="dj-texto"><small>${esc(e.tipo)}</small> ${esc(e.texto)}</span>
       </li>`;
     return `

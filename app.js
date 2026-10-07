@@ -50,12 +50,7 @@ const COMPETICOES = ["2ª Liga Futebol Zero Graus Produções", "Taça 2ª Liga 
 const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Paragem para hidratação", "Intervalo", "Nota"];
 // eventos que normalmente não são de nenhuma equipa (a equipa fica vazia ao escolher o tipo)
 const TIPOS_SEM_EQUIPA = ["Paragem para hidratação", "Intervalo"];
-// emojis só para o Word e para as <option>; na interface usam-se ícones Lucide
-const ICONES_LUCIDE_EVENTO = {
-  "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
-  "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage",
-  "Substituição": "repeat", "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note"
-};
+// emojis só para o Word e para as <option>; na interface usam-se as imagens de assets/icons/ (VFN.iconeEvento)
 const ICONES_EVENTO = {
   "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴",
   "Cartão Amarelo": "🟨", "Cartão Vermelho": "🟥", "Lesão": "🤕",
@@ -1244,24 +1239,57 @@ function nomeOuDetalheEvento(ev) {
   return ev.tipo === "Golo" && ev.assistId ? `${nome} (assist. ${nomeJogador(ev.assistId)})` : nome;
 }
 
+/*
+ * Linha do tempo do jogo: uma linha por parte (1.ª: 0'–45'+, 2.ª: 45'–90'+), com o VFN por cima e o
+ * adversário por baixo. Ícones que ficariam a menos de ESPACO_TIMELINE_PX do anterior passam para
+ * uma faixa seguinte (mais acima / mais abaixo) em vez de se sobreporem.
+ */
+const ESPACO_TIMELINE_PX = 38;
+let larguraTimeline = 0;
+
 function renderTimeline() {
   const container = el("matchTimeline");
   if (!container) return;
-  const duracao = 90;
-  container.innerHTML = `<div class="timeline-track"><span class="timeline-half"></span><span class="timeline-label start">0'</span><span class="timeline-label half">45'</span><span class="timeline-label end">${duracao}'</span></div>`;
-  const track = container.querySelector(".timeline-track");
-  state.jogo.eventos.forEach(ev => {
-    const marker = document.createElement("div");
-    marker.className = `timeline-event ${ev.equipa === "VFN" ? "vfn" : ev.equipa ? "adv" : "neutro"}`;
-    marker.dataset.type = ev.tipo;
-    marker.style.left = `${Math.min(100, Math.max(0, Number(ev.minuto) || 0) / duracao * 100)}%`;
-    marker.title = `${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`;
-    marker.innerHTML = VFN.icone(ICONES_LUCIDE_EVENTO[ev.tipo] || "sticky-note", 18);
-    const label = document.createElement("span");
-    label.textContent = formatarMinuto(ev);
-    marker.appendChild(label);
-    track.appendChild(marker);
-  });
+  if (!container.dataset.observado && window.ResizeObserver) {
+    // a largura decide as faixas: volta a desenhar quando a largura muda
+    container.dataset.observado = "1";
+    new ResizeObserver(() => { if (container.clientWidth && container.clientWidth !== larguraTimeline) renderTimeline(); }).observe(container);
+  }
+  larguraTimeline = container.clientWidth;
+  const pista = Math.max(200, (larguraTimeline || 700) - 110); // largura da linha (sem o rótulo da parte)
+  const eventos = [...state.jogo.eventos].sort(compararEventos);
+  const tempo = ev => (Number(ev.minuto) || 0) + (Number(ev.acrescimo) || 0);
+  const partes = [
+    { nome: "1.ª parte", inicio: 0, fim: 45, eventos: eventos.filter(ev => (Number(ev.minuto) || 0) <= 45) },
+    { nome: "2.ª parte", inicio: 45, fim: 90, eventos: eventos.filter(ev => (Number(ev.minuto) || 0) > 45) }
+  ];
+  container.innerHTML = partes.map(p => {
+    const fim = Math.max(p.fim, ...p.eventos.map(tempo)); // tempo de compensação alarga a escala
+    const x = ev => Math.min(100, Math.max(0, (tempo(ev) - p.inicio) / (fim - p.inicio) * 100));
+    // faixa de cada evento, por lado: a primeira onde não fica colado ao anterior
+    const faixas = new Map();
+    const contagem = {};
+    ["vfn", "adv"].forEach(lado => {
+      const ultimos = [];
+      p.eventos.filter(ev => (ev.equipa === "VFN" ? "vfn" : ev.equipa ? "adv" : "neutro") === lado).forEach(ev => {
+        const px = x(ev) / 100 * pista;
+        let f = ultimos.findIndex(u => px - u >= ESPACO_TIMELINE_PX);
+        if (f < 0) { f = ultimos.length; ultimos.push(px); } else ultimos[f] = px;
+        faixas.set(ev, f);
+      });
+      contagem[lado] = Math.max(1, ultimos.length);
+    });
+    const marcadores = p.eventos.map(ev => {
+      const lado = ev.equipa === "VFN" ? "vfn" : ev.equipa ? "adv" : "neutro";
+      return `<div class="timeline-event ${lado}" data-type="${escapeHtml(ev.tipo)}" style="left:${x(ev)}%;--faixa:${faixas.get(ev) || 0}" title="${escapeHtml(`${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`)}">${VFN.iconeEvento(ev.tipo, 22)}<span>${escapeHtml(formatarMinuto(ev))}</span></div>`;
+    }).join("");
+    return `<div class="tl-parte">
+      <div class="tl-rotulo">${p.nome}<small>${p.inicio}'–${p.fim}'${fim > p.fim ? "+" + (fim - p.fim) : ""}</small></div>
+      <div class="tl-pista" style="--cima:${contagem.vfn};--baixo:${contagem.adv}">
+        <span class="tl-linha" aria-hidden="true"></span>${marcadores}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 function calcularResultadoEventos(limite) {
