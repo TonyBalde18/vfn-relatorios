@@ -1562,7 +1562,6 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .an-jogador span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .66rem; font-weight: 700; }
 .anuncio-9x16 .an-jogador span { font-size: .8rem; }
 .an-capitao { position: absolute; top: -4px; right: 6px; z-index: 1; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #FFD700; color: #0A1628; font-size: .64rem; font-weight: 800; }
-.an-rodape { position: absolute; left: 0; right: 0; bottom: 14px; margin: 0; text-align: center; color: #FFD700; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 
 /* ---------- campo com jogadores (11 mais utilizado, convocatória): partilhado por todas as páginas ---------- */
 /* Proporções de um campo real (68 × 105 m), na vertical: o ataque é em cima. Marcações à escala. */

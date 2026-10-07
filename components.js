@@ -612,7 +612,7 @@
     const convocados = jogadoresDosIds(squad.player_ids, pessoa);
     const logoAdv = VFN.urlLogoEquipa(H().equipa(dados, jogo.opponent_team_id), nome);
     const equipaLado = (logo, texto) => `<div class="an-equipa">${logo ? `<img src="${esc(logo)}" alt="" crossorigin="anonymous">` : `<span class="an-sem-logo">${esc(texto.slice(0, 2).toUpperCase())}</span>`}<strong>${esc(texto)}</strong></div>`;
-    const vfn = equipaLado("assets/logo.png", "VFN"), adv = equipaLado(logoAdv, nome);
+    const vfn = equipaLado("assets/logo.png", "ACD VF Naves"), adv = equipaLado(logoAdv, nome);
     const hora = VFN.horaIso(jogo.date);
     const cartao = j => {
       const foto = fotos && fotos.get(idDe(j));
@@ -626,7 +626,6 @@
       <div class="an-jogo">${casa ? vfn : adv}<span class="an-vs">vs</span>${casa ? adv : vfn}</div>
       <p class="an-info">${esc(VFN.dataLonga(jogo.date))}${hora && hora !== "00:00" ? " · " + esc(hora) : ""} · ${esc(jogo.competition || "")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</p>
       <div class="an-grelha">${convocados.map(cartao).join("")}</div>
-      <p class="an-rodape">${casa ? "Em casa" : "Fora"}${jogo.venue ? " · " + esc(jogo.venue) : ""} · Força VFN!</p>
     </div>`;
   }
 
