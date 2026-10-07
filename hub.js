@@ -627,6 +627,19 @@
 
   /* ---------- Tendências do jogador (últimos 3 jogos vs os 3 anteriores) ---------- */
 
+  /** Competição de um relatório: coluna competition, pré-jogo, ou o jogo do calendário associado. */
+  function competicaoDoRelatorio(r, dados) {
+    const m = (r && r.match_data) || {};
+    const matchId = (r && r.match_id) || (m.preJogo || {}).matchId;
+    const jogo = matchId && ((dados && dados.matches) || []).find(j => String(j.id) === String(matchId));
+    return (r && r.competition) || (m.preJogo || {}).competicao || (jogo && jogo.competition) || "";
+  }
+
+  /** Os minutos só contam nos jogos oficiais: relatórios de amigáveis ficam de fora (VFN.competicaoOficial). */
+  function relatorioOficial(r, dados) {
+    return VFN.competicaoOficial(competicaoDoRelatorio(r, dados));
+  }
+
   /** Minutos de cada jogador num relatório: titulares desde o 0', substituições pelo minuto. */
   function minutosDoRelatorio(matchData) {
     const jogo = (matchData && matchData.jogo) || {};
@@ -676,10 +689,11 @@
       const porJogo = relatorios.map(({ r }) => {
         const jogo = r.match_data.jogo;
         const ev = (jogo.eventos || []).filter(e => e.equipa === "VFN" && eDele(e.jogadorId));
-        const min = Object.entries(minutosDoRelatorio(r.match_data)).filter(([idl]) => eDele(idl)).reduce((s, [, m]) => s + m, 0);
+        const min = relatorioOficial(r, dados) ? Object.entries(minutosDoRelatorio(r.match_data)).filter(([idl]) => eDele(idl)).reduce((s, [, m]) => s + m, 0) : null; // amigável: fora dos minutos
         return { golos: ev.filter(e => e.tipo === "Golo").length, cartoes: ev.filter(e => /^Cartão/.test(e.tipo)).length, minutos: min };
       });
-      ["golos", "cartoes", "minutos"].forEach(k => { t[k] = comparar(porJogo.map(x => x[k])); });
+      ["golos", "cartoes"].forEach(k => { t[k] = comparar(porJogo.map(x => x[k])); });
+      t.minutos = comparar(porJogo.map(x => x.minutos).filter(m => m !== null));
     } else {
       const jogos = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && Array.isArray(j.scorer_list))
         .sort((a, b) => (VFN.paraData(b.date) || 0) - (VFN.paraData(a.date) || 0));
@@ -1214,6 +1228,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

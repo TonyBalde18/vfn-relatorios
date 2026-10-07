@@ -301,9 +301,10 @@ function jogadorDoRelatorio(idLocal) {
   return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
 }
 
+/** Minutos por jogador (11 mais utilizado e lista de minutos): só jogos oficiais, sem amigáveis. */
 function calcularMinutosJogados() {
   const totais = new Map();
-  const relatorios = relatoriosUnicos();
+  const relatorios = relatoriosUnicos().filter(r => H.relatorioOficial(r, dados));
   relatorios.forEach(r => {
     Object.entries(minutosDoRelatorio(r.match_data)).forEach(([idLocal, min]) => {
       const j = jogadorDoRelatorio(idLocal);
@@ -404,7 +405,7 @@ function initHistorico() {
 
 function renderMinutos() {
   const { lista, relatorios } = calcularMinutosJogados();
-  $("minutosInfo").textContent = relatorios ? `${relatorios} relatório${relatorios === 1 ? "" : "s"} de jogo` : "";
+  $("minutosInfo").textContent = relatorios ? `${relatorios} jogo${relatorios === 1 ? "" : "s"} oficia${relatorios === 1 ? "l" : "is"} (sem amigáveis)` : "";
   if (!lista.length) {
     const vazio = H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
     $("minutosLista").innerHTML = vazio;

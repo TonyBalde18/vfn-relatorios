@@ -1345,7 +1345,9 @@ function contribuicaoDoJogo() {
     else if (ev.tipo === "Cartão Amarelo") somar(ev.jogadorId, "cartoesAmarelos");
     else if (ev.tipo === "Cartão Vermelho") somar(ev.jogadorId, "cartoesVermelhos");
   });
-  if (state.jogo.presencasAplicadas) {
+  // jogos e minutos só contam nas competições oficiais (amigáveis de fora: VFN.competicaoOficial).
+  // Um amigável já somado antes desta regra sai dos totais quando o relatório volta a ser gerado.
+  if (state.jogo.presencasAplicadas && VFN.competicaoOficial(state.preJogo.competicao)) {
     calcularMinutosJogadores().forEach(m => { somar(m.id, "jogos", 1); somar(m.id, "minutosTotais", m.minutos); });
   }
   return contribuicao;

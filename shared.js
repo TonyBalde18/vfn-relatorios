@@ -167,6 +167,18 @@
     return (linhas || []).map(l => l && l.competition ? { ...l, competition: normalizarCompeticao(l.competition) } : l);
   }
 
+  /*
+   * Competição oficial (conta para os minutos jogados): tudo menos os amigáveis.
+   * Não há coluna competition_type em matches: o tipo vem do nome em matches.competition
+   * (e match_reports.competition / match_data.preJogo.competicao), com os amigáveis gravados como
+   * competition = 'Amigável'. Para confirmar no Supabase:
+   *   select competition, count(*) from public.matches group by competition;
+   * Sem competição (registos antigos) conta como oficial.
+   */
+  function competicaoOficial(competicao) {
+    return categoriaCompeticao(competicao) !== "amigavel";
+  }
+
   function categoriaCompeticao(competicao) {
     const s = String(competicao || "").toUpperCase();
     if (s.includes("AMIG")) return "amigavel";
@@ -1208,7 +1220,7 @@
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
-    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
+    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
