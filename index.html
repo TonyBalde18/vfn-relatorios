@@ -155,9 +155,10 @@
     <div class="card">
       <h2 class="section-title">Onze Inicial e Suplentes</h2>
       <div class="pitch-layout">
-        <div class="pitch-wrap">
+        <div class="pitch-wrap" id="pitchArrastar">
           <div class="pitch" id="pitch"></div>
-          <p class="pitch-hint">Campo apenas ilustrativo — define o onze através dos menus ao lado.</p>
+          <p class="pitch-hint">Arrasta um jogador da lista para uma posição (ou toca no jogador e depois na posição). Arrasta entre posições para trocar e para a lista para tirar do onze. Os menus ao lado também funcionam.</p>
+          <div id="pitchJogadores" class="pitch-jogadores" data-alvo="lista" aria-label="Jogadores para o onze"></div>
           <div class="pitch-controls">
             <label for="coachpadInput" class="btn btn-ghost btn-sm file-btn">Usar Imagem do CoachPad</label>
             <input type="file" id="coachpadInput" accept="image/*" hidden>

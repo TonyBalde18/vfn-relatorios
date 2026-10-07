@@ -17,6 +17,49 @@
   const COMPETICOES_TABELA = ["2ª Liga Futebol Zero Graus Produções", ...COMPETICOES_SEM_VFN];
   const semVFN = competicao => COMPETICOES_SEM_VFN.includes(competicao);
 
+  // Formações e posições de cada uma no campo (x, y em %; campo vertical, ataque em cima)
+  const FORMACOES = ["4-3-3", "4-4-2", "4-4-2 Losango", "4-2-3-1", "3-5-2", "5-3-2"];
+
+  const FORMACOES_SLOTS = {
+    "4-3-3": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+      { label: "MCen", x: 28, y: 55 }, { label: "MCen", x: 50, y: 58 }, { label: "MCen", x: 72, y: 55 },
+      { label: "EE", x: 17, y: 25 }, { label: "PL", x: 50, y: 15 }, { label: "ED", x: 83, y: 25 }
+    ],
+    "4-4-2": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+      { label: "ED", x: 83, y: 50 }, { label: "MCen", x: 60, y: 52 }, { label: "MCen", x: 40, y: 52 }, { label: "EE", x: 17, y: 50 },
+      { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
+    ],
+    "4-4-2 Losango": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+      { label: "MDef", x: 50, y: 62 }, { label: "ED", x: 76, y: 47 }, { label: "EE", x: 24, y: 47 }, { label: "MOfe", x: 50, y: 33 },
+      { label: "PL", x: 38, y: 16 }, { label: "PL", x: 62, y: 16 }
+    ],
+    "4-2-3-1": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
+      { label: "MDef", x: 38, y: 60 }, { label: "MDef", x: 62, y: 60 },
+      { label: "EE", x: 18, y: 36 }, { label: "MOfe", x: 50, y: 38 }, { label: "ED", x: 82, y: 36 },
+      { label: "PL", x: 50, y: 14 }
+    ],
+    "3-5-2": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DC", x: 70, y: 78 }, { label: "DC", x: 50, y: 81 }, { label: "DC", x: 30, y: 78 },
+      { label: "DD", x: 90, y: 55 }, { label: "MCen", x: 65, y: 52 }, { label: "MCen", x: 50, y: 55 }, { label: "MCen", x: 35, y: 52 }, { label: "DE", x: 10, y: 55 },
+      { label: "PL", x: 38, y: 18 }, { label: "PL", x: 62, y: 18 }
+    ],
+    "5-3-2": [
+      { label: "GR", x: 50, y: 93 },
+      { label: "DD", x: 90, y: 75 }, { label: "DC", x: 68, y: 80 }, { label: "DC", x: 50, y: 82 }, { label: "DC", x: 32, y: 80 }, { label: "DE", x: 10, y: 75 },
+      { label: "MCen", x: 30, y: 50 }, { label: "MCen", x: 50, y: 53 }, { label: "MCen", x: 70, y: 50 },
+      { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
+    ]
+  };
+
 
   // Tipos de multa por omissão, todos com valor fixo (a tabela fine_types no Supabase substitui-os ao carregar)
   const TIPOS_MULTA = [
@@ -1215,7 +1258,7 @@
   if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash);
 
   window.VFN = {
-    COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, semVFN,
+    FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, semVFN,
     DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,

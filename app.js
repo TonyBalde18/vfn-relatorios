@@ -4,47 +4,9 @@
    DADOS DE BASE
    ========================================================= */
 
-const FORMACOES = ["4-3-3", "4-4-2", "4-4-2 Losango", "4-2-3-1", "3-5-2", "5-3-2"];
-
-const FORMACOES_SLOTS = {
-  "4-3-3": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
-    { label: "MCen", x: 28, y: 55 }, { label: "MCen", x: 50, y: 58 }, { label: "MCen", x: 72, y: 55 },
-    { label: "EE", x: 17, y: 25 }, { label: "PL", x: 50, y: 15 }, { label: "ED", x: 83, y: 25 }
-  ],
-  "4-4-2": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
-    { label: "ED", x: 83, y: 50 }, { label: "MCen", x: 60, y: 52 }, { label: "MCen", x: 40, y: 52 }, { label: "EE", x: 17, y: 50 },
-    { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
-  ],
-  "4-4-2 Losango": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
-    { label: "MDef", x: 50, y: 62 }, { label: "ED", x: 76, y: 47 }, { label: "EE", x: 24, y: 47 }, { label: "MOfe", x: 50, y: 33 },
-    { label: "PL", x: 38, y: 16 }, { label: "PL", x: 62, y: 16 }
-  ],
-  "4-2-3-1": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DD", x: 83, y: 75 }, { label: "DC", x: 62, y: 80 }, { label: "DC", x: 38, y: 80 }, { label: "DE", x: 17, y: 75 },
-    { label: "MDef", x: 38, y: 60 }, { label: "MDef", x: 62, y: 60 },
-    { label: "EE", x: 18, y: 36 }, { label: "MOfe", x: 50, y: 38 }, { label: "ED", x: 82, y: 36 },
-    { label: "PL", x: 50, y: 14 }
-  ],
-  "3-5-2": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DC", x: 70, y: 78 }, { label: "DC", x: 50, y: 81 }, { label: "DC", x: 30, y: 78 },
-    { label: "DD", x: 90, y: 55 }, { label: "MCen", x: 65, y: 52 }, { label: "MCen", x: 50, y: 55 }, { label: "MCen", x: 35, y: 52 }, { label: "DE", x: 10, y: 55 },
-    { label: "PL", x: 38, y: 18 }, { label: "PL", x: 62, y: 18 }
-  ],
-  "5-3-2": [
-    { label: "GR", x: 50, y: 93 },
-    { label: "DD", x: 90, y: 75 }, { label: "DC", x: 68, y: 80 }, { label: "DC", x: 50, y: 82 }, { label: "DC", x: 32, y: 80 }, { label: "DE", x: 10, y: 75 },
-    { label: "MCen", x: 30, y: 50 }, { label: "MCen", x: 50, y: 53 }, { label: "MCen", x: 70, y: 50 },
-    { label: "PL", x: 38, y: 20 }, { label: "PL", x: 62, y: 20 }
-  ]
-};
+// formações e posições de cada uma no campo: partilhadas (shared.js), também usadas no 11 mais utilizado
+const FORMACOES = VFN.FORMACOES;
+const FORMACOES_SLOTS = VFN.FORMACOES_SLOTS;
 
 const COMPETICOES = ["2ª Liga Futebol Zero Graus Produções", "Taça 2ª Liga FDM", "Taça de Honra Comunilog", "Amigável"];
 const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "Cartão Amarelo", "Cartão Vermelho", "Lesão", "Substituição", "Tempo Acrescentado", "Paragem para hidratação", "Intervalo", "Nota"];
@@ -1036,34 +998,66 @@ function idsUsadosExcluindo(valorAtual) {
 }
 
 /* Campo visual — apenas decorativo, reflete os dropdowns */
+/*
+ * Campo do onze (estilo Football Manager): camisolas vazias nas posições da formação escolhida;
+ * os jogadores arrastam-se da lista para as posições (VFNComp.ligarArrastar), entre posições
+ * (troca) e de volta para a lista (sai do onze). Escreve em state.jogo.titulares, como os menus.
+ */
 function renderPitch() {
   atualizarCapitao();
   const pitch = el("pitch");
-  pitch.innerHTML = "";
   const slots = FORMACOES_SLOTS[state.jogo.formacaoVFN] || FORMACOES_SLOTS["4-3-3"];
-
-  slots.forEach((slot, idx) => {
+  pitch.innerHTML = slots.map((slot, idx) => {
     const jogadorId = state.jogo.titulares[idx];
-    const div = document.createElement("div");
-    div.className = "pitch-slot" + (jogadorId ? "" : " empty");
-    div.style.left = slot.x + "%";
-    div.style.top = slot.y + "%";
+    const j = jogadorId && jogadorPorId(jogadorId);
+    const nome = j ? j.nome : "";
+    return `<div class="pitch-slot${jogadorId ? "" : " empty"}" style="left:${slot.x}%;top:${slot.y}%" data-alvo="s:${idx}"${jogadorId ? ` data-arrasta="s:${idx}"` : ""} tabindex="0" title="${escapeHtml(slot.label + (nome ? " · " + nome : " (vazia)"))}">
+      <span class="slot-camisola">${VFN.generateJerseyAvatar(j ? j.numero : "")}</span>
+      <span class="slot-label">${escapeHtml(slot.label)}</span>
+      ${jogadorId ? `<span class="slot-name">${escapeHtml(nome.split(" ")[0])}</span>${eCapitao(jogadorId) ? VFN.badgeCapitao("no-campo") : ""}` : ""}
+    </div>`;
+  }).join("");
+  renderPitchJogadores();
+  if (window.VFNComp) VFNComp.ligarArrastar(el("pitchArrastar"), largarNoCampo);
+}
 
-    const labelSpan = document.createElement("span");
-    labelSpan.className = "slot-label";
-    labelSpan.textContent = slot.label;
-    div.appendChild(labelSpan);
+/** Jogadores que ainda não estão no onze (para arrastar para o campo); os suplentes primeiro. */
+function renderPitchJogadores() {
+  const lista = el("pitchJogadores");
+  if (!lista) return;
+  const noOnze = new Set(titularesIds());
+  const suplentes = new Set(suplentesIds());
+  const livres = VFN.ordenarPorPosicao(plantel.filter(p => !noOnze.has(p.id)))
+    .sort((a, b) => suplentes.has(b.id) - suplentes.has(a.id));
+  lista.innerHTML = livres.length
+    ? livres.map(p => `<span class="pitch-chip${suplentes.has(p.id) ? " suplente" : ""}" data-arrasta="j:${p.id}" tabindex="0" title="${escapeHtml(p.nome)} · ${escapeHtml(p.posicao || "")}">${p.numero ? `<b>${escapeHtml(p.numero)}</b>` : ""}${escapeHtml(p.nome)}<small>${escapeHtml(String(p.posicao || "").split("/")[0])}${suplentes.has(p.id) ? " · sup." : ""}</small></span>`).join("")
+    : '<span class="muted">Todo o plantel está no onze.</span>';
+}
 
-    if (jogadorId) {
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "slot-name";
-      nameSpan.textContent = nomeJogador(jogadorId).split(" ")[0];
-      div.appendChild(nameSpan);
-      if (eCapitao(jogadorId)) div.insertAdjacentHTML("beforeend", VFN.badgeCapitao("no-campo"));
+/** Largar no campo: lista → posição (sai dos suplentes), posição ↔ posição (troca), posição → lista (sai do onze). */
+function largarNoCampo(origem, destino) {
+  if (!destino) return;
+  const [tipo, valor] = origem.split(/:(.+)/);
+  const titulares = state.jogo.titulares;
+  if (destino === "lista") {
+    if (tipo === "s") titulares[Number(valor)] = null;
+  } else {
+    const i = Number(destino.slice(2));
+    if (tipo === "s") {
+      const a = Number(valor);
+      [titulares[a], titulares[i]] = [titulares[i] || null, titulares[a]];
+    } else {
+      const id = Number(valor);
+      titulares.forEach((t, k) => { if (Number(t) === id) titulares[k] = null; });
+      state.jogo.suplentes = state.jogo.suplentes.map(s => Number(s) === id ? null : s);
+      titulares[i] = id;
     }
-
-    pitch.appendChild(div);
-  });
+  }
+  renderCapitao();
+  renderPitch();
+  renderTitulares();
+  renderBench();
+  renderEventos(false);
 }
 
 /* ---- Capitão ---- */
@@ -1141,6 +1135,7 @@ function renderBench() {
       state.jogo.suplentes[i] = select.value ? Number(select.value) : null;
       renderBench();
       renderTitulares();
+      renderPitchJogadores();
       renderEventos(false);
     });
 

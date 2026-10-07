@@ -147,6 +147,8 @@ function initJornadas() {
   $("pubJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 
+let onzeTaticoPub = null;
+
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
@@ -159,7 +161,9 @@ function renderTudo() {
   // minutos da ficha de cada jogador (players.stats, atualizados no admin)
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
     .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
-  $("pubOnze").innerHTML = H.onzeCampoHTML(minutos);
+  // 11 mais utilizado com tática e arrastar (só na sessão)
+  if (!minutos.length) $("pubOnze").innerHTML = H.onzeCampoHTML(minutos);
+  else { if (!onzeTaticoPub) onzeTaticoPub = VFNComp.criarOnzeTatico($("pubOnze"), { chave: "publico" }); onzeTaticoPub.atualizar(minutos); }
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);
   // marcadores por competição: liga e cada taça
