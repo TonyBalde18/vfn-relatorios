@@ -227,19 +227,30 @@
   /* ---------- Melhores marcadores do campeonato ---------- */
 
   /**
-   * Golos por jogador numa competição: outras equipas a partir de league_results.scorer_list
-   * (jogadores externos) + jogadores do VFN a partir de players.stats (golos da época).
+   * Golos de jogadores de outras equipas (jogadores externos): league_results.scorer_list
+   * (jogos entre outras equipas) + golos do adversário nos jogos do VFN (matches.scorer_list,
+   * team = "adversario"). competicao opcional (sem ela: todas).
+   */
+  function golosExternos(dados, competicao) {
+    const daComp = x => !competicao || x.competition === competicao;
+    const liga = (dados.league_results || []).filter(r => daComp(r) && Array.isArray(r.scorer_list)).flatMap(r => r.scorer_list);
+    const contraVFN = VFN.jogosDoVFN(dados.matches).filter(j => daComp(j) && VFN.estadoJogo(j) !== "cancelado" && Array.isArray(j.scorer_list))
+      .flatMap(j => j.scorer_list.filter(VFN.eGoloAdversario).map(s => ({ ...s, team_id: s.team_id || j.opponent_team_id || "" })));
+    return [...liga, ...contraVFN];
+  }
+
+  /**
+   * Golos por jogador numa competição: outras equipas a partir de golosExternos
+   * (jogadores externos) + jogadores do VFN a partir de matches.scorer_list ou players.stats.
    */
   function marcadoresCampeonato(dados, jogadoresVFN, competicao) {
     const mapa = new Map();
-    (dados.league_results || []).filter(r => r.competition === competicao && Array.isArray(r.scorer_list)).forEach(r => {
-      r.scorer_list.forEach(s => {
-        const chave = s.player_id ? `id:${s.player_id}` : `nome:${s.player_name}|${s.team_id}`;
-        const ext = (dados.external_players || []).find(p => String(p.id) === String(s.player_id));
-        const atual = mapa.get(chave) || { nome: (ext && ext.name) || s.player_name || "?", teamId: s.team_id || (ext && ext.team_id) || "", golos: 0, vfn: false };
-        atual.golos += Number(s.count) || 1;
-        mapa.set(chave, atual);
-      });
+    golosExternos(dados, competicao).forEach(s => {
+      const chave = s.player_id ? `id:${s.player_id}` : `nome:${s.player_name}|${s.team_id}`;
+      const ext = (dados.external_players || []).find(p => String(p.id) === String(s.player_id));
+      const atual = mapa.get(chave) || { nome: (ext && ext.name) || s.player_name || "?", teamId: s.team_id || (ext && ext.team_id) || "", golos: 0, vfn: false };
+      atual.golos += Number(s.count) || 1;
+      mapa.set(chave, atual);
     });
     golosVFNNaCompeticao(dados, jogadoresVFN, competicao).forEach(m => mapa.set(`vfn:${m.jogador ? m.jogador.id : m.nome}`, m));
     return [...mapa.values()].sort((a, b) => b.golos - a.golos || a.nome.localeCompare(b.nome, "pt"));
@@ -299,7 +310,7 @@
           <td class="team-col"><span class="team-inline">${logoEquipa(t, clube)}<span>${esc(clube)}</span></span></td>
           <td class="pts-col" data-contar="${m.golos}">${m.golos}</td></tr>`;
       }).join("")}</tbody></table>
-      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : temMarcadoresPorJogo(dados, competicao) ? "Golos do VFN: relatórios dos jogos desta competição. Outras equipas: marcadores registados nas Jornadas AF Guarda." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda."}</p></div>`;
+      <p class="muted nota-marcadores">${VFN.semVFN(competicao) ? "Marcadores registados nas Jornadas AF Guarda." : temMarcadoresPorJogo(dados, competicao) ? "Golos do VFN: relatórios dos jogos desta competição. Outras equipas: marcadores registados nas Jornadas AF Guarda e nos jogos contra o VFN." : "Golos do VFN: total da época (todas as competições). Outras equipas: marcadores registados nas Jornadas AF Guarda e nos jogos contra o VFN."}</p></div>`;
   }
 
   /* ---------- Plantel ---------- */
@@ -1027,7 +1038,7 @@
     const jogadores = (dados.external_players || []).filter(p => String(p.team_id) === String(teamId))
       .sort((x, y) => (Number(x.number) || 999) - (Number(y.number) || 999) || x.name.localeCompare(y.name, "pt"));
     const golosPorJogador = new Map();
-    (dados.league_results || []).forEach(r => (Array.isArray(r.scorer_list) ? r.scorer_list : []).forEach(s => { if (s.player_id) golosPorJogador.set(String(s.player_id), (golosPorJogador.get(String(s.player_id)) || 0) + (Number(s.count) || 1)); }));
+    golosExternos(dados).forEach(s => { if (s.player_id) golosPorJogador.set(String(s.player_id), (golosPorJogador.get(String(s.player_id)) || 0) + (Number(s.count) || 1)); });
     const cores = VFN.coresEquipa(t);
     return `
       <div class="perfil-equipa-cab${cores.primaria ? " com-cor" : ""}"${VFN.estiloCorEquipa(t, 0.1)}>

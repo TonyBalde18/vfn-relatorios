@@ -992,12 +992,14 @@ function initCalendarioAdmin() {
  * Não há tabela "goals": os golos do jogo ficam em matches.scorer_list (jsonb), no formato de
  * league_results.scorer_list, com o lado em "team":
  *   VFN:        { team: "vfn", player_id, player_name, team_id: <id do VFN>, count }
- *   adversário: { team: "adversario", player_name, minute, team_id: <id do adversário ou null>, count: 1 }
- * Entradas antigas sem "team" são do VFN. Não é preciso alterar o schema (o jsonb aceita os campos novos).
+ *   adversário: { team: "adversario", player_id (ID Zerozero, external_players), player_name, minute, team_id: <id do adversário>, count: 1 }
+ * Entradas antigas sem "team" são do VFN. Os marcadores do adversário com ID ficam em external_players
+ * (jogadores conhecidos), como nas Jornadas AF Guarda, e contam nos marcadores da competição.
+ * Não é preciso alterar o schema (o jsonb aceita os campos novos).
  */
 
 let marcadoresJogo = []; // [{ player_id, count }]
-let marcadoresAdvJogo = []; // [{ player_name, minute }] — um golo por linha
+let marcadoresAdvJogo = []; // [{ player_id, player_name, minute }] — um golo por linha
 
 function renderMarcadoresJogo() {
   const opcoes = sel => '<option value="">— Jogador —</option>' + VFN.ordenarPorPosicao(plantel)
@@ -1010,24 +1012,50 @@ function renderMarcadoresJogo() {
     </div>`).join("");
 }
 
+/** Jogadores conhecidos do adversário escolhido (sugestões do nome). */
+function renderListaJogadoresAdvJogo() {
+  const idAdv = el("jogoAdversarioEquipa").value;
+  el("listaJogadoresAdvJogo").innerHTML = jogadoresExternos.filter(p => idAdv && String(p.team_id) === String(idAdv))
+    .map(p => `<option value="${escapeHtml(p.name)}" label="ID ${escapeHtml(p.id)}"></option>`).join("");
+}
+
 function renderMarcadoresAdvJogo() {
+  renderListaJogadoresAdvJogo();
   el("jogoMarcadoresAdvLista").innerHTML = marcadoresAdvJogo.map((m, i) => `
-    <div class="marcador-jogo" data-i="${i}">
-      <input type="text" data-campo="player_name" value="${escapeHtml(m.player_name || "")}" placeholder="Nome do marcador" aria-label="Marcador do adversário">
+    <div class="marcador-jogo marcador-adv" data-i="${i}">
+      <input type="text" data-campo="player_name" list="listaJogadoresAdvJogo" value="${escapeHtml(m.player_name || "")}" placeholder="Nome do jogador" aria-label="Marcador do adversário">
+      <input type="text" data-campo="player_id" inputmode="numeric" value="${escapeHtml(m.player_id || "")}" placeholder="ID Zerozero" aria-label="ID Zerozero do marcador">
       <input type="number" data-campo="minute" min="1" max="130" value="${m.minute != null ? Number(m.minute) : ""}" placeholder="Min." aria-label="Minuto">
       <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover golo" aria-label="Remover golo">${VFN.icone("x", 14)}</button>
     </div>`).join("");
 }
 
 function initMarcadoresJogo() {
-  el("btnJogoAddMarcadorAdv").addEventListener("click", () => { marcadoresAdvJogo.push({ player_name: "", minute: null }); renderMarcadoresAdvJogo(); });
+  el("btnJogoAddMarcadorAdv").addEventListener("click", () => {
+    marcadoresAdvJogo.push({ player_id: "", player_name: "", minute: null });
+    renderMarcadoresAdvJogo();
+    const linhas = el("jogoMarcadoresAdvLista").querySelectorAll(".marcador-jogo");
+    linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
+  });
+  el("jogoAdversarioEquipa").addEventListener("change", renderListaJogadoresAdvJogo);
   el("jogoMarcadoresAdvLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresAdvJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresAdvJogo(); } });
-  el("jogoMarcadoresAdvLista").addEventListener("input", e => {
+  el("jogoMarcadoresAdvLista").addEventListener("change", e => {
     const linha = e.target.closest(".marcador-jogo");
     if (!linha) return;
     const m = marcadoresAdvJogo[Number(linha.dataset.i)];
-    if (e.target.dataset.campo === "minute") m.minute = e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 1);
-    else m.player_name = e.target.value;
+    const campo = e.target.dataset.campo;
+    if (campo === "minute") { m.minute = e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 1); return; }
+    m[campo] = e.target.value.trim();
+    // nome ou ID conhecidos (jogadores do adversário escolhido): completa o outro campo
+    const idAdv = el("jogoAdversarioEquipa").value;
+    const doAdversario = jogadoresExternos.filter(p => !idAdv || String(p.team_id) === String(idAdv));
+    const conhecido = campo === "player_id" ? jogadoresExternos.find(p => String(p.id) === m.player_id)
+      : doAdversario.find(p => p.name.toLowerCase() === m.player_name.toLowerCase());
+    if (conhecido) {
+      m.player_id = String(conhecido.id);
+      m.player_name = conhecido.name;
+      renderMarcadoresAdvJogo();
+    }
   });
   el("btnJogoAddMarcador").addEventListener("click", () => { marcadoresJogo.push({ player_id: "", count: 1 }); renderMarcadoresJogo(); });
   el("jogoMarcadoresLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresJogo(); } });
@@ -1042,8 +1070,24 @@ function initMarcadoresJogo() {
 /** Golos do adversário a gravar (linhas com nome), por ordem do minuto. */
 function golosAdversarioDoModal(idAdversario) {
   return marcadoresAdvJogo.filter(m => (m.player_name || "").trim())
-    .map(m => ({ team: "adversario", player_name: m.player_name.trim(), minute: m.minute != null ? Number(m.minute) : null, team_id: idAdversario || null, count: 1 }))
+    .map(m => ({ team: "adversario", player_id: m.player_id || null, player_name: m.player_name.trim(), minute: m.minute != null ? Number(m.minute) : null, team_id: idAdversario ? String(idAdversario) : null, count: 1 }))
     .sort((a, b) => (a.minute == null ? 999 : a.minute) - (b.minute == null ? 999 : b.minute));
+}
+
+/** Valida os marcadores do adversário e cria/atualiza os jogadores conhecidos (external_players), como nas Jornadas. */
+async function gravarJogadoresAdvJogo(equipa) {
+  for (const m of marcadoresAdvJogo) {
+    const nome = (m.player_name || "").trim();
+    if (!nome || !m.player_id) continue;
+    if (!/^\d+$/.test(m.player_id)) throw new Error(`O ID Zerozero de ${nome} só pode ter algarismos.`);
+    if (!equipa) throw new Error(`Para guardar ${nome} nos jogadores conhecidos escolhe o adversário da lista (ou cria-o em Adversários).`);
+    const existente = jogadoresExternos.find(p => String(p.id) === m.player_id);
+    // reaproveita o jogador; cria-o (ou associa-o ao clube) se for novo
+    if (!existente || existente.name !== nome || String(existente.team_id) !== String(equipa.id)) {
+      const gravado = await dadosClube.guardar("external_players", { ...(existente || {}), id: m.player_id, name: nome, team_id: equipa.id, team_name: equipa.name });
+      jogadoresExternos = jogadoresExternos.filter(p => String(p.id) !== m.player_id).concat(gravado);
+    }
+  }
 }
 
 /**
@@ -1168,7 +1212,7 @@ function abrirModalJogo(jogo) {
   preencherLocalJogo();
   const listaJogo = jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : [];
   marcadoresJogo = listaJogo.filter(s => !VFN.eGoloAdversario(s)).map(s => ({ player_id: String(s.player_id || ""), count: Number(s.count) || 1 }));
-  marcadoresAdvJogo = listaJogo.filter(VFN.eGoloAdversario).map(s => ({ player_name: s.player_name || "", minute: s.minute != null ? Number(s.minute) : null }));
+  marcadoresAdvJogo = listaJogo.filter(VFN.eGoloAdversario).map(s => ({ player_id: s.player_id ? String(s.player_id) : "", player_name: s.player_name || "", minute: s.minute != null ? Number(s.minute) : null }));
   renderMarcadoresJogo();
   renderMarcadoresAdvJogo();
   el("jogoPenaltis").value = jogo && jogo.winner_id ? (String(jogo.winner_id) === String(jogo.opponent_team_id) ? "adv" : "vfn") : "";
@@ -1230,6 +1274,8 @@ async function guardarJogo() {
   const botao = el("btnJogoGuardar");
   botao.disabled = true;
   try {
+    // marcadores do adversário com ID Zerozero: ficam nos jogadores conhecidos (external_players)
+    await gravarJogadoresAdvJogo(equipa);
     let gravado;
     try {
       gravado = await dadosClube.guardar("matches", linha);

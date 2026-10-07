@@ -1595,6 +1595,9 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .marcador-jogo { display: grid; grid-template-columns: minmax(0, 1fr) 72px 32px; gap: 8px; align-items: center; }
 .marcador-jogo input { text-align: center; font-weight: 700; }
 .marcador-jogo input[data-campo="player_name"] { text-align: left; font-weight: 400; }
+.marcador-jogo.marcador-adv { grid-template-columns: minmax(0, 1fr) 110px 64px 32px; }
+.marcador-jogo input[data-campo="player_id"] { font-weight: 400; }
+@media (max-width: 480px) { .marcador-jogo.marcador-adv { grid-template-columns: minmax(0, 1fr) 90px 52px 32px; gap: 6px; } }
 
 /* ---------- v6: marcadores das jornadas por equipa (casa à esquerda, fora à direita) ---------- */
 .jj-golos { grid-column: 1 / 4; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 24px; margin-top: 2px; }
