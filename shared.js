@@ -851,6 +851,43 @@
       <div class="heatmap-legenda">${legenda}</div>`;
   }
 
+  /* ---------- Fotos dos estádios (fundo do Jogo da Semana e do popup do mapa) ----------
+     assets/stadiums/<id da equipa>.jpg; o Estádio do Picoto (VFN) é vfn.jpg. A foto só é aplicada
+     se carregar (sem foto fica o fundo atual); cada uma só é pedida uma vez por página. */
+
+  const fotosEstadios = new Map(); // id -> Promise<url | null>
+
+  function fotoEstadio(id) {
+    const chave = String(id || "");
+    if (!chave) return Promise.resolve(null);
+    if (!fotosEstadios.has(chave)) {
+      const url = `assets/stadiums/${encodeURIComponent(chave)}.jpg`;
+      fotosEstadios.set(chave, new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(url);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      }));
+    }
+    return fotosEstadios.get(chave);
+  }
+
+  /** Id da foto do estádio de uma equipa: "vfn" para o VFN, senão o id da equipa (teams.id). */
+  const idFotoEstadio = equipa => equipa && eVFN(equipa.name) ? "vfn" : (equipa && equipa.id) || "";
+
+  /** Põe a foto do estádio (se existir) no fundo de um elemento, com opacidade baixa (.com-estadio). */
+  function aplicarFundoEstadio(el, id) {
+    if (!el) return;
+    el.dataset.fotoEstadio = String(id || "");
+    el.classList.remove("com-estadio");
+    el.style.removeProperty("--fundo-estadio");
+    fotoEstadio(id).then(url => {
+      if (!url || el.dataset.fotoEstadio !== String(id || "")) return; // entretanto mudou de jogo
+      el.style.setProperty("--fundo-estadio", `url("${url}")`);
+      el.classList.add("com-estadio");
+    });
+  }
+
   /* ---------- Tema claro / escuro ----------
      Por omissão segue o sistema (prefers-color-scheme); o botão guarda a escolha em localStorage
      ("vfnTema" = "claro" | "escuro"). O <head> de cada página já põe html.tema-escuro antes de pintar. */
@@ -1337,6 +1374,6 @@
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,
-    initSidebar, initAOS, refreshAOS, corTema, aplicarTema, alternarTema, estilizarGraficos
+    initSidebar, initAOS, refreshAOS, fotoEstadio, idFotoEstadio, aplicarFundoEstadio, corTema, aplicarTema, alternarTema, estilizarGraficos
   };
 })();

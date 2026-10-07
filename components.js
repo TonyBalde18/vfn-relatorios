@@ -725,6 +725,8 @@
       try { localStorage.setItem("vfnJogoSemana", fechado ? "fechado" : "aberto"); } catch (e) { /* ignora */ }
     });
     const jogo = (dados.matches || []).find(j => String(j.id) === card.dataset.jogoSemana);
+    // fundo: foto do estádio onde se joga (em casa: vfn.jpg; fora: a do adversário)
+    VFN.aplicarFundoEstadio(contentor, jogo ? (VFN.jogoEmCasa(jogo) ? "vfn" : jogo.opponent_team_id) : "");
     const alvo = card.querySelector("[data-meteo]");
     try {
       const p = await previsaoDoJogo(jogo, dados.teams);
@@ -823,7 +825,7 @@
     const souVFN = VFN.eVFN(t.name);
     const km = !souVFN && e.lat != null && ev.lat != null ? VFN.distanciaKm(ev.lat, ev.lng, e.lat, e.lng) : null;
     const logo = VFN.urlLogoEquipa(t, t.name) || (souVFN ? VFN.LOGO_VFN : "");
-    return `<div class="mapa-popup">${logo ? `<img class="mapa-popup-logo" src="${esc(logo)}" alt="" width="64" height="64">` : ""}
+    return `<div class="mapa-popup" data-estadio="${esc(VFN.idFotoEstadio(t))}">${logo ? `<img class="mapa-popup-logo" src="${esc(logo)}" alt="" width="64" height="64">` : ""}
       <strong>${esc(t.full_name || t.name)}</strong>
       ${e.nome ? `<span>${esc(e.nome)}</span>` : ""}
       <span>${VFN.badgeRelvado(t.surface_type)}</span>
@@ -868,6 +870,12 @@
       mapa = window.L.map(contentor, { scrollWheelZoom: false }).setView(CENTRO_GUARDA, 9);
       window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap" }).addTo(mapa);
       camada = window.L.layerGroup().addTo(mapa);
+      // popup: foto do estádio no fundo (se existir em assets/stadiums/)
+      mapa.on("popupopen", e => {
+        const el = e.popup.getElement();
+        const conteudo = el && el.querySelector(".mapa-popup");
+        if (conteudo) VFN.aplicarFundoEstadio(el.querySelector(".leaflet-popup-content-wrapper"), conteudo.dataset.estadio);
+      });
       desenhar();
     };
     if (window.IntersectionObserver) new IntersectionObserver(entradas => { if (entradas.some(e => e.isIntersecting)) iniciar(); }).observe(contentor);

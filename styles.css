@@ -1989,6 +1989,12 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 /* login do admin: entrada clara para os jogadores (v10) */
 .area-jogador-login { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; font-weight: 700; }
 
+/* foto do estádio no fundo (VFN.aplicarFundoEstadio): Jogo da Semana e popup do mapa */
+.com-estadio { position: relative; isolation: isolate; overflow: hidden; }
+.com-estadio::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--fundo-estadio) center / cover no-repeat; opacity: .14; pointer-events: none; }
+.jds-card.com-estadio::before { opacity: .16; }
+.leaflet-popup-content-wrapper.com-estadio::before { opacity: .12; }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }
