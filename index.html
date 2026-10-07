@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 
@@ -648,6 +648,11 @@
       <div id="jogoMarcadoresLista"></div>
       <small id="jogoMarcadoresInfo" class="muted">Contam para os marcadores por competição (liga e taças). Se o relatório do jogo tiver golos registados, ao gerá-lo ou publicá-lo substitui esta lista.</small>
     </div>
+    <div class="jogo-marcadores">
+      <div class="jf-marcadores-cab"><span class="toolbar-label">Golos Adversário</span><button type="button" id="btnJogoAddMarcadorAdv" class="btn btn-ghost btn-sm">+ Golo</button></div>
+      <div id="jogoMarcadoresAdvLista"></div>
+      <small class="muted">Um golo por linha: nome do marcador e minuto. Aparecem no detalhe do jogo, do lado do adversário.</small>
+    </div>
     <p id="jogoErro" class="form-error" role="alert"></p>
     <div class="modal-actions">
       <button type="button" id="btnJogoCancelar" class="btn btn-ghost">Cancelar</button>
@@ -724,12 +729,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="config.js?v=10"></script>
-<script src="shared.js?v=10"></script>
-<script src="hub.js?v=10"></script>
-<script src="components.js?v=10"></script>
-<script src="relatorio.js?v=10"></script>
-<script src="app.js?v=10"></script>
-<script src="admin.js?v=10"></script>
+<script src="config.js?v=11"></script>
+<script src="shared.js?v=11"></script>
+<script src="hub.js?v=11"></script>
+<script src="components.js?v=11"></script>
+<script src="relatorio.js?v=11"></script>
+<script src="app.js?v=11"></script>
+<script src="admin.js?v=11"></script>
 </body>
 </html>

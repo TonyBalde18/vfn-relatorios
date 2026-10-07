@@ -987,9 +987,17 @@ function initCalendarioAdmin() {
   initMarcadoresJogo();
 }
 
-/* ---- Marcadores do VFN no jogo (matches.scorer_list), sem precisar de relatório ---- */
+/*
+ * ---- Marcadores do jogo (matches.scorer_list), sem precisar de relatório ----
+ * Não há tabela "goals": os golos do jogo ficam em matches.scorer_list (jsonb), no formato de
+ * league_results.scorer_list, com o lado em "team":
+ *   VFN:        { team: "vfn", player_id, player_name, team_id: <id do VFN>, count }
+ *   adversário: { team: "adversario", player_name, minute, team_id: <id do adversário ou null>, count: 1 }
+ * Entradas antigas sem "team" são do VFN. Não é preciso alterar o schema (o jsonb aceita os campos novos).
+ */
 
 let marcadoresJogo = []; // [{ player_id, count }]
+let marcadoresAdvJogo = []; // [{ player_name, minute }] — um golo por linha
 
 function renderMarcadoresJogo() {
   const opcoes = sel => '<option value="">— Jogador —</option>' + VFN.ordenarPorPosicao(plantel)
@@ -1002,7 +1010,25 @@ function renderMarcadoresJogo() {
     </div>`).join("");
 }
 
+function renderMarcadoresAdvJogo() {
+  el("jogoMarcadoresAdvLista").innerHTML = marcadoresAdvJogo.map((m, i) => `
+    <div class="marcador-jogo" data-i="${i}">
+      <input type="text" data-campo="player_name" value="${escapeHtml(m.player_name || "")}" placeholder="Nome do marcador" aria-label="Marcador do adversário">
+      <input type="number" data-campo="minute" min="1" max="130" value="${m.minute != null ? Number(m.minute) : ""}" placeholder="Min." aria-label="Minuto">
+      <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover golo" aria-label="Remover golo">${VFN.icone("x", 14)}</button>
+    </div>`).join("");
+}
+
 function initMarcadoresJogo() {
+  el("btnJogoAddMarcadorAdv").addEventListener("click", () => { marcadoresAdvJogo.push({ player_name: "", minute: null }); renderMarcadoresAdvJogo(); });
+  el("jogoMarcadoresAdvLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresAdvJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresAdvJogo(); } });
+  el("jogoMarcadoresAdvLista").addEventListener("input", e => {
+    const linha = e.target.closest(".marcador-jogo");
+    if (!linha) return;
+    const m = marcadoresAdvJogo[Number(linha.dataset.i)];
+    if (e.target.dataset.campo === "minute") m.minute = e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 1);
+    else m.player_name = e.target.value;
+  });
   el("btnJogoAddMarcador").addEventListener("click", () => { marcadoresJogo.push({ player_id: "", count: 1 }); renderMarcadoresJogo(); });
   el("jogoMarcadoresLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresJogo(); } });
   el("jogoMarcadoresLista").addEventListener("change", e => {
@@ -1013,20 +1039,29 @@ function initMarcadoresJogo() {
   });
 }
 
+/** Golos do adversário a gravar (linhas com nome), por ordem do minuto. */
+function golosAdversarioDoModal(idAdversario) {
+  return marcadoresAdvJogo.filter(m => (m.player_name || "").trim())
+    .map(m => ({ team: "adversario", player_name: m.player_name.trim(), minute: m.minute != null ? Number(m.minute) : null, team_id: idAdversario || null, count: 1 }))
+    .sort((a, b) => (a.minute == null ? 999 : a.minute) - (b.minute == null ? 999 : b.minute));
+}
+
 /**
- * scorer_list a gravar: a lista (mesmo jogador somado); [] num jogo jogado em que o VFN não marcou;
+ * scorer_list a gravar: marcadores do VFN (mesmo jogador somado) + golos do adversário;
+ * [] num jogo jogado sem golos lançados em que o VFN não marcou;
  * null quando não se sabe (assim a liga não perde golos de jogos sem marcadores lançados).
  */
-function scorerListDoModal(golosVFN, jogado) {
+function scorerListDoModal(golosVFN, jogado, idAdversario) {
   const idVFN = String(VFN.equipaVFN(equipasCalendario).id);
   const porJogador = new Map();
   marcadoresJogo.filter(m => m.player_id).forEach(m => {
     const j = jogadorPorIdBD(m.player_id);
-    const atual = porJogador.get(m.player_id) || { player_id: m.player_id, player_name: j ? j.nome : m.player_id, team_id: idVFN, count: 0 };
+    const atual = porJogador.get(m.player_id) || { team: "vfn", player_id: m.player_id, player_name: j ? j.nome : m.player_id, team_id: idVFN, count: 0 };
     atual.count += Math.max(1, Number(m.count) || 1);
     porJogador.set(m.player_id, atual);
   });
-  if (porJogador.size) return [...porJogador.values()];
+  const adversario = golosAdversarioDoModal(idAdversario);
+  if (porJogador.size || adversario.length) return [...porJogador.values(), ...adversario];
   return jogado && golosVFN === 0 ? [] : null;
 }
 
@@ -1131,8 +1166,11 @@ function abrirModalJogo(jogo) {
   el("jogoLocal").value = jogo ? jogo.venue || "" : "";
   localJogoManual = !!(jogo && jogo.venue);
   preencherLocalJogo();
-  marcadoresJogo = (jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : []).map(s => ({ player_id: String(s.player_id || ""), count: Number(s.count) || 1 }));
+  const listaJogo = jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : [];
+  marcadoresJogo = listaJogo.filter(s => !VFN.eGoloAdversario(s)).map(s => ({ player_id: String(s.player_id || ""), count: Number(s.count) || 1 }));
+  marcadoresAdvJogo = listaJogo.filter(VFN.eGoloAdversario).map(s => ({ player_name: s.player_name || "", minute: s.minute != null ? Number(s.minute) : null }));
   renderMarcadoresJogo();
+  renderMarcadoresAdvJogo();
   el("jogoPenaltis").value = jogo && jogo.winner_id ? (String(jogo.winner_id) === String(jogo.opponent_team_id) ? "adv" : "vfn") : "";
   atualizarPenaltisJogo();
   el("jogoErro").textContent = "";
@@ -1153,8 +1191,11 @@ async function guardarJogo() {
   const gVFN = el("jogoGolosVFN").value, gAdv = el("jogoGolosAdv").value;
   // os marcadores não podem somar mais golos do que o VFN marcou (podem somar menos: auto-golos do adversário)
   const golosMarcadores = marcadoresJogo.filter(m => m.player_id).reduce((s, m) => s + (Number(m.count) || 1), 0);
+  const golosAdvLancados = golosAdversarioDoModal(null).length;
   const erro = !data ? "Indica a data do jogo." : !nomeAdv ? "Indica o adversário." : (estado === "jogado" && (gVFN === "" || gAdv === "")) ? "Para um jogo jogado indica o resultado."
-    : golosMarcadores && gVFN !== "" && golosMarcadores > Number(gVFN) ? `Os marcadores somam ${golosMarcadores} golos, mas o VFN marcou ${gVFN}.` : "";
+    : golosMarcadores && gVFN !== "" && golosMarcadores > Number(gVFN) ? `Os marcadores somam ${golosMarcadores} golos, mas o VFN marcou ${gVFN}.`
+    : golosAdvLancados && gAdv !== "" && golosAdvLancados > Number(gAdv) ? `Há ${golosAdvLancados} golos do adversário lançados, mas o adversário marcou ${gAdv}.`
+    : marcadoresAdvJogo.some(m => !(m.player_name || "").trim() && m.minute != null) ? "Indica o nome do marcador do adversário (ou remove a linha)." : "";
   el("jogoErro").textContent = erro;
   if (erro) return;
   const casa = el("jogoCasaFora").value === "Casa";
@@ -1184,7 +1225,7 @@ async function guardarJogo() {
   if (taca) linha.phase = fase || null;
   else if (jogoEmEdicao && "phase" in jogoEmEdicao) linha.phase = null;
   // scorer_list só vai no pedido quando há o que gravar (ou já existia), para funcionar antes do SQL de 03/10
-  const listaMarcadores = scorerListDoModal(gVFN === "" ? null : Number(gVFN), estado === "jogado");
+  const listaMarcadores = scorerListDoModal(gVFN === "" ? null : Number(gVFN), estado === "jogado", equipa ? equipa.id : null);
   if (listaMarcadores !== null || (jogoEmEdicao && "scorer_list" in jogoEmEdicao)) linha.scorer_list = listaMarcadores;
   const botao = el("btnJogoGuardar");
   botao.disabled = true;

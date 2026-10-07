@@ -851,7 +851,7 @@ function marcadoresDoJogo() {
   state.jogo.eventos.filter(ev => ev.equipa === "VFN" && ev.tipo === "Golo" && ev.jogadorId).forEach(ev => {
     const j = jogadorPorId(ev.jogadorId);
     const id = j ? idJogadorBD(j) : String(ev.jogadorId);
-    const atual = porJogador.get(id) || { player_id: id, player_name: j ? j.nome : nomeJogador(ev.jogadorId), team_id: idVFN, count: 0 };
+    const atual = porJogador.get(id) || { team: "vfn", player_id: id, player_name: j ? j.nome : nomeJogador(ev.jogadorId), team_id: idVFN, count: 0 };
     atual.count++;
     porJogador.set(id, atual);
   });
@@ -870,9 +870,11 @@ async function registarResultadoNoCalendario() {
     score_away: casa ? state.jogo.golosAdversario : state.jogo.golosVFN
   };
   // os marcadores do relatório só substituem os lançados à mão no jogo quando o relatório os tem
-  // (ou o VFN não marcou); um relatório sem os golos registados não apaga a lista
+  // (ou o VFN não marcou); um relatório sem os golos registados não apaga a lista.
+  // Os golos do adversário lançados no jogo (team = "adversario") mantêm-se sempre.
   const marcadores = marcadoresDoJogo();
-  if (marcadores.length || Number(state.jogo.golosVFN) === 0) atualizado.scorer_list = marcadores;
+  const golosAdversario = (Array.isArray(jogo.scorer_list) ? jogo.scorer_list : []).filter(VFN.eGoloAdversario);
+  if (marcadores.length || Number(state.jogo.golosVFN) === 0) atualizado.scorer_list = [...marcadores, ...golosAdversario];
   try {
     let gravado;
     try {

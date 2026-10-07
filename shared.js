@@ -250,6 +250,11 @@
     return String(jogo && jogo.status || "").trim().toLowerCase();
   }
 
+  /** Entrada de matches.scorer_list que é um golo do adversário ({ team: "adversario", player_name, minute }). */
+  function eGoloAdversario(s) {
+    return !!s && s.team === "adversario";
+  }
+
   function golosJogo(jogo) {
     const casa = jogo.score_home, fora = jogo.score_away;
     if (casa == null || fora == null || casa === "" || fora === "") return null;
@@ -1156,7 +1161,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,

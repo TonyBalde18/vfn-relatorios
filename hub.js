@@ -261,7 +261,7 @@
     const porId = id => (jogadoresVFN || []).find(j => String(j.id) === String(id) || String(j.id).endsWith("-" + id)) || null;
     if (temMarcadoresPorJogo(dados, competicao)) {
       const mapa = new Map();
-      VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && Array.isArray(j.scorer_list)).forEach(j => j.scorer_list.forEach(s => {
+      VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && Array.isArray(j.scorer_list)).forEach(j => j.scorer_list.filter(s => !VFN.eGoloAdversario(s)).forEach(s => {
         const jogador = porId(s.player_id);
         const chave = jogador ? String(jogador.id) : `nome:${s.player_name}`;
         const atual = mapa.get(chave) || { nome: jogador ? jogador.nome : s.player_name || "?", teamId: vfn, golos: 0, vfn: true, jogador };
@@ -821,10 +821,14 @@
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
       return { origem: "liga", id: r.id, jornada: numero(r.phase, r.jornada), fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, golosCasa: doLado(r.scorer_list, casa.id), golosFora: doLado(r.scorer_list, fora.id), notas: r.scorers || "", data: r.match_date || null, registo: r };
     });
+    // jogos do VFN: o lado vem de "team" (golos do adversário: team = "adversario", mesmo sem team_id)
+    const doLadoVFN = (lista, eVFN) => (Array.isArray(lista) ? lista : []).filter(s => VFN.eGoloAdversario(s) !== eVFN)
+      .map(s => ({ nome: `${s.player_name || "?"}${s.minute != null ? ` ${s.minute}'` : ""}`, golos: Number(s.count) || 1 }));
     const vfn = VFN.jogosDoVFN(dados.matches).filter(j => j.competition === competicao && VFN.estadoJogo(j) !== "cancelado").map(j => {
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
       const jogado = VFN.estadoJogo(j) === "jogado";
-      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, golosCasa: doLado(j.scorer_list, casa.id), golosFora: doLado(j.scorer_list, fora.id), notas: "", data: j.date };
+      const emCasa = VFN.jogoEmCasa(j);
+      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, golosCasa: doLadoVFN(j.scorer_list, emCasa), golosFora: doLadoVFN(j.scorer_list, !emCasa), notas: "", data: j.date };
     });
     return [...liga, ...vfn];
   }
@@ -1056,7 +1060,12 @@
       data = j.date; comp = j.competition; local = VFN.estadioDoJogo(j, dados.teams).nome || (VFN.jogoEmCasa(j) ? "Casa (VFN)" : `Fora · ${fora.nome === "ACD Vila Franca das Naves" ? casa.nome : fora.nome}`); jornada = VFN.etiquetaJornada(j, true);
       relatorio = relatorioDoJogo(dados, j.id);
       eventos = eventosDoRelatorio(relatorio, o.nomeJogador);
-      // sem eventos no relatório, os golos do VFN não são conhecidos; o lado VFN fica à esquerda/direita conforme casa/fora
+      // sem eventos no relatório, usa os golos lançados no jogo (matches.scorer_list: VFN e adversário)
+      if (!eventos.length && Array.isArray(j.scorer_list)) {
+        eventos = j.scorer_list.map(s => ({ minuto: s.minute != null ? Number(s.minute) : null, tipo: "Golo", texto: `${s.player_name || "?"}${Number(s.count) > 1 ? " ×" + s.count : ""}`, vfn: !VFN.eGoloAdversario(s) }))
+          .sort((a, b) => (a.minuto == null ? 999 : a.minuto) - (b.minuto == null ? 999 : b.minuto));
+      }
+      // o lado VFN fica à esquerda/direita conforme casa/fora
       eventos.forEach(e => { e.lado = e.neutro ? "centro" : (e.vfn === VFN.jogoEmCasa(j)) ? "casa" : "fora"; });
     } else {
       const r = (dados.league_results || []).find(x => String(x.id) === id);
