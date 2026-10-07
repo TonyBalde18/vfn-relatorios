@@ -235,6 +235,10 @@
 /* Área do Jogador: botão claro (cadeado + texto), também no telemóvel */
 .public-entrar { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 0; border-radius: 999px; background: var(--vfn-yellow); color: var(--vfn-navy); font-size: .85rem; font-weight: 800; white-space: nowrap; box-shadow: 0 2px 10px rgba(255,215,0,.3); }
 .public-entrar:hover, .public-entrar:focus-visible { background: #fff; color: var(--vfn-navy); }
+/* o texto do botão herda o navy (a regra .public-header span, do subtítulo, deixava-o cinzento claro e pequeno sobre o amarelo); navy #0A1628 sobre #FFD700 = 13,6:1 */
+.public-header .public-entrar, .public-header .public-entrar span { color: var(--vfn-navy); font-size: inherit; text-decoration: none; }
+.public-header .public-entrar span { font-size: .85rem; }
+@media (max-width: 420px) { .public-header .public-entrar span { font-size: .78rem; } }
 @media (max-width: 420px) { .public-entrar { padding: 7px 11px; font-size: .78rem; gap: 5px; } .public-header-texto span { display: none; } }
 .area-jogador-cta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 16px; padding: 14px 18px; border: 2px solid var(--vfn-yellow); background: linear-gradient(135deg, var(--vfn-navy), #13284a); color: #fff; text-decoration: none; }
 .area-jogador-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,22,40,.2); }
