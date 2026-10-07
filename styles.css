@@ -1906,7 +1906,9 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 /* ---------- v7: tipo de relvado (pill pequeno, inline com o nome do estádio) ---------- */
 .surface-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: 1px; }
 .surface-badge.relva_natural { background: rgba(22, 163, 74, .15); color: #166534; }
-.surface-badge.sintetica { background: rgba(37, 99, 235, .15); color: #1e40af; }
+.surface-badge.sintetica { background: rgba(74, 222, 128, .16); color: #166534; }
+.surface-badge .ic-relvado { flex: 0 0 auto; width: 20px; height: 20px; margin: -3px 1px -3px -3px; }
+.surface-badge { gap: 4px; }
 .surface-badge.terra_batida { background: rgba(146, 64, 14, .15); color: #92400e; }
 .surface-badge.desconhecido { background: rgba(100, 116, 139, .15); color: #475569; }
 .jds-card .surface-badge { background: rgba(255,255,255,.16); color: #fff; }

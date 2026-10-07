@@ -1112,10 +1112,37 @@
   }
 
   /** Tipo de relvado (teams.surface_type) → badge pequeno: 🟢 Relva Natural, 🔵 Sintética, 🟤 Terra Batida, ⚪ Desconhecido. */
-  const SUPERFICIES = { relva_natural: ["🟢", "Relva Natural"], sintetica: ["🔵", "Sintética"], terra_batida: ["🟤", "Terra Batida"], desconhecido: ["⚪", "Desconhecido"] };
+  /*
+   * Tipo de relvado: SVG inline de 20×20 com a textura de cada piso (sem imagens nem emojis).
+   * Sintético: hexágonos ligados (#4ade80); natural: lâminas curvas irregulares (#22c55e);
+   * terra batida / pelado: grão e sulcos irregulares (#92400e).
+   */
+  const SUPERFICIES = { relva_natural: "Relva Natural", sintetica: "Sintética", terra_batida: "Terra Batida", desconhecido: "Desconhecido" };
+  const hexagonos = (() => {
+    // favo de hexágonos (raio 3,2) a cobrir o quadrado 20×20
+    const r = 3.2, w = Math.sqrt(3) * r, caminhos = [];
+    for (let linha = 0; linha < 5; linha++) for (let col = 0; col < 5; col++) {
+      const cx = col * w + (linha % 2 ? w / 2 : 0) - 1, cy = linha * r * 1.5 + 1;
+      if (cx > 22 || cy > 22) continue;
+      const p = Array.from({ length: 6 }, (_, k) => { const a = Math.PI / 180 * (60 * k - 90); return `${(cx + r * Math.cos(a)).toFixed(1)} ${(cy + r * Math.sin(a)).toFixed(1)}`; });
+      caminhos.push("M" + p.join("L") + "Z");
+    }
+    return caminhos.join("");
+  })();
+  const SVG_RELVADO = {
+    sintetica: `<path d="${hexagonos}" fill="none" stroke="#4ade80" stroke-width="1.1" stroke-linejoin="round"/>`,
+    relva_natural: '<g fill="none" stroke="#22c55e" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 19c.6-4.5-.4-8 1.6-12.5"/><path d="M6 19c-.3-3.4 1.3-6.2.6-10.8"/><path d="M9.6 19c.8-5.2-.9-9.4 1.3-15.2"/><path d="M13.2 19c-.6-3.6 1-6.9.2-11.4"/><path d="M16.8 19c.4-4.1-.7-7.4 1.2-12.2"/><path d="M4.2 19c1.5-2.5 3.4-3.8 5.6-4.4"/><path d="M11.7 19c1.7-2.9 3.9-4.2 6.1-4.6"/></g>',
+    terra_batida: '<g fill="#92400e"><circle cx="3" cy="4" r="1.1"/><circle cx="8.5" cy="2.8" r=".7"/><circle cx="14" cy="4.6" r="1.3"/><circle cx="18" cy="2.6" r=".6"/><circle cx="5.6" cy="9" r=".8"/><circle cx="11.2" cy="8.3" r="1.2"/><circle cx="16.8" cy="9.6" r=".9"/><circle cx="2.4" cy="14.2" r=".7"/><circle cx="8" cy="13.6" r="1"/><circle cx="13.6" cy="14.8" r=".7"/><circle cx="18.2" cy="15.4" r="1.2"/><circle cx="5" cy="18.4" r="1"/><circle cx="11" cy="18.6" r=".8"/><circle cx="16" cy="18.8" r=".6"/></g><g fill="none" stroke="#92400e" stroke-width=".8" stroke-linecap="round" opacity=".7"><path d="M1 6.6c3 .9 5.4-.8 8.6.2s5.9-.6 9.4.4"/><path d="M1 11.6c2.6-.6 5.2.9 8.1.1s6.1.8 9.9-.3"/><path d="M1 16.4c3.4.7 5.8-.6 9 .3s5.5-.5 9 .2"/></g>',
+    desconhecido: '<rect x="2.5" y="2.5" width="15" height="15" rx="3" fill="none" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="2.5 2"/>'
+  };
+  /** Ícone SVG (20×20) do tipo de relvado. */
+  function iconeRelvado(tipo) {
+    const t = SVG_RELVADO[tipo] ? tipo : "desconhecido";
+    return `<svg class="ic-relvado" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">${SVG_RELVADO[t]}</svg>`;
+  }
   function badgeRelvado(tipo) {
     const t = SUPERFICIES[tipo] ? tipo : "desconhecido";
-    return `<span class="surface-badge ${t}" title="Tipo de relvado"><span aria-hidden="true">${SUPERFICIES[t][0]}</span> ${SUPERFICIES[t][1]}</span>`;
+    return `<span class="surface-badge ${t}" title="Tipo de relvado">${iconeRelvado(t)}${SUPERFICIES[t]}</span>`;
   }
 
   /** Distância em km entre dois pontos (fórmula de haversine). */
@@ -1367,7 +1394,7 @@
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
