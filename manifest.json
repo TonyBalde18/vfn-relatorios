@@ -1,0 +1,21 @@
+{
+  "name": "HUB VFN",
+  "short_name": "VFN",
+  "description": "ACD Vila Franca das Naves — jogos, resultados, classificação, plantel e Área do Jogador.",
+  "lang": "pt-PT",
+  "start_url": "./public.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Área do Jogador", "short_name": "Jogador", "url": "./equipa.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Dashboard da equipa técnica", "short_name": "Dashboard", "url": "./dashboard.html", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
