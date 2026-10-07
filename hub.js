@@ -880,7 +880,7 @@
       const { casa, fora } = VFN.equipasDoJogo(j, dados.teams);
       const jogado = VFN.estadoJogo(j) === "jogado";
       const emCasa = VFN.jogoEmCasa(j);
-      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, golosCasa: doLadoVFN(j.scorer_list, emCasa), golosFora: doLadoVFN(j.scorer_list, !emCasa), notas: "", data: j.date };
+      return { origem: "vfn", id: j.id, jornada: numero(j.phase, j.jornada), fase: VFN.faseDoJogo(j.phase, j.jornada), vencedor: j.winner_id ? String(j.winner_id) : "", casa, fora, gc: jogado ? j.score_home : null, gf: jogado ? j.score_away : null, golosCasa: doLadoVFN(j.scorer_list, emCasa), golosFora: doLadoVFN(j.scorer_list, !emCasa), notas: j.notes || "", data: j.date };
     });
     return [...liga, ...vfn];
   }
@@ -1119,6 +1119,7 @@
       }
       // o lado VFN fica à esquerda/direita conforme casa/fora
       eventos.forEach(e => { e.lado = e.neutro ? "centro" : (e.vfn === VFN.jogoEmCasa(j)) ? "casa" : "fora"; });
+      if (j.notes) eventos.push({ minuto: null, tipo: "Nota", texto: j.notes, lado: "centro" });
     } else {
       const r = (dados.league_results || []).find(x => String(x.id) === id);
       if (!r) return vazio("Jogo não encontrado.");

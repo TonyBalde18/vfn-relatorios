@@ -1208,6 +1208,7 @@ function abrirModalJogo(jogo) {
   el("jogoGolosVFN").value = g ? g.vfn : "";
   el("jogoGolosAdv").value = g ? g.adv : "";
   el("jogoLocal").value = jogo ? jogo.venue || "" : "";
+  el("jogoNotas").value = jogo ? jogo.notes || "" : "";
   localJogoManual = !!(jogo && jogo.venue);
   preencherLocalJogo();
   const listaJogo = jogo && Array.isArray(jogo.scorer_list) ? jogo.scorer_list : [];
@@ -1258,7 +1259,8 @@ async function guardarJogo() {
     status: estado,
     score_home: temResultado ? Number(casa ? gVFN : gAdv) : null,
     score_away: temResultado ? Number(casa ? gAdv : gVFN) : null,
-    venue: el("jogoLocal").value.trim() || null
+    venue: el("jogoLocal").value.trim() || null,
+    notes: el("jogoNotas").value.trim() || null // notas do jogo (ex.: autogolos), como as das Jornadas
   };
   // winner_id só vai no pedido quando faz falta (ou já existia), para funcionar antes do SQL v4
   const penaltis = el("jogoPenaltisWrap").hidden ? "" : el("jogoPenaltis").value;
