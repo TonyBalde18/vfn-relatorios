@@ -720,7 +720,7 @@ function renderProximoJogoPreJogo() {
     <div class="next-match-teams">${casa ? vfn : adv}<span class="vs">vs</span>${casa ? adv : vfn}</div>
     <div class="next-match-meta">
       <span>${escapeHtml(VFN.dataLonga(jogo.date, true))}</span>
-      <span><span class="comp-tag comp-${VFN.categoriaCompeticao(jogo.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(jogo.competition))}</span>${jogo.jornada ? ` · Jornada ${escapeHtml(jogo.jornada)}` : ""} · ${casa ? "Casa" : "Fora"}</span>
+      <span>${VFNHub.tagCompeticao(jogo.competition)}${jogo.jornada ? ` · Jornada ${escapeHtml(jogo.jornada)}` : ""} · ${casa ? "Casa" : "Fora"}</span>
       <span>Faltam <span class="countdown">${escapeHtml(VFN.contagemDecrescente(jogo.date))}</span></span>
     </div>
     <button type="button" id="btnUsarProximoJogo" class="btn ${associado ? "btn-ghost" : "btn-accent"} btn-sm">${associado ? `${VFN.icone("check", 16)} Associado a este relatório` : "Usar dados deste jogo"}</button>

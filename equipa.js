@@ -155,7 +155,7 @@ function renderCompeticoes() {
   eq.value = equipas.some(t => t.id === filtrosComp.equipa) ? filtrosComp.equipa : "";
   $("eqJornOrdem").innerHTML = `${VFN.icone(filtrosComp.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosComp.ordem === "asc" ? "↑" : "↓"}`;
   $("eqJornModos").querySelector(".seg-rotulo-tabela").textContent = VFN.eliminatorias(filtrosComp.competicao) ? "Bracket" : "Classificação";
-  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosComp.competicao); });
+  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.innerHTML = VFN.nomeCompeticaoHTML(filtrosComp.competicao, true); });
   $("eqJornTabela").innerHTML = H.classificacaoHTML(dados, filtrosComp.competicao);
   $("eqJornLista").innerHTML = H.jornadasHTML(dados, filtrosComp);
   $("eqJornMarcadoresVFN").innerHTML = H.marcadoresVFNCompeticaoHTML(dados, jogadores, filtrosComp.competicao, 10);
@@ -351,7 +351,7 @@ function renderRelatorios() {
     return `<button type="button" class="historico-item${relatorioAberto === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
       <span class="historico-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
-      <small>${esc([VFN.dataDDMMAAAA(d.data), VFN.nomeCurtoCompeticao(d.competicao)].filter(Boolean).join(" · "))}</small></span>
+      <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("") : H.vazio("Ainda não há relatórios publicados.");
 }

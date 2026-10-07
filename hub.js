@@ -55,7 +55,7 @@
   }
 
   function tagCompeticao(comp) {
-    return `<span class="comp-tag comp-${VFN.categoriaCompeticao(comp)}">${esc(VFN.nomeCurtoCompeticao(comp))}</span>`;
+    return `<span class="comp-tag comp-${VFN.categoriaCompeticao(comp)}">${VFN.logoSponsorHTML(comp)}${esc(VFN.nomeCurtoCompeticao(comp))}</span>`;
   }
 
   function vazio(texto) {
@@ -117,7 +117,7 @@
     const lado = (quem, golos) => `<div class="hero-team">${quem === "vfn" ? logoEquipa({ logo_url: logoVFN(dados) }, "VFN", "hero-logo") : logoEquipa(equipa(dados, j.opponent_team_id), nome, "hero-logo")}<strong>${quem === "vfn" ? "VFN" : esc(nome)}</strong><span class="big-score">${golos}</span></div>`;
     return `<div class="hero-head"><h2 class="hub-card-title">Último resultado</h2>${VFN.chipForma(VFN.letraResultado(j))}</div>
       <div class="hero-teams compact">${casa ? lado("vfn", g.vfn) : lado("adv", g.adv)}<span class="hero-vs">–</span>${casa ? lado("adv", g.adv) : lado("vfn", g.vfn)}</div>
-      <div class="hero-meta"><span>${esc(VFN.dataLonga(j.date))} · ${esc(VFN.nomeCurtoCompeticao(j.competition))}</span></div>`;
+      <div class="hero-meta"><span>${esc(VFN.dataLonga(j.date))} · ${VFN.nomeCompeticaoHTML(j.competition, true)}</span></div>`;
   }
 
   /* ---------- Classificação ---------- */
@@ -191,11 +191,13 @@
 
   /** Tabela classificativa (taças: bracket), sempre no estilo escuro, com DG, zonas e legenda. */
   function classificacaoHTML(dados, competicao) {
-    if (VFN.eliminatorias(competicao)) return bracketHTML(dados, competicao);
+    const cabecalho = `<p class="classificacao-comp">${VFN.nomeCompeticaoHTML(competicao)}</p>`;
+    if (VFN.eliminatorias(competicao)) return cabecalho + bracketHTML(dados, competicao);
     // calculada a partir dos resultados em matches (não usa a tabela standings)
     const linhas = VFN.calcularClassificacao(dados.matches, dados.teams, competicao, dados.league_results);
     if (!linhas.length) return vazio("Classificação ainda não disponível.");
     return `<div class="classificacao-bloco tabela-escura" data-competicao="${esc(competicao)}">
+      ${cabecalho}
       <div class="table-wrap"><table class="standings-compact" data-ordenar="classificacao">
       <thead><tr><th scope="col" data-tipo="numero">Pos</th><th scope="col" class="team-col" data-tipo="texto">Equipa</th><th scope="col" data-tipo="numero">J</th><th scope="col" data-tipo="numero">V</th><th scope="col" data-tipo="numero">E</th><th scope="col" data-tipo="numero">D</th><th scope="col" class="hide-xs" data-tipo="numero">GM</th><th scope="col" class="hide-xs" data-tipo="numero">GS</th><th scope="col" data-tipo="numero" title="Diferença de golos">DG</th><th scope="col" data-tipo="numero">Pts</th></tr></thead>
       <tbody>${linhas.map((s, i) => {
@@ -1023,7 +1025,7 @@
       html += `<div class="ultimo-jogo">
         <span class="forma-rotulo">Último jogo</span>
         <strong>${esc(u.casa.nome)} ${u.gc}–${u.gf} ${esc(u.fora.nome)}</strong>
-        <span class="muted">${u.data ? esc(VFN.dataDDMMAAAA(u.data)) + " · " : ""}${u.jornada ? "J" + u.jornada + " · " : ""}${esc(VFN.nomeCurtoCompeticao(u.competicao))}</span>
+        <span class="muted">${u.data ? esc(VFN.dataDDMMAAAA(u.data)) + " · " : ""}${u.jornada ? "J" + u.jornada + " · " : ""}${VFN.nomeCompeticaoHTML(u.competicao, true)}</span>
         <span class="resultado-equipa res-${u.letra}">${VFN.icone(icone[u.letra], 16)} ${texto[u.letra]}</span>
       </div>
       <div class="forma-linha"><span class="forma-rotulo">Forma</span><div class="form-row" aria-label="Últimos ${Math.min(5, jogos.length)} jogos, mais recente à esquerda">${jogos.slice(0, 5).map(j => VFN.chipForma(j.letra).replace("<span ", `<span title="${esc(j.casa.nome)} ${j.gc}–${j.gf} ${esc(j.fora.nome)}" `)).join("")}</div></div>`;
@@ -1106,7 +1108,7 @@
       <h4 class="perfil-subtitulo">Jogos contra o VFN</h4>
       ${jogosVFN.length ? `<ul class="perfil-jogos">${jogosVFN.map(j => {
         const g = VFN.estadoJogo(j) === "jogado" ? VFN.golosJogo(j) : null;
-        return `<li>${g ? VFN.chipForma(VFN.letraResultado(j)) : VFN.badgeEstado(j)}<span>${esc(VFN.dataDDMMAAAA(j.date))}</span><span class="muted">${esc(VFN.nomeCurtoCompeticao(j.competition))}${j.jornada ? " · J" + esc(j.jornada) : ""} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</span><strong>${g ? `VFN ${g.vfn}–${g.adv}` : esc(VFN.horaIso(j.date) !== "00:00" ? VFN.horaIso(j.date) : "")}</strong></li>`;
+        return `<li>${g ? VFN.chipForma(VFN.letraResultado(j)) : VFN.badgeEstado(j)}<span>${esc(VFN.dataDDMMAAAA(j.date))}</span><span class="muted">${VFN.nomeCompeticaoHTML(j.competition, true)}${j.jornada ? " · J" + esc(j.jornada) : ""} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</span><strong>${g ? `VFN ${g.vfn}–${g.adv}` : esc(VFN.horaIso(j.date) !== "00:00" ? VFN.horaIso(j.date) : "")}</strong></li>`;
       }).join("")}</ul>` : vazio("Sem jogos com o VFN no calendário.")}
       <h4 class="perfil-subtitulo">Jogadores conhecidos</h4>
       ${jogadores.length ? `<ul class="perfil-jogadores">${jogadores.map(p => {

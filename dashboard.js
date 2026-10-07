@@ -355,7 +355,7 @@ function renderHistorico() {
     return `<button type="button" class="historico-item${relatorioAberto && String(relatorioAberto.id) === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
       <span class="historico-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
-      <small>${esc([VFN.dataDDMMAAAA(d.data), VFN.nomeCurtoCompeticao(d.competicao)].filter(Boolean).join(" · "))}</small></span>
+      <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("");
 }
@@ -664,7 +664,7 @@ function renderJornadas() {
   $("dbJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   $("dbJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
   $("dbJornModos").querySelector(".seg-rotulo-tabela").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
-  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosJornadas.competicao); });
+  document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.innerHTML = VFN.nomeCompeticaoHTML(filtrosJornadas.competicao, true); });
   $("dbJornTabela").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
   $("dbJornMarcadoresVFN").innerHTML = H.marcadoresVFNCompeticaoHTML(dados, jogadores, filtrosJornadas.competicao, 10);
   $("dbJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);

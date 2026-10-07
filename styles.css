@@ -1994,6 +1994,14 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .jds-card.com-estadio::before { opacity: .16; }
 .leaflet-popup-content-wrapper.com-estadio::before { opacity: .12; }
 
+/* logo do patrocinador ao lado do nome da competição (VFN.logoSponsorHTML), até 20px de altura */
+.comp-nome { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+.comp-logo { flex: 0 0 auto; box-sizing: content-box; width: auto; height: auto; max-height: 18px; max-width: 54px; padding: 1px 3px; border-radius: 3px; background: #fff; object-fit: contain; vertical-align: middle; } /* fundo branco: logos escuros legíveis em fundos escuros */
+.comp-tag { display: inline-flex; align-items: center; gap: 5px; }
+.comp-tag .comp-logo { max-height: 14px; max-width: 40px; padding: 1px 2px; }
+.classificacao-comp { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: .85rem; font-weight: 700; }
+.classificacao-comp .comp-logo { max-height: 18px; }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

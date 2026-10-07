@@ -322,7 +322,7 @@
         <div><strong>${casa ? "VFN vs " + esc(nome) : esc(nome) + " vs VFN"}</strong><span>${VFN.icone(casa ? "house" : "bus", 14)} ${casa ? "Casa" : "Fora"}</span></div>
         ${g && VFN.estadoJogo(jogo) === "jogado" ? `<span class="dia-resultado res-${VFN.letraResultado(jogo)}">${g.vfn}–${g.adv}</span>` : ""}</div>
       <dl class="dia-info">
-        <div><dt>Competição</dt><dd>${esc(jogo.competition || "—")}</dd></div>
+        <div><dt>Competição</dt><dd>${VFN.nomeCompeticaoHTML(jogo.competition)}</dd></div>
         ${fase ? `<div><dt>Fase</dt><dd>${esc(fase)}</dd></div>` : jogo.jornada ? `<div><dt>Jornada</dt><dd>${esc(jogo.jornada)}</dd></div>` : ""}
         <div><dt>Data</dt><dd>${esc(VFN.dataLonga(jogo.date))}</dd></div>
         <div><dt>Hora</dt><dd>${hora && hora !== "00:00" ? esc(hora) : "—"}</dd></div>
@@ -702,7 +702,7 @@
           <span><b data-parte="d">${c.d}</b><small>dias</small></span><i>:</i><span><b data-parte="h">${String(c.h).padStart(2, "0")}</b><small>horas</small></span><i>:</i><span><b data-parte="m">${String(c.m).padStart(2, "0")}</b><small>min</small></span>
         </div>
         <dl class="jds-info">
-          <div><dt>Competição</dt><dd>${esc(jogo.competition || "—")}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</dd></div>
+          <div><dt>Competição</dt><dd>${VFN.nomeCompeticaoHTML(jogo.competition)}${VFN.etiquetaJornada(jogo) ? " · " + esc(VFN.etiquetaJornada(jogo)) : ""}</dd></div>
           <div><dt>Data</dt><dd>${esc(VFN.dataLonga(jogo.date))}</dd></div>
           <div><dt>Hora</dt><dd>${hora && hora !== "00:00" ? esc(hora) : "—"}</dd></div>
           <div><dt>Local</dt><dd>${casa ? "Casa" : "Fora"}${estadio ? " · " + esc(estadio) : ""} ${VFN.badgeRelvado(est.relvado)}</dd></div>

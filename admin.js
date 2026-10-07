@@ -1170,7 +1170,7 @@ function renderCalendarioAdmin() {
     const g = VFN.golosJogo(j);
     return `<tr data-id="${escapeHtml(j.id)}" class="${proximo && proximo.id === j.id ? "is-vfn-row" : ""}">
       <td data-v="${escapeHtml(VFN.paraData(j.date) ? VFN.paraData(j.date).toISOString() : "")}">${escapeHtml(VFN.dataLonga(j.date, true))}</td>
-      <td><span class="comp-tag comp-${VFN.categoriaCompeticao(j.competition)}">${escapeHtml(VFN.nomeCurtoCompeticao(j.competition))}</span></td>
+      <td>${VFNHub.tagCompeticao(j.competition)}</td>
       <td class="num">${escapeHtml(VFN.etiquetaJornada(j, true).replace(/^J/, "") || "—")}</td>
       <td>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</td>
       <td><span class="team-inline">${logoEquipaHTML(equipaPorId(j.opponent_team_id), nome)}${escapeHtml(nome)}</span></td>
@@ -1380,7 +1380,7 @@ function renderResultados() {
   }
   container.innerHTML = grupos.map(([comp, jogos]) => `
     <section class="results-group">
-      <h3 class="results-title"><span class="comp-tag comp-${VFN.categoriaCompeticao(comp)}">${escapeHtml(VFN.nomeCurtoCompeticao(comp))}</span>${escapeHtml(comp)} <small class="muted">${jogos.length} jogo${jogos.length === 1 ? "" : "s"}</small></h3>
+      <h3 class="results-title">${VFNHub.tagCompeticao(comp)}${escapeHtml(comp)} <small class="muted">${jogos.length} jogo${jogos.length === 1 ? "" : "s"}</small></h3>
       <div class="table-wrap"><table class="data-table results-table">
         <thead><tr><th>Data</th><th class="num">J.</th><th class="team-home">Casa</th><th class="num">Resultado</th><th>Fora</th><th>Estado</th><th></th></tr></thead>
         <tbody>${jogos.map(linhaResultadoHTML).join("")}</tbody>
@@ -1515,7 +1515,7 @@ function renderJornadasAdmin() {
   renderVencedorForm();
   // Classificação (ou Bracket nas taças) | Jornadas | Marcadores
   el("jornadasModos").querySelector(".seg-rotulo-tabela").textContent = taca ? "Bracket" : "Classificação";
-  document.querySelectorAll("#tab-jornadas .seg-nome-comp").forEach(s => { s.textContent = VFN.nomeCurtoCompeticao(filtrosJornadas.competicao); });
+  document.querySelectorAll("#tab-jornadas .seg-nome-comp").forEach(s => { s.innerHTML = VFN.nomeCompeticaoHTML(filtrosJornadas.competicao, true); });
   el("jornadasTabela").innerHTML = VFNHub.classificacaoHTML(dados, filtrosJornadas.competicao);
   el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
   const jogadoresVFN = plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 }));
@@ -1899,7 +1899,7 @@ function renderHistoricoAdmin() {
     return `<tr>
       <td data-v="${escapeHtml(d.data || "")}">${escapeHtml(VFN.dataDDMMAAAA(d.data) || "—")}</td>
       <td>${escapeHtml(d.adversario)}</td>
-      <td>${escapeHtml(VFN.nomeCurtoCompeticao(d.competicao))}</td>
+      <td>${VFN.nomeCompeticaoHTML(d.competicao, true)}</td>
       <td class="num">${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN}</td>
       <td><span class="estado-relatorio ${pub ? "publicado" : "rascunho"}">${pub ? "Publicado" : "Rascunho"}</span></td>
       <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}">${VFN.icone("file-pen", 16)} Abrir</button>` : '<span class="muted">sem jogo associado</span>'}</td>

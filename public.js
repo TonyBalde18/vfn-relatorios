@@ -147,7 +147,6 @@ function renderClassificacaoPub() {
   if (!competicaoTabela) competicaoTabela = H.competicaoPreferida(dados);
   $("pubClassCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicaoTabela);
   $("pubClassTitulo").textContent = VFN.eliminatorias(competicaoTabela) ? "Bracket" : "Classificação";
-  $("pubClassNome").textContent = competicaoTabela;
   $("pubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoTabela);
 }
 

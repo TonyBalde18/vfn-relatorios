@@ -224,6 +224,26 @@
     return categoriaCompeticao(competicao) !== "amigavel";
   }
 
+  /* Logo do patrocinador de cada competição (assets/sponsors/). Sem mapeamento ou se a imagem não
+     carregar, fica só o nome (o <img> remove-se). */
+  const SPONSORS_COMPETICAO = {
+    [COMPETICOES_CLASSIFICACAO[0]]: "zero-graus.png", // 2ª Liga Futebol Zero Graus Produções
+    [COMPETICOES_SEM_VFN[0]]: "cimatavfer.png",       // 1ª Liga Futebol Cima-Tavfer
+    [COMPETICOES_CLASSIFICACAO[2]]: "fdm.png",        // Taça 2ª Liga FDM
+    [COMPETICOES_CLASSIFICACAO[1]]: "comunilog.png"   // Taça de Honra Comunilog
+  };
+
+  function logoSponsorHTML(competicao) {
+    const f = SPONSORS_COMPETICAO[normalizarCompeticao(competicao)];
+    return f ? `<img class="comp-logo" src="assets/sponsors/${f}" alt="" loading="lazy" onerror="this.remove()">` : "";
+  }
+
+  /** Logo do patrocinador + nome da competição (curto: "2ª Liga", "Taça de Honra"...). */
+  function nomeCompeticaoHTML(competicao, curto) {
+    const texto = curto ? nomeCurtoCompeticao(competicao) : (competicao || "—");
+    return `<span class="comp-nome">${logoSponsorHTML(competicao)}<span>${escapeHtml(texto)}</span></span>`;
+  }
+
   function categoriaCompeticao(competicao) {
     const s = String(competicao || "").toUpperCase();
     if (s.includes("AMIG")) return "amigavel";
@@ -1392,7 +1412,7 @@
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
-    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao,
+    normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
