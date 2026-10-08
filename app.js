@@ -235,7 +235,7 @@ async function guardarRelatorioSupabase() {
 async function sincronizarPlantelSupabase() {
   if (!supabaseClient || !currentUser) return;
   // auth_user_id nunca vai no pedido (é o jogador que liga a conta); user_id é o dono (admin)
-  const rows = plantel.map(p => ({ ...(colunaDisponibilidade ? { availability: p.disponibilidade || "disponivel" } : {}), ...(colunaEmailConta ? { email: p.email || null } : {}), id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
+  const rows = plantel.map(p => ({ ...(colunaDisponibilidade ? { availability: p.disponibilidade || "disponivel" } : {}), ...(colunaEmailConta ? { email: p.email || null } : {}), ...(colunaSubPosicao ? { sub_posicao: p.subPosicao || null, posicoes_secundarias: p.posicoesSecundarias || [] } : {}), id: idJogadorBD(p), user_id: currentUser.id, name: p.nome, display_name: p.nome || null, full_name: p.nomeCompleto || null, date_of_birth: p.nascimento || null, position: p.posicao, number: p.numero || null, photo_url: p.fotoUrl || null, attributes: p.attributes || {}, stats: { ...(p.stats || {}), jogos: p.jogos || 0, golos: p.golos || 0, assistencias: p.assistencias || 0, cartoesA: p.cartoesAmarelos || 0, cartoesV: p.cartoesVermelhos || 0, minutos: p.minutosTotais || 0, nacionalidade: p.nacionalidade || "", nascimento: p.nascimento || "", pePreferencial: p.pePreferencial || "", altura: p.altura || "", peso: p.peso || "", notas: p.notas || "" } }));
   if (!rows.length) return;
   const { error } = await supabaseClient.from("players").upsert(rows, { onConflict: "id" });
   if (error) console.warn("Não foi possível sincronizar o plantel:", error.message);
@@ -244,6 +244,7 @@ async function sincronizarPlantelSupabase() {
 let temporizadorPlantel = null;
 let colunaDisponibilidade = false; // players.availability já existe no Supabase?
 let colunaEmailConta = false; // players.email (SQL de 03/10) já existe?
+let colunaSubPosicao = false; // players.sub_posicao / posicoes_secundarias (SQL da v12) já existem?
 function sincronizarPlantelDiferido() {
   clearTimeout(temporizadorPlantel);
   temporizadorPlantel = setTimeout(sincronizarPlantelSupabase, 1500);
@@ -328,6 +329,8 @@ function migrarJogador(p) {
     nome: p.nome || "", // nome curto (players.display_name)
     nomeCompleto: p.nomeCompleto || "", // players.full_name
     posicao: (p.posicao || "—").split("/").map(c => c.trim().toUpperCase() === "AV" ? "PL" : c).join("/"), // AV passou a PL
+    subPosicao: p.subPosicao || "", // players.sub_posicao
+    posicoesSecundarias: Array.isArray(p.posicoesSecundarias) ? p.posicoesSecundarias : [], // players.posicoes_secundarias
     numero: p.numero !== undefined && p.numero !== null ? p.numero : "",
     // os valores vindos do Supabase estão em players.stats com nomes curtos
     golos: Number(p.golos ?? stats.golos) || 0,
@@ -377,7 +380,8 @@ async function carregarPlantelSupabase() {
     usados.add(id);
     if ("availability" in p) colunaDisponibilidade = true;
     if ("email" in p) colunaEmailConta = true;
-    return migrarJogador({ id, idBD: texto, disponibilidade: p.availability || "disponivel", email: p.email || "", contaLigada: !!p.auth_user_id, nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
+    if ("sub_posicao" in p) colunaSubPosicao = true;
+    return migrarJogador({ id, idBD: texto, disponibilidade: p.availability || "disponivel", email: p.email || "", contaLigada: !!p.auth_user_id, nome: p.display_name || p.name, nomeCompleto: p.full_name || "", nascimento: p.date_of_birth || "", posicao: p.position, subPosicao: p.sub_posicao || "", posicoesSecundarias: Array.isArray(p.posicoes_secundarias) ? p.posicoes_secundarias : [], numero: p.number, fotoUrl: p.photo_url, attributes: p.attributes, stats: p.stats });
   });
   try { localStorage.setItem(PLANTEL_KEY, JSON.stringify(plantel)); } catch (e) { /* ignora */ }
   return true;
@@ -1714,6 +1718,7 @@ function initPlantel() {
     jogador.disponibilidade = el("modalDisponibilidade").value;
     jogador.email = email;
     jogador.posicao = posicoesModal.join("/") || jogador.posicao;
+    lerSubPosicoesModal(jogador);
     if (!jogadorEmEdicao) plantel.push(jogador);
     guardarPlantel();
     sincronizarPlantelSupabase();
@@ -1735,6 +1740,8 @@ function initPlantel() {
   el("modalNumero").addEventListener("input", () => { if (!el("modalFoto").value) el("playerModalPhoto").innerHTML = generateJerseyAvatar(el("modalNumero").value); });
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
   el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
+  el("modalSubPosicao").addEventListener("change", e => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); subPosicaoModal = e.target.value; renderSubPosicoesModal(); });
+  el("modalSecundarias").addEventListener("change", () => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
   el("teamAvailabilityFilter").addEventListener("change", event => { filtroDisponibilidadeEquipa = event.target.value; renderPlantel(); });
@@ -1759,6 +1766,7 @@ function abrirModalJogador() {
   el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalDisponibilidade").value = "disponivel";
   el("modalEmailConta").value = ""; el("modalContaEstado").textContent = "";
   posicoesModal = []; posicaoPrincipalModal = "";
+  subPosicaoModal = ""; secundariasModal = [];
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
   el("modalIdZerozero").focus();
@@ -1779,6 +1787,7 @@ function abrirModalExistente(jogador) {
   el("modalEmailConta").value = jogador.email || "";
   el("modalContaEstado").textContent = jogador.contaLigada ? "· conta ligada ✓" : jogador.email ? "· à espera do primeiro login" : "";
   posicoesModal = (jogador.posicao || "").split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || "";
+  subPosicaoModal = jogador.subPosicao || ""; secundariasModal = [...(jogador.posicoesSecundarias || [])];
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
 }
@@ -1797,6 +1806,32 @@ function renderPositionMap() {
     else posicoesModal = posicoesModal.filter(item => item !== posicao);
     el("modalPosicao").value = posicoesModal.join("/"); renderPositionMap();
   }));
+  renderSubPosicoesModal();
+}
+
+/* ---- Sub-posição e posições secundárias (players.sub_posicao / posicoes_secundarias) ---- */
+
+let subPosicaoModal = "";
+let secundariasModal = [];
+
+/** Sub-posição: opções da categoria da posição principal (oculta no GR); secundárias: todas as outras. */
+function renderSubPosicoesModal() {
+  const wrap = el("modalSubPosicaoWrap");
+  if (!wrap) return;
+  const cat = VFN.categoriaPosicao(el("modalPosicao").value);
+  const opcoes = VFN.SUB_POSICOES[cat] || [];
+  if (!opcoes.includes(subPosicaoModal)) subPosicaoModal = VFN.subPosicaoSugerida(el("modalPosicao").value);
+  wrap.hidden = !opcoes.length;
+  el("modalSubPosicao").innerHTML = '<option value="">— Escolher —</option>' + opcoes.map(o => `<option ${o === subPosicaoModal ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
+  el("modalSecundarias").innerHTML = VFN.TODAS_SUB_POSICOES.filter(o => o !== subPosicaoModal)
+    .map(o => `<label class="sub-check"><input type="checkbox" value="${escapeHtml(o)}" ${secundariasModal.includes(o) ? "checked" : ""}> ${escapeHtml(o)}</label>`).join("");
+  el("modalSubPosicaoAviso").hidden = colunaSubPosicao || !supabaseClient || !currentUser;
+}
+
+function lerSubPosicoesModal(jogador) {
+  const cat = VFN.categoriaPosicao(jogador.posicao);
+  jogador.subPosicao = cat === "GR" ? "" : el("modalSubPosicao").value;
+  jogador.posicoesSecundarias = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value).filter(v => v !== jogador.subPosicao);
 }
 
 function renderPlayerModalHeader(jogador) {
@@ -1806,6 +1841,7 @@ function renderPlayerModalHeader(jogador) {
   photo.innerHTML = VFN.avatarJogador(jogador ? jogador : { numero }, "avatar-modal");
   el("playerModalName").textContent = jogador ? (jogador.nomeCompleto || jogador.nome) : "Adicionar Jogador";
   el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${VFN.dataDDMMAAAA(jogador.nascimento)}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
+  el("playerModalPosicoes").innerHTML = jogador ? VFN.posicaoDetalhadaHTML(jogador.posicao, jogador.subPosicao, jogador.posicoesSecundarias) : "";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
   el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
   if (typeof renderRadarJogador === "function") renderRadarJogador(jogador);

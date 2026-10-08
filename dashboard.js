@@ -227,6 +227,7 @@ function abrirJogador(id) {
   $("mjNome").textContent = j.nomeCompleto;
   $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
   if (j.disponibilidade) $("mjMeta").insertAdjacentHTML("beforeend", " " + VFN.badgeDisponibilidade(j.disponibilidade));
+  $("mjPosicoes").innerHTML = VFN.posicaoDetalhadaHTML(j.posicao, j.subPosicao, j.posicoesSecundarias);
   $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 

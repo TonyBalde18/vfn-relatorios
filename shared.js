@@ -518,6 +518,42 @@
     return CATEGORIA_CODIGO[codigosPosicao(posicao)[0]] || "";
   }
 
+  /*
+   * Sub-posições (admin e dashboard; não aparecem na página pública). A posição principal é a categoria
+   * do primeiro código de players.position (GR / Def / Meio / Ata). Colunas novas no Supabase:
+   *   ALTER TABLE players ADD COLUMN IF NOT EXISTS sub_posicao TEXT;
+   *   ALTER TABLE players ADD COLUMN IF NOT EXISTS posicoes_secundarias JSONB DEFAULT '[]';
+   */
+  const NOME_CATEGORIA = { GR: "Guarda-Redes", Def: "Defesa", Meio: "Médio", Ata: "Avançado" };
+  const SUB_POSICOES = {
+    GR: [],
+    Def: ["Defesa Direito", "Defesa Central", "Defesa Esquerdo"],
+    Meio: ["Médio Defensivo", "Médio Direito", "Médio Esquerdo", "Médio Centro", "Médio Ofensivo"],
+    Ata: ["Extremo Direito", "Extremo Esquerdo", "Ponta de Lança", "Segundo Avançado"]
+  };
+  const TODAS_SUB_POSICOES = [].concat(SUB_POSICOES.Def, SUB_POSICOES.Meio, SUB_POSICOES.Ata);
+  // sugestão a partir do código da posição principal (quando o jogador ainda não tem sub-posição)
+  const SUB_DE_CODIGO = {
+    DD: "Defesa Direito", LD: "Defesa Direito", DC: "Defesa Central", DE: "Defesa Esquerdo", LE: "Defesa Esquerdo",
+    MDC: "Médio Defensivo", MDEF: "Médio Defensivo", MD: "Médio Defensivo", MC: "Médio Centro", MCEN: "Médio Centro",
+    MOC: "Médio Ofensivo", MOFE: "Médio Ofensivo", MO: "Médio Ofensivo",
+    ED: "Extremo Direito", EXD: "Extremo Direito", EE: "Extremo Esquerdo", EXE: "Extremo Esquerdo",
+    PL: "Ponta de Lança", AV: "Ponta de Lança", ATA: "Ponta de Lança", PA: "Ponta de Lança", SA: "Segundo Avançado"
+  };
+  function subPosicaoSugerida(posicao) {
+    const cat = categoriaPosicao(posicao);
+    const sugestao = SUB_DE_CODIGO[codigosPosicao(posicao)[0]] || "";
+    return (SUB_POSICOES[cat] || []).includes(sugestao) ? sugestao : "";
+  }
+  /** "Médio · Médio Defensivo" e as posições secundárias em badges (vazio sem categoria). */
+  function posicaoDetalhadaHTML(posicao, subPosicao, secundarias) {
+    const cat = categoriaPosicao(posicao);
+    if (!cat) return "";
+    const sub = cat !== "GR" && (SUB_POSICOES[cat] || []).includes(subPosicao) ? subPosicao : "";
+    const lista = (Array.isArray(secundarias) ? secundarias : []).filter(s => s && s !== sub);
+    return `<span class="pos-detalhe"><span class="pos-principal">${escapeHtml(NOME_CATEGORIA[cat])}${sub ? " · " + escapeHtml(sub) : ""}</span>${lista.length ? `<span class="pos-secundarias">${lista.map(s => `<span class="pos-badge">${escapeHtml(s)}</span>`).join("")}</span>` : ""}</span>`;
+  }
+
   /** O jogador entra no filtro se alguma das suas posições for da categoria ("MDC/DD" está em Meio e em Def). */
   function posicaoNaCategoria(posicao, categoria) {
     return !categoria || codigosPosicao(posicao).some(c => CATEGORIA_CODIGO[c] === categoria);
@@ -1417,7 +1453,7 @@
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
-    chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria,
+    chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,

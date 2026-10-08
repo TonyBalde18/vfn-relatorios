@@ -2059,6 +2059,16 @@ body.mj-aberto { overflow: hidden; }
 .mj-cancelar { justify-self: center; min-height: 44px; padding: 6px 20px; border: 0; background: transparent; color: #C9D3E6; font: inherit; font-size: 16px; font-weight: 700; text-decoration: underline; }
 @media (min-width: 700px) { .mj-overlay { padding-inline: max(14px, calc(50vw - 330px)); } }
 
+/* sub-posições (admin: formulário; admin e dashboard: cabeçalho da ficha) */
+.sub-secundarias { margin: 0; padding: 0; border: 0; }
+.sub-secundarias legend { margin-bottom: 5px; padding: 0; font-size: 0.8rem; font-weight: 600; color: var(--charcoal); }
+.sub-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; }
+.sub-check { display: flex; align-items: center; gap: 6px; font-size: .84rem; font-weight: 500; }
+.pos-detalhe { display: grid; gap: 5px; margin: 2px 0 8px; }
+.pos-principal { font-weight: 800; }
+.pos-secundarias { display: flex; flex-wrap: wrap; gap: 4px; }
+.pos-badge { padding: 1px 8px; border-radius: 999px; background: rgba(255, 215, 0, .18); border: 1px solid rgba(255, 215, 0, .55); font-size: .72rem; font-weight: 700; }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

@@ -18,6 +18,8 @@
       nomeCompleto: p.full_name || p.display_name || p.name || "", // ficha
       numero: p.number != null ? p.number : "",
       posicao: p.position || "—",
+      subPosicao: p.sub_posicao || "", // só na tabela players (admin/dashboard); as views públicas não têm
+      posicoesSecundarias: Array.isArray(p.posicoes_secundarias) ? p.posicoes_secundarias : [],
       fotoUrl: p.photo_url || "",
       jogos: Number(s.jogos) || 0,
       golos: Number(s.golos) || 0,

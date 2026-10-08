@@ -556,7 +556,7 @@
 <!-- MODAL: Adicionar Jogador -->
 <div id="modalOverlay" class="modal-overlay" hidden>
   <div class="modal-box player-modal-box">
-    <div id="playerModalProfile" class="player-modal-profile"><div id="playerModalPhoto" class="player-modal-photo"></div><div><h3 id="playerModalName">Adicionar Jogador</h3><p id="playerModalMeta">Ficha do jogador</p><div id="playerModalMainStats" class="player-modal-stats"></div></div></div>
+    <div id="playerModalProfile" class="player-modal-profile"><div id="playerModalPhoto" class="player-modal-photo"></div><div><h3 id="playerModalName">Adicionar Jogador</h3><p id="playerModalMeta">Ficha do jogador</p><div id="playerModalPosicoes"></div><div id="playerModalMainStats" class="player-modal-stats"></div></div></div>
     <div id="playerModalRadar" class="player-radar" hidden><h4>Perfil da época <small class="muted">comparado com o plantel</small></h4><div class="radar-box"><canvas id="playerRadarCanvas" role="img" aria-label="Gráfico radar: golos, assistências, cartões, minutos e presenças"></canvas></div></div>
     <div id="playerModalFicha" class="player-ficha-admin" hidden></div>
     <div class="field"><label for="modalIdZerozero">ID Zerozero</label><input type="text" id="modalIdZerozero" inputmode="numeric" pattern="[0-9]+" placeholder="Ex: 1014933" aria-describedby="modalIdAjuda"><small id="modalIdAjuda" class="muted">Número do jogador no zerozero.pt. É a chave na base de dados e não pode ser alterado depois.</small></div>
@@ -575,6 +575,9 @@
       <label for="modalPosicao">Posição</label>
       <input type="text" id="modalPosicao" placeholder="Ex: DC, MDC, MC/MOC, PL...">
     </div>
+    <div class="field" id="modalSubPosicaoWrap"><label for="modalSubPosicao">Sub-posição</label><select id="modalSubPosicao"></select></div>
+    <fieldset class="field sub-secundarias"><legend>Posições Secundárias</legend><div id="modalSecundarias" class="sub-checks"></div>
+      <small id="modalSubPosicaoAviso" class="muted" hidden>Para gravar as sub-posições no Supabase corre o SQL de players.sub_posicao / posicoes_secundarias (comentário em shared.js). Até lá ficam só neste computador.</small></fieldset>
     <div class="field">
       <label for="modalNumero">Nº Camisola</label>
       <input type="number" id="modalNumero" min="1" max="99" placeholder="Ex: 7">
