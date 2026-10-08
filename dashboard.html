@@ -52,6 +52,7 @@
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
+    <button class="nav-item" data-view="h2h"><span class="nav-icon"><i data-icon="swords"></i></span><span class="nav-label">H2H</span></button>
     <button class="nav-item" data-view="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
@@ -256,6 +257,14 @@
       <h3 class="subsecao-titulo">Mapa dos estádios</h3>
       <div id="mapaDash" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
       <p class="muted mapa-aviso"></p>
+    </div>
+  </section>
+
+  <!-- CONFRONTOS (H2H): histórico contra cada adversário (tabela h2h) -->
+  <section id="view-h2h" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Confrontos (H2H)</h2><label class="sr-only" for="h2hAdversario">Adversário</label><select id="h2hAdversario" class="compact-select"></select></div>
+      <div id="h2hConteudo"></div>
     </div>
   </section>
 

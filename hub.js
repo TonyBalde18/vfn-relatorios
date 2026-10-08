@@ -1367,6 +1367,79 @@
     e.innerHTML = esqueleto(tipo, n);
   }
 
+  /* ---------- H2H: histórico de confrontos (tabela h2h, SQL em sql/h2h.sql) ---------- */
+
+  const NOME_VFN_H2H = "VF Naves";
+  const normalizarNome = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  /** O nome da tabela h2h corresponde a algum dos nomes do adversário? (sem acentos/maiúsculas) */
+  function mesmoAdversario(nomeH2H, nomes) {
+    const n = normalizarNome(nomeH2H);
+    return !!n && nomes.map(normalizarNome).filter(Boolean).some(x => x === n || (x.length > 4 && n.length > 4 && (x.includes(n) || n.includes(x))));
+  }
+
+  /**
+   * Resumo H2H do VFN contra um adversário a partir das linhas da tabela h2h.
+   * adversario: nome (ou lista de nomes possíveis, ex.: teams.name e full_name).
+   * Devolve { adversario, jogos (data desc, com golosVFN/golosAdv/letra), V, E, D, GM, GS, pctVitorias, ultimo } ou null.
+   */
+  function resumoH2H(adversario, linhas) {
+    const nomes = (Array.isArray(adversario) ? adversario : [adversario]).filter(Boolean);
+    const jogos = (linhas || []).filter(l => {
+      const vfnCasa = l.equipa_casa === NOME_VFN_H2H, vfnFora = l.equipa_fora === NOME_VFN_H2H;
+      return (vfnCasa || vfnFora) && mesmoAdversario(vfnCasa ? l.equipa_fora : l.equipa_casa, nomes);
+    }).map(l => {
+      const casa = l.equipa_casa === NOME_VFN_H2H;
+      const golosVFN = Number(casa ? l.golos_casa : l.golos_fora) || 0, golosAdv = Number(casa ? l.golos_fora : l.golos_casa) || 0;
+      return { ...l, vfnCasa: casa, adversario: casa ? l.equipa_fora : l.equipa_casa, golosVFN, golosAdv, letra: golosVFN > golosAdv ? "V" : golosVFN === golosAdv ? "E" : "D" };
+    }).sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    if (!jogos.length) return null;
+    const conta = l => jogos.filter(j => j.letra === l).length;
+    const r = { adversario: jogos[0].adversario, jogos, V: conta("V"), E: conta("E"), D: conta("D"), GM: jogos.reduce((s, j) => s + j.golosVFN, 0), GS: jogos.reduce((s, j) => s + j.golosAdv, 0), ultimo: jogos[0] };
+    r.pctVitorias = Math.round(r.V / jogos.length * 100);
+    return r;
+  }
+
+  /**
+   * Busca os jogos VFN × adversário (equipa_casa ou equipa_fora = 'VF Naves') e calcula o resumo.
+   * fonte: cliente Supabase (faz o pedido) ou as linhas já carregadas da tabela h2h.
+   */
+  async function carregarH2H(adversario, fonte) {
+    let linhas = fonte;
+    if (fonte && typeof fonte.from === "function") {
+      const { data, error } = await fonte.from("h2h").select("*").or(`equipa_casa.eq.${NOME_VFN_H2H},equipa_fora.eq.${NOME_VFN_H2H}`);
+      if (error) return null;
+      linhas = data || [];
+    }
+    return resumoH2H(adversario, linhas);
+  }
+
+  /** "VFN 3-2 Casal Cinza" (ou "Casal Cinza 1-3 VFN" fora de casa). */
+  const resultadoH2H = j => j.vfnCasa ? `VFN ${j.golosVFN}-${j.golosAdv} ${j.adversario}` : `${j.adversario} ${j.golosAdv}-${j.golosVFN} VFN`;
+  const mesAnoH2H = data => { const d = VFN.paraData(data); return d ? `${VFN.MESES_CURTOS[d.getMonth()]} ${d.getFullYear()}` : ""; };
+
+  /** Linha discreta para o bloco "Próximo adversário": histórico e último jogo. */
+  function h2hMiniHTML(r) {
+    if (!r) return "";
+    return `<p class="h2h-mini"><span>Histórico: <b>${r.V}V · ${r.E}E · ${r.D}D</b></span><span>Última vez: ${esc(resultadoH2H(r.ultimo))} (${esc(mesAnoH2H(r.ultimo.data))})</span></p>`;
+  }
+
+  /** Vista completa: resumo e lista de jogos (data desc). */
+  function h2hHTML(r) {
+    if (!r) return vazio("Sem jogos registados contra este adversário.");
+    const tile = (rotulo, valor, classe) => `<div class="summary-tile ${classe || ""}"><span>${rotulo}</span><strong>${valor}</strong></div>`;
+    return `<div class="summary-tiles h2h-tiles">
+        ${tile("Jogos", r.jogos.length)}${tile("Vitórias", r.V, "h2h-v")}${tile("Empates", r.E, "h2h-e")}${tile("Derrotas", r.D, "h2h-d")}
+        ${tile("Golos", `${r.GM}–${r.GS}`)}${tile("% vitórias", r.pctVitorias + "%")}
+      </div>
+      <ol class="h2h-lista">${r.jogos.map(j => `<li class="h2h-${j.letra}">
+        <span class="h2h-letra">${j.letra}</span>
+        <span class="h2h-data">${esc(VFN.dataDDMMAAAA(j.data))}</span>
+        <strong class="h2h-res">${esc(resultadoH2H(j))}</strong>
+        <small class="h2h-comp">${esc(j.competicao || "")}${j.jornada ? " · " + esc(j.jornada) : ""} · ${j.local === "casa" ? "Casa" : j.local === "fora" ? "Fora" : "Neutro"}</small>
+      </li>`).join("")}</ol>`;
+  }
+
   /* ---------- Suspensões automáticas (AF Guarda) ---------- */
 
   // amarelos que dão 1 jogo de suspensão: 5.º, 9.º, 12.º, 14.º e depois a cada 2 (16.º, 18.º...)
@@ -1484,7 +1557,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

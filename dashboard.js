@@ -8,13 +8,13 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
-let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [], fine_types: [], staff: [], squads: [] };
+let dados = { players: [], teams: [], matches: [], league_results: [], external_players: [], opponents: [], attendance: [], sessions: [], fines: [], match_reports: [], fine_types: [], staff: [], squads: [], h2h: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroEstado = "";
@@ -27,7 +27,7 @@ let appIniciada = false;
 /* ---------- Dados ---------- */
 
 // tabelas que podem ainda não existir (SQL por correr): sem aviso
-const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads"];
+const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads", "h2h"]; // h2h: sql/h2h.sql
 
 async function carregarDados() {
   const tabelas = Object.keys(dados);
@@ -82,6 +82,33 @@ function renderHub() {
   renderGraficos();
 }
 
+/** Nomes possíveis do adversário (para o H2H): nome usado, nome e nome completo da equipa, matches.opponent. */
+function nomesDoAdversario(jogo) {
+  const t = H.equipa(dados, jogo.opponent_team_id) || {};
+  return [H.nomeAdversario(dados, jogo), t.name, t.full_name, jogo.opponent].filter(Boolean);
+}
+
+/* ---------- Confrontos (H2H): tabela h2h ---------- */
+
+let adversarioH2H = "";
+
+function renderH2H() {
+  const sel = $("h2hAdversario");
+  if (!sel) return;
+  const vfn = "VF Naves";
+  const adversarios = [...new Set(dados.h2h.flatMap(l => l.equipa_casa === vfn ? [l.equipa_fora] : l.equipa_fora === vfn ? [l.equipa_casa] : []))].sort((a, b) => a.localeCompare(b, "pt"));
+  if (!adversarios.length) { sel.innerHTML = ""; sel.hidden = true; $("h2hConteudo").innerHTML = H.vazio("Ainda não há histórico de confrontos. Corre o sql/h2h.sql no Supabase."); return; }
+  sel.hidden = false;
+  // por omissão: o adversário do próximo jogo (se tiver histórico), senão o primeiro
+  if (!adversarios.includes(adversarioH2H)) {
+    const proximo = VFN.proximoJogo(dados.matches);
+    const r = proximo && H.resumoH2H(nomesDoAdversario(proximo), dados.h2h);
+    adversarioH2H = r ? r.adversario : adversarios[0];
+  }
+  sel.innerHTML = adversarios.map(a => `<option ${a === adversarioH2H ? "selected" : ""}>${esc(a)}</option>`).join("");
+  $("h2hConteudo").innerHTML = H.h2hHTML(H.resumoH2H(adversarioH2H, dados.h2h));
+}
+
 function proximoAdversarioHTML() {
   const jogo = VFN.proximoJogo(dados.matches);
   if (!jogo) return `<h2 class="hub-card-title">Próximo adversário</h2>${H.vazio("Sem jogos agendados.")}`;
@@ -99,6 +126,7 @@ function proximoAdversarioHTML() {
       <h2 class="hub-card-title">Próximo adversário</h2>
       <span class="team-inline">${H.logoEquipa(H.equipa(dados, jogo.opponent_team_id), nome)}<strong>${esc(nome)}</strong>${obs.formation ? `<span class="comp-tag comp-amigavel">${esc(obs.formation)}</span>` : ""}</span>
     </div>
+    ${H.h2hMiniHTML(H.resumoH2H(nomesDoAdversario(jogo), dados.h2h))}
     ${jogo.opponent_team_id ? H.formaEquipaHTML(dados, jogo.opponent_team_id) : ""}
     <div class="scout-grid">
       ${bloco("Estilo de jogo", obs.style)}
@@ -800,6 +828,7 @@ function renderTudo() {
   renderPresencasDash();
   renderCalendario();
   renderHistorico();
+  renderH2H();
   VFN.refreshAOS();
 }
 
@@ -864,6 +893,7 @@ async function iniciar() {
   initConvocatoriaDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("statsPosicao").addEventListener("change", renderTabelaStats);
+  $("h2hAdversario").addEventListener("change", e => { adversarioH2H = e.target.value; renderH2H(); });
   $("heatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmap = b.dataset.filtro; renderHeatmap(); } });
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
