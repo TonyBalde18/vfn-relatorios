@@ -20,15 +20,30 @@ const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Futebol Zero Graus Pr
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
-  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public" };
+  /*
+   * golos_zonas: só os eventos de golo dos relatórios publicados (sem o resto do relatório), para o mapa
+   * "De onde marcamos". A página pública não pode ler match_reports; correr no Supabase:
+   *
+   *   create or replace view public.golos_zonas as
+   *   select r.id as report_id, r.match_id, r.competition,
+   *          e->>'tipo' as tipo, e->>'equipa' as equipa, e->>'zona_golo' as zona_golo,
+   *          e->>'zona_origem' as zona_origem, e->>'tipo_lance' as tipo_lance
+   *   from public.match_reports r, jsonb_array_elements(coalesce(r.match_data->'jogo'->'eventos', '[]'::jsonb)) e
+   *   where coalesce(r.status, r.match_data->>'_status') = 'published' and e->>'tipo' in ('Golo', 'Auto-golo');
+   *   grant select on public.golos_zonas to anon, authenticated;
+   *
+   * (A view corre com os privilégios de quem a cria: expõe só estas colunas, não os relatórios.)
+   */
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", golos_zonas: "golos_zonas" };
   const chaves = Object.keys(pedidos);
   // do plantel só as colunas públicas da view (nunca a tabela players)
   const colunas = { players: "id, name, display_name, full_name, position, number, photo_url, stats" };
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   // tabelas novas (ainda por criar no Supabase) não disparam o aviso
-  const opcionais = ["external_players", "sessions"];
+  const opcionais = ["external_players", "sessions", "golos_zonas"];
   respostas.forEach((r, i) => { if (r.error && !opcionais.includes(chaves[i])) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
+  semGolosZonas = !!respostas[chaves.indexOf("golos_zonas")].error;
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
   jogadores = dados.players.map(H.jogadorDeLinha);
@@ -159,6 +174,7 @@ function initJornadas() {
 }
 
 let onzeTaticoPub = null;
+let semGolosZonas = false; // view golos_zonas ainda por criar no Supabase
 
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
@@ -168,6 +184,8 @@ function renderTudo() {
   renderClassificacaoPub();
 
   $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
+  // só os golos marcados (view golos_zonas)
+  $("pubHeatmapGolos").innerHTML = semGolosZonas ? H.vazio("Mapa das zonas dos golos disponível em breve.") : H.renderHeatmapGolos(dados.golos_zonas, "marcados");
   $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
   // minutos da ficha de cada jogador (players.stats, atualizados no admin)
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))

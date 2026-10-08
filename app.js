@@ -1463,6 +1463,17 @@ function renderEventos(ordenar) {
       tdJogador.appendChild(input);
     }
 
+    // golos: zona do golo, origem e tipo de lance (modal em modo-jogo.js)
+    if ((ev.tipo === "Golo" || ev.tipo === "Auto-golo") && typeof abrirZonasEvento === "function") {
+      const btnZona = document.createElement("button");
+      btnZona.type = "button";
+      btnZona.className = "btn btn-ghost btn-sm zona-btn" + (ev.zona_golo ? "" : " sem-zona");
+      btnZona.textContent = ev.zona_golo ? "📍 " + VFN.nomeZona(ev.zona_golo) : "📍 Zona do golo";
+      btnZona.title = "Zona do golo, origem da jogada e tipo de lance";
+      btnZona.addEventListener("click", () => abrirZonasEvento(ev));
+      tdJogador.appendChild(btnZona);
+    }
+
     const tdAcao = document.createElement("td");
     const btnRemover = document.createElement("button");
     btnRemover.className = "remove-btn"; btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.title = "Eliminar evento"; btnRemover.setAttribute("aria-label", "Eliminar evento");

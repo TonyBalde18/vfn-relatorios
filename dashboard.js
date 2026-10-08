@@ -244,7 +244,15 @@ function abrirJogador(id) {
 
 const COLUNAS_STATS = [["nome", "Jogador"], ["jogos", "J"], ["minutos", "Min"], ["golos", "Golos"], ["assistencias", "Ass"], ["cartoesA", "Am."], ["cartoesV", "Verm."]];
 
+let filtroHeatmap = "marcados";
+
+function renderHeatmap() {
+  $("heatmapGolos").innerHTML = H.renderHeatmapGolos(dados.match_reports, filtroHeatmap);
+  $("heatmapFiltro").querySelectorAll("[data-filtro]").forEach(b => { const ativo = b.dataset.filtro === filtroHeatmap; b.classList.toggle("active", ativo); b.setAttribute("aria-pressed", String(ativo)); });
+}
+
 function renderEstatisticas() {
+  renderHeatmap();
   const jogados = VFN.jogosDoVFN(dados.matches).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j));
   const t = { J: jogados.length, V: 0, E: 0, D: 0, GM: 0, GS: 0 };
   jogados.forEach(j => { const g = VFN.golosJogo(j); t[VFN.letraResultado(j)]++; t.GM += g.vfn; t.GS += g.adv; });
@@ -826,6 +834,7 @@ async function iniciar() {
   initConvocatoriaDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("statsPosicao").addEventListener("change", renderTabelaStats);
+  $("heatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmap = b.dataset.filtro; renderHeatmap(); } });
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
   // telemóvel: puxar para atualizar nos resultados (hub), calendário e jornadas

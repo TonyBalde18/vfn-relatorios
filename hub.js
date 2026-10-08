@@ -1276,6 +1276,52 @@
     e.innerHTML = esqueleto(tipo, n);
   }
 
+  /* ---------- Mapa de calor das zonas dos golos ---------- */
+
+  const LINHAS_HEATMAP = '<g class="hm-linhas" pointer-events="none"><rect x="50" y="0" width="200" height="72"/><rect x="105" y="0" width="90" height="24"/><path d="M122 72 Q150 92 178 72"/><circle cx="150" cy="48" r="1.6"/><path d="M0 150 L0 0 L300 0 L300 150"/><rect class="hm-baliza" x="132" y="-8" width="36" height="8"/></g>';
+
+  /**
+   * Mapa de calor das zonas dos golos (campo de frente, cor do clube #043792 com opacidade proporcional
+   * ao nº de golos e o número em cada zona). matchReports: relatórios (só os publicados contam, um por jogo)
+   * ou linhas já com { tipo, equipa, zona_golo } (view golos_zonas da página pública).
+   * filtro: "marcados" | "sofridos" | "ambos".
+   */
+  function renderHeatmapGolos(matchReports, filtro) {
+    const f = filtro || "ambos";
+    const golos = [];
+    const porJogo = new Map();
+    (matchReports || []).forEach(r => {
+      if (r && r.zona_golo !== undefined && r.tipo) { golos.push(r); return; } // linha da view pública
+      if (!r || VFN.estadoRelatorio(r) !== "published" || !(r.match_data || {}).jogo) return;
+      const chave = String(r.match_id || (r.match_data.preJogo || {}).matchId || r.id);
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
+    });
+    porJogo.forEach(r => (r.match_data.jogo.eventos || []).forEach(e => golos.push(e)));
+    const contagem = {};
+    let total = 0, semZona = 0;
+    golos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").forEach(e => {
+      const sofrido = VFN.eGoloSofrido(e);
+      if ((f === "marcados" && sofrido) || (f === "sofridos" && !sofrido)) return;
+      total++;
+      if (!e.zona_golo) { semZona++; return; }
+      contagem[e.zona_golo] = (contagem[e.zona_golo] || 0) + 1;
+    });
+    const max = Math.max(1, ...Object.values(contagem));
+    const titulo = { marcados: "golos marcados", sofridos: "golos sofridos", ambos: "golos" }[f] || "golos";
+    if (!total) return vazio(`Ainda não há ${titulo} registados nos relatórios.`);
+    const zonas = VFN.ZONAS_GOLO.map(z => {
+      const n = contagem[z.id] || 0;
+      const opacidade = n ? (0.18 + 0.72 * n / max).toFixed(2) : 0.04;
+      return `<polygon class="hm-zona" points="${z.pts}" fill="#043792" fill-opacity="${opacidade}"><title>${esc(z.nome)}: ${n} golo${n === 1 ? "" : "s"}</title></polygon>` +
+        (n ? `<text class="hm-num${n / max > 0.5 ? " claro" : ""}" x="${z.tx}" y="${z.ty}">${n}</text>` : "");
+    }).join("");
+    return `<figure class="heatmap-golos">
+      <svg viewBox="0 -10 300 160" role="img" aria-label="Mapa das zonas dos ${titulo}: ${VFN.ZONAS_GOLO.filter(z => contagem[z.id]).map(z => `${z.nome} ${contagem[z.id]}`).join(", ") || "sem zonas"}">${zonas}${LINHAS_HEATMAP}</svg>
+      <figcaption>${total} ${titulo}${semZona ? ` · ${semZona} sem zona registada` : ""}</figcaption>
+    </figure>`;
+  }
+
   /* ---------- Rodapé ---------- */
 
   function competicaoAtiva(dados) {
@@ -1290,7 +1336,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

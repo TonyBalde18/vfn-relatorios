@@ -1119,7 +1119,61 @@
     return contentor.vfnOnzeTatico;
   }
 
+  /* ---------- Zonas do golo (formulário do golo: Modo Jogo e tabela de eventos) ----------
+     Mini-campo de frente, clicável (SVG): zona do golo (obrigatória) e zona de origem (opcional, mais
+     pequeno). A escolha fica em data-valor do .zona-seletor; ligarSeletoresZona trata dos cliques. */
+
+  // linhas do campo (decorativas, por cima das zonas, sem receber cliques)
+  const LINHAS_ZONAS = '<g class="zs-linhas" pointer-events="none"><rect x="50" y="0" width="200" height="72"/><rect x="105" y="0" width="90" height="24"/><path d="M122 72 Q150 92 178 72"/><circle cx="150" cy="48" r="1.6"/><path d="M0 150 L0 0 L300 0 L300 150"/><rect class="zs-baliza" x="132" y="-8" width="36" height="8"/></g>';
+
+  function seletorZonaHTML(campo, valor, opcoes) {
+    const o = opcoes || {};
+    const zonas = campo === "zona_origem" ? VFN.ZONAS_ORIGEM : VFN.ZONAS_GOLO;
+    return `<div class="zona-seletor${o.pequeno ? " pequeno" : ""}" data-campo="${campo}" data-valor="${esc(valor || "")}">
+      <svg viewBox="0 -10 300 160" role="group" aria-label="${esc(o.rotulo || "Zona")}">
+        ${zonas.map(z => `<polygon class="zs-zona${z.id === valor ? " sel" : ""}" points="${z.pts}" data-zona="${z.id}" tabindex="0" role="button" aria-pressed="${z.id === valor}" aria-label="${esc(z.nome)}"><title>${esc(z.nome)}</title></polygon>`).join("")}
+        ${LINHAS_ZONAS}
+      </svg>
+      <span class="zs-escolha">${valor ? esc(VFN.nomeZona(valor)) : (o.obrigatorio ? "Toca na zona" : "Opcional")}</span>
+    </div>`;
+  }
+
+  /** Zona do golo, zona de origem, tipo de lance e "golo sofrido" (p = prefixo dos ids). */
+  function camposZonasGoloHTML(ev, p, sofrido) {
+    return `<div class="zonas-golo">
+      <div class="zg-campo"><span class="zg-rotulo">Zona do golo <b>*</b></span>${seletorZonaHTML("zona_golo", ev.zona_golo, { obrigatorio: true, rotulo: "Zona do golo" })}</div>
+      <div class="zg-campo"><span class="zg-rotulo">Zona de origem da jogada <small>(opcional)</small></span>${seletorZonaHTML("zona_origem", ev.zona_origem, { pequeno: true, rotulo: "Zona de origem da jogada" })}</div>
+      <fieldset class="zg-lance"><legend class="zg-rotulo">Tipo de lance</legend>${VFN.TIPOS_LANCE.map(([v, t]) => `<label><input type="radio" name="${p}TipoLance" value="${v}" ${ev.tipo_lance === v ? "checked" : ""}> ${esc(t)}</label>`).join("")}</fieldset>
+      <label class="zg-sofrido"><input type="checkbox" id="${p}Sofrido" ${sofrido ? "checked" : ""}> Golo sofrido</label>
+    </div>`;
+  }
+
+  /** Cliques (e Enter/Espaço) nas zonas: marca a escolhida; tocar outra vez na origem (opcional) limpa. */
+  function ligarSeletoresZona(raiz, aoMudar) {
+    if (!raiz || raiz.dataset.zonasLigadas) return;
+    raiz.dataset.zonasLigadas = "1";
+    const escolher = alvo => {
+      const caixa = alvo.closest(".zona-seletor");
+      const opcional = caixa.dataset.campo === "zona_origem";
+      const novo = opcional && caixa.dataset.valor === alvo.dataset.zona ? "" : alvo.dataset.zona;
+      caixa.dataset.valor = novo;
+      caixa.querySelectorAll(".zs-zona").forEach(z => { z.classList.toggle("sel", z.dataset.zona === novo); z.setAttribute("aria-pressed", String(z.dataset.zona === novo)); });
+      caixa.querySelector(".zs-escolha").textContent = novo ? VFN.nomeZona(novo) : opcional ? "Opcional" : "Toca na zona";
+      if (aoMudar) aoMudar(caixa.dataset.campo, novo);
+    };
+    raiz.addEventListener("click", e => { const z = e.target.closest(".zs-zona"); if (z && raiz.contains(z)) escolher(z); });
+    raiz.addEventListener("keydown", e => { const z = e.target.closest(".zs-zona"); if (z && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); escolher(z); } });
+  }
+
+  /** Lê os campos de camposZonasGoloHTML para o evento (zona_golo, zona_origem, tipo_lance). */
+  function lerZonasGolo(raiz, p) {
+    const valor = campo => { const c = raiz.querySelector(`.zona-seletor[data-campo="${campo}"]`); return c ? c.dataset.valor || "" : ""; };
+    const lance = raiz.querySelector(`input[name="${p}TipoLance"]:checked`);
+    return { zona_golo: valor("zona_golo"), zona_origem: valor("zona_origem"), tipo_lance: lance ? lance.value : "" };
+  }
+
   window.VFNComp = {
+    seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
     ligarArrastar, criarOnzeTatico,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,

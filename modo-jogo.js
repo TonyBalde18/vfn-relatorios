@@ -93,7 +93,10 @@ function mjCriarOverlay() {
   });
   caixa.addEventListener("change", e => {
     if (e.target.id === "mjAutogolo") { mjLerCampos(); modoJogo.rascunho.jogadorId = ""; modoJogo.rascunho.detalhe = ""; mjRenderCampos(); }
+    // "Golo sofrido" = golo do adversário: troca a equipa beneficiada
+    if (e.target.id === "mjSofrido") { mjLerCampos(); const r = modoJogo.rascunho; r.equipa = e.target.checked ? "Adversário" : "VFN"; r.jogadorId = ""; r.assistId = ""; r.detalhe = ""; mjRenderCampos(); }
   });
+  VFNComp.ligarSeletoresZona(caixa);
   mjEl("mjForm").addEventListener("submit", e => { e.preventDefault(); mjGuardar(); });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape" || caixa.hidden) return;
@@ -260,3 +263,71 @@ document.addEventListener("DOMContentLoaded", () => {
   const botao = mjEl("btnModoJogo");
   if (botao) botao.addEventListener("click", abrirModoJogo);
 });
+
+/* ---------- Zonas do golo (tarefa 3): no Modo Jogo e na tabela de eventos ----------
+   Campos do evento de golo: zona_golo (obrigatória), zona_origem (opcional), tipo_lance e
+   golo_sofrido (tirado da equipa: golo do adversário ou autogolo do VFN). */
+
+function mjCamposGolo(r) {
+  // "Golo sofrido" = golo do adversário (equipa beneficiada = Adversário)
+  return VFNComp.camposZonasGoloHTML(r, "mj", r.equipa === "Adversário");
+}
+
+function mjLerCamposExtra(r) {
+  if (r.tipo !== "Golo" || !mjEl("mjCampos").querySelector(".zonas-golo")) return;
+  Object.assign(r, VFNComp.lerZonasGolo(mjEl("mjCampos"), "mj"));
+}
+
+function mjValidarExtra(r) {
+  return r.tipo === "Golo" && !r.zona_golo ? "Escolhe a zona do golo." : "";
+}
+
+function mjCompletarEvento(ev, r) {
+  if (r.tipo !== "Golo") return;
+  ev.zona_golo = r.zona_golo || "";
+  ev.zona_origem = r.zona_origem || "";
+  ev.tipo_lance = r.tipo_lance || "";
+  ev.golo_sofrido = VFN.eGoloSofrido(ev);
+}
+
+/** Modal das zonas de um golo já registado (botão "📍 Zona" na tabela "Eventos do Jogo"). */
+function abrirZonasEvento(ev) {
+  let modal = mjEl("modalZonasGolo");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modalZonasGolo";
+    modal.className = "modal-overlay";
+    modal.hidden = true;
+    modal.innerHTML = `<div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="zgTitulo">
+      <div class="modal-cab"><h3 id="zgTitulo" class="modal-title">Zona do golo</h3><button type="button" class="modal-x" data-zg="fechar" aria-label="Fechar">×</button></div>
+      <div id="zgCampos"></div><p id="zgErro" class="form-error" role="alert"></p>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-zg="fechar">Cancelar</button><button type="button" class="btn btn-accent" data-zg="guardar">Guardar</button></div></div>`;
+    document.body.appendChild(modal);
+    VFNComp.ligarSeletoresZona(modal);
+    modal.addEventListener("click", e => {
+      if (e.target === modal || e.target.closest("[data-zg=fechar]")) { modal.hidden = true; return; }
+      if (!e.target.closest("[data-zg=guardar]")) return;
+      const alvo = state.jogo.eventos.find(x => x.id === Number(modal.dataset.evento));
+      if (!alvo) { modal.hidden = true; return; }
+      const z = VFNComp.lerZonasGolo(mjEl("zgCampos"), "zg");
+      if (!z.zona_golo) { mjEl("zgErro").textContent = "Escolhe a zona do golo."; return; }
+      Object.assign(alvo, z);
+      // "Golo sofrido" troca a equipa do golo (mantém a coerência com a tabela)
+      const sofrido = mjEl("zgSofrido").checked;
+      if (sofrido !== VFN.eGoloSofrido(alvo)) {
+        alvo.equipa = alvo.equipa === "VFN" ? "Adversário" : "VFN";
+        alvo.jogadorId = ""; alvo.assistId = "";
+      }
+      alvo.golo_sofrido = VFN.eGoloSofrido(alvo);
+      modal.hidden = true;
+      renderEventos(false);
+      guardarRascunho();
+    });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !modal.hidden) modal.hidden = true; });
+  }
+  modal.dataset.evento = ev.id;
+  mjEl("zgTitulo").textContent = `Zona do golo · ${formatarMinuto(ev)} ${ev.equipa === "VFN" ? nomeOuDetalheEvento(ev) : ev.detalhe || "Adversário"}`;
+  mjEl("zgCampos").innerHTML = VFNComp.camposZonasGoloHTML(ev, "zg", VFN.eGoloSofrido(ev));
+  mjEl("zgErro").textContent = "";
+  modal.hidden = false;
+}

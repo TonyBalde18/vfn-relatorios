@@ -377,6 +377,33 @@
     if (img.parentNode) img.parentNode.classList.add("sem-img");
   }
 
+  /*
+   * Zonas dos golos (eventos "Golo"/"Auto-golo" em match_data.jogo.eventos):
+   *   zona_golo (obrigatória no formulário), zona_origem (opcional), tipo_lance, golo_sofrido.
+   * Geometria do mini-campo "de frente" (viewBox 0 -10 300 160, baliza em cima, esquerda/direita de quem
+   * ataca): área pequena, grande área e fora da área, cada uma em esquerda/centro/direita; a origem tem
+   * também os cantos. Usada no seletor (VFNComp.seletorZonaHTML) e no mapa de calor (VFNHub.renderHeatmapGolos).
+   */
+  const ZONAS_GOLO = [
+    { id: "fora-area-esq", nome: "Fora da área · esquerda", pts: "0,0 50,0 50,72 110,72 110,150 0,150", tx: 38, ty: 112 },
+    { id: "fora-area-centro", nome: "Fora da área · centro", pts: "110,72 190,72 190,150 110,150", tx: 150, ty: 112 },
+    { id: "fora-area-dir", nome: "Fora da área · direita", pts: "300,0 250,0 250,72 190,72 190,150 300,150", tx: 262, ty: 112 },
+    { id: "grande-area-esq", nome: "Grande área · esquerda", pts: "50,0 105,0 105,72 50,72", tx: 77, ty: 40 },
+    { id: "grande-area-centro", nome: "Grande área · centro", pts: "105,24 195,24 195,72 105,72", tx: 150, ty: 50 },
+    { id: "grande-area-dir", nome: "Grande área · direita", pts: "195,0 250,0 250,72 195,72", tx: 223, ty: 40 },
+    { id: "area-peq-esq", nome: "Área pequena · esquerda", pts: "105,0 135,0 135,24 105,24", tx: 120, ty: 14 },
+    { id: "area-peq-centro", nome: "Área pequena · centro", pts: "135,0 165,0 165,24 135,24", tx: 150, ty: 14 },
+    { id: "area-peq-dir", nome: "Área pequena · direita", pts: "165,0 195,0 195,24 165,24", tx: 180, ty: 14 }
+  ];
+  const ZONAS_ORIGEM = ZONAS_GOLO.concat([
+    { id: "canto-esq", nome: "Canto · esquerda", pts: "0,0 26,0 26,20 0,20", tx: 13, ty: 12 },
+    { id: "canto-dir", nome: "Canto · direita", pts: "274,0 300,0 300,20 274,20", tx: 287, ty: 12 }
+  ]);
+  const TIPOS_LANCE = [["jogo_corrido", "Jogo corrido"], ["livre", "Livre"], ["canto", "Canto"], ["penalty", "Penálti"], ["contra-ataque", "Contra-ataque"]];
+  const nomeZona = id => ((ZONAS_ORIGEM.find(z => z.id === id) || {}).nome) || "";
+  /** O golo foi sofrido pelo VFN? (golo do adversário, ou autogolo de um jogador do VFN) */
+  const eGoloSofrido = ev => (ev.tipo === "Golo" && ev.equipa === "Adversário") || (ev.tipo === "Auto-golo" && ev.equipa === "VFN");
+
   /** Entrada de matches.scorer_list que é um golo do adversário ({ team: "adversario", player_name, minute }). */
   function eGoloAdversario(s) {
     return !!s && s.team === "adversario";
@@ -1451,7 +1478,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,

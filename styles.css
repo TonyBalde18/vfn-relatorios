@@ -2069,6 +2069,39 @@ body.mj-aberto { overflow: hidden; }
 .pos-secundarias { display: flex; flex-wrap: wrap; gap: 4px; }
 .pos-badge { padding: 1px 8px; border-radius: 999px; background: rgba(255, 215, 0, .18); border: 1px solid rgba(255, 215, 0, .55); font-size: .72rem; font-weight: 700; }
 
+/* zonas do golo: seletor clicável (admin) e mapa de calor (dashboard e pública) */
+.zonas-golo { display: grid; gap: 12px; }
+.zg-campo { display: grid; gap: 6px; }
+.zg-rotulo { font-size: .9rem; font-weight: 700; }
+.zg-rotulo b { color: #dc2626; }
+.zona-seletor { display: grid; gap: 4px; justify-items: center; }
+.zona-seletor svg { width: 100%; max-width: 420px; height: auto; border-radius: 8px; background: #2f7d3b; touch-action: manipulation; }
+.zona-seletor.pequeno svg { max-width: 260px; }
+.zs-zona { fill: rgba(255, 255, 255, .06); stroke: rgba(255, 255, 255, .25); stroke-width: .8; cursor: pointer; }
+.zs-zona:focus { outline: none; stroke: #FFD700; stroke-width: 2; }
+.zs-zona.sel { fill: rgba(255, 215, 0, .75); }
+.zs-linhas, .hm-linhas { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.4; }
+.zs-baliza, .hm-baliza { fill: rgba(255, 255, 255, .9); }
+.zs-escolha { font-size: .85rem; font-weight: 700; }
+.zg-lance { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; border: 0; }
+.zg-lance legend { width: 100%; margin-bottom: 4px; padding: 0; }
+.zg-lance label, .zg-sofrido { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; }
+.zona-btn { margin-top: 4px; }
+.zona-btn.sem-zona { border-style: dashed; }
+/* no Modo Jogo, letra e alvos maiores */
+.mj-overlay .zg-rotulo { color: #C9D3E6; font-size: 16px; }
+.mj-overlay .zs-escolha { color: #FFD700; font-size: 16px; }
+.mj-overlay .zg-lance label, .mj-overlay .zg-sofrido { min-height: 44px; font-size: 16px; }
+.mj-overlay .zg-lance input, .mj-overlay .zg-sofrido input { width: 22px; height: 22px; accent-color: #FFD700; }
+.heatmap-golos { margin: 0; display: grid; gap: 6px; justify-items: center; }
+.heatmap-golos svg { width: 100%; max-width: 520px; height: auto; border-radius: 10px; background: #e8eef7; }
+.heatmap-golos .hm-linhas { stroke: rgba(4, 55, 146, .45); }
+.heatmap-golos .hm-baliza { fill: #043792; }
+.hm-zona { stroke: rgba(4, 55, 146, .25); stroke-width: .8; }
+.hm-num { fill: #043792; font: 800 15px Inter, Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
+.hm-num.claro { fill: #fff; }
+.heatmap-golos figcaption { font-size: .82rem; color: var(--text-muted); }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }
