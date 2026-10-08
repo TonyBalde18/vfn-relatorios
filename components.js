@@ -32,7 +32,7 @@
     const hora = VFN.horaIso(j.date);
     const eProximo = opcoes.proximo && opcoes.proximo.id === j.id;
     const forma = estado === "jogado" && g ? H().formaAteJogo(dados, j, 5) : [];
-    return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}">
+    return `<article class="match-item state-${esc(estado)}${estado === "jogado" ? " result-" + VFN.letraResultado(j) : ""}${eProximo ? " is-next" : ""}"${estado === "jogado" && g ? ` data-jogo="vfn:${esc(j.id)}" title="Ver o resumo do jogo"` : ""}>
         <div class="match-date"><strong>${d ? d.getDate() : "—"}</strong><span>${d ? VFN.MESES_CURTOS[d.getMonth()] : ""}</span></div>
         <div class="match-main">
           <div class="match-line">${H().tagCompeticao(j.competition)}${VFN.etiquetaJornada(j, true) ? `<small>${esc(VFN.etiquetaJornada(j, true))}</small>` : ""}<small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small>${eProximo ? '<small class="next-flag">Próximo</small>' : ""}</div>

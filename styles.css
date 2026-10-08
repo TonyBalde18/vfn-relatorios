@@ -2142,6 +2142,35 @@ body.mj-aberto { overflow: hidden; }
 .conv-op:disabled { opacity: .35; cursor: not-allowed; }
 .susp-label input { width: 64px; margin-left: 4px; }
 
+/* Resumo do Jogo (VFNHub.ligarDetalheJogo / resumoJogoHTML) */
+.resumo-jogo.rs-vfn { max-width: 880px; }
+.rs-topo { position: sticky; top: -24px; z-index: 2; display: flex; align-items: center; gap: 12px; margin: -24px -24px 4px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border-color); }
+.rs-topo h3 { margin: 0; font-size: 1.05rem; color: var(--heading); }
+.rs-acoes { display: flex; justify-content: flex-end; }
+.rs-grelha { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.rs-grelha > section:only-child { grid-column: 1 / -1; }
+.rs-golos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rs-golos li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); font-weight: 600; }
+.rs-golos li.adv { opacity: .8; }
+.rs-min { min-width: 40px; font-weight: 800; color: var(--heading); font-variant-numeric: tabular-nums; }
+.rs-tipo { padding: 0 6px; border-radius: 999px; background: rgba(4, 55, 146, .12); font-size: .7rem; font-weight: 800; }
+.rs-lado { margin-left: auto; color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.rs-stats { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.rs-stats td, .rs-stats th { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border-color); }
+.rs-stats td { width: 22%; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rs-stats th { background: transparent; text-transform: none; letter-spacing: 0; }
+.rs-stats tbody th { font-weight: 600; color: var(--text-muted); }
+.rs-campo { max-width: 360px; }
+.rs-relatorio { margin-top: 16px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 10px; }
+.rs-relatorio summary { display: flex; align-items: center; gap: 8px; font-weight: 800; cursor: pointer; }
+.rs-relatorio-corpo { margin-top: 10px; }
+.match-item[data-jogo] { cursor: pointer; }
+@media (max-width: 720px) {
+  .rs-grelha { grid-template-columns: minmax(0, 1fr); }
+  #modalDetalheJogo { padding: 0; }
+  .resumo-jogo.rs-vfn { max-width: none; width: 100%; height: 100%; max-height: none; border-radius: 0; }
+}
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

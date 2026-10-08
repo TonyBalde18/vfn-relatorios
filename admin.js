@@ -2386,6 +2386,10 @@ function initAdmin() {
   // detalhe do jogo ao clicar no resultado (Resultados e Jornadas)
   VFNHub.ligarDetalheJogo(() => ({ matches: jogosCalendario, teams: equipasCalendario, league_results: resultadosLiga, match_reports: relatoriosAdmin }), {
     nomeJogador: id => nomeJogador(id),
+    jogador: id => jogadorPorId(id),
+    // admin: o resumo inclui o relatório completo
+    relatorioCompleto: r => VFNRelatorio.html(r, { nomeJogador: id => nomeJogador(id) }),
+    aposAbrir: corpo => corpo.querySelectorAll("[data-relatorio-completo]").forEach(c => { const r = relatoriosAdmin.find(x => String(x.id) === c.dataset.relatorioCompleto); if (r) VFNRelatorio.carregarSituacoes(c, r, supabaseClient); }),
     verRelatorio: id => { if (typeof abrirRelatorioPublicado === "function") abrirRelatorioPublicado(id); }
   });
 

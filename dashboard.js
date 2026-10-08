@@ -841,6 +841,10 @@ async function iniciar() {
   initEquipas();
   initHistorico();
   H.ligarDetalheJogo(() => dados, {
+    // dashboard = admin, treinador e dirigentes: o resumo inclui o relatório completo
+    jogador: id => jogadorDoRelatorio(id),
+    relatorioCompleto: r => VFNRelatorio.html(relatorioCompleto(r), ctxRelatorio()),
+    aposAbrir: corpo => corpo.querySelectorAll("[data-relatorio-completo]").forEach(c => { const r = dados.match_reports.find(x => String(x.id) === c.dataset.relatorioCompleto); if (r) VFNRelatorio.carregarSituacoes(c, r, cliente); }),
     nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
     verRelatorio: id => abrirRelatorio(id)
   });

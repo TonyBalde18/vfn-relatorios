@@ -1252,9 +1252,52 @@
         <span>${VFN.icone("trophy", 16)} ${esc(comp || "—")}${jornada ? ` · ${esc(jornada)}` : ""}</span>
         ${local || relvado ? `<span class="dj-estadio">${VFN.icone("map-pin", 16)} ${esc(local || "Estádio por indicar")}<br>${VFN.badgeRelvado(relvado)}</span>` : ""}
       </div>
+      ${tipo === "vfn" && estado === "jogado" ? resumoJogoHTML(dados, (dados.matches || []).find(m => String(m.id) === id), relatorio, o) : ""}
       <h4 class="perfil-subtitulo">Eventos</h4>
       ${eventos.length ? `<ol class="dj-timeline">${eventos.map(linhaEvento).join("")}</ol>` : vazio(estado === "jogado" ? (tipo === "vfn" ? "Sem eventos registados (ainda não há relatório deste jogo)." : "Sem marcadores registados.") : "O jogo ainda não se realizou.")}
-      ${relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.verRelatorio ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
+      ${tipo === "vfn" && relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.relatorioCompleto ? `<details class="rs-relatorio"><summary>${VFN.icone("file-text", 16)} Relatório completo <small class="muted">análise da equipa técnica</small></summary><div class="rs-relatorio-corpo" data-relatorio-completo="${esc(relatorio.id)}">${o.relatorioCompleto(relatorio)}</div></details>` : ""}
+      ${relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.verRelatorio && !o.relatorioCompleto ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
+  }
+
+  /*
+   * Resumo do Jogo (jogos do VFN já jogados): marcadores, onze inicial no campo e estatísticas tiradas dos
+   * eventos do relatório; sem relatório (ex.: página pública, que não lê relatórios) usa os marcadores do
+   * calendário (matches.scorer_list). o.jogador(idLocal) → jogador do plantel (nome, número, foto).
+   */
+  function resumoJogoHTML(dados, jogo, relatorio, o) {
+    if (!jogo) return "";
+    const m = (relatorio && relatorio.match_data) || null;
+    const ev = (m && m.jogo && m.jogo.eventos) || [];
+    const jogadorDe = id => (o.jogador && o.jogador(id)) || { id, nome: (o.nomeJogador && o.nomeJogador(id)) || "—", numero: "" };
+    const nome = e => e.equipa === "VFN" ? jogadorDe(e.jogadorId).nome : (e.detalhe || "Adversário");
+    // marcadores: do relatório (minuto, jogador, tipo) ou do calendário
+    let golos = ev.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+      .map(e => ({ vfn: !VFN.eGoloSofrido(e), minuto: `${Number(e.minuto) || 0}${Number(e.acrescimo) > 0 ? "+" + Number(e.acrescimo) : ""}'`, texto: nome(e), tipo: e.tipo === "Auto-golo" ? "Auto-golo" : e.tipo_lance === "penalty" ? "Penálti" : "Golo" }));
+    if (!golos.length && Array.isArray(jogo.scorer_list)) {
+      golos = jogo.scorer_list.map(s => ({ vfn: !VFN.eGoloAdversario(s), minuto: s.minute != null ? s.minute + "'" : "", texto: `${s.player_name || "?"}${Number(s.count) > 1 ? " ×" + s.count : ""}`, tipo: "Golo" }));
+    }
+    const marcadores = golos.length ? `<ul class="rs-golos">${golos.map(g => `<li class="${g.vfn ? "vfn" : "adv"}"><span class="rs-min">${esc(g.minuto)}</span>${VFN.iconeEvento(g.tipo === "Auto-golo" ? "Auto-golo" : "Golo", 18)}<span>${esc(g.texto)}</span>${g.tipo !== "Golo" ? `<small class="rs-tipo">${esc(g.tipo)}</small>` : ""}<small class="rs-lado">${g.vfn ? "VFN" : "Adv."}</small></li>`).join("")}</ul>` : vazio("Sem golos registados.");
+    // onze inicial nas posições da formação usada (só leitura)
+    const formacao = m && m.jogo.formacaoVFN;
+    const slots = (formacao && VFN.FORMACOES_SLOTS[formacao]) || [];
+    const titulares = (m && m.jogo.titulares) || [];
+    const onze = slots.length && titulares.some(Boolean) ? `<div class="mini-pitch rs-campo" role="img" aria-label="Onze inicial (${esc(formacao)})"><span class="mini-pitch-lines" aria-hidden="true"></span>${slots.map((slot, i) => {
+      if (!titulares[i]) return "";
+      const j = jogadorDe(titulares[i]);
+      const capitao = String(titulares[i]) === String(m.jogo.capitaoId);
+      return `<div class="pitch-player" style="left:${slot.x}%;top:${Math.round(8 + slot.y * 0.84)}%;width:20%"><span class="pitch-player-avatar">${VFN.avatarJogador(j, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}</span><span class="pitch-player-name"><span>${esc(j.nome)}</span><b>${esc(slot.label)}</b></span></div>`;
+    }).join("")}</div>` : "";
+    // estatísticas do jogo (contagens dos eventos do relatório)
+    const conta = (tipo, vfn) => ev.filter(e => e.tipo === tipo && (vfn ? e.equipa === "VFN" : e.equipa === "Adversário")).length;
+    const linhasStats = [["Golos", e => golos.filter(g => g.vfn === e).length], ["Cartões amarelos", e => conta("Cartão Amarelo", e)], ["Cartões vermelhos", e => conta("Cartão Vermelho", e)], ["Substituições", e => conta("Substituição", e)], ["Golos anulados", e => conta("Golo Anulado", e)], ["Penáltis falhados", e => conta("Penalty Falhado", e)]]
+      .map(([r, f]) => [r, f(true), f(false)]).filter(([r, a, b]) => r === "Golos" || a || b);
+    const casa = VFN.jogoEmCasa(jogo);
+    const stats = ev.length ? `<table class="rs-stats"><thead><tr><th scope="col">${casa ? "VFN" : "Adv."}</th><th scope="col"></th><th scope="col">${casa ? "Adv." : "VFN"}</th></tr></thead><tbody>${linhasStats.map(([r, a, b]) => `<tr><td>${casa ? a : b}</td><th scope="row">${esc(r)}</th><td>${casa ? b : a}</td></tr>`).join("")}</tbody></table>` : "";
+    return `<div class="rs-acoes"><button type="button" class="btn btn-accent btn-sm" data-partilhar-resultado="${esc(jogo.id)}">📸 Partilhar Resultado</button></div>
+      <div class="rs-grelha">
+        <section><h4 class="perfil-subtitulo">Marcadores</h4>${marcadores}${stats ? `<h4 class="perfil-subtitulo">Estatísticas do jogo</h4>${stats}` : ""}</section>
+        ${onze ? `<section><h4 class="perfil-subtitulo">Onze inicial <small class="muted">${esc(formacao)}</small></h4>${onze}</section>` : ""}
+      </div>`;
   }
 
   /** Cria o modal (uma vez) e liga os cliques em [data-jogo] da página. */
@@ -1266,12 +1309,14 @@
       modal.id = "modalDetalheJogo";
       modal.className = "modal-overlay";
       modal.hidden = true;
-      modal.innerHTML = `<div class="modal-box modal-md detalhe-jogo" role="dialog" aria-modal="true" aria-label="Detalhe do jogo"><div id="detalheJogoCorpo"></div><div class="modal-actions"><button type="button" class="btn btn-accent" data-fechar-detalhe>Fechar</button></div></div>`;
+      modal.innerHTML = `<div class="modal-box modal-md detalhe-jogo resumo-jogo" role="dialog" aria-modal="true" aria-labelledby="resumoJogoTitulo"><div class="rs-topo"><button type="button" class="btn btn-ghost btn-sm" data-fechar-detalhe>← Voltar</button><h3 id="resumoJogoTitulo">Resumo do Jogo</h3></div><div id="detalheJogoCorpo"></div><div class="modal-actions"><button type="button" class="btn btn-accent" data-fechar-detalhe>Fechar</button></div></div>`;
       document.body.appendChild(modal);
       modal.addEventListener("click", e => {
         if (e.target === modal || e.target.closest("[data-fechar-detalhe]")) modal.hidden = true;
         const b = e.target.closest("[data-ver-relatorio]");
         if (b && o.verRelatorio) { modal.hidden = true; o.verRelatorio(b.dataset.verRelatorio); }
+        const p = e.target.closest("[data-partilhar-resultado]");
+        if (p && window.VFNComp && VFNComp.gerarImagemResultado) VFNComp.gerarImagemResultado(p.dataset.partilharResultado, obterDados(), o);
       });
       document.addEventListener("keydown", e => { if (e.key === "Escape") modal.hidden = true; });
     }
@@ -1279,7 +1324,11 @@
       const alvo = e.target.closest("[data-jogo]");
       if (!alvo || e.target.closest("input, select, [data-equipa], [data-jogador], .row-actions") || alvo.closest("#modalDetalheJogo")) return;
       document.getElementById("detalheJogoCorpo").innerHTML = detalheJogoHTML(obterDados(), alvo.dataset.jogo, o);
+      modal.querySelector(".resumo-jogo").classList.toggle("rs-vfn", alvo.dataset.jogo.startsWith("vfn:"));
+      document.getElementById("resumoJogoTitulo").textContent = alvo.dataset.jogo.startsWith("vfn:") ? "Resumo do Jogo" : "Detalhe do jogo";
+      if (o.aposAbrir) o.aposAbrir(document.getElementById("detalheJogoCorpo"));
       modal.hidden = false;
+      modal.querySelector(".resumo-jogo").scrollTop = 0;
       modal.querySelector("[data-fechar-detalhe]").focus();
     });
   }

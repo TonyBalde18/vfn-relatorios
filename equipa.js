@@ -467,7 +467,8 @@ async function iniciar() {
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
   $("eqMultasEstado").addEventListener("change", renderMultas);
   $("eqRelatoriosLista").addEventListener("click", e => { const b = e.target.closest("[data-relatorio]"); if (b) abrirRelatorio(b.dataset.relatorio); });
-  H.ligarDetalheJogo(() => dados, { nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome, verRelatorio: id => abrirRelatorio(id) });
+  // relatório completo no resumo só para a equipa técnica (perfil); os jogadores mantêm o botão "Ver Relatório"
+  H.ligarDetalheJogo(() => dados, { nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome, jogador: id => jogadorDoRelatorio(id), verRelatorio: id => abrirRelatorio(id), get relatorioCompleto() { return !eu && perfil ? r => VFNRelatorio.html(r, { nomeJogador: x => (jogadorDoRelatorio(x) || {}).nome }) : null; } });
   // qualquer foto de jogador abre a ficha
   document.addEventListener("click", e => {
     const alvo = e.target.closest("[data-jogador]");
