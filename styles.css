@@ -1167,6 +1167,12 @@ html.vfn-splash-on body { visibility: hidden; }
 .hm-P { background: var(--presente); } .hm-A { background: var(--atraso); } .hm-F { background: var(--falta); } .hm-J { background: var(--justificada); }
 .heatmap-legenda { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 8px; font-size: .72rem; color: var(--text-muted); }
 .heatmap-legenda .hm-cel { width: 11px; height: 11px; margin-left: 4px; }
+/* v14: tema escuro — a regra gerada para .hm-cel tapava as cores dos níveis (tudo cinzento); verdes do GitHub escuro */
+html.tema-escuro .hm-cel { background: rgba(255, 255, 255, .08); }
+html.tema-escuro .hm-1 { background: #0e4429; } html.tema-escuro .hm-2 { background: #006d32; }
+html.tema-escuro .hm-3 { background: #26a641; } html.tema-escuro .hm-4 { background: #39d353; }
+html.tema-escuro .hm-P { background: var(--presente); } html.tema-escuro .hm-A { background: var(--atraso); }
+html.tema-escuro .hm-F { background: var(--falta); } html.tema-escuro .hm-J { background: var(--justificada); }
 
 /* ---------- Banner do próximo jogo (dashboard) ---------- */
 .banner-proximo { margin-bottom: 18px; border-radius: 12px; background: var(--vfn-navy); color: #fff; box-shadow: 0 6px 18px rgba(10,22,40,.18); overflow: hidden; }
@@ -2334,8 +2340,6 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .dj-min { color: var(--heading); }
 :where(html.tema-escuro) .rel-bloco h4 { color: var(--heading); }
 :where(html.tema-escuro) .rel-marcadores { color: var(--heading); }
-:where(html.tema-escuro) .hm-cel { background: color-mix(in srgb, #ebedf0 14%, var(--surface)); }
-:where(html.tema-escuro) .hm-1 { background: color-mix(in srgb, #c6e9cf 14%, var(--surface)); }
 :where(html.tema-escuro) .link-btn { color: var(--heading); }
 :where(html.tema-escuro) .player-radar h4 { color: var(--heading); }
 :where(html.tema-escuro) .disp-coluna h3 { color: var(--heading); }
