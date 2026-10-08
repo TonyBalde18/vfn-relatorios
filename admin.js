@@ -456,7 +456,16 @@ function candidatosComparacaoAdmin(categoria) {
   return plantel.filter(p => VFN.categoriaPosicao(p.posicao) === categoria).sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(p => ({ id: idJogadorBD(p), nome: p.nome }));
 }
 
+/** Imagem do resultado (Instagram) do relatório aberto: usa o estado atual (mesmo antes de gravar). */
+function partilharResultadoRelatorio() {
+  const matchId = state.preJogo.matchId;
+  if (!matchId || !jogosCalendario.some(j => String(j.id) === String(matchId))) { alert("Associa o relatório a um jogo do calendário para gerar a imagem do resultado."); return; }
+  const atual = { id: state.relatorioId || "atual", match_id: matchId, status: "published", updated_at: new Date().toISOString(), match_data: state };
+  VFNComp.gerarImagemResultado(matchId, { matches: jogosCalendario, teams: equipasCalendario, match_reports: [atual] }, { nomeJogador: id => nomeJogador(id) });
+}
+
 function initConvocatoria() {
+  if (el("btnPartilharResultado")) el("btnPartilharResultado").addEventListener("click", partilharResultadoRelatorio);
   VFNComp.ligarComparacao(el("convPlantel"), { jogador: jogadorParaCompararAdmin, candidatos: candidatosComparacaoAdmin });
   criarOpcoesFormacao(el("convFormacao"));
   el("convJogo").addEventListener("change", () => carregarConvocatoria(el("convJogo").value));

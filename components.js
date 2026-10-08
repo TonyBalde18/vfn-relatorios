@@ -1298,7 +1298,61 @@
     }
   }
 
+  /* ---------- Imagem do resultado para o Instagram (1080 × 1080) ----------
+     Elemento de 540 × 540 exportado com html2canvas a scale 2 (exportarImagemHTML) → PNG 1080 × 1080.
+     Cores do clube: fundo #0A102D → #131E4E, resultado e destaques #E8D137, texto #D8D8D3. */
+
+  /** Golos do jogo: [{ vfn, minuto, nome }] do relatório (com minuto) ou, sem ele, do calendário. */
+  function golosParaImagem(jogo, relatorio, nomeJogador) {
+    const ev = (((relatorio || {}).match_data || {}).jogo || {}).eventos || [];
+    const golos = ev.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo")
+      .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0) || (Number(a.acrescimo) || 0) - (Number(b.acrescimo) || 0))
+      .map(e => ({
+        vfn: !VFN.eGoloSofrido(e),
+        minuto: `${Number(e.minuto) || 0}${Number(e.acrescimo) > 0 ? "+" + Number(e.acrescimo) : ""}'`,
+        nome: (e.equipa === "VFN" ? (nomeJogador && nomeJogador(e.jogadorId)) || e.detalhe || "VFN" : e.detalhe || "Adversário") + (e.tipo === "Auto-golo" ? " (a.g.)" : e.tipo_lance === "penalty" ? " (g.p.)" : "")
+      }));
+    if (golos.length || !Array.isArray(jogo.scorer_list)) return golos;
+    return jogo.scorer_list.map(s => ({ vfn: !VFN.eGoloAdversario(s), minuto: s.minute != null ? s.minute + "'" : "", nome: `${s.player_name || "?"}${Number(s.count) > 1 ? " ×" + s.count : ""}` }));
+  }
+
+  function resultadoImagemHTML(dados, jogo, relatorio, o) {
+    const casa = VFN.jogoEmCasa(jogo);
+    const nomeAdv = H().nomeAdversario(dados, jogo);
+    const adv = H().equipa(dados, jogo.opponent_team_id);
+    const jr = ((relatorio || {}).match_data || {}).jogo || {};
+    const g = VFN.golosJogo(jogo) || { vfn: 0, adv: 0 };
+    // o relatório aberto (admin) pode ter o resultado mais recente do que o calendário
+    const golosVFN = jr.golosVFN != null && jr.golosVFN !== "" ? Number(jr.golosVFN) : g.vfn;
+    const golosAdv = jr.golosAdversario != null && jr.golosAdversario !== "" ? Number(jr.golosAdversario) : g.adv;
+    const lado = (logo, nome) => `<div class="igr-equipa">${logo ? `<img src="${esc(logo)}" alt="" crossorigin="anonymous">` : `<span class="igr-sem-logo">${esc(String(nome).slice(0, 2).toUpperCase())}</span>`}<strong>${esc(nome)}</strong></div>`;
+    const vfn = lado("assets/logo.png", "ACD VF Naves"), outro = lado(VFN.urlLogoEquipa(adv, nomeAdv), nomeAdv);
+    const golos = golosParaImagem(jogo, relatorio, o && o.nomeJogador);
+    const coluna = doVFN => golos.filter(x => x.vfn === doVFN).map(x => `<li><b>${esc(x.minuto)}</b> ${esc(x.nome)}</li>`).join("");
+    const etiqueta = VFN.etiquetaJornada(jogo);
+    return `<div class="ig-resultado">
+      <img class="igr-escudo" src="assets/logo.png" alt="">
+      <div class="igr-jogo">${casa ? vfn : outro}<span class="igr-vs">vs</span>${casa ? outro : vfn}</div>
+      <div class="igr-placar">${casa ? golosVFN : golosAdv}<span>–</span>${casa ? golosAdv : golosVFN}</div>
+      ${golos.length ? `<div class="igr-golos"><ul>${coluna(casa)}</ul><ul>${coluna(!casa)}</ul></div>` : ""}
+      <p class="igr-rodape">${esc(jogo.competition || "")}${etiqueta ? " · " + esc(etiqueta) : ""} · ${esc(VFN.dataLonga(jogo.date))}<br><b>ACD Vila Franca das Naves</b></p>
+    </div>`;
+  }
+
+  /**
+   * Gera e descarrega (no telemóvel: abre a partilha) o PNG do resultado: resultado-{adversario}-{data}.png.
+   * dados: { matches, teams, match_reports }; o.nomeJogador(idLocal) dá os nomes dos marcadores do relatório.
+   */
+  async function gerarImagemResultado(matchId, dados, o) {
+    const jogo = ((dados && dados.matches) || []).find(j => String(j.id) === String(matchId));
+    if (!jogo) { alert("Jogo não encontrado."); return; }
+    const relatorio = H().relatorioDoJogo(dados, jogo.id);
+    const nome = `resultado-${VFN.slug(H().nomeAdversario(dados, jogo))}-${VFN.dataIso(jogo.date) || "sem-data"}.png`;
+    return exportarImagemHTML(resultadoImagemHTML(dados, jogo, relatorio, o), { nome, titulo: "Resultado VFN", largura: 540, fundo: "#0A102D" });
+  }
+
   window.VFNComp = {
+    gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
     ligarArrastar, criarOnzeTatico,

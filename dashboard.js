@@ -397,6 +397,7 @@ function abrirRelatorio(id) {
   $("historicoDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
   VFNRelatorio.carregarSituacoes($("historicoDetalhe"), relatorioAberto, cliente); // imagens do bucket privado (URLs assinados)
   $("btnExportarWord").hidden = false;
+  $("btnPartilharRelatorio").hidden = !(relatorioAberto.match_id || ((relatorioAberto.match_data || {}).preJogo || {}).matchId);
   if (window.innerWidth < 900) $("historicoDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -426,6 +427,11 @@ function initHistorico() {
     if (b) abrirRelatorio(b.dataset.relatorio);
   });
   $("btnExportarWord").addEventListener("click", exportarWordRelatorio);
+  // imagem do resultado (Instagram) do relatório aberto
+  $("btnPartilharRelatorio").addEventListener("click", () => {
+    const matchId = relatorioAberto && (relatorioAberto.match_id || ((relatorioAberto.match_data || {}).preJogo || {}).matchId);
+    if (matchId) VFNComp.gerarImagemResultado(matchId, dados, { nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome });
+  });
 }
 
 function renderMinutos() {
