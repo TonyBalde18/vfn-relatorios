@@ -60,6 +60,11 @@ html.tema-escuro {
   --skeleton-base: #1C2840;
   --skeleton-brilho: #26344F;
   --charcoal: #A9B3C3;
+  /* v14: o vidro (--glass-*, definido mais abaixo) ficava branco a 68% no escuro — cards do dashboard/admin
+     cinzento claro com texto claro, ilegível */
+  --glass-bg: color-mix(in srgb, var(--surface) 86%, transparent);
+  --glass-borda: rgba(255, 255, 255, .07);
+  --glass-sombra: 0 8px 28px rgba(0, 0, 0, .35);
 }
 
 * { box-sizing: border-box; }
