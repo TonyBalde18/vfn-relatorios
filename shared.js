@@ -581,6 +581,81 @@
     return !categoria || codigosPosicao(posicao).some(c => CATEGORIA_CODIGO[c] === categoria);
   }
 
+  /*
+   * Proficiência de posição (v14), escala 1–20 (Natural 15–20 · Competente 10–14 · Insatisfatório 5–9 · Desajeitado 1–4).
+   * Os valores manuais ficam em players.stats.proficiencia ({ "GR": 20, "Defesa Central": 16, ... }), editados no
+   * modal do jogador do admin — não é preciso alterar o schema. Sem valor manual usa-se um valor por omissão:
+   *   principal (mesma sub-posição) 18 · principal (mesma categoria, outra sub-posição) 13 · secundária 12 ·
+   *   fora 7 · GR a jogar no campo (ou jogador de campo na baliza) 2.
+   * Tipo: 'principal' (mesma categoria GR/Def/Meio/Ata), 'secundaria' (sub-posição em posicoes_secundarias;
+   * com a lista vazia não se verifica) ou 'fora'.
+   */
+  const NIVEIS_PROFICIENCIA = [
+    { min: 15, nivel: "Natural", cor: "#16a34a", impacto: "Sem penalidades; total conforto e desempenho na função." },
+    { min: 10, nivel: "Competente", cor: "#84cc16", impacto: "Pequena adaptação; muito capaz, com leve risco de lapsos de posicionamento." },
+    { min: 5, nivel: "Insatisfatório", cor: "#f59e0b", impacto: "Quedas notáveis no posicionamento e na tomada de decisões." },
+    { min: 1, nivel: "Desajeitado", cor: "#dc2626", impacto: "Penalidade severa no desempenho, consciência tática e disciplina." }
+  ];
+  const POSICOES_PROFICIENCIA = ["GR"].concat(TODAS_SUB_POSICOES);
+
+  function nivelProficiencia(valor) {
+    const v = Math.max(1, Math.min(20, Math.round(Number(valor) || 1)));
+    return Object.assign({ valor: v }, NIVEIS_PROFICIENCIA.find(n => v >= n.min));
+  }
+
+  /**
+   * Posição de um lugar no onze → { cat, sub }. Aceita um lugar de FORMACOES_SLOTS ({ label, y }), um código
+   * ("DC", "MCen", "PL"), uma sub-posição ("Defesa Central") ou uma categoria ("GR", "Def", "Meio", "Ata").
+   * ED/EE recuados (y ≥ 40, ex. 4-4-2) contam como Médio Direito/Esquerdo; mais à frente são extremos.
+   */
+  function posicaoDoLugar(lugar) {
+    const slot = lugar && typeof lugar === "object" ? lugar : { label: lugar };
+    const texto = String(slot.label || "").trim();
+    if (!texto) return { cat: "", sub: "" };
+    if (TODAS_SUB_POSICOES.includes(texto)) return { cat: Object.keys(SUB_POSICOES).find(c => SUB_POSICOES[c].includes(texto)), sub: texto };
+    if (NOME_CATEGORIA[texto]) return { cat: texto, sub: "" };
+    const codigo = texto.toUpperCase();
+    if (codigo === "GR") return { cat: "GR", sub: "" };
+    if ((codigo === "ED" || codigo === "EE") && Number(slot.y) >= 40) return { cat: "Meio", sub: codigo === "ED" ? "Médio Direito" : "Médio Esquerdo" };
+    const sub = SUB_DE_CODIGO[codigo] || "";
+    return { cat: CATEGORIA_CODIGO[codigo] || "", sub };
+  }
+
+  /** Proficiência do jogador no lugar do onze: { tipo, valor, nivel, cor, impacto, manual, posicao } ou null. */
+  function proficienciaJogador(jogador, posicaoNoOnze) {
+    const j = jogador || {};
+    const alvo = posicaoDoLugar(posicaoNoOnze);
+    const posicao = j.posicao || j.position;
+    const cat = categoriaPosicao(posicao);
+    if (!alvo.cat || !cat) return null;
+    const sub = j.subPosicao || j.sub_posicao || subPosicaoSugerida(posicao);
+    const secundarias = j.posicoesSecundarias || j.posicoes_secundarias;
+    const lista = Array.isArray(secundarias) ? secundarias : [];
+    let tipo, base;
+    if (alvo.cat === cat) { tipo = "principal"; base = !alvo.sub || !sub || alvo.sub === sub ? 18 : 13; }
+    else if (lista.length && alvo.sub && lista.includes(alvo.sub)) { tipo = "secundaria"; base = 12; }
+    else { tipo = "fora"; base = alvo.cat === "GR" || cat === "GR" ? 2 : 7; }
+    // o valor manual (admin) manda sempre sobre o valor por omissão
+    const chave = alvo.cat === "GR" ? "GR" : alvo.sub;
+    const manuais = j.proficiencia || (j.stats || {}).proficiencia || {};
+    const manual = chave && manuais[chave] != null && manuais[chave] !== "" ? Number(manuais[chave]) : NaN;
+    const n = nivelProficiencia(Number.isFinite(manual) ? manual : base);
+    return Object.assign(n, { tipo, manual: Number.isFinite(manual), posicao: alvo.sub || NOME_CATEGORIA[alvo.cat] });
+  }
+
+  const ROTULO_TIPO_PROF = { principal: "posição principal", secundaria: "posição secundária", fora: "fora de posição" };
+  const tituloProficiencia = p => `${p.nivel} (${p.valor}/20) em ${p.posicao} · ${ROTULO_TIPO_PROF[p.tipo]}. ${p.impacto}`;
+
+  /** Ponto colorido para os jogadores no campo (absoluto: não muda o tamanho do token). */
+  function proficienciaPontoHTML(p) {
+    return p ? `<span class="prof-ponto prof-${p.tipo}" style="--prof:${p.cor}" title="${escapeHtml(tituloProficiencia(p))}" aria-label="${escapeHtml(p.nivel)}"></span>` : "";
+  }
+
+  /** Badge pequeno ao lado do nome (lista de convocados). */
+  function proficienciaBadgeHTML(p) {
+    return p ? `<span class="prof-badge" style="--prof:${p.cor}" title="${escapeHtml(tituloProficiencia(p))}">${escapeHtml(p.nivel)}</span>` : "";
+  }
+
   /* ---------- Ícones Lucide ---------- */
 
   const nomeLucide = nome => String(nome).split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
@@ -1510,6 +1585,7 @@
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
+    NIVEIS_PROFICIENCIA, POSICOES_PROFICIENCIA, nivelProficiencia, posicaoDoLugar, proficienciaJogador, proficienciaPontoHTML, proficienciaBadgeHTML,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou, kitJogador, camisolaKitHTML, kitFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,

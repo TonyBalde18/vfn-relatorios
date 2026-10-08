@@ -28,6 +28,7 @@
       cartoesV: Number(s.cartoesV) || 0,
       minutos: Number(s.minutos) || 0,
       attributes: p.attributes || {},
+      proficiencia: s.proficiencia || {}, // v14: 1–20 por posição (VFN.proficienciaJogador)
       disponibilidade: p.availability || "", // vazio na página pública (a view não tem esta coluna)
       info: { nascimento: p.date_of_birth || s.nascimento || "", pe: s.pePreferencial || "" }
     };
@@ -596,7 +597,8 @@
 
   /**
    * Onze no campo, colocado pela posição do perfil. lista: [{ jogador, minutos }].
-   * o: { rotulo(t) em vez dos minutos, capitao: id com o badge "C", ordenado: já vem como onze }
+   * o: { rotulo(t) em vez dos minutos, capitao: id com o badge "C", ordenado: já vem como onze,
+   *      proficiencia: ponto de proficiência (só com formação: é ela que diz a posição de cada um) }
    */
   function onzeCampoHTML(lista, opcoes) {
     const o = opcoes || {};
@@ -606,10 +608,11 @@
     const marcadores = o.formacao ? posicoesDaFormacao(onze, o.formacao) : posicoesPorLinhas(onze);
     return `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
       <span class="mini-pitch-lines" aria-hidden="true"></span>
-      ${marcadores.map(({ t, x, y, largura }) => {
+      ${marcadores.map(({ t, x, y, largura, slot }) => {
         const capitao = o.capitao && String(o.capitao) === String(t.jogador.idBD || t.jogador.id);
         const rotulo = o.rotulo ? o.rotulo(t) : t.minutos + "'";
-        return `<div class="pitch-player" style="left:${x}%;top:${y}%;width:${largura}%" title="${esc(t.jogador.nome)}${rotulo ? " · " + esc(rotulo) : ""}"><span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}</span><span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span>${rotulo ? `<b>${esc(rotulo)}</b>` : ""}</span></div>`;
+        const prof = o.proficiencia && slot ? VFN.proficienciaPontoHTML(VFN.proficienciaJogador(t.jogador, slot)) : "";
+        return `<div class="pitch-player" style="left:${x}%;top:${y}%;width:${largura}%" title="${esc(t.jogador.nome)}${rotulo ? " · " + esc(rotulo) : ""}"><span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}${prof}</span><span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span>${rotulo ? `<b>${esc(rotulo)}</b>` : ""}</span></div>`;
       }).join("")}
     </div>
     ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
@@ -629,14 +632,33 @@
    */
   function posicoesDaFormacao(onze, formacao) {
     const linhas = linhasFormacao(formacao);
+    const lugares = lugaresDaFormacao(formacao);
     const resultado = [];
-    if (onze[0]) resultado.push({ t: onze[0], x: 50, y: GR_Y, largura: larguraNaLinha(1) });
+    if (onze[0]) resultado.push({ t: onze[0], x: 50, y: GR_Y, largura: larguraNaLinha(1), slot: lugares[0][0] });
     let i = 1;
     linhas.forEach((n, l) => {
       const y = LINHA_Y_TRAS - l * ((LINHA_Y_TRAS - LINHA_Y_FRENTE) / Math.max(1, linhas.length - 1));
-      for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y), largura: larguraNaLinha(n) });
+      for (let k = 0; k < n && i < onze.length; k++, i++) resultado.push({ t: onze[i], x: Math.round((k + 1) * 100 / (n + 1)), y: Math.round(y), largura: larguraNaLinha(n), slot: (lugares[l + 1] || [])[k] });
     });
     return resultado;
+  }
+
+  /**
+   * Lugares (VFN.FORMACOES_SLOTS) agrupados como as linhas de posicoesDaFormacao: [[GR], [linha 1 da esquerda
+   * para a direita], ...]. Serve para saber a posição de cada titular na pré-visualização (proficiência).
+   */
+  function lugaresDaFormacao(formacao) {
+    const slots = (VFN.FORMACOES_SLOTS[formacao] || VFN.FORMACOES_SLOTS["4-3-3"]).slice();
+    const grupos = [[slots.shift()]];
+    linhasFormacao(formacao).forEach(n => grupos.push(slots.splice(0, n).sort((a, b) => a.x - b.x)));
+    return grupos;
+  }
+
+  /** Lugar de cada titular (id → slot) com o onze colocado pela formação, como na pré-visualização. */
+  function lugaresDoOnze(onze, formacao) {
+    const mapa = new Map();
+    posicoesDaFormacao(onze, formacao).forEach(m => { if (m.slot) mapa.set(String(m.t.jogador.idBD || m.t.jogador.id), m.slot); });
+    return mapa;
   }
 
   /* ---------- Tendências do jogador (últimos 3 jogos vs os 3 anteriores) ---------- */
@@ -1605,6 +1627,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

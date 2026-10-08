@@ -303,6 +303,18 @@
 .h2h-comp { grid-area: comp; color: var(--text-muted); font-size: .75rem; }
 @media (max-width: 760px) { .h2h-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .h2h-lista li { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "letra res" "letra data" "letra comp"; } }
 
+/* Ranking de GR (dashboard, v14): líder com a cor do clube */
+.ranking-gr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ranking-gr li { display: grid; grid-template-columns: minmax(0, 1fr) 92px 92px; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border-left: 4px solid transparent; }
+.ranking-gr li .player-cell { min-width: 0; font-weight: 600; }
+.ranking-gr li.lider { background: var(--azul-royal); border-left-color: var(--amarelo); color: #fff; }
+.ranking-gr li.lider .player-cell span, .ranking-gr li.lider strong { color: #fff; }
+.ranking-gr li.lider small { color: var(--amarelo); }
+.rgr-num { display: grid; justify-items: center; line-height: 1.1; }
+.rgr-num strong { font-size: 1.15rem; color: var(--heading); }
+.rgr-num small { color: var(--text-muted); font-size: .68rem; }
+@media (max-width: 520px) { .ranking-gr li { grid-template-columns: minmax(0, 1fr) 64px 64px; padding: 8px; } }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }
@@ -331,14 +343,3 @@
 :where(html.tema-escuro) .pres-pct b { color: var(--heading); }
 :where(html.tema-escuro) .h2h-tiles .h2h-e strong { color: var(--fg-muted); }
 /* ===== FIM TEMA ESCURO ===== */
-/* Ranking de GR (dashboard, v14): líder com a cor do clube */
-.ranking-gr { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.ranking-gr li { display: grid; grid-template-columns: minmax(0, 1fr) 92px 92px; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border-left: 4px solid transparent; }
-.ranking-gr li .player-cell { min-width: 0; font-weight: 600; }
-.ranking-gr li.lider { background: var(--azul-royal); border-left-color: var(--amarelo); color: #fff; }
-.ranking-gr li.lider .player-cell span, .ranking-gr li.lider strong { color: #fff; }
-.ranking-gr li.lider small { color: var(--amarelo); }
-.rgr-num { display: grid; justify-items: center; line-height: 1.1; }
-.rgr-num strong { font-size: 1.15rem; color: var(--heading); }
-.rgr-num small { color: var(--text-muted); font-size: .68rem; }
-@media (max-width: 520px) { .ranking-gr li { grid-template-columns: minmax(0, 1fr) 64px 64px; padding: 8px; } }

@@ -2222,6 +2222,17 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) img.team-logo, :where(html.tema-escuro) .rel-logo { filter: drop-shadow(0 0 1px rgba(255,255,255,.35)); }
 :where(html.tema-escuro) ::placeholder { color: #6E7A8E; }
 
+/* Proficiência de posição (v14): ponto no token do campo (absoluto, não muda o tamanho), badge e campos do admin */
+.slot-camisola { position: relative; display: inline-block; }
+.prof-ponto { position: absolute; right: -3px; bottom: -2px; z-index: 2; width: 11px; height: 11px; border-radius: 50%; background: var(--prof); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .45); pointer-events: auto; }
+.prof-ponto.prof-fora { box-shadow: 0 0 0 2px var(--prof), 0 1px 3px rgba(0, 0, 0, .45); }
+.prof-badge { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: var(--prof); color: #fff; font-size: .62rem; font-weight: 800; line-height: 1.5; vertical-align: middle; letter-spacing: .02em; text-shadow: 0 1px 1px rgba(0, 0, 0, .25); }
+.prof-campos { margin: 0; padding: 0; border: 0; }
+.prof-campos legend { margin-bottom: 5px; padding: 0; font-size: 0.8rem; font-weight: 600; color: var(--charcoal); }
+.prof-grelha { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; margin-bottom: 4px; }
+.prof-campo { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 4px 3px 8px; border-radius: 8px; border-left: 4px solid var(--prof); background: var(--surface-2, #f3f4f6); font-size: .8rem; font-weight: 500; }
+.prof-campo input { width: 54px; padding: 4px 6px; text-align: center; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }
@@ -2361,4 +2372,5 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .seg-control button.ativo { background: var(--surface); color: var(--heading); }
 :where(html.tema-escuro) .onze-chip { background: var(--card-bg, var(--surface)); }
 :where(html.tema-escuro) .onze-chip b { color: var(--heading); }
+:where(html.tema-escuro) .prof-campo { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
 /* ===== FIM TEMA ESCURO ===== */

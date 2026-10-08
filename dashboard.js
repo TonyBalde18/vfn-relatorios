@@ -499,7 +499,7 @@ function renderMinutos() {
   }
   $("minutosLista").innerHTML = H.minutosListaHTML(lista);
   // 11 mais utilizado com tática e arrastar (só na sessão)
-  if (!onzeTatico) onzeTatico = VFNComp.criarOnzeTatico($("onzeCampo"), { chave: "dashboard" });
+  if (!onzeTatico) onzeTatico = VFNComp.criarOnzeTatico($("onzeCampo"), { chave: "dashboard", proficiencia: true });
   onzeTatico.atualizar(lista);
 }
 

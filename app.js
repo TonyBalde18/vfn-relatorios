@@ -958,7 +958,7 @@ function renderPitch() {
     const j = jogadorId && jogadorPorId(jogadorId);
     const nome = j ? j.nome : "";
     return `<div class="pitch-slot${jogadorId ? "" : " empty"}" style="left:${slot.x}%;top:${slot.y}%" data-alvo="s:${idx}"${jogadorId ? ` data-arrasta="s:${idx}"` : ""} tabindex="0" title="${escapeHtml(slot.label + (nome ? " · " + nome : " (vazia)"))}">
-      <span class="slot-camisola">${VFN.generateJerseyAvatar(j ? j.numero : "")}</span>
+      <span class="slot-camisola">${VFN.generateJerseyAvatar(j ? j.numero : "")}${j ? VFN.proficienciaPontoHTML(VFN.proficienciaJogador(j, slot)) : ""}</span>
       <span class="slot-label">${escapeHtml(slot.label)}</span>
       ${jogadorId ? `<span class="slot-name">${escapeHtml(nome.split(" ")[0])}</span>${eCapitao(jogadorId) ? VFN.badgeCapitao("no-campo") : ""}` : ""}
     </div>`;
@@ -1791,7 +1791,15 @@ function initPlantel() {
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
   el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
   el("modalSubPosicao").addEventListener("change", e => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); subPosicaoModal = e.target.value; renderSubPosicoesModal(); });
-  el("modalSecundarias").addEventListener("change", () => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); });
+  el("modalSecundarias").addEventListener("change", () => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); renderProficienciaModal(); });
+  el("modalProficiencia").addEventListener("input", e => {
+    const i = e.target.closest("input[data-prof]");
+    if (!i) return;
+    if (i.value === "") delete proficienciaModal[i.dataset.prof]; else proficienciaModal[i.dataset.prof] = i.value;
+    const nivel = VFN.nivelProficiencia(i.value !== "" ? i.value : i.placeholder || 1);
+    i.parentElement.style.setProperty("--prof", nivel.cor);
+    i.parentElement.title = nivel.nivel;
+  });
   el("teamSearch").addEventListener("input", event => { pesquisaEquipa = event.target.value.toLocaleLowerCase("pt-PT"); renderPlantel(); });
   el("teamPositionFilter").addEventListener("change", event => { filtroPosicaoEquipa = event.target.value; renderPlantel(); });
   el("teamAvailabilityFilter").addEventListener("change", event => { filtroDisponibilidadeEquipa = event.target.value; renderPlantel(); });
@@ -1816,7 +1824,7 @@ function abrirModalJogador() {
   el("modalNascimento").value = ""; el("modalPe").value = ""; el("modalDisponibilidade").value = "disponivel";
   el("modalEmailConta").value = ""; el("modalContaEstado").textContent = "";
   posicoesModal = []; posicaoPrincipalModal = "";
-  subPosicaoModal = ""; secundariasModal = [];
+  subPosicaoModal = ""; secundariasModal = []; proficienciaModal = {};
   renderPositionMap(); renderPlayerModalHeader(null);
   el("modalOverlay").hidden = false;
   el("modalIdZerozero").focus();
@@ -1838,6 +1846,7 @@ function abrirModalExistente(jogador) {
   el("modalContaEstado").textContent = jogador.contaLigada ? "· conta ligada ✓" : jogador.email ? "· à espera do primeiro login" : "";
   posicoesModal = (jogador.posicao || "").split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || "";
   subPosicaoModal = jogador.subPosicao || ""; secundariasModal = [...(jogador.posicoesSecundarias || [])];
+  proficienciaModal = { ...((jogador.stats || {}).proficiencia || {}) };
   renderPositionMap(); renderPlayerModalHeader(jogador);
   el("modalOverlay").hidden = false;
 }
@@ -1876,12 +1885,41 @@ function renderSubPosicoesModal() {
   el("modalSecundarias").innerHTML = VFN.TODAS_SUB_POSICOES.filter(o => o !== subPosicaoModal)
     .map(o => `<label class="sub-check"><input type="checkbox" value="${escapeHtml(o)}" ${secundariasModal.includes(o) ? "checked" : ""}> ${escapeHtml(o)}</label>`).join("");
   el("modalSubPosicaoAviso").hidden = colunaSubPosicao || !supabaseClient || !currentUser;
+  renderProficienciaModal(); // os valores automáticos dependem da posição, sub-posição e secundárias
 }
 
 function lerSubPosicoesModal(jogador) {
   const cat = VFN.categoriaPosicao(jogador.posicao);
   jogador.subPosicao = cat === "GR" ? "" : el("modalSubPosicao").value;
   jogador.posicoesSecundarias = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value).filter(v => v !== jogador.subPosicao);
+  lerProficienciaModal(jogador);
+}
+
+/* ---- Proficiência por posição (v14): 1–20 em players.stats.proficiencia; vazio = valor automático ---- */
+
+let proficienciaModal = {};
+
+/** Um campo por posição (GR + sub-posições); o placeholder mostra o valor automático e a cor o nível. */
+function renderProficienciaModal() {
+  const grelha = el("modalProficiencia");
+  if (!grelha) return;
+  const atual = { posicao: el("modalPosicao").value, subPosicao: subPosicaoModal, posicoesSecundarias: secundariasModal };
+  grelha.innerHTML = VFN.POSICOES_PROFICIENCIA.map(pos => {
+    const auto = VFN.proficienciaJogador(atual, pos);
+    const valor = proficienciaModal[pos];
+    const nivel = VFN.nivelProficiencia(valor != null && valor !== "" ? valor : auto ? auto.valor : 1);
+    return `<label class="prof-campo" style="--prof:${nivel.cor}" title="${escapeHtml(nivel.nivel)}"><span>${escapeHtml(pos === "GR" ? "Guarda-Redes" : pos)}</span>
+      <input type="number" min="1" max="20" step="1" inputmode="numeric" data-prof="${escapeHtml(pos)}" value="${valor != null ? escapeHtml(valor) : ""}" placeholder="${auto ? auto.valor : ""}"></label>`;
+  }).join("");
+}
+
+function lerProficienciaModal(jogador) {
+  const valores = {};
+  el("modalProficiencia").querySelectorAll("input[data-prof]").forEach(i => {
+    const v = Math.round(Number(i.value));
+    if (i.value !== "" && v >= 1 && v <= 20) valores[i.dataset.prof] = v;
+  });
+  jogador.stats = { ...(jogador.stats || {}), proficiencia: valores };
 }
 
 function renderPlayerModalHeader(jogador) {

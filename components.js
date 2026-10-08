@@ -582,7 +582,7 @@
         <span class="conv-fase ${fase2 ? "fase2" : ""}">${fase2 ? "Onze inicial" : "Lista de convocados"}</span>${squad.published ? "" : ' <span class="estado-relatorio rascunho">Rascunho</span>'}</div>
       ${aviso}
       ${concentracaoHTML(squad)}
-      ${opcoes.campo && fase2 ? `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(squad.formation || "")} · só no admin</small></h4>${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3" })}</section>` : ""}
+      ${opcoes.campo && fase2 ? `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(squad.formation || "")} · só no admin</small></h4>${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3", proficiencia: true })}</section>` : ""}
       <div class="conv-grelha">
         ${fase2 ? bloco("Onze inicial", VFN.ordenarPorPosicao(onze)) + bloco("Suplentes", suplentes) : bloco("Convocados", convocados)}
         ${bloco("Não convocados", fora, "conv-fora")}
@@ -1053,8 +1053,10 @@
     const slots = () => VFN.FORMACOES_SLOTS[estado.formacao] || [];
 
     function jogadorNoCampoHTML(t, i, slot) {
+      // proficiência na posição (só no dashboard/admin: opcoes.proficiencia)
+      const prof = opcoes.proficiencia ? VFN.proficienciaPontoHTML(VFN.proficienciaJogador(t.jogador, slot)) : "";
       return `<div class="pitch-player tatico" style="left:${slot.x}%;top:${yNoCampo(slot.y)}%;width:20%" data-alvo="s:${i}" data-arrasta="s:${i}" tabindex="0" title="${esc(t.jogador.nome)} · ${esc(slot.label)}">
-        <span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}</span>
+        <span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${prof}</span>
         <span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`;
     }
     function lugarVazioHTML(i, slot) {

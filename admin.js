@@ -590,6 +590,8 @@ function renderConvocatoria() {
 
   // suspensões automáticas (AF Guarda): suspenso não entra no onze; aviso a um amarelo do limite
   const susp = new Map(plantel.map(p => [idJogadorBD(p), suspensaoAdmin(p)]));
+  // proficiência dos titulares na posição onde ficam na pré-visualização (formação escolhida)
+  const lugares = fase2 ? VFNHub.lugaresDoOnze(titulares.map(id => jogadorPorIdBD(id)).filter(Boolean).map(j => ({ jogador: j })), conv.formation || "4-3-3") : new Map();
   el("convPlantel").innerHTML = VFN.ordenarPorPosicao(plantel).map(j => {
     const id = idJogadorBD(j);
     const s = susp.get(id);
@@ -605,7 +607,7 @@ function renderConvocatoria() {
       : botao("convocar", "✓", "Convocado", convocado) + botao("fora", "—", "Não convocado", !convocado);
     return `<div class="conv-linha${papel ? " " + papel : ""}${indisponivel || s.suspenso ? " indisponivel" : ""}">
       ${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${escapeHtml(j.numero || "—")}</b>
-      <span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small><button type="button" class="conv-comparar" data-comparar="${escapeHtml(id)}" title="Comparar com outro jogador da mesma posição" aria-label="Comparar ${escapeHtml(j.nome)}">⚖</button></span>
+      <span class="conv-nome">${escapeHtml(j.nome)}${titular && lugares.has(id) ? " " + VFN.proficienciaBadgeHTML(VFN.proficienciaJogador(j, lugares.get(id))) : ""}<small class="muted">${escapeHtml(j.posicao)}</small><button type="button" class="conv-comparar" data-comparar="${escapeHtml(id)}" title="Comparar com outro jogador da mesma posição" aria-label="Comparar ${escapeHtml(j.nome)}">⚖</button></span>
       <span class="conv-estado">${j.disponibilidade && j.disponibilidade !== "disponivel" ? VFN.badgeDisponibilidade(j.disponibilidade, true) : ""}${VFNHub.badgeSuspensao(s)}</span>
       <span class="conv-escolha" role="group" aria-label="Convocatória de ${escapeHtml(j.nome)}">${botoes}</span>
     </div>`;
