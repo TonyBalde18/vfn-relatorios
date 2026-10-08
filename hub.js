@@ -91,10 +91,24 @@
 
   /* ---------- Resultados e forma ---------- */
 
-  function formaHTML(dados, n) {
-    const jogos = VFN.ultimosJogos(dados.matches, n || 5);
+  /**
+   * Forma do VFN (v14): últimos n jogos oficiais (sem amigáveis), do mais antigo (esquerda) para o mais recente,
+   * em círculos V verde / E cinzento / D vermelho com tooltip "VFN 2-1 Adversário (dd/mm/aaaa)" (hover ou toque).
+   * o: { rotulo: false sem o texto "Forma (últ. 5 jogos oficiais)", compacto: linha pequena (próximo adversário) }
+   */
+  function formaHTML(dados, n, o) {
+    const opcoes = o || {};
+    const total = n || 5;
+    const jogos = VFN.ultimosJogos(dados.matches, Infinity).filter(j => VFN.competicaoOficial(j.competition)).slice(0, total).reverse();
     if (!jogos.length) return "";
-    return `<div class="form-row" aria-label="Forma nos últimos ${jogos.length} jogos (mais recente à esquerda)">${jogos.map(j => VFN.chipForma(VFN.letraResultado(j))).join("")}</div>`;
+    const nomes = { V: "Vitória", E: "Empate", D: "Derrota" };
+    const pontos = jogos.map(j => {
+      const g = VFN.golosJogo(j), letra = VFN.letraResultado(j);
+      const dica = `VFN ${g.vfn}-${g.adv} ${nomeAdversario(dados, j)} (${VFN.dataDDMMAAAA(VFN.dataIso(j.date))})`;
+      return `<span class="forma-ponto form-${letra}" tabindex="0" data-dica="${esc(dica)}" title="${esc(dica)}" aria-label="${nomes[letra] || ""}: ${esc(dica)}">●</span>`;
+    }).join("");
+    const rotulo = opcoes.rotulo === false ? "" : `<span class="forma-pontos-rotulo">${opcoes.compacto ? "Forma VFN" : `Forma (últ. ${total} jogos oficiais)`}</span>`;
+    return `<div class="forma-pontos${opcoes.compacto ? " compacto" : ""}">${rotulo}<span class="forma-pontos-linha" aria-label="Forma nos últimos ${jogos.length} jogos oficiais, do mais antigo para o mais recente">${pontos}</span></div>`;
   }
 
   function resultadosHTML(dados, n) {

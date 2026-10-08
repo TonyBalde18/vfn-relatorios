@@ -179,7 +179,7 @@ let semGolosZonas = false; // view golos_zonas ainda por criar no Supabase
 function renderTudo() {
   $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
-  $("pubForma").innerHTML = H.formaHTML(dados, 5) || H.vazio("Ainda não há jogos disputados.");
+  $("pubForma").innerHTML = H.formaHTML(dados, 5, { rotulo: false }) || H.vazio("Ainda não há jogos disputados.");
 
   renderClassificacaoPub();
 

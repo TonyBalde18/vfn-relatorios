@@ -127,6 +127,7 @@ function proximoAdversarioHTML() {
       <span class="team-inline">${H.logoEquipa(H.equipa(dados, jogo.opponent_team_id), nome)}<strong>${esc(nome)}</strong>${obs.formation ? `<span class="comp-tag comp-amigavel">${esc(obs.formation)}</span>` : ""}</span>
     </div>
     ${H.h2hMiniHTML(H.resumoH2H(nomesDoAdversario(jogo), dados.h2h))}
+    ${H.formaHTML(dados, 5, { compacto: true })}
     ${jogo.opponent_team_id ? H.formaEquipaHTML(dados, jogo.opponent_team_id) : ""}
     <div class="scout-grid">
       ${bloco("Estilo de jogo", obs.style)}
