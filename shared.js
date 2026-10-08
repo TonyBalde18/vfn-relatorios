@@ -1296,6 +1296,39 @@
       `</svg>`;
   }
 
+  /*
+   * Camisola real (imagem) no modal do jogador. O GR identifica-se pela posição (players.position, código "GR"
+   * → categoriaPosicao === "GR"); cada GR com kit próprio é reconhecido pelo nome. GR sem kit → SVG genérico.
+   */
+  const PASTA_KITS = "assets/kits/";
+  const KITS_GR = [[/\bgravatas\b/, "kit-gr-gravatas.png"], [/\bdi[oe]go\b/, "kit-gr-diogo.png"], [/\btiago\b/, "kit-gr-tiago.png"]];
+  const KIT_PRINCIPAL = "kit-principal-frente.png";
+
+  /** Ficheiro do kit do jogador ("" = sem kit próprio, fica o SVG). */
+  function kitJogador(j) {
+    if (categoriaPosicao(j.position || j.posicao) !== "GR") return KIT_PRINCIPAL;
+    const nomes = [j.name, j.display_name, j.full_name, j.nome, j.nomeCompleto].filter(Boolean).join(" ")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const kit = KITS_GR.find(([re]) => re.test(nomes));
+    return kit ? kit[1] : "";
+  }
+
+  /** Imagem do kit com o número na frente; se a imagem falhar volta à camisola SVG (VFN.kitFalhou). */
+  function camisolaKitHTML(j, numero) {
+    const kit = kitJogador(j);
+    if (!kit) return generateJerseyAvatar(numero);
+    const n = escapeHtml(String(numero == null ? "" : numero).trim().slice(0, 3));
+    const tipo = kit === KIT_PRINCIPAL ? "kit-principal" : "kit-gr";
+    return `<span class="kit-camisola ${tipo}" data-numero="${n}"><img src="${PASTA_KITS}${kit}" alt="Camisola${n ? " número " + n : ""}" onerror="VFN.kitFalhou(this)">` +
+      // número só nos kits de GR: no principal o patrocinador ocupa o peito e o número ficava apertado
+      (n && tipo === "kit-gr" ? `<b class="kit-numero">${n}</b>` : "") + `</span>`;
+  }
+
+  function kitFalhou(img) {
+    const span = img.parentElement;
+    if (span) span.outerHTML = generateJerseyAvatar(span.dataset.numero);
+  }
+
   // Fotos em assets/players/{id}.jpg ou .png. Guarda o resultado para não repetir pedidos falhados.
   const PASTA_FOTOS = "assets/players/";
   const fotosConhecidas = new Map(); // id -> url encontrado | null (sem foto)
@@ -1315,7 +1348,8 @@
     const candidatos = [j.photo_url || j.fotoUrl, id && `${PASTA_FOTOS}${id}.jpg`, id && `${PASTA_FOTOS}${id}.png`].filter(Boolean);
     const conhecida = fotosConhecidas.get(id);
     if (conhecida) return `<span class="${cls} has-photo"${attrJogador}><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
-    const camisola = generateJerseyAvatar(numero);
+    // no modal do jogador: imagem real do kit; nas listas: camisola SVG
+    const camisola = /\bavatar-modal\b/.test(cls) ? camisolaKitHTML(j, numero) : generateJerseyAvatar(numero);
     if (conhecida === null || !candidatos.length) return `<span class="${cls}"${attrJogador}>${camisola}</span>`;
     return `<span class="${cls}"${attrJogador}>${camisola}<img class="foto-tentativa" alt="Fotografia de ${escapeHtml(nome)}" data-id="${escapeHtml(id)}" data-candidatos="${escapeHtml(candidatos.join("|"))}" src="${escapeHtml(candidatos[0])}" onload="VFN.fotoCarregou(this)" onerror="VFN.fotoFalhou(this)"></span>`;
   }
@@ -1341,7 +1375,7 @@
     const span = img.parentElement;
     if (img.dataset.id) fotosConhecidas.set(img.dataset.id, img.getAttribute("src"));
     img.classList.remove("foto-tentativa");
-    [...span.querySelectorAll("svg")].forEach(s => s.remove());
+    [...span.querySelectorAll("svg, .kit-camisola")].forEach(s => s.remove());
     span.classList.add("has-photo");
   }
 
@@ -1476,7 +1510,7 @@
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
-    generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou,
+    generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou, kitJogador, camisolaKitHTML, kitFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,
     initSidebar, initAOS, refreshAOS, fotoEstadio, idFotoEstadio, aplicarFundoEstadio, corTema, aplicarTema, alternarTema, estilizarGraficos
