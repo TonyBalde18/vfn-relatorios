@@ -2019,6 +2019,46 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
   .standings-compact .col-forma .form-row { justify-content: center; }
 }
 
+/* Modo Jogo (modo-jogo.js): ecrã inteiro para registar eventos ao vivo no telemóvel.
+   Fundo #131E4E, botões grandes de cor sólida, letra ≥ 16px, sem estados de hover (ecrã tátil). */
+.btn-modo-jogo { font-weight: 800; }
+body.mj-aberto { overflow: hidden; }
+.mj-overlay { position: fixed; inset: 0; z-index: 2500; display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); overflow-y: auto; background: #131E4E; color: #F1F4F9; font-size: 16px; -webkit-tap-highlight-color: transparent; }
+.mj-overlay[hidden] { display: none; }
+.mj-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mj-topo strong { display: block; font-size: 1.15rem; }
+.mj-placar { display: block; margin-top: 2px; color: #FFD700; font-size: 1rem; font-weight: 800; }
+.mj-fechar { flex: 0 0 auto; min-height: 44px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.45); border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 16px; font-weight: 700; }
+.mj-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mj-grelha[hidden] { display: none; }
+.mj-botao { display: grid; place-items: center; gap: 6px; min-height: 84px; padding: 12px 8px; border: 0; border-radius: 16px; font: inherit; font-size: 17px; font-weight: 800; line-height: 1.15; text-align: center; touch-action: manipulation; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.mj-botao:active { transform: translateY(2px); box-shadow: none; }
+.mj-ic { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.92); font-size: 30px; line-height: 1; }
+.mj-ic img { width: 34px; height: 34px; object-fit: contain; }
+.mj-ultimo { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 0; padding: 0 4px; font-size: 16px; }
+.mj-ultimo:empty, .mj-ultimo[hidden] { display: none; }
+.mj-ultimo button { min-height: 44px; padding: 6px 14px; border: 1px solid rgba(255,255,255,.45); border-radius: 10px; background: transparent; color: #fff; font: inherit; font-weight: 700; }
+.mj-form { display: flex; flex-direction: column; gap: 14px; }
+.mj-form[hidden] { display: none; }
+.mj-form h2 { margin: 0; color: #fff; font-size: 1.4rem; }
+.mj-campo { display: grid; gap: 6px; }
+.mj-campo label, .mj-rotulo { color: #C9D3E6; font-size: 16px; font-weight: 700; }
+.mj-overlay select, .mj-overlay input[type=text], .mj-overlay input[type=number], .mj-overlay textarea { width: 100%; min-height: 52px; padding: 10px 12px; border: 2px solid rgba(255,255,255,.25); border-radius: 12px; background: #0B1438; color: #fff; font: inherit; font-size: 18px; }
+.mj-minuto { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px auto 84px; align-items: center; gap: 8px; }
+.mj-minuto > button { min-height: 52px; border: 0; border-radius: 12px; background: rgba(255,255,255,.14); color: #fff; font-size: 26px; font-weight: 800; }
+.mj-minuto input { text-align: center; font-size: 24px !important; font-weight: 800; }
+.mj-minuto span { font-size: 20px; font-weight: 800; }
+.mj-escolha { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.mj-escolha button { min-height: 52px; border: 2px solid rgba(255,255,255,.3); border-radius: 12px; background: transparent; color: #fff; font: inherit; font-size: 17px; font-weight: 800; }
+.mj-escolha button.ativo { border-color: #FFD700; background: #FFD700; color: #131E4E; }
+.mj-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 16px; }
+.mj-check input { width: 24px; height: 24px; accent-color: #FFD700; }
+.mj-erro { margin: 0; min-height: 1.2em; color: #FCA5A5; font-size: 16px; font-weight: 700; }
+.mj-acoes { position: sticky; bottom: 0; display: grid; gap: 10px; padding: 10px 0 4px; background: #131E4E; }
+.mj-guardar { min-height: 64px; border: 0; border-radius: 16px; background: #22c55e; color: #052e16; font: inherit; font-size: 22px; font-weight: 900; }
+.mj-cancelar { justify-self: center; min-height: 44px; padding: 6px 20px; border: 0; background: transparent; color: #C9D3E6; font: inherit; font-size: 16px; font-weight: 700; text-decoration: underline; }
+@media (min-width: 700px) { .mj-overlay { padding-inline: max(14px, calc(50vw - 330px)); } }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

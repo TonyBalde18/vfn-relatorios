@@ -6,7 +6,7 @@
 const VERSAO = "15";
 const CACHE = `vfn-v${VERSAO}`;
 const PAGINAS = ["./", "index.html", "dashboard.html", "equipa.html", "public.html"];
-const FICHEIROS = ["styles.css", "hub.css", "config.js", "shared.js", "hub.js", "components.js", "relatorio.js", "app.js", "admin.js", "dashboard.js", "equipa.js", "public.js"]
+const FICHEIROS = ["styles.css", "hub.css", "config.js", "shared.js", "hub.js", "components.js", "relatorio.js", "app.js", "admin.js", "modo-jogo.js", "dashboard.js", "equipa.js", "public.js"]
   .map(f => `${f}?v=${VERSAO}`)
   .concat(["manifest.json", "assets/logo.png", "assets/logo-icon.ico", "assets/icons/icon-192.png", "assets/icons/icon-512.png"]);
 
