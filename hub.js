@@ -903,7 +903,9 @@
   function disponibilidadeHTML(dados, jogadores) {
     const jogo = VFN.proximoJogo(dados.matches);
     const ordenar = l => [...l].sort((a, b) => (ORDEM_POSICAO[VFN.categoriaPosicao(a.posicao)] ?? 9) - (ORDEM_POSICAO[VFN.categoriaPosicao(b.posicao)] ?? 9) || a.nome.localeCompare(b.nome, "pt"));
-    const risco = j => VFN.alertaSuspensao(j.cartoesA, j.disponibilidade);
+    // suspensões automáticas (AF Guarda): os suspensos passam para os indisponíveis
+    const susp = new Map(jogadores.map(j => [j, calcularSuspensoes(j.id, dados)]));
+    const risco = j => susp.get(j).suspenso;
     const convocaveis = ordenar(jogadores.filter(j => (!j.disponibilidade || j.disponibilidade === "disponivel" || j.disponibilidade === "em_duvida") && !risco(j)));
     const fora = ordenar(jogadores.filter(j => !convocaveis.includes(j)));
     const linha = (j, extra) => `<li data-jogador="${esc(j.id)}">${VFN.avatarJogador(j, "avatar-xs")}<span class="disp-nome">${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span>${extra || ""}</li>`;
@@ -911,9 +913,9 @@
     return `${jogo ? `<p class="disp-jogo">${VFN.icone("calendar-days", 16)} ${esc(VFN.jogoEmCasa(jogo) ? "VFN vs " + nomeAdversario(dados, jogo) : nomeAdversario(dados, jogo) + " vs VFN")} · ${esc(VFN.dataLonga(jogo.date, true))}</p>` : ""}
       <div class="disp-colunas">
         <section class="disp-coluna ok"><h3>${VFN.icone("circle-check", 18)} Convocáveis <b>${convocaveis.length}</b></h3><div class="disp-resumo">${porCategoria(convocaveis)}</div>
-          <ul>${convocaveis.map(j => linha(j, j.disponibilidade === "em_duvida" ? VFN.badgeDisponibilidade("em_duvida") : "")).join("") || "<li class=\"muted\">Nenhum jogador.</li>"}</ul></section>
+          <ul>${convocaveis.map(j => linha(j, (j.disponibilidade === "em_duvida" ? VFN.badgeDisponibilidade("em_duvida") : "") + badgeSuspensao(susp.get(j)))).join("") || "<li class=\"muted\">Nenhum jogador.</li>"}</ul></section>
         <section class="disp-coluna nao"><h3>${VFN.icone("circle-off", 18)} Indisponíveis <b>${fora.length}</b></h3>
-          <ul>${fora.map(j => linha(j, risco(j) ? `<span class="disp-badge disp-suspenso">${VFN.icone("triangle-alert", 14)} ${j.cartoesA} amarelos</span>` : VFN.badgeDisponibilidade(j.disponibilidade))).join("") || "<li class=\"muted\">Todo o plantel disponível.</li>"}</ul></section>
+          <ul>${fora.map(j => linha(j, risco(j) ? badgeSuspensao(susp.get(j)) : VFN.badgeDisponibilidade(j.disponibilidade))).join("") || "<li class=\"muted\">Todo o plantel disponível.</li>"}</ul></section>
       </div>`;
   }
 
@@ -1316,6 +1318,63 @@
     e.innerHTML = esqueleto(tipo, n);
   }
 
+  /* ---------- Suspensões automáticas (AF Guarda) ---------- */
+
+  // amarelos que dão 1 jogo de suspensão: 5.º, 9.º, 12.º, 14.º e depois a cada 2 (16.º, 18.º...)
+  const LIMITES_AMARELOS = [5, 9, 12, 14];
+  const eLimiteAmarelos = n => LIMITES_AMARELOS.includes(n) || (n > 14 && (n - 14) % 2 === 0);
+  function proximoLimiteAmarelos(n) {
+    let k = (Number(n) || 0) + 1;
+    while (!eLimiteAmarelos(k)) k++;
+    return k;
+  }
+
+  /**
+   * Suspensões de um jogador na época, só em jogos oficiais (VFN.competicaoOficial: sem amigáveis):
+   * percorre os jogos por ordem; em cada jogo cumpre primeiro um jogo de castigo pendente e depois
+   * soma os cartões desse jogo (amarelos: 1 jogo ao 5.º, 9.º, 12.º, 14.º e a cada 2 depois do 14.º;
+   * vermelho: suspensao_jogos do evento, por omissão 1). O castigo é cumprido nos jogos oficiais
+   * seguintes do VFN. Fonte: relatórios gerados/publicados (um por jogo) e jogos jogados do calendário.
+   * Devolve { amarelos, vermelhos, suspenso, proximoLimite, jogosSuspensao } (jogosSuspensao = por cumprir).
+   * o.eDele(idLocal): liga os ids dos relatórios ao jogador (por omissão, o mesmo id).
+   */
+  function calcularSuspensoes(playerId, dados, o) {
+    const id = String(playerId);
+    const eDele = (o && o.eDele) || (idLocal => String(idLocal) === id || id.endsWith("-" + idLocal));
+    const jogos = new Map();
+    VFN.jogosDoVFN((dados && dados.matches) || []).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.competicaoOficial(j.competition))
+      .forEach(j => jogos.set(String(j.id), { data: j.date, relatorio: null }));
+    ((dados && dados.match_reports) || []).forEach(r => {
+      const m = r && r.match_data;
+      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
+      const chave = String(r.match_id || (m.preJogo || {}).matchId || "r:" + r.id);
+      const atual = jogos.get(chave) || { data: (m.preJogo || {}).data || r.match_date || "", relatorio: null };
+      if (!atual.relatorio || String(r.updated_at || "") > String(atual.relatorio.updated_at || "")) atual.relatorio = r;
+      jogos.set(chave, atual);
+    });
+    let amarelos = 0, vermelhos = 0, pendente = 0;
+    [...jogos.values()].sort((a, b) => (VFN.paraData(a.data) || 0) - (VFN.paraData(b.data) || 0)).forEach(j => {
+      if (pendente > 0) pendente--; // cumpre um jogo de castigo neste jogo
+      const eventos = j.relatorio ? (j.relatorio.match_data.jogo.eventos || []) : [];
+      eventos.filter(e => e.equipa === "VFN" && eDele(e.jogadorId)).sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0)).forEach(e => {
+        if (e.tipo === "Cartão Amarelo") { amarelos++; if (eLimiteAmarelos(amarelos)) pendente++; }
+        else if (e.tipo === "Cartão Vermelho") { vermelhos++; pendente += Math.max(1, Number(e.suspensao_jogos) || 1); }
+      });
+    });
+    return { amarelos, vermelhos, suspenso: pendente > 0, proximoLimite: proximoLimiteAmarelos(amarelos), jogosSuspensao: pendente };
+  }
+
+  /** Aviso preventivo: a um amarelo do próximo limite (e não suspenso). */
+  const emRiscoAmarelos = s => !!s && !s.suspenso && s.amarelos > 0 && s.amarelos >= s.proximoLimite - 1;
+
+  /** Badge "SUSPENSO" ou "⚠️ N amarelos" ("" se nenhum). */
+  function badgeSuspensao(s) {
+    if (!s) return "";
+    if (s.suspenso) return `<span class="susp-badge suspenso" title="${s.jogosSuspensao} jogo${s.jogosSuspensao === 1 ? "" : "s"} de suspensão por cumprir">SUSPENSO${s.jogosSuspensao > 1 ? " · " + s.jogosSuspensao + " jogos" : ""}</span>`;
+    if (emRiscoAmarelos(s)) return `<span class="susp-badge risco" title="Ao ${s.proximoLimite}.º amarelo cumpre 1 jogo de suspensão">⚠️ ${s.amarelos} amarelos</span>`;
+    return "";
+  }
+
   /* ---------- Mapa de calor das zonas dos golos ---------- */
 
   const LINHAS_HEATMAP = '<g class="hm-linhas" pointer-events="none"><rect x="50" y="0" width="200" height="72"/><rect x="105" y="0" width="90" height="24"/><path d="M122 72 Q150 92 178 72"/><circle cx="150" cy="48" r="1.6"/><path d="M0 150 L0 0 L300 0 L300 150"/><rect class="hm-baliza" x="132" y="-8" width="36" height="8"/></g>';
@@ -1376,7 +1435,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

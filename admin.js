@@ -472,7 +472,7 @@ function initConvocatoria() {
     const acao = b.dataset.convAcao;
     if (acao === "convocar") conv.convocados.add(id);
     else if (acao === "fora") { conv.convocados.delete(id); conv.titulares.delete(id); }
-    else if (acao === "titular") { conv.convocados.add(id); conv.titulares.add(id); }
+    else if (acao === "titular") { const p = jogadorPorIdBD(id); if (p && suspensaoAdmin(p).suspenso) return; conv.convocados.add(id); conv.titulares.add(id); }
     else if (acao === "suplente") { conv.convocados.add(id); conv.titulares.delete(id); }
     renderConvocatoria();
   });
@@ -579,19 +579,25 @@ function renderConvocatoria() {
   el("btnConvDespublicar").hidden = !conv.published;
   [el("btnConvGuardar"), el("btnConvPublicar"), el("btnConvAnuncio1"), el("btnConvAnuncio2")].forEach(b => { b.disabled = !conv.matchId; });
 
+  // suspensões automáticas (AF Guarda): suspenso não entra no onze; aviso a um amarelo do limite
+  const susp = new Map(plantel.map(p => [idJogadorBD(p), suspensaoAdmin(p)]));
   el("convPlantel").innerHTML = VFN.ordenarPorPosicao(plantel).map(j => {
     const id = idJogadorBD(j);
+    const s = susp.get(id);
     const convocado = conv.convocados.has(id), titular = conv.titulares.has(id);
     const papel = !convocado ? "" : fase2 ? (titular ? "titular" : "suplente") : "convocado";
     const indisponivel = ["lesionado", "suspenso", "indisponivel"].includes(j.disponibilidade);
-    const botao = (acao, rotulo, titulo, ativo) => `<button type="button" class="conv-op${ativo ? " ativo" : ""}" data-conv-id="${escapeHtml(id)}" data-conv-acao="${acao}" data-conv-papel="${acao === "fora" ? "" : acao}" aria-pressed="${ativo}" title="${titulo}">${rotulo}</button>`;
+    const botao = (acao, rotulo, titulo, ativo) => {
+      const bloqueado = acao === "titular" && s.suspenso;
+      return `<button type="button" class="conv-op${ativo ? " ativo" : ""}" data-conv-id="${escapeHtml(id)}" data-conv-acao="${acao}" data-conv-papel="${acao === "fora" ? "" : acao}" aria-pressed="${ativo}" title="${bloqueado ? "Suspenso: não pode ser titular" : titulo}"${bloqueado ? " disabled" : ""}>${rotulo}</button>`;
+    };
     const botoes = fase2
       ? botao("titular", "T", "Titular", papel === "titular") + botao("suplente", "S", "Suplente", papel === "suplente") + botao("fora", "—", "Não convocado", !convocado)
       : botao("convocar", "✓", "Convocado", convocado) + botao("fora", "—", "Não convocado", !convocado);
-    return `<div class="conv-linha${papel ? " " + papel : ""}${indisponivel ? " indisponivel" : ""}">
+    return `<div class="conv-linha${papel ? " " + papel : ""}${indisponivel || s.suspenso ? " indisponivel" : ""}">
       ${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${escapeHtml(j.numero || "—")}</b>
       <span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small><button type="button" class="conv-comparar" data-comparar="${escapeHtml(id)}" title="Comparar com outro jogador da mesma posição" aria-label="Comparar ${escapeHtml(j.nome)}">⚖</button></span>
-      ${j.disponibilidade && j.disponibilidade !== "disponivel" ? VFN.badgeDisponibilidade(j.disponibilidade, true) : "<span></span>"}
+      <span class="conv-estado">${j.disponibilidade && j.disponibilidade !== "disponivel" ? VFN.badgeDisponibilidade(j.disponibilidade, true) : ""}${VFNHub.badgeSuspensao(s)}</span>
       <span class="conv-escolha" role="group" aria-label="Convocatória de ${escapeHtml(j.nome)}">${botoes}</span>
     </div>`;
   }).join("") || '<p class="empty-state">Plantel vazio.</p>';
@@ -603,7 +609,9 @@ function renderConvocatoria() {
 async function guardarConvocatoria(publicar, status) {
   const linha = squadDoFormulario(publicar, status);
   const total = linha.player_ids.length;
+  const suspensosNoOnze = (linha.lineup || []).map(id => jogadorPorIdBD(id)).filter(p => p && suspensaoAdmin(p).suspenso);
   const erro = !conv.matchId ? "Escolhe o jogo."
+    : suspensosNoOnze.length ? `Suspenso no onze: ${suspensosNoOnze.map(p => p.nome).join(", ")}. Tira-o dos titulares.`
     : publicar && (total < VFNComp.MIN_CONVOCADOS || total > VFNComp.MAX_CONVOCADOS) ? `Para publicar, convoca entre ${VFNComp.MIN_CONVOCADOS} e ${VFNComp.MAX_CONVOCADOS} jogadores (tens ${total}).`
     : publicar && status === "completa" && linha.lineup.length !== 11 ? `Para publicar o onze inicial, escolhe 11 titulares (tens ${linha.lineup.length}).` : "";
   el("convErro").textContent = erro;
@@ -756,23 +764,26 @@ async function renderFichaAdmin(jogador) {
   if (!tabelasCarregadas.has("attendance")) { await carregarTabelaAdmin("attendance", "presencasErro"); if (jogadorEmEdicao === jogador) desenhar(); }
 }
 
+/** Suspensão automática (AF Guarda) de um jogador do plantel: relatórios e calendário do admin. */
+function suspensaoAdmin(p) {
+  return VFNHub.calcularSuspensoes(p.id, { matches: jogosCalendario, match_reports: relatoriosAdmin }, { eDele: idLocal => Number(idLocal) === p.id });
+}
+
 /**
- * Alerta de amarelos (AF Guarda: suspensão ao 5.º): quem está a um amarelo
- * da suspensão (4, 9, ...) e quem completou um ciclo de 5 e não está marcado como suspenso.
+ * Alerta de cartões (AF Guarda): suspensos (1 jogo ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2;
+ * vermelho direto: 1 jogo ou o registado no evento) e quem está a um amarelo do limite. Só jogos oficiais.
  */
 function renderAlertaAmarelos() {
   const alvo = el("alertaAmarelos");
   if (!alvo) return;
-  const n = j => Number(j.cartoesAmarelos) || 0;
-  const N = VFN.AMARELOS_SUSPENSAO;
-  const suspensao = plantel.filter(j => VFN.alertaSuspensao(n(j), j.disponibilidade));
-  const aUm = plantel.filter(j => n(j) % N === N - 1);
-  alvo.hidden = !suspensao.length && !aUm.length;
+  const lista = plantel.map(j => [j, suspensaoAdmin(j)]);
+  const suspensos = lista.filter(([, s]) => s.suspenso), aUm = lista.filter(([, s]) => VFNHub.emRiscoAmarelos(s));
+  alvo.hidden = !suspensos.length && !aUm.length;
   if (alvo.hidden) { alvo.innerHTML = ""; return; }
-  const nomes = l => l.map(j => `<strong>${escapeHtml(j.nome)}</strong> (${n(j)})`).join(", ");
+  const nomes = l => l.map(([j, s]) => `<strong>${escapeHtml(j.nome)}</strong> ${VFNHub.badgeSuspensao(s)}`).join(" ");
   alvo.innerHTML = `${VFN.icone("triangle-alert", 20)}<div>
-    ${suspensao.length ? `<p><b>Suspensão:</b> ${nomes(suspensao)} — completou ${N} amarelos. Marca como <em>Suspenso</em> na ficha, se ainda não cumpriu o castigo.</p>` : ""}
-    ${aUm.length ? `<p><b>A um amarelo da suspensão:</b> ${nomes(aUm)}.</p>` : ""}
+    ${suspensos.length ? `<p><b>Suspensos no próximo jogo:</b> ${nomes(suspensos)}</p>` : ""}
+    ${aUm.length ? `<p><b>A um amarelo da suspensão:</b> ${nomes(aUm)}</p>` : ""}
   </div>`;
 }
 

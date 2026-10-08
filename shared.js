@@ -127,7 +127,6 @@
     suspenso: { rotulo: "Suspenso", icone: "ban" },
     indisponivel: { rotulo: "Indisponível", icone: "circle-off" }
   };
-  const AMARELOS_SUSPENSAO = 5;
 
   function badgeDisponibilidade(estado, compacto) {
     const e = DISPONIBILIDADE[estado] ? estado : "disponivel";
@@ -145,10 +144,6 @@
   }
 
   /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
-  function alertaSuspensao(amarelos, estado) {
-    const n = Number(amarelos) || 0;
-    return n > 0 && n % AMARELOS_SUSPENSAO === 0 && estado !== "suspenso";
-  }
 
   const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const MESES_LONGOS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1471,7 +1466,7 @@
 
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
-    DISPONIBILIDADE, AMARELOS_SUSPENSAO, badgeDisponibilidade, alertaSuspensao, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
+    DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,

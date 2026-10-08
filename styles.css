@@ -2134,6 +2134,14 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .cmp-valor.maior, :where(html.tema-escuro) .cmp-vs { color: #7aa2ff; }
 @media (max-width: 560px) { .cmp-overlay { padding: 0; } .cmp-box { max-width: none; height: 100%; max-height: none; border-radius: 0; } .cmp-corpo { max-height: none; } }
 
+/* suspensões automáticas (VFNHub.badgeSuspensao) */
+.susp-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.susp-badge.suspenso { background: #b91c1c; color: #fff; letter-spacing: .03em; }
+.susp-badge.risco { background: #ffedd5; color: #9a3412; border: 1px solid #fb923c; }
+.conv-estado { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.conv-op:disabled { opacity: .35; cursor: not-allowed; }
+.susp-label input { width: 64px; margin-left: 4px; }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

@@ -274,8 +274,15 @@ function mjCamposGolo(r) {
 }
 
 function mjLerCamposExtra(r) {
+  if (mjEl("mjSuspensao")) r.suspensao_jogos = Math.max(1, Number(mjEl("mjSuspensao").value) || 1);
   if (r.tipo !== "Golo" || !mjEl("mjCampos").querySelector(".zonas-golo")) return;
   Object.assign(r, VFNComp.lerZonasGolo(mjEl("mjCampos"), "mj"));
+}
+
+/** Vermelho do VFN: jogos de suspensão (1 automático; mais se a decisão disciplinar o fixar). */
+function mjCamposCartao(r) {
+  if (r.tipo !== "Cartão Vermelho" || r.equipa !== "VFN") return "";
+  return mjCampo("Jogos de suspensão", `<input type="number" id="mjSuspensao" inputmode="numeric" min="1" max="20" value="${Number(r.suspensao_jogos) || 1}">`, "mjSuspensao");
 }
 
 function mjValidarExtra(r) {
@@ -283,6 +290,7 @@ function mjValidarExtra(r) {
 }
 
 function mjCompletarEvento(ev, r) {
+  if (ev.tipo === "Cartão Vermelho" && ev.equipa === "VFN") ev.suspensao_jogos = Math.max(1, Number(r.suspensao_jogos) || 1);
   if (r.tipo !== "Golo") return;
   ev.zona_golo = r.zona_golo || "";
   ev.zona_origem = r.zona_origem || "";

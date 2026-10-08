@@ -113,13 +113,16 @@ function proximoAdversarioHTML() {
     </div>`;
 }
 
-/** Alerta automático: 5.º amarelo acumulado (AF Guarda) sem o jogador estar marcado como suspenso. */
+/** Suspensões automáticas (AF Guarda) de cada jogador: H.calcularSuspensoes com os relatórios e o calendário. */
+const suspensaoDe = j => H.calcularSuspensoes(j.id, dados, { eDele: idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); } });
+
+/** Alerta automático: suspensos e jogadores a um amarelo da suspensão (quando não há banner do próximo jogo). */
 function renderAlertasSuspensao() {
   const alvo = $("alertasSuspensao");
   const comBanner = !!VFN.proximoJogo(dados.matches); // o banner do próximo jogo já mostra os jogadores em risco
-  const lista = comBanner ? [] : jogadores.filter(j => j.disponibilidade && VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
+  const lista = comBanner ? [] : jogadores.map(j => [j, suspensaoDe(j)]).filter(([, s]) => s.suspenso || H.emRiscoAmarelos(s));
   alvo.hidden = !lista.length;
-  alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Possível suspensão</strong><p>${lista.map(j => `${esc(j.nome)} — ${j.cartoesA} amarelos`).join(" · ")}. Na AF Guarda a suspensão é ao ${VFN.AMARELOS_SUSPENSAO}.º amarelo: sugere-se marcar como <em>Suspenso</em> na ficha do jogador (admin), se ainda não cumpriu o castigo.</p></div>` : "";
+  alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Suspensões</strong><p>${lista.map(([j, s]) => `${esc(j.nome)} ${H.badgeSuspensao(s)}`).join(" · ")}</p><p class="muted">AF Guarda: 1 jogo ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2; vermelho direto: 1 jogo (ou o registado no evento). Só jogos oficiais.</p></div>` : "";
 }
 
 /* ---------- Gráficos ---------- */
@@ -608,7 +611,10 @@ function renderBannerProximoJogo() {
   const nome = H.nomeAdversario(dados, jogo);
   const casa = VFN.jogoEmCasa(jogo);
   const fora = jogadores.filter(j => j.disponibilidade && j.disponibilidade !== "disponivel");
-  const risco = jogadores.filter(j => VFN.alertaSuspensao(j.cartoesA, j.disponibilidade));
+  const susp = new Map(jogadores.map(j => [j, suspensaoDe(j)]));
+  const suspensos = jogadores.filter(j => susp.get(j).suspenso && !fora.includes(j));
+  fora.push(...suspensos); // suspensos (automático) contam como indisponíveis
+  const risco = jogadores.filter(j => H.emRiscoAmarelos(susp.get(j)));
   const chip = (j, extra) => `<span class="banner-jogador" data-jogador="${esc(j.id)}">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span>${extra}</span>`;
   // sem preferência guardada: aberto no computador, recolhido no telemóvel
   let aberto = window.innerWidth > 640;
@@ -622,8 +628,8 @@ function renderBannerProximoJogo() {
       <span class="banner-seta" aria-hidden="true">${VFN.icone("chevron-down", 18)}</span>
     </summary>
     <div class="banner-corpo">
-      <div><h3>Indisponíveis</h3>${fora.length ? `<div class="banner-lista">${fora.map(j => chip(j, VFN.badgeDisponibilidade(j.disponibilidade))).join("")}</div>` : '<p class="muted">Todo o plantel disponível.</p>'}</div>
-      ${risco.length ? `<div><h3>Em risco de suspensão</h3><div class="banner-lista">${risco.map(j => chip(j, `<span class="disp-badge disp-suspenso">${j.cartoesA} amarelos</span>`)).join("")}</div><p class="banner-nota">Na AF Guarda a suspensão é ao ${VFN.AMARELOS_SUSPENSAO}.º amarelo: marcar como <em>Suspenso</em> na ficha do jogador (admin), se ainda não cumpriu o castigo.</p></div>` : ""}
+      <div><h3>Indisponíveis</h3>${fora.length ? `<div class="banner-lista">${fora.map(j => chip(j, susp.get(j).suspenso ? H.badgeSuspensao(susp.get(j)) : VFN.badgeDisponibilidade(j.disponibilidade))).join("")}</div>` : '<p class="muted">Todo o plantel disponível.</p>'}</div>
+      ${risco.length ? `<div><h3>A um amarelo da suspensão</h3><div class="banner-lista">${risco.map(j => chip(j, H.badgeSuspensao(susp.get(j)))).join("")}</div><p class="banner-nota">AF Guarda: 1 jogo de suspensão ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2 (só jogos oficiais).</p></div>` : ""}
     </div>`;
 }
 

@@ -1447,6 +1447,16 @@ function renderEventos(ordenar) {
       tdJogador.append("Sai: ", selectSai, " Entra: ", selectEntra);
     } else if (ev.equipa === "VFN" && eCartao) {
       tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresParaCartao(ev.id), "Jogador", v => { ev.jogadorId = v; renderEventos(false); }));
+      if (ev.tipo === "Cartão Vermelho") {
+        // suspensão automática: 1 jogo; mais se a decisão disciplinar o fixar
+        const label = document.createElement("label");
+        label.className = "assist-label susp-label"; label.textContent = "Jogos de suspensão ";
+        const input = document.createElement("input");
+        input.type = "number"; input.min = "1"; input.max = "20"; input.value = ev.suspensao_jogos || 1; input.setAttribute("aria-label", "Jogos de suspensão");
+        input.addEventListener("change", () => { ev.suspensao_jogos = Math.max(1, Number(input.value) || 1); input.value = ev.suspensao_jogos; });
+        label.appendChild(input);
+        tdJogador.appendChild(label);
+      }
     } else if (ev.equipa === "VFN" && ev.tipo === "Golo") {
       tdJogador.appendChild(criarSelectJogador(ev.jogadorId, jogadoresEmCampo(ev.id), "Marcador", v => { ev.jogadorId = v; if (ev.assistId === v) ev.assistId = ""; renderEventos(false); }));
       const label = document.createElement("label");
