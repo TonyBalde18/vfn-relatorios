@@ -1893,7 +1893,13 @@ function renderPlayerModalHeader(jogador) {
   el("playerModalMeta").textContent = jogador ? `${jogador.posicao || "—"} · Nº ${jogador.numero || "—"}${jogador.nascimento ? ` · ${VFN.dataDDMMAAAA(jogador.nascimento)}` : ""}${jogador.pePreferencial ? ` · Pé ${jogador.pePreferencial}` : ""}` : "Ficha do jogador";
   el("playerModalPosicoes").innerHTML = jogador ? VFN.posicaoDetalhadaHTML(jogador.posicao, jogador.subPosicao, jogador.posicoesSecundarias) : "";
   const stats = jogador || { golos: 0, assistencias: 0, minutosTotais: 0 };
-  el("playerModalMainStats").innerHTML = [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]].map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
+  // GR: jogos a zero, minutos sem sofrer e média de golos sofridos em vez de golos/assistências
+  const gr = jogador && jogador.id != null && VFN.categoriaPosicao(jogador.posicao) === "GR"
+    ? VFNHub.calcularStatsGR(idLocal => Number(idLocal) === jogador.id, relatoriosAdmin, { matches: jogosCalendario }) : null;
+  const principais = gr
+    ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", stats.minutosTotais || 0]]
+    : [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]];
+  el("playerModalMainStats").innerHTML = principais.map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
   if (typeof renderRadarJogador === "function") renderRadarJogador(jogador);
   if (typeof renderFichaAdmin === "function") renderFichaAdmin(jogador);
 }

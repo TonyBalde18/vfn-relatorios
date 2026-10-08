@@ -261,6 +261,27 @@ function jogadorParaComparar(id) {
   return { id: j.id, nome: j.nome, numero: j.numero, posicao: j.posicao, fotoUrl: j.fotoUrl, jogos: j.jogos, minutos: j.minutos, golos: j.golos, assistencias: j.assistencias, amarelos: j.cartoesA, vermelhos: j.cartoesV, gr };
 }
 
+/** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */
+function statsGR(j) {
+  if (VFN.categoriaPosicao(j.posicao) !== "GR") return null;
+  return H.calcularStatsGR(idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }, dados.match_reports, { matches: dados.matches });
+}
+
+/** Ranking de GR (só com 2+ GR com jogos): jogos a zero ↓, desempate pela média de golos sofridos ↑. */
+function renderRankingGR() {
+  const caixa = $("statsRankingGR");
+  if (!caixa) return;
+  const lista = jogadores.map(j => ({ j, gr: statsGR(j) })).filter(x => x.gr && x.gr.jogos > 0)
+    .sort((a, b) => b.gr.jogosZero - a.gr.jogosZero || a.gr.mediaSofridos - b.gr.mediaSofridos || a.j.nome.localeCompare(b.j.nome, "pt"));
+  caixa.hidden = lista.length < 2;
+  if (lista.length < 2) { caixa.innerHTML = ""; return; }
+  caixa.innerHTML = `<h2 class="hub-card-title">🧤 Ranking de Guarda-Redes</h2>
+    <ol class="ranking-gr">${lista.map(({ j, gr }, i) => `<li class="${i === 0 ? "lider" : ""}">
+      <span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}</span></span>
+      <span class="rgr-num"><strong>${gr.jogosZero}</strong><small>jogos a zero</small></span>
+      <span class="rgr-num"><strong>${gr.mediaSofridos.toFixed(2).replace(".", ",")}</strong><small>sofridos/jogo</small></span></li>`).join("")}</ol>`;
+}
+
 function candidatosComparacao(categoria) {
   return jogadores.filter(j => VFN.categoriaPosicao(j.posicao) === categoria).sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => ({ id: j.id, nome: j.nome }));
 }
@@ -273,7 +294,10 @@ function abrirJogador(id) {
   $("mjMeta").textContent = [j.posicao, j.numero !== "" ? `Nº ${j.numero}` : "", j.info.pe ? `Pé ${j.info.pe}` : ""].filter(Boolean).join(" · ");
   if (j.disponibilidade) $("mjMeta").insertAdjacentHTML("beforeend", " " + VFN.badgeDisponibilidade(j.disponibilidade));
   $("mjPosicoes").innerHTML = VFN.posicaoDetalhadaHTML(j.posicao, j.subPosicao, j.posicoesSecundarias);
-  $("mjStatsPrincipais").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]
+  const gr = statsGR(j);
+  $("mjStatsPrincipais").innerHTML = (gr
+    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", j.minutos]]
+    : [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]])
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 
   const p = presencaJogador(j.id);
@@ -310,6 +334,7 @@ function renderEstatisticas() {
     const top = [...jogadores].filter(j => j[campo] > 0).sort((a, b) => b[campo] - a[campo] || a.nome.localeCompare(b.nome, "pt")).slice(0, 5);
     return `<article class="card top-card" data-aos="fade-up"><h2 class="hub-card-title">${VFN.icone(icone, 18, campo === "cartoesA" ? "card-amarelo" : "")} ${titulo}</h2>${top.length ? `<ol>${top.map(j => `<li><span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span><strong>${j[campo]}</strong></li>`).join("")}</ol>` : H.vazio("Sem dados.")}</article>`;
   }).join("");
+  renderRankingGR();
   renderTabelaStats();
 }
 

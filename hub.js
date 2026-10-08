@@ -749,6 +749,53 @@
     return { jogosZero, minutosSemSofrer: melhor };
   }
 
+  /**
+   * Estatísticas de guarda-redes (v14), a partir de match_reports (publicados ou com presenças aplicadas,
+   * um por jogo, só competições oficiais — como os minutos):
+   *   jogosZero        jogos completos (titular, sem ser substituído) em que o adversário marcou 0;
+   *   minutosZero      soma dos minutos desses jogos;
+   *   golosSofridos    golos sofridos enquanto esteve em campo; mediaSofridos = golosSofridos / jogos (2 casas);
+   *   melhorSerie      maior série de minutos em campo sem sofrer (atravessa jogos seguidos).
+   * playerId: id local dos relatórios, ou uma função eDele(idLocal). o.matches: jogos (para saber a competição).
+   */
+  function calcularStatsGR(playerId, matchReports, o) {
+    const eDele = typeof playerId === "function" ? playerId : id => String(id) === String(playerId);
+    const dados = { matches: (o && o.matches) || [] };
+    const porJogo = new Map();
+    (matchReports || []).forEach(r => {
+      const m = r && r.match_data;
+      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
+      const chave = String(r.match_id || (m.preJogo || {}).matchId || r.id);
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
+    });
+    const data = r => (r.match_data.preJogo || {}).data || r.match_date || "";
+    let jogos = 0, minutos = 0, jogosZero = 0, minutosZero = 0, golosSofridos = 0, serie = 0, melhorSerie = 0;
+    [...porJogo.values()].sort((a, b) => String(data(a)).localeCompare(String(data(b)))).forEach(r => {
+      const jogo = r.match_data.jogo;
+      const { duracao, periodos } = periodosDoRelatorio(r.match_data);
+      const meus = Object.entries(periodos).filter(([id]) => eDele(id)).flatMap(([, l]) => l).sort((a, b) => a.inicio - b.inicio);
+      const jogou = meus.reduce((s, p) => s + Math.max(0, p.fim - p.inicio), 0);
+      if (!jogou) return;
+      jogos++; minutos += jogou;
+      const eventos = jogo.eventos || [];
+      const sofridos = eventos.filter(VFN.eGoloSofrido).map(e => Math.min(duracao, Number(e.minuto) || 0)).sort((a, b) => a - b);
+      golosSofridos += sofridos.filter(m => meus.some(p => m >= p.inicio && m <= p.fim)).length;
+      const titular = (jogo.titulares || []).some(id => id && eDele(id));
+      // substituído (jogadorSaiId) ou expulso: não fez o jogo inteiro
+      const saiu = eventos.some(e => e.equipa === "VFN" && ((e.tipo === "Substituição" && e.jogadorSaiId && eDele(e.jogadorSaiId)) || (e.tipo === "Cartão Vermelho" && eDele(e.jogadorId))));
+      if (titular && !saiu && !sofridos.length) { jogosZero++; minutosZero += jogou; }
+      meus.forEach(p => {
+        let inicio = p.inicio;
+        sofridos.filter(m => m >= p.inicio && m <= p.fim).forEach(m => { serie += m - inicio; melhorSerie = Math.max(melhorSerie, serie); serie = 0; inicio = m; });
+        serie += p.fim - inicio;
+        melhorSerie = Math.max(melhorSerie, serie);
+      });
+    });
+    const mediaSofridos = jogos ? Math.round((golosSofridos / jogos) * 100) / 100 : 0;
+    return { jogos, minutos, jogosZero, minutosZero, golosSofridos, mediaSofridos, melhorSerie };
+  }
+
   /** Compara os k mais recentes com os k anteriores (k ≤ 3): 1 sobe, -1 desce, 0 igual; null sem dados. */
   function comparar(valoresRecentesPrimeiro) {
     const n = valoresRecentesPrimeiro.length;
@@ -1558,6 +1605,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

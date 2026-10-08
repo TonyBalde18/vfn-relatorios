@@ -93,6 +93,20 @@ function mostrarVista(vista) {
 
 /* ---------- Início ---------- */
 
+/** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */
+function statsGR(j) {
+  if (VFN.categoriaPosicao(j.posicao) !== "GR") return null;
+  return H.calcularStatsGR(idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }, dados.match_reports, { matches: dados.matches });
+}
+
+/** KPIs pessoais: golos e assistências; um GR vê jogos a zero, minutos sem sofrer e média de sofridos. */
+function kpisPessoais(j) {
+  const gr = statsGR(j);
+  const tiles = gr ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Minutos sem sofrer", gr.minutosZero + "'"], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")]]
+    : [["Golos", j.golos], ["Assistências", j.assistencias]];
+  return tiles.map(([l, v]) => `<div class="summary-tile"><span>${l}</span><strong>${v}</strong></div>`).join("");
+}
+
 function renderInicio() {
   const euro = v => VFN.formatoEuro.format(v);
   if (eu) {
@@ -102,8 +116,7 @@ function renderInicio() {
         <p>${esc(eu.posicao)}${eu.numero !== "" ? " · Nº " + esc(eu.numero) : ""} ${eu.disponibilidade ? VFN.badgeDisponibilidade(eu.disponibilidade) : ""}</p></div></div>
       <div class="summary-tiles eq-kpis">
         <div class="summary-tile tile-pendente"><span>Multas por pagar</span><strong>${euro(pendente)}</strong></div>
-        <div class="summary-tile"><span>Golos</span><strong>${eu.golos}</strong></div>
-        <div class="summary-tile"><span>Assistências</span><strong>${eu.assistencias}</strong></div>
+        ${kpisPessoais(eu)}
         <div class="summary-tile"><span>Minutos</span><strong>${eu.minutos}'</strong></div>
       </div>`;
   } else {
@@ -311,7 +324,10 @@ function abrirJogador(id) {
   $("ejAvatar").innerHTML = VFN.avatarJogador(j, "avatar-modal");
   $("ejNome").textContent = j.nomeCompleto;
   $("ejMeta").innerHTML = esc([j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ")) + (j.disponibilidade ? " " + VFN.badgeDisponibilidade(j.disponibilidade) : "");
-  $("ejStats").innerHTML = [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]].map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
+  const gr = statsGR(j);
+  $("ejStats").innerHTML = (gr
+    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", j.minutos]]
+    : [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]).map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
   $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j));
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
