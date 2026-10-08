@@ -1267,7 +1267,7 @@ function atualizarScoreboard() {
 
 /** Iniciais de um clube para quando não há logo ("Seia FC" → "SF", "Casal Cinza" → "CC"). */
 function iniciaisClube(nome) {
-  const palavras = String(nome || "").split(/s+/).filter(p => p && !/^(de|da|do|das|dos|e)$/i.test(p));
+  const palavras = String(nome || "").split(/\s+/).filter(p => p && !/^(de|da|do|das|dos|e)$/i.test(p));
   return (palavras.length > 1 ? palavras.slice(0, 3).map(p => p[0]) : [String(nome || "?").slice(0, 2)]).join("").toUpperCase();
 }
 
@@ -1288,7 +1288,7 @@ function renderEquipasScoreboard() {
   if (!state.preJogo.matchId && !nome) { vfn.textContent = "VFN"; adv.textContent = "Adversário"; return; }
   vfn.innerHTML = '<img class="scoreboard-logo" src="assets/logo.png" alt="VFN" title="ACD Vila Franca das Naves">';
   const iniciais = `<span class="scoreboard-iniciais" title="${escapeHtml(nome)}">${escapeHtml(iniciaisClube(nome))}</span>`;
-  adv.innerHTML = id && /^[w-]+$/.test(String(id))
+  adv.innerHTML = id && /^[\w-]+$/.test(String(id))
     ? `<img class="scoreboard-logo" src="assets/opponents/${escapeHtml(id)}.png" alt="${escapeHtml(nome || "Adversário")}" title="${escapeHtml(nome)}" onerror="this.outerHTML=this.dataset.iniciais" data-iniciais="${escapeHtml(iniciais)}">`
     : iniciais;
 }
