@@ -385,6 +385,12 @@
         <button type="button" id="btnConvAnuncio1" class="btn btn-ghost btn-sm"><i data-icon="image" data-size="16"></i> Exportar 1:1</button>
         <button type="button" id="btnConvAnuncio2" class="btn btn-ghost btn-sm"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button>
       </div>
+      <!-- v14: ordem dos convocados só para a imagem exportada (não altera a tabela squads) -->
+      <details id="convOrdemBloco" class="conv-ordem">
+        <summary>Ordem na imagem exportada <small class="muted">arrasta ⠿ para reordenar (no telemóvel: toque longo) · não altera a convocatória</small></summary>
+        <div class="conv-ordem-topo"><button type="button" id="btnConvOrdemRepor" class="btn btn-ghost btn-sm">↺ Repor ordem original</button><span id="convOrdemEstado" class="muted"></span></div>
+        <ol id="convOrdem" class="conv-ordem-lista"></ol>
+      </details>
     </div>
     <div class="conv-layout">
       <div class="card" data-aos="fade-up">

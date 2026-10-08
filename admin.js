@@ -441,7 +441,7 @@ async function apagarMulta(multa) {
       Atualiza a mesma convocatória já publicada.
    ========================================================= */
 
-const conv = { matchId: "", convocados: new Set(), titulares: new Set(), modo: "lista", formation: "4-3-3", captain: "", id: null, published: false, status: "lista", concHora: "", concLocal: "" };
+const conv = { ordemImagem: null, matchId: "", convocados: new Set(), titulares: new Set(), modo: "lista", formation: "4-3-3", captain: "", id: null, published: false, status: "lista", concHora: "", concLocal: "" };
 
 /* ---------- Comparação de dois jogadores (antes da convocatória) ---------- */
 
@@ -489,6 +489,9 @@ function initConvocatoria() {
   el("btnConvPublicar").addEventListener("click", () => guardarConvocatoria(true, conv.modo));
   el("btnConvDespublicar").addEventListener("click", () => guardarConvocatoria(false, conv.status));
   el("btnConvAnuncio1").addEventListener("click", () => exportarAnuncioAdmin("1x1"));
+  VFNComp.ligarArrastar(el("convOrdem"), largarOrdemImagem, { toqueLongo: 400 });
+  el("convOrdem").addEventListener("contextmenu", e => e.preventDefault()); // toque longo sem menu do browser
+  el("btnConvOrdemRepor").addEventListener("click", () => { conv.ordemImagem = null; renderOrdemImagem(); });
   el("btnConvAnuncio2").addEventListener("click", () => exportarAnuncioAdmin("9x16"));
 }
 
@@ -519,6 +522,7 @@ function carregarConvocatoria(matchId) {
   conv.concHora = squad && squad.concentration_time ? String(squad.concentration_time).slice(0, 5) : "";
   conv.concLocal = squad && squad.concentration_location || localPorOmissaoConv(jogo);
   conv.captain = "";
+  conv.ordemImagem = null; // outro jogo: volta à ordem por posição
   if (squad && squad.captain_id && squad.captain_id !== capitaoAutoConv()) conv.captain = String(squad.captain_id);
   el("convErro").textContent = "";
   renderConvocatoria();
@@ -613,6 +617,7 @@ function renderConvocatoria() {
     </div>`;
   }).join("") || '<p class="empty-state">Plantel vazio.</p>';
 
+  renderOrdemImagem();
   const jogo = jogosCalendario.find(j => j.id === conv.matchId);
   el("convPreview").innerHTML = jogo ? VFNComp.renderSquadView({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squadDoFormulario(conv.published, conv.modo), jogadorPorIdBD, { todos: plantel, campo: true }) : '<p class="empty-state">Escolhe um jogo.</p>';
 }
@@ -654,7 +659,41 @@ function exportarAnuncioAdmin(formato) {
   if (!jogo) return;
   const squad = squadDoFormulario(conv.published, conv.modo);
   if (!squad.player_ids.length) { el("convErro").textContent = "Escolhe primeiro os convocados."; return; }
-  VFNComp.exportarAnuncioConvocatoria({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squad, jogadorPorIdBD, formato);
+  VFNComp.exportarAnuncioConvocatoria({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squad, jogadorPorIdBD, formato, conv.ordemImagem);
+}
+
+/* ---- Ordem dos convocados na imagem exportada (v14): só na sessão, não vai para a tabela squads ---- */
+
+/** Ids pela ordem da imagem: a ordem escolhida (só os que ainda estão convocados) + os novos no fim, por posição. */
+function ordemImagemConv() {
+  const porPosicao = ordenarIdsConv(conv.convocados);
+  if (!conv.ordemImagem) return porPosicao;
+  const escolhida = conv.ordemImagem.filter(id => conv.convocados.has(id));
+  return escolhida.concat(porPosicao.filter(id => !escolhida.includes(id)));
+}
+
+function renderOrdemImagem() {
+  const lista = el("convOrdem");
+  if (!lista) return;
+  const ids = ordemImagemConv();
+  if (conv.ordemImagem) conv.ordemImagem = ids;
+  el("btnConvOrdemRepor").disabled = !conv.ordemImagem;
+  el("convOrdemEstado").textContent = conv.ordemImagem ? "Ordem personalizada" : "Ordem por posição (GR → Def → Med → Av)";
+  lista.innerHTML = ids.length ? ids.map(id => {
+    const j = jogadorPorIdBD(id);
+    return j ? `<li class="conv-ordem-linha" data-arrasta="o:${escapeHtml(id)}" data-alvo="o:${escapeHtml(id)}" tabindex="0"><span class="conv-ordem-pega" data-pega aria-hidden="true">⠿</span>${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${escapeHtml(j.numero || "—")}</b><span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small></span></li>` : "";
+  }).join("") : '<li class="muted">Ainda sem convocados.</li>';
+}
+
+/** Largar uma linha sobre outra: fica no lugar dela (as outras deslizam). */
+function largarOrdemImagem(origem, destino) {
+  if (!destino || !origem.startsWith("o:") || !destino.startsWith("o:")) return;
+  const ids = ordemImagemConv();
+  const de = ids.indexOf(origem.slice(2)), para = ids.indexOf(destino.slice(2));
+  if (de < 0 || para < 0 || de === para) return;
+  ids.splice(para, 0, ids.splice(de, 1)[0]);
+  conv.ordemImagem = ids;
+  renderOrdemImagem();
 }
 
 /* =========================================================

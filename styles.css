@@ -2233,6 +2233,19 @@ body.mj-aberto { overflow: hidden; }
 .prof-campo { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 4px 3px 8px; border-radius: 8px; border-left: 4px solid var(--prof); background: var(--surface-2, #f3f4f6); font-size: .8rem; font-weight: 500; }
 .prof-campo input { width: 54px; padding: 4px 6px; text-align: center; }
 
+/* Ordem dos convocados na imagem exportada (admin, v14) */
+.conv-ordem { margin-top: 12px; border-top: 1px solid var(--border, #e5e7eb); padding-top: 10px; }
+.conv-ordem summary { cursor: pointer; font-weight: 700; font-size: .9rem; }
+.conv-ordem summary small { font-weight: 500; }
+.conv-ordem-topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: .8rem; }
+.conv-ordem-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-width: 520px; counter-reset: ordem; }
+.conv-ordem-linha { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 4px; border-radius: 8px; background: var(--surface-2, #f3f4f6); cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; counter-increment: ordem; }
+.conv-ordem-linha::after { content: counter(ordem); margin-left: auto; color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.conv-ordem-linha .conv-nome { display: flex; align-items: baseline; gap: 6px; font-weight: 600; font-size: .86rem; }
+.conv-ordem-pega { display: grid; place-items: center; width: 26px; height: 30px; color: var(--text-muted); font-size: 1.1rem; cursor: grab; touch-action: none; }
+.conv-ordem-linha.toque-longo { outline: 2px solid var(--vfn-yellow); }
+.arrasta-fantasma.conv-ordem-linha { list-style: none; background: var(--surface, #fff); }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }
@@ -2373,4 +2386,6 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .onze-chip { background: var(--card-bg, var(--surface)); }
 :where(html.tema-escuro) .onze-chip b { color: var(--heading); }
 :where(html.tema-escuro) .prof-campo { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
+:where(html.tema-escuro) .conv-ordem { border-top: 1px solid var(--border, var(--border)); }
+:where(html.tema-escuro) .conv-ordem-linha { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
 /* ===== FIM TEMA ESCURO ===== */

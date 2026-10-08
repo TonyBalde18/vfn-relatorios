@@ -607,11 +607,12 @@
    * Anúncio da convocatória para as redes sociais (formato "1x1" ou "9x16"), com os dados da fase 1:
    * escudo e gradiente do clube, jogo e grelha de jogadores (foto, ou camisola, + número + nome). Sem campo tático.
    * fotos: Map id → url (de fotosDosJogadores); sem mapa usa as camisolas.
+   * ordem: ids pela ordem escolhida no admin (só para a imagem); sem ordem, por posição (GR → Def → Med → Av).
    */
-  function renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos) {
+  function renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos, ordem) {
     const nome = H().nomeAdversario(dados, jogo);
     const casa = VFN.jogoEmCasa(jogo);
-    const convocados = jogadoresDosIds(squad.player_ids, pessoa);
+    const convocados = ordenarConvocados(squad.player_ids, pessoa, ordem);
     const logoAdv = VFN.urlLogoEquipa(H().equipa(dados, jogo.opponent_team_id), nome);
     const equipaLado = (logo, texto) => `<div class="an-equipa">${logo ? `<img src="${esc(logo)}" alt="" crossorigin="anonymous">` : `<span class="an-sem-logo">${esc(texto.slice(0, 2).toUpperCase())}</span>`}<strong>${esc(texto)}</strong></div>`;
     const vfn = equipaLado("assets/logo.png", "ACD VF Naves"), adv = equipaLado(logoAdv, nome);
@@ -631,10 +632,19 @@
     </div>`;
   }
 
-  async function exportarAnuncioConvocatoria(dados, jogo, squad, pessoa, formato) {
+  /** Convocados pela ordem dada (os que faltam na ordem vão no fim, por posição); sem ordem, por posição. */
+  function ordenarConvocados(ids, pessoa, ordem) {
+    const porPosicao = jogadoresDosIds(ids, pessoa);
+    if (!ordem || !ordem.length) return porPosicao;
+    const pos = new Map(ordem.map((id, i) => [String(id), i]));
+    const n = id => (pos.has(id) ? pos.get(id) : Infinity);
+    return porPosicao.map((j, i) => ({ j, i })).sort((a, b) => n(idDe(a.j)) - n(idDe(b.j)) || a.i - b.i).map(x => x.j);
+  }
+
+  async function exportarAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, ordem) {
     const nome = VFN.slug(H().nomeAdversario(dados, jogo));
     const fotos = await fotosDosJogadores(jogadoresDosIds(squad.player_ids, pessoa));
-    return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
+    return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos, ordem), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
   /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
@@ -939,12 +949,16 @@
   /* ---------- Arrastar jogadores para o campo (estilo Football Manager) ----------
      Pointer Events (rato e toque). Elementos arrastáveis: [data-arrasta="<origem>"]; alvos:
      [data-alvo="<destino>"]. Também funciona sem arrastar: tocar num jogador e depois no lugar.
-     aoLargar(origem, destino) decide o que fazer (destino null = largado fora). */
+     aoLargar(origem, destino) decide o que fazer (destino null = largado fora).
+     o.toqueLongo (ms, opcional): no toque (telemóvel), fora de uma pega [data-pega], o arrasto só começa
+     depois de um toque longo — antes disso o dedo faz scroll normalmente. Na pega (touch-action: none)
+     começa logo. */
 
-  function ligarArrastar(raiz, aoLargar) {
+  function ligarArrastar(raiz, aoLargar, o) {
     if (!raiz || raiz.dataset.arrastarLigado) return;
     raiz.dataset.arrastarLigado = "1";
-    let toque = null; // { origem, el, x, y, id, fantasma }
+    const toqueLongo = (o && o.toqueLongo) || 0;
+    let toque = null; // { origem, el, x, y, id, fantasma, espera, longo }
     let selecionado = null;
     const alvoEm = (x, y) => { const e = document.elementFromPoint(x, y); return e && raiz.contains(e) ? e.closest("[data-alvo]") : null; };
     const limparAlvos = () => raiz.querySelectorAll(".alvo-ativo").forEach(a => a.classList.remove("alvo-ativo"));
@@ -954,11 +968,20 @@
       const el = e.target.closest("[data-arrasta]");
       if (!el || !raiz.contains(el) || e.button > 0) return;
       toque = { origem: el.dataset.arrasta, el, x: e.clientX, y: e.clientY, id: e.pointerId, fantasma: null };
+      // toque longo: só no dedo e fora da pega; até lá o movimento é scroll
+      if (toqueLongo && e.pointerType === "touch" && !e.target.closest("[data-pega]")) {
+        const t = toque;
+        t.espera = setTimeout(() => { t.longo = true; el.classList.add("toque-longo"); try { navigator.vibrate && navigator.vibrate(25); } catch (err) { /* sem vibração */ } }, toqueLongo);
+      }
     });
+    // durante o toque longo o dedo arrasta em vez de fazer scroll
+    if (toqueLongo) raiz.addEventListener("touchmove", e => { if (toque && toque.longo) e.preventDefault(); }, { passive: false });
     raiz.addEventListener("pointermove", e => {
       if (!toque || e.pointerId !== toque.id) return;
       if (!toque.fantasma) {
         if (Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 6) return;
+        if (toque.espera && !toque.longo) { clearTimeout(toque.espera); toque = null; return; } // mexeu antes do toque longo: é scroll
+        toque.el.classList.remove("toque-longo");
         // começou a arrastar: cópia do elemento a seguir o dedo/rato
         const r = toque.el.getBoundingClientRect();
         toque.fantasma = toque.el.cloneNode(true);
@@ -979,6 +1002,7 @@
       if (!toque || e.pointerId !== toque.id) return;
       const t = toque;
       toque = null;
+      if (t.espera) { clearTimeout(t.espera); t.el.classList.remove("toque-longo"); }
       if (!t.fantasma) return; // foi um toque: trata o click
       t.fantasma.remove();
       t.el.classList.remove("a-arrastar");
@@ -1357,7 +1381,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico,
+    ligarArrastar, criarOnzeTatico, ordenarConvocados,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,
