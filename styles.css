@@ -2171,6 +2171,10 @@ body.mj-aberto { overflow: hidden; }
   .resumo-jogo.rs-vfn { max-width: none; width: 100%; height: 100%; max-height: none; border-radius: 0; }
 }
 
+/* placard do separador Jogo: logos das equipas (renderEquipasScoreboard) */
+.scoreboard-logo { display: block; height: 60px; width: auto; max-width: 100%; margin: 0 auto; object-fit: contain; background: transparent; }
+.scoreboard-iniciais { display: inline-grid; place-items: center; min-width: 60px; height: 60px; padding: 0 8px; border: 2px solid rgba(255, 255, 255, .5); border-radius: 50%; font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

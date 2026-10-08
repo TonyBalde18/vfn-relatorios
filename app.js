@@ -1262,6 +1262,35 @@ function atualizarScoreboard() {
   state.jogo.golosAdversario = final.adv;
   el("scoreboardScore").textContent = `${final.vfn} — ${final.adv}`;
   el("scoreboardHalf").textContent = `Intervalo: ${intervalo.vfn} — ${intervalo.adv}`;
+  renderEquipasScoreboard();
+}
+
+/** Iniciais de um clube para quando não há logo ("Seia FC" → "SF", "Casal Cinza" → "CC"). */
+function iniciaisClube(nome) {
+  const palavras = String(nome || "").split(/s+/).filter(p => p && !/^(de|da|do|das|dos|e)$/i.test(p));
+  return (palavras.length > 1 ? palavras.slice(0, 3).map(p => p[0]) : [String(nome || "?").slice(0, 2)]).join("").toUpperCase();
+}
+
+/*
+ * Placard do jogo (separador Jogo): com um jogo escolhido, "VFN" e "Adversário" dão lugar aos logos
+ * (assets/logo.png e assets/opponents/<id>.png, 60px de altura). O id do adversário é
+ * matches.opponent_team_id (= teams.id, o nome do ficheiro); matches.opponent é só o nome.
+ * Sem imagem do adversário ficam as iniciais do clube.
+ */
+function renderEquipasScoreboard() {
+  const vfn = el("scoreboardVFN"), adv = el("scoreboardAdv");
+  if (!vfn || !adv) return;
+  const id = state.preJogo.matchId || state.preJogo.adversario ? idAdversarioRelatorio() : "";
+  const nome = state.preJogo.adversario || "";
+  const chave = `${state.preJogo.matchId}|${id}|${nome}`;
+  if (adv.dataset.chave === chave) return;
+  adv.dataset.chave = chave;
+  if (!state.preJogo.matchId && !nome) { vfn.textContent = "VFN"; adv.textContent = "Adversário"; return; }
+  vfn.innerHTML = '<img class="scoreboard-logo" src="assets/logo.png" alt="VFN" title="ACD Vila Franca das Naves">';
+  const iniciais = `<span class="scoreboard-iniciais" title="${escapeHtml(nome)}">${escapeHtml(iniciaisClube(nome))}</span>`;
+  adv.innerHTML = id && /^[w-]+$/.test(String(id))
+    ? `<img class="scoreboard-logo" src="assets/opponents/${escapeHtml(id)}.png" alt="${escapeHtml(nome || "Adversário")}" title="${escapeHtml(nome)}" onerror="this.outerHTML=this.dataset.iniciais" data-iniciais="${escapeHtml(iniciais)}">`
+    : iniciais;
 }
 
 /* ---- Estatísticas dos jogadores atualizadas automaticamente pelos eventos ---- */
