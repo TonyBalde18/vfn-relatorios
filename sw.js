@@ -3,7 +3,7 @@
  * páginas principais sem rede (última versão vista). Não guarda dados do Supabase nem nada de CDNs.
  * VERSAO tem de acompanhar o ?v= dos ficheiros nos HTML: ao mudar um, muda o outro.
  */
-const VERSAO = "17";
+const VERSAO = "18";
 const CACHE = `vfn-v${VERSAO}`;
 const PAGINAS = ["./", "index.html", "dashboard.html", "equipa.html", "public.html"];
 const FICHEIROS = ["styles.css", "hub.css", "config.js", "shared.js", "hub.js", "components.js", "relatorio.js", "app.js", "admin.js", "modo-jogo.js", "dashboard.js", "equipa.js", "public.js"]
