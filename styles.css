@@ -2102,6 +2102,38 @@ body.mj-aberto { overflow: hidden; }
 .hm-num.claro { fill: #fff; }
 .heatmap-golos figcaption { font-size: .82rem; color: var(--text-muted); }
 
+/* comparação de dois jogadores (VFNComp.ligarComparacao / abrirComparacao) */
+.cmp-item { position: relative; display: grid; }
+.cmp-item > .player-card { height: 100%; }
+.btn-comparar { position: absolute; top: 6px; right: 6px; z-index: 2; padding: 3px 8px; border: 0; border-radius: 999px; background: #043792; color: #fff; font: inherit; font-size: .72rem; font-weight: 800; opacity: 0; transition: opacity .15s ease; cursor: pointer; }
+.cmp-item:hover .btn-comparar, .cmp-item:focus-within .btn-comparar, .cmp-item.mostrar-comparar .btn-comparar, .cmp-item.cmp-selecionado .btn-comparar { opacity: 1; }
+.cmp-item.cmp-selecionado > .player-card { outline: 3px solid #043792; outline-offset: 2px; }
+.cmp-aviso { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(4, 55, 146, .1); border: 1px solid rgba(4, 55, 146, .35); font-size: .88rem; }
+.cmp-aviso[hidden] { display: none; }
+.conv-comparar { margin-left: 6px; padding: 0 6px; border: 1px solid var(--border-color); border-radius: 6px; background: transparent; color: inherit; font-size: .8rem; cursor: pointer; }
+.conv-linha.cmp-selecionado, .cmp-selecionado.conv-comparar { outline: 2px solid #043792; outline-offset: 1px; }
+.cmp-box { max-width: 560px; padding: 0; gap: 0; overflow: hidden; }
+.cmp-cab { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; padding: 16px 16px 12px; background: var(--surface); border-bottom: 1px solid var(--border-color); }
+.cmp-fechar { position: absolute; top: 6px; right: 6px; }
+.cmp-jogador { display: grid; justify-items: center; gap: 3px; min-width: 0; text-align: center; }
+.cmp-jogador strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-jogador small { color: var(--text-muted); font-size: .76rem; }
+.cmp-trocar select { max-width: 100%; margin-top: 4px; padding: 3px 6px; font-size: .78rem; }
+.cmp-vs { align-self: center; color: #043792; font-weight: 900; }
+.cmp-corpo { display: grid; gap: 14px; padding: 16px; overflow-y: auto; max-height: calc(100vh - 220px); }
+.cmp-linha { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px 10px; }
+.cmp-valor { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cmp-valor:first-child { text-align: right; }
+.cmp-valor.maior { color: #043792; }
+.cmp-rotulo { text-align: center; font-size: .78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+.cmp-rotulo small { display: block; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.cmp-barra { display: flex; height: 8px; border-radius: 999px; background: rgba(4, 55, 146, .1); overflow: hidden; }
+.cmp-barra.esq { grid-column: 1; justify-content: flex-end; }
+.cmp-barra.dir { grid-column: 3; justify-content: flex-start; }
+.cmp-barra i { display: block; height: 100%; border-radius: 999px; }
+:where(html.tema-escuro) .cmp-valor.maior, :where(html.tema-escuro) .cmp-vs { color: #7aa2ff; }
+@media (max-width: 560px) { .cmp-overlay { padding: 0; } .cmp-box { max-width: none; height: 100%; max-height: none; border-radius: 0; } .cmp-corpo { max-height: none; } }
+
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }

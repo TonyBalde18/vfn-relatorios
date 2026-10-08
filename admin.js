@@ -443,7 +443,21 @@ async function apagarMulta(multa) {
 
 const conv = { matchId: "", convocados: new Set(), titulares: new Set(), modo: "lista", formation: "4-3-3", captain: "", id: null, published: false, status: "lista", concHora: "", concLocal: "" };
 
+/* ---------- Comparação de dois jogadores (antes da convocatória) ---------- */
+
+function jogadorParaCompararAdmin(id) {
+  const p = jogadorPorIdBD(id);
+  if (!p) return null;
+  const gr = VFN.categoriaPosicao(p.posicao) === "GR" ? VFNHub.estatisticasGR({ match_reports: relatoriosAdmin }, idLocal => Number(idLocal) === p.id) : null;
+  return { id: idJogadorBD(p), idBD: idJogadorBD(p), nome: p.nome, numero: p.numero, posicao: p.posicao, fotoUrl: p.fotoUrl, jogos: p.jogos, minutos: p.minutosTotais, golos: p.golos, assistencias: p.assistencias, amarelos: p.cartoesAmarelos, vermelhos: p.cartoesVermelhos, gr };
+}
+
+function candidatosComparacaoAdmin(categoria) {
+  return plantel.filter(p => VFN.categoriaPosicao(p.posicao) === categoria).sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(p => ({ id: idJogadorBD(p), nome: p.nome }));
+}
+
 function initConvocatoria() {
+  VFNComp.ligarComparacao(el("convPlantel"), { jogador: jogadorParaCompararAdmin, candidatos: candidatosComparacaoAdmin });
   criarOpcoesFormacao(el("convFormacao"));
   el("convJogo").addEventListener("change", () => carregarConvocatoria(el("convJogo").value));
   el("convModos").addEventListener("click", e => { const b = e.target.closest("[data-conv-modo]"); if (b) { conv.modo = b.dataset.convModo; renderConvocatoria(); } });
@@ -576,7 +590,7 @@ function renderConvocatoria() {
       : botao("convocar", "✓", "Convocado", convocado) + botao("fora", "—", "Não convocado", !convocado);
     return `<div class="conv-linha${papel ? " " + papel : ""}${indisponivel ? " indisponivel" : ""}">
       ${VFN.avatarJogador(j, "avatar-xs")}<b class="conv-num">${escapeHtml(j.numero || "—")}</b>
-      <span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small></span>
+      <span class="conv-nome">${escapeHtml(j.nome)}<small class="muted">${escapeHtml(j.posicao)}</small><button type="button" class="conv-comparar" data-comparar="${escapeHtml(id)}" title="Comparar com outro jogador da mesma posição" aria-label="Comparar ${escapeHtml(j.nome)}">⚖</button></span>
       ${j.disponibilidade && j.disponibilidade !== "disponivel" ? VFN.badgeDisponibilidade(j.disponibilidade, true) : "<span></span>"}
       <span class="conv-escolha" role="group" aria-label="Convocatória de ${escapeHtml(j.nome)}">${botoes}</span>
     </div>`;

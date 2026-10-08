@@ -343,7 +343,7 @@
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
     const capitao = capitaoAtivo(jogadores);
-    return lista.map(j => window.VFNComp.renderPlayerCard(j, { capitao: String(j.id) === capitao, disponibilidade: o.disponibilidade })).join("");
+    return lista.map(j => window.VFNComp.renderPlayerCard(j, { capitao: String(j.id) === capitao, disponibilidade: o.disponibilidade, comparar: o.comparar })).join("");
   }
 
   /** Capitão ativo do plantel: o primeiro da lista de prioridade que está disponível. */
@@ -688,7 +688,8 @@
   }
 
   /** Minutos de cada jogador num relatório: titulares desde o 0', substituições pelo minuto. */
-  function minutosDoRelatorio(matchData) {
+  /** Períodos em campo de cada jogador num relatório: { duracao, periodos: { idLocal: [{ inicio, fim }] } }. */
+  function periodosDoRelatorio(matchData) {
     const jogo = (matchData && matchData.jogo) || {};
     const duracao = Number(jogo.duracaoJogo) || 90;
     const periodos = {};
@@ -701,12 +702,51 @@
         if (aberto) aberto.fim = minuto;
         (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
       });
+    Object.values(periodos).forEach(lista => lista.forEach(p => { if (p.fim === null) p.fim = duracao; }));
+    return { duracao, periodos };
+  }
+
+  function minutosDoRelatorio(matchData) {
     const minutos = {};
-    Object.entries(periodos).forEach(([id, lista]) => {
-      const total = lista.reduce((s, p) => s + Math.max(0, (p.fim === null ? duracao : p.fim) - p.inicio), 0);
+    Object.entries(periodosDoRelatorio(matchData).periodos).forEach(([id, lista]) => {
+      const total = lista.reduce((s, p) => s + Math.max(0, p.fim - p.inicio), 0);
       if (total > 0) minutos[id] = total;
     });
     return minutos;
+  }
+
+  /**
+   * Guarda-redes, a partir dos relatórios (gerados ou publicados, um por jogo, por ordem da data):
+   * jogosZero = jogos em que esteve ≥ 60' em campo sem a equipa sofrer golos enquanto jogou;
+   * minutosSemSofrer = maior série de minutos em campo sem sofrer (atravessa jogos seguidos).
+   * eDele(idLocal) liga os ids dos relatórios ao jogador.
+   */
+  function estatisticasGR(dados, eDele) {
+    const porJogo = new Map();
+    (dados.match_reports || []).forEach(r => {
+      const m = r && r.match_data;
+      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas)) return;
+      const chave = String(r.match_id || (m.preJogo || {}).matchId || r.id);
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
+    });
+    const data = r => (r.match_data.preJogo || {}).data || r.match_date || "";
+    let jogosZero = 0, serie = 0, melhor = 0;
+    [...porJogo.values()].sort((a, b) => String(data(a)).localeCompare(String(data(b)))).forEach(r => {
+      const { duracao, periodos } = periodosDoRelatorio(r.match_data);
+      const meus = Object.entries(periodos).filter(([id]) => eDele(id)).flatMap(([, l]) => l).sort((a, b) => a.inicio - b.inicio);
+      if (!meus.length) return;
+      const sofridos = (r.match_data.jogo.eventos || []).filter(VFN.eGoloSofrido).map(e => Math.min(duracao, Number(e.minuto) || 0)).sort((a, b) => a - b);
+      const jogou = meus.reduce((s, p) => s + Math.max(0, p.fim - p.inicio), 0);
+      if (jogou >= 60 && !sofridos.some(m => meus.some(p => m >= p.inicio && m <= p.fim))) jogosZero++;
+      meus.forEach(p => {
+        let inicio = p.inicio;
+        sofridos.filter(m => m >= p.inicio && m <= p.fim).forEach(m => { serie += m - inicio; melhor = Math.max(melhor, serie); serie = 0; inicio = m; });
+        serie += p.fim - inicio;
+        melhor = Math.max(melhor, serie);
+      });
+    });
+    return { jogosZero, minutosSemSofrer: melhor };
   }
 
   /** Compara os k mais recentes com os k anteriores (k ≤ 3): 1 sobe, -1 desce, 0 igual; null sem dados. */
@@ -1337,6 +1377,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

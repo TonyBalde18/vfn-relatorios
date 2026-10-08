@@ -204,7 +204,8 @@ function renderGraficos() {
 
 function renderPlantel() {
   $("plantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicao);
-  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao, { disponibilidade: true, estado: filtroEstado });
+  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao, { disponibilidade: true, estado: filtroEstado, comparar: true });
+  VFNComp.ligarComparacao($("plantelGrid"), { jogador: jogadorParaComparar, candidatos: candidatosComparacao, alvo: ".player-card", idDoAlvo: c => c.dataset.id });
   $("plantelTotal").textContent = `· ${jogadores.length} jogadores`;
   $("plantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
   const selEstado = $("plantelEstado");
@@ -218,6 +219,19 @@ function presencaJogador(id) {
   if (!registos.length) return null;
   const presentes = registos.filter(a => a.status === "P" || a.status === "A").length;
   return { pct: Math.round(presentes / registos.length * 100), presentes, total: registos.length };
+}
+
+/* ---------- Comparação de dois jogadores (stats da época; GR: jogos a zero e minutos sem sofrer) ---------- */
+
+function jogadorParaComparar(id) {
+  const j = jogadores.find(x => String(x.id) === String(id));
+  if (!j) return null;
+  const gr = VFN.categoriaPosicao(j.posicao) === "GR" ? H.estatisticasGR(dados, idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }) : null;
+  return { id: j.id, nome: j.nome, numero: j.numero, posicao: j.posicao, fotoUrl: j.fotoUrl, jogos: j.jogos, minutos: j.minutos, golos: j.golos, assistencias: j.assistencias, amarelos: j.cartoesA, vermelhos: j.cartoesV, gr };
+}
+
+function candidatosComparacao(categoria) {
+  return jogadores.filter(j => VFN.categoriaPosicao(j.posicao) === categoria).sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => ({ id: j.id, nome: j.nome }));
 }
 
 function abrirJogador(id) {

@@ -46,13 +46,15 @@
   /** Cartão de um jogador do plantel. o: { capitao: true para o badge C, disponibilidade: mostrar o estado } */
   function renderPlayerCard(j, o) {
     const opcoes = o || {};
-    return `<button type="button" class="player-card" data-id="${esc(j.id)}">
+    const cartao = `<button type="button" class="player-card" data-id="${esc(j.id)}">
       ${VFN.avatarJogador(j)}${opcoes.capitao ? VFN.badgeCapitao("no-card") : ""}
       <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
       <strong>${esc(j.nome)}</strong>
       <small>${esc(j.posicao)}</small>
       ${opcoes.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
     </button>`;
+    // com comparação: o botão "Comparar" fica ao lado do cartão (não pode ir dentro de outro botão)
+    return opcoes.comparar ? `<div class="cmp-item">${cartao}<button type="button" class="btn-comparar" data-comparar="${esc(j.id)}" aria-label="Comparar ${esc(j.nome)} com outro jogador">⚖ Comparar</button></div>` : cartao;
   }
 
   /** Bracket de uma taça por eliminatórias (fases em colunas). Com `fase`, mostra só essa fase. */
@@ -1172,7 +1174,132 @@
     return { zona_golo: valor("zona_golo"), zona_origem: valor("zona_origem"), tipo_lance: lance ? lance.value : "" };
   }
 
+  /* ---------- Comparação de dois jogadores (dashboard e admin) ----------
+     Jogador "normalizado": { id, nome, numero, posicao, fotoUrl, jogos, minutos, golos, assistencias,
+     amarelos, vermelhos, gr: { jogosZero, minutosSemSofrer } | null }.
+     Barras: o maior valor de cada linha fica com 100% da cor do clube (#043792), o outro proporcional. */
+
+  const COR_CLUBE = "#043792";
+  const categoriaDe = j => VFN.categoriaPosicao(j && j.posicao) || "";
+
+  function linhasComparacao(a, b) {
+    const gr = categoriaDe(a) === "GR" && categoriaDe(b) === "GR";
+    const linhas = [["Jogos", j => j.jogos], ["Minutos", j => j.minutos]];
+    if (gr) linhas.push(["Jogos a zero", j => (j.gr || {}).jogosZero || 0], ["Minutos sem sofrer", j => (j.gr || {}).minutosSemSofrer || 0, "maior série"]);
+    else linhas.push(["Golos", j => j.golos], ["Assistências", j => j.assistencias]);
+    linhas.push(["Cartões amarelos", j => j.amarelos], ["Cartões vermelhos", j => j.vermelhos]);
+    return linhas;
+  }
+
+  function comparacaoHTML(a, b, candidatos) {
+    const lado = (j, qual) => `<div class="cmp-jogador">
+      ${VFN.avatarJogador(j, "avatar-sm")}
+      <strong>${esc(j.nome)}</strong><small>${esc(j.posicao || "")}${j.numero !== "" && j.numero != null ? " · Nº " + esc(j.numero) : ""}</small>
+      <label class="cmp-trocar"><span class="sr-only">Trocar jogador</span><select data-cmp-trocar="${qual}">${candidatos.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(j.id) ? "selected" : ""} ${String(c.id) === String((qual === "a" ? b : a).id) ? "disabled" : ""}>${esc(c.nome)}</option>`).join("")}</select></label>
+    </div>`;
+    const barra = (v, max, lado) => `<span class="cmp-barra ${lado}"><i style="width:${max ? Math.round(v / max * 100) : 0}%;background:${COR_CLUBE}"></i></span>`;
+    return `<div class="cmp-cab">${lado(a, "a")}<span class="cmp-vs">vs</span>${lado(b, "b")}<button type="button" class="modal-x cmp-fechar" data-cmp="fechar" aria-label="Fechar comparação">×</button></div>
+      <div class="cmp-corpo">${linhasComparacao(a, b).map(([rotulo, f, nota]) => {
+        const va = Number(f(a)) || 0, vb = Number(f(b)) || 0, max = Math.max(va, vb);
+        return `<div class="cmp-linha"><span class="cmp-valor${va > vb ? " maior" : ""}">${va}</span><span class="cmp-rotulo">${esc(rotulo)}${nota ? `<small>${esc(nota)}</small>` : ""}</span><span class="cmp-valor${vb > va ? " maior" : ""}">${vb}</span>${barra(va, max, "esq")}${barra(vb, max, "dir")}</div>`;
+      }).join("")}</div>`;
+  }
+
+  /** Abre (ou atualiza) o modal. o: { jogador(id) → normalizado, candidatos(categoria) → normalizados } */
+  function abrirComparacao(idA, idB, o) {
+    let caixa = document.getElementById("vfnComparacao");
+    if (!caixa) {
+      caixa = document.createElement("div");
+      caixa.id = "vfnComparacao";
+      caixa.className = "modal-overlay cmp-overlay";
+      caixa.innerHTML = '<div class="modal-box cmp-box" role="dialog" aria-modal="true" aria-label="Comparação de jogadores"></div>';
+      document.body.appendChild(caixa);
+      caixa.addEventListener("click", e => { if (e.target === caixa || e.target.closest("[data-cmp=fechar]")) caixa.hidden = true; });
+      document.addEventListener("keydown", e => { if (e.key === "Escape" && !caixa.hidden) caixa.hidden = true; });
+    }
+    const desenhar = (a, b) => {
+      const ja = o.jogador(a), jb = o.jogador(b);
+      if (!ja || !jb) return;
+      const caixaInterna = caixa.querySelector(".cmp-box");
+      caixaInterna.innerHTML = comparacaoHTML(ja, jb, o.candidatos(categoriaDe(ja)));
+      // trocar um dos jogadores sem fechar o modal
+      caixaInterna.querySelectorAll("[data-cmp-trocar]").forEach(s => s.addEventListener("change", () => desenhar(s.dataset.cmpTrocar === "a" ? s.value : a, s.dataset.cmpTrocar === "b" ? s.value : b)));
+    };
+    desenhar(idA, idB);
+    caixa.hidden = false;
+    const fechar = caixa.querySelector(".cmp-fechar");
+    if (fechar) fechar.focus();
+  }
+
+  /**
+   * Liga a comparação a uma lista: botões [data-comparar="<id>"] (no dashboard aparecem ao passar o rato
+   * ou com toque longo no cartão). 1.º clique escolhe o jogador; depois, clicar noutro da mesma posição
+   * (no botão ou, com opcoes.alvo, no próprio cartão) abre o modal.
+   * o: { jogador(id), candidatos(categoria), alvo: seletor dos cartões, idDoAlvo(el) }
+   */
+  function ligarComparacao(raiz, o) {
+    if (!raiz || raiz.dataset.comparacaoLigada) return;
+    raiz.dataset.comparacaoLigada = "1";
+    let escolhido = null, ignorarClique = false, temporizador = null, inicioToque = null;
+    const aviso = document.createElement("div");
+    aviso.className = "cmp-aviso";
+    aviso.hidden = true;
+    aviso.setAttribute("role", "status");
+    raiz.parentNode.insertBefore(aviso, raiz);
+    const marcar = () => {
+      raiz.querySelectorAll(".cmp-selecionado").forEach(x => x.classList.remove("cmp-selecionado"));
+      const j = escolhido && o.jogador(escolhido);
+      aviso.hidden = !j;
+      if (!j) return;
+      raiz.querySelectorAll(`[data-comparar="${CSS.escape(String(escolhido))}"]`).forEach(b => (b.closest(".cmp-item") || b).classList.add("cmp-selecionado"));
+      aviso.innerHTML = `<span>⚖ A comparar <b>${esc(j.nome)}</b>: escolhe outro ${esc((VFN.NOME_CATEGORIA[categoriaDe(j)] || "jogador").toLowerCase())}.</span><button type="button" class="btn btn-ghost btn-sm">Cancelar</button>`;
+      aviso.querySelector("button").onclick = () => { escolhido = null; marcar(); };
+    };
+    const escolher = id => {
+      if (!escolhido || String(escolhido) === String(id)) { escolhido = escolhido ? null : id; marcar(); return; }
+      const a = o.jogador(escolhido), b = o.jogador(id);
+      if (!a || !b) return;
+      if (categoriaDe(a) !== categoriaDe(b)) {
+        aviso.querySelector("span").innerHTML = `⚖ <b>${esc(b.nome)}</b> não é da mesma posição que <b>${esc(a.nome)}</b> (${esc(VFN.NOME_CATEGORIA[categoriaDe(a)] || "—")}).`;
+        return;
+      }
+      const primeiro = escolhido;
+      escolhido = null;
+      marcar();
+      abrirComparacao(primeiro, id, o);
+    };
+    // fase de captura: com um jogador escolhido, o clique noutro cartão compara (não abre a ficha)
+    raiz.addEventListener("click", e => {
+      if (ignorarClique) { ignorarClique = false; e.stopPropagation(); e.preventDefault(); return; }
+      const botao = e.target.closest("[data-comparar]");
+      if (botao) { e.stopPropagation(); e.preventDefault(); escolher(botao.dataset.comparar); return; }
+      const cartao = o.alvo && escolhido && e.target.closest(o.alvo);
+      if (cartao) { e.stopPropagation(); e.preventDefault(); escolher(o.idDoAlvo(cartao)); }
+    }, true);
+    // toque longo (telemóvel): mostra o botão "Comparar" do cartão
+    if (o.alvo) {
+      const cancelar = () => { clearTimeout(temporizador); temporizador = null; };
+      raiz.addEventListener("pointerdown", e => {
+        const cartao = e.target.closest(o.alvo);
+        if (!cartao || e.pointerType === "mouse") return;
+        cancelar();
+        inicioToque = { x: e.clientX, y: e.clientY };
+        temporizador = setTimeout(() => {
+          raiz.querySelectorAll(".mostrar-comparar").forEach(x => x.classList.remove("mostrar-comparar"));
+          (cartao.closest(".cmp-item") || cartao).classList.add("mostrar-comparar");
+          ignorarClique = true; // o toque longo não abre a ficha
+          if (navigator.vibrate) navigator.vibrate(15);
+        }, 550);
+      });
+      // só cancela se o dedo se mexer mais de 8px (arrastar a lista), não por um tremor
+      ["pointerup", "pointercancel", "scroll"].forEach(t => raiz.addEventListener(t, cancelar, { passive: true }));
+      raiz.addEventListener("pointermove", e => { if (temporizador && inicioToque && Math.hypot(e.clientX - inicioToque.x, e.clientY - inicioToque.y) > 8) cancelar(); }, { passive: true });
+      raiz.addEventListener("contextmenu", e => { if (e.target.closest(o.alvo)) e.preventDefault(); });
+    }
+  }
+
   window.VFNComp = {
+    abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
     ligarArrastar, criarOnzeTatico,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
