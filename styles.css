@@ -2010,9 +2010,9 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .com-estadio::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--fundo-estadio) center / cover no-repeat; opacity: .14; pointer-events: none; }
 .jds-card.com-estadio::before { opacity: .16; }
 .leaflet-popup-content-wrapper.com-estadio::before { opacity: .12; }
-/* v14: banner do Pré-Jogo (admin) — é largo e as fotos têm ~450px: com "cover" ficavam ampliadas ~2,5x
-   (zoom e pixelizado). A foto inteira (contain) por cima de uma cópia a encher (cover), blur ligeiro e menos opacidade. */
-#jogoSemanaAdmin.com-estadio::before { inset: -4px; background: var(--fundo-estadio) center / contain no-repeat, var(--fundo-estadio) center / cover no-repeat; filter: blur(2px); opacity: .12; }
+/* v14: banner do Pré-Jogo (admin) — cover como no dashboard (o contain deixava a foto pequena e repetida),
+   blur ligeiro e menos opacidade. */
+#jogoSemanaAdmin.com-estadio::before { inset: 0; background: var(--fundo-estadio) center / cover no-repeat; filter: blur(2px); opacity: .12; }
 #jogoSemanaAdmin.com-estadio > * { position: relative; z-index: 1; }
 
 /* logo do patrocinador ao lado do nome da competição (VFN.logoSponsorHTML), até 20px de altura */
