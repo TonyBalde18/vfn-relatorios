@@ -2021,6 +2021,13 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .com-estadio::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--fundo-estadio) center / cover no-repeat; opacity: .14; pointer-events: none; }
 .jds-card.com-estadio::before { opacity: .16; }
 .leaflet-popup-content-wrapper.com-estadio::before { opacity: .12; }
+/* v14: popup do mapa de estádios — o fundo branco sólido do Leaflet tapava o mapa e a foto: vidro translúcido,
+   foto do estádio mais visível; no tema escuro, vidro escuro (o texto já passa a claro) */
+.mapa-estadios .leaflet-popup-content-wrapper, .mapa-estadios .leaflet-popup-tip { background: rgba(255, 255, 255, .86); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(10, 22, 40, .25); }
+.mapa-estadios .leaflet-popup-content-wrapper.com-estadio::before { opacity: .2; }
+html.tema-escuro .mapa-estadios .leaflet-popup-content-wrapper, html.tema-escuro .mapa-estadios .leaflet-popup-tip { background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--fg); }
+html.tema-escuro .mapa-popup span { color: var(--fg-muted); }
+html.tema-escuro .mapa-estadios .leaflet-popup-close-button { color: var(--fg-muted); }
 /* v14: banner do Pré-Jogo (admin) — cover como no dashboard (o contain deixava a foto pequena e repetida),
    blur ligeiro e menos opacidade. */
 #jogoSemanaAdmin.com-estadio::before { inset: 0; background: var(--fundo-estadio) center / cover no-repeat; filter: blur(2px); opacity: .12; }
@@ -2398,6 +2405,8 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .seg-control button.ativo { background: var(--surface); color: var(--heading); }
 :where(html.tema-escuro) .onze-chip { background: var(--card-bg, var(--surface)); }
 :where(html.tema-escuro) .onze-chip b { color: var(--heading); }
+:where(html.tema-escuro) .mapa-estadios .leaflet-popup-content-wrapper,
+:where(html.tema-escuro) .mapa-estadios .leaflet-popup-tip { background: color-mix(in srgb, var(--surface) 86%, transparent); }
 :where(html.tema-escuro) .prof-campo { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
 :where(html.tema-escuro) .conv-ordem { border-top: 1px solid var(--border, var(--border)); }
 :where(html.tema-escuro) .conv-ordem-linha { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
