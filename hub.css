@@ -280,6 +280,29 @@
   table[data-ordenar].stats-compacta th[data-tipo]::after { display: none; }
 }
 
+/* v11: classificação larga no PC (≥ 1280px) */
+@media (min-width: 1280px) {
+  /* página pública: a secção sai do limite de 1000px do .public-main (até 1400px, 24px de margem mínima) */
+  .full-width-section { width: min(1400px, calc(100vw - 48px)); margin-left: calc(50% - min(700px, 50vw - 24px)); }
+  /* dashboard: a classificação ocupa as 3 colunas da grelha */
+  .hub-grid > .card-classificacao { grid-column: 1 / -1; }
+}
+
+/* H2H (dashboard): vitórias azul do clube (--azul-royal), derrotas vermelho, empates cinzento */
+.h2h-mini { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 2px 0 10px; color: var(--text-muted); font-size: .78rem; }
+.h2h-mini b { color: var(--heading); }
+.h2h-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 14px; }
+.h2h-tiles .h2h-v strong { color: var(--azul-royal); } .h2h-tiles .h2h-d strong { color: #dc2626; } .h2h-tiles .h2h-e strong { color: #6b7280; }
+.h2h-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.h2h-lista li { display: grid; grid-template-columns: 30px 92px minmax(0, 1fr); grid-template-areas: "letra data res" "letra data comp"; align-items: center; column-gap: 10px; padding: 8px 10px; border-radius: 10px; border-left: 5px solid #6b7280; background: var(--surface-2); }
+.h2h-lista li.h2h-V { border-left-color: var(--azul-royal); } .h2h-lista li.h2h-D { border-left-color: #dc2626; }
+.h2h-letra { grid-area: letra; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: #6b7280; color: #fff; font-weight: 900; font-size: .8rem; }
+.h2h-V .h2h-letra { background: var(--azul-royal); } .h2h-D .h2h-letra { background: #dc2626; }
+.h2h-data { grid-area: data; color: var(--text-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.h2h-res { grid-area: res; font-size: .95rem; }
+.h2h-comp { grid-area: comp; color: var(--text-muted); font-size: .75rem; }
+@media (max-width: 760px) { .h2h-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .h2h-lista li { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "letra res" "letra data" "letra comp"; } }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }
@@ -306,27 +329,5 @@
 :where(html.tema-escuro) .pres-card { background: var(--surface); }
 :where(html.tema-escuro) .pres-nome { color: var(--heading); }
 :where(html.tema-escuro) .pres-pct b { color: var(--heading); }
+:where(html.tema-escuro) .h2h-tiles .h2h-e strong { color: var(--fg-muted); }
 /* ===== FIM TEMA ESCURO ===== */
-
-/* v11: classificação larga no PC (≥ 1280px) */
-@media (min-width: 1280px) {
-  /* página pública: a secção sai do limite de 1000px do .public-main (até 1400px, 24px de margem mínima) */
-  .full-width-section { width: min(1400px, calc(100vw - 48px)); margin-left: calc(50% - min(700px, 50vw - 24px)); }
-  /* dashboard: a classificação ocupa as 3 colunas da grelha */
-  .hub-grid > .card-classificacao { grid-column: 1 / -1; }
-}
-
-/* H2H (dashboard): vitórias #043792, derrotas vermelho, empates cinzento */
-.h2h-mini { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 2px 0 10px; color: var(--text-muted); font-size: .78rem; }
-.h2h-mini b { color: var(--heading); }
-.h2h-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 14px; }
-.h2h-tiles .h2h-v strong { color: #043792; } .h2h-tiles .h2h-d strong { color: #dc2626; } .h2h-tiles .h2h-e strong { color: #6b7280; }
-.h2h-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.h2h-lista li { display: grid; grid-template-columns: 30px 92px minmax(0, 1fr); grid-template-areas: "letra data res" "letra data comp"; align-items: center; column-gap: 10px; padding: 8px 10px; border-radius: 10px; border-left: 5px solid #6b7280; background: var(--surface-2); }
-.h2h-lista li.h2h-V { border-left-color: #043792; } .h2h-lista li.h2h-D { border-left-color: #dc2626; }
-.h2h-letra { grid-area: letra; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: #6b7280; color: #fff; font-weight: 900; font-size: .8rem; }
-.h2h-V .h2h-letra { background: #043792; } .h2h-D .h2h-letra { background: #dc2626; }
-.h2h-data { grid-area: data; color: var(--text-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
-.h2h-res { grid-area: res; font-size: .95rem; }
-.h2h-comp { grid-area: comp; color: var(--text-muted); font-size: .75rem; }
-@media (max-width: 760px) { .h2h-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .h2h-lista li { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "letra res" "letra data" "letra comp"; } }
