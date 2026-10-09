@@ -612,21 +612,31 @@
   /**
    * Onze no campo, colocado pela posição do perfil. lista: [{ jogador, minutos }].
    * o: { rotulo(t) em vez dos minutos, capitao: id com o badge "C", ordenado: já vem como onze,
-   *      proficiencia: ponto de proficiência (só com formação: é ela que diz a posição de cada um) }
+   *      proficiencia: ponto de proficiência (só com formação: é ela que diz a posição de cada um),
+   *      lugares: [t | null] por índice de VFN.FORMACOES_SLOTS[formacao] (v15, convocatória: squads.lineup_slots),
+   *      editavel: com lugares, cada lugar fica arrastável (data-arrasta/data-alvo "s:<índice>", VFNComp.ligarArrastar) }
+   * Cada jogador no campo tem data-slot (índice do lugar, com formação) e data-player-id.
    */
   function onzeCampoHTML(lista, opcoes) {
     const o = opcoes || {};
     if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
     const onze = o.rotulo ? lista.slice(0, 11) : onzeMaisUtilizado(lista);
-    // com formação (convocatória): linhas da formação escolhida; sem formação: posição do perfil
-    const marcadores = o.formacao ? posicoesDaFormacao(onze, o.formacao) : posicoesPorLinhas(onze);
-    return `<div class="mini-pitch" role="img" aria-label="Onze mais utilizado: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
+    // com lugares (slot → jogador): geometria de cada lugar; com formação: linhas da formação; sem formação: perfil
+    const geometria = o.formacao ? geometriaDaFormacao(o.formacao) : [];
+    const marcadores = o.lugares && o.formacao
+      ? geometria.map((g, i) => ({ ...g, t: o.lugares[i] || null, indice: i }))
+      : o.formacao ? posicoesDaFormacao(onze, o.formacao).map(m => ({ ...m, indice: geometria.findIndex(g => g.slot === m.slot) })) : posicoesPorLinhas(onze);
+    const editavel = !!(o.editavel && o.lugares);
+    return `<div class="mini-pitch${editavel ? " campo-editavel" : ""}" role="${editavel ? "group" : "img"}" aria-label="Onze: ${esc(onze.map(t => t.jogador.nome).join(", "))}">
       <span class="mini-pitch-lines" aria-hidden="true"></span>
-      ${marcadores.map(({ t, x, y, largura, slot }) => {
+      ${marcadores.map(({ t, x, y, largura, slot, indice }) => {
+        const lugar = indice >= 0 ? ` data-slot="${indice}"` : "";
+        const arrasto = editavel ? ` data-alvo="s:${indice}"${t ? ` data-arrasta="s:${indice}"` : ""} tabindex="0"` : "";
+        if (!t) return `<div class="pitch-player vazio" style="left:${x}%;top:${y}%;width:${largura}%"${lugar}${arrasto} title="${esc(slot ? slot.label : "")} (vazio)"><span class="pitch-player-avatar camisola-vazia">${VFN.generateJerseyAvatar("")}</span><span class="pitch-player-name"><span>${esc(slot ? slot.label : "")}</span></span></div>`;
         const capitao = o.capitao && String(o.capitao) === String(t.jogador.idBD || t.jogador.id);
         const rotulo = o.rotulo ? o.rotulo(t) : t.minutos + "'";
         const prof = o.proficiencia && slot ? VFN.proficienciaPontoHTML(VFN.proficienciaJogador(t.jogador, slot)) : "";
-        return `<div class="pitch-player" style="left:${x}%;top:${y}%;width:${largura}%" title="${esc(t.jogador.nome)}${rotulo ? " · " + esc(rotulo) : ""}"><span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}${prof}</span><span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span>${rotulo ? `<b>${esc(rotulo)}</b>` : ""}</span></div>`;
+        return `<div class="pitch-player" style="left:${x}%;top:${y}%;width:${largura}%"${lugar} data-player-id="${esc(t.jogador.idBD || t.jogador.id)}"${arrasto} title="${esc(t.jogador.nome)}${rotulo ? " · " + esc(rotulo) : ""}${slot ? " · " + esc(slot.label) : ""}"><span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${capitao ? VFN.badgeCapitao("no-campo") : ""}${prof}</span><span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span>${rotulo ? `<b>${esc(rotulo)}</b>` : ""}</span></div>`;
       }).join("")}
     </div>
     ${onze.length < 11 ? `<p class="muted readonly-note">${o.rotulo ? `Só ${onze.length} titulares escolhidos.` : `Só ${onze.length} jogadores com minutos registados.`}</p>` : ""}`;
@@ -666,6 +676,54 @@
     const grupos = [[slots.shift()]];
     linhasFormacao(formacao).forEach(n => grupos.push(slots.splice(0, n).sort((a, b) => a.x - b.x)));
     return grupos;
+  }
+
+  /**
+   * Geometria de cada lugar da formação, pelo índice de VFN.FORMACOES_SLOTS[formacao]: [{ x, y, largura, slot }].
+   * As coordenadas são as do mini-campo (linhas de posicoesDaFormacao), não as do campo grande do relatório.
+   */
+  function geometriaDaFormacao(formacao) {
+    const todos = VFN.FORMACOES_SLOTS[formacao] || VFN.FORMACOES_SLOTS["4-3-3"];
+    const linhas = linhasFormacao(formacao);
+    const geo = [];
+    lugaresDaFormacao(formacao).forEach((grupo, l) => {
+      const y = l === 0 ? GR_Y : Math.round(LINHA_Y_TRAS - (l - 1) * ((LINHA_Y_TRAS - LINHA_Y_FRENTE) / Math.max(1, linhas.length - 1)));
+      grupo.forEach((slot, k) => { geo[todos.indexOf(slot)] = { x: l === 0 ? 50 : Math.round((k + 1) * 100 / (grupo.length + 1)), y, largura: larguraNaLinha(grupo.length), slot }; });
+    });
+    return geo;
+  }
+
+  /**
+   * Lugares por omissão (Map índice de FORMACOES_SLOTS → id), como a colocação automática da pré-visualização:
+   * o onze (ordenado GR → Def → Med → Av) enche as linhas da formação por ordem.
+   */
+  function lugaresPorOmissao(onze, formacao) {
+    const todos = VFN.FORMACOES_SLOTS[formacao] || VFN.FORMACOES_SLOTS["4-3-3"];
+    const mapa = new Map();
+    posicoesDaFormacao(onze, formacao).forEach(m => { const i = todos.indexOf(m.slot); if (i >= 0) mapa.set(i, String(m.t.jogador.idBD || m.t.jogador.id)); });
+    return mapa;
+  }
+
+  /**
+   * Lugares finais do onze (Map índice → id): os guardados (squads.lineup_slots ou o estado do admin) que ainda
+   * são titulares, e os titulares que faltam no seu lugar automático (ou no primeiro livre). onze: [{ jogador }].
+   */
+  function lugaresDoOnzeComSlots(onze, formacao, guardados) {
+    const n = (VFN.FORMACOES_SLOTS[formacao] || VFN.FORMACOES_SLOTS["4-3-3"]).length;
+    const ids = onze.map(t => String(t.jogador.idBD || t.jogador.id));
+    const mapa = new Map();
+    const entradas = guardados instanceof Map ? [...guardados.entries()] : Object.entries(guardados || {});
+    entradas.forEach(([k, id]) => {
+      const i = Number(k);
+      if (i >= 0 && i < n && ids.includes(String(id)) && ![...mapa.values()].includes(String(id))) mapa.set(i, String(id));
+    });
+    const colocados = new Set(mapa.values());
+    lugaresPorOmissao(onze, formacao).forEach((id, i) => { if (!colocados.has(id) && !mapa.has(i)) { mapa.set(i, id); colocados.add(id); } });
+    ids.filter(id => !colocados.has(id)).forEach(id => {
+      const livre = [...Array(n).keys()].find(i => !mapa.has(i));
+      if (livre !== undefined) { mapa.set(livre, id); colocados.add(id); }
+    });
+    return mapa;
   }
 
   /** Lugar de cada titular (id → slot) com o onze colocado pela formação, como na pré-visualização. */
@@ -1641,6 +1699,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

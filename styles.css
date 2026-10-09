@@ -2284,6 +2284,14 @@ body.mj-aberto { overflow: hidden; }
 @keyframes mjPisca { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .mj-cronometro .mj-crono-tempo { animation: none; } }
 
+/* Convocatória (v15): mini-campo editável — arrastar um jogador para outro lugar troca os dois */
+.campo-editavel .pitch-player[data-arrasta] { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.campo-editavel .pitch-player[data-arrasta]:hover .pitch-player-avatar { filter: drop-shadow(0 0 6px rgba(255, 215, 0, .65)); }
+.campo-editavel .pitch-player.vazio .camisola-vazia svg { width: 42px; height: 47px; }
+.campo-editavel .pitch-player.vazio .pitch-player-name { opacity: .7; }
+.campo-editavel .alvo-ativo { outline: 2px dashed rgba(255, 215, 0, .9); outline-offset: 2px; border-radius: 10px; background: rgba(255, 215, 0, .12); }
+.campo-editavel .arrasta-selecionado { outline: 2px solid #FFD700; outline-offset: 2px; border-radius: 10px; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }

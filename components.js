@@ -582,11 +582,25 @@
         <span class="conv-fase ${fase2 ? "fase2" : ""}">${fase2 ? "Onze inicial" : "Lista de convocados"}</span>${squad.published ? "" : ' <span class="estado-relatorio rascunho">Rascunho</span>'}</div>
       ${aviso}
       ${concentracaoHTML(squad)}
-      ${opcoes.campo && fase2 ? `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(squad.formation || "")} · só no admin</small></h4>${H().onzeCampoHTML(onze.map(j => ({ jogador: j, minutos: 0 })), { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao: squad.formation || "4-3-3", proficiencia: true })}</section>` : ""}
+      ${opcoes.campo && fase2 ? campoConvocatoriaHTML(squad, onze, opcoes) : ""}
       <div class="conv-grelha">
         ${fase2 ? bloco("Onze inicial", VFN.ordenarPorPosicao(onze)) + bloco("Suplentes", suplentes) : bloco("Convocados", convocados)}
         ${bloco("Não convocados", fora, "conv-fora")}
       </div>`;
+  }
+
+  /**
+   * Pré-visualização tática da convocatória (só admin): cada titular no seu lugar (squads.lineup_slots, índice de
+   * VFN.FORMACOES_SLOTS → id; sem slots guardados, a colocação automática). o.editarCampo: lugares arrastáveis.
+   */
+  function campoConvocatoriaHTML(squad, onze, o) {
+    const formacao = squad.formation || "4-3-3";
+    const ts = onze.map(j => ({ jogador: j, minutos: 0 }));
+    const porId = new Map(ts.map(t => [idDe(t.jogador), t]));
+    const lugares = [];
+    H().lugaresDoOnzeComSlots(ts, formacao, squad.lineup_slots).forEach((id, i) => { lugares[i] = porId.get(id) || null; });
+    const campo = H().onzeCampoHTML(ts, { rotulo: t => t.jogador.numero !== "" && t.jogador.numero != null ? "#" + t.jogador.numero : "", capitao: squad.captain_id, formacao, proficiencia: true, lugares, editavel: !!o.editarCampo });
+    return `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(formacao)} · só no admin${o.editarCampo ? " · arrasta um jogador para outro lugar para os trocar" : ""}</small></h4>${campo}</section>`;
   }
 
   /** Primeira foto que existe de cada jogador (photo_url, assets/players/{id}.jpg ou .png); null = camisola. */

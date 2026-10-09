@@ -441,7 +441,7 @@ async function apagarMulta(multa) {
       Atualiza a mesma convocatória já publicada.
    ========================================================= */
 
-const conv = { ordemImagem: null, matchId: "", convocados: new Set(), titulares: new Set(), modo: "lista", formation: "4-3-3", captain: "", id: null, published: false, status: "lista", concHora: "", concLocal: "" };
+const conv = { lineupSlots: null, ordemImagem: null, matchId: "", convocados: new Set(), titulares: new Set(), modo: "lista", formation: "4-3-3", captain: "", id: null, published: false, status: "lista", concHora: "", concLocal: "" };
 
 /* ---------- Comparação de dois jogadores (antes da convocatória) ---------- */
 
@@ -470,7 +470,9 @@ function initConvocatoria() {
   criarOpcoesFormacao(el("convFormacao"));
   el("convJogo").addEventListener("change", () => carregarConvocatoria(el("convJogo").value));
   el("convModos").addEventListener("click", e => { const b = e.target.closest("[data-conv-modo]"); if (b) { conv.modo = b.dataset.convModo; renderConvocatoria(); } });
-  el("convFormacao").addEventListener("change", () => { conv.formation = el("convFormacao").value; renderConvocatoria(); });
+  // outra formação: os lugares mudam de sentido, volta à colocação automática
+  el("convFormacao").addEventListener("change", () => { conv.formation = el("convFormacao").value; conv.lineupSlots = null; renderConvocatoria(); });
+  VFNComp.ligarArrastar(el("convPreview"), trocarLugaresConv); // só os lugares do mini-campo têm data-arrasta/data-alvo
   el("convCapitao").addEventListener("change", () => { conv.captain = el("convCapitao").value; renderConvocatoria(); });
   el("convConcHora").addEventListener("change", () => { conv.concHora = el("convConcHora").value; renderConvocatoria(); });
   el("convConcLocal").addEventListener("change", () => { conv.concLocal = el("convConcLocal").value.trim(); renderConvocatoria(); });
@@ -523,6 +525,9 @@ function carregarConvocatoria(matchId) {
   conv.concLocal = squad && squad.concentration_location || localPorOmissaoConv(jogo);
   conv.captain = "";
   conv.ordemImagem = null; // outro jogo: volta à ordem por posição
+  // lugares no mini-campo (squads.lineup_slots: índice de VFN.FORMACOES_SLOTS → id); vazio = colocação automática
+  const slots = squad && squad.lineup_slots && typeof squad.lineup_slots === "object" ? Object.entries(squad.lineup_slots) : [];
+  conv.lineupSlots = slots.length ? new Map(slots.map(([k, id]) => [Number(k), String(id)])) : null;
   if (squad && squad.captain_id && squad.captain_id !== capitaoAutoConv()) conv.captain = String(squad.captain_id);
   el("convErro").textContent = "";
   renderConvocatoria();
@@ -540,6 +545,34 @@ function capitaoConv() {
   return conv.captain && conv.titulares.has(conv.captain) ? conv.captain : capitaoAutoConv();
 }
 
+/* ---- Lugares do onze no mini-campo da convocatória (v15) ----
+   Coluna nova no Supabase (correr no SQL Editor):
+     ALTER TABLE squads ADD COLUMN IF NOT EXISTS lineup_slots JSONB DEFAULT '{}';
+   Formato: { "0": "<id do GR>", "1": "<id>", ... } com o índice de VFN.FORMACOES_SLOTS[formation].
+   squads.lineup continua igual (ids por posição GR → Def → Med → Av); sem a coluna grava-se sem os lugares. */
+
+let colunaLineupSlots = true;
+
+/** Lugares finais (Map índice → id): os escolhidos a arrastar + os titulares novos no lugar automático. */
+function lugaresConv() {
+  const onze = ordenarIdsConv(conv.titulares).map(id => jogadorPorIdBD(id)).filter(Boolean).map(j => ({ jogador: j }));
+  return VFNHub.lugaresDoOnzeComSlots(onze, conv.formation || "4-3-3", conv.lineupSlots);
+}
+
+/** Largar um jogador do mini-campo noutro lugar: os dois trocam (ou passa para o lugar vazio). */
+function trocarLugaresConv(origem, destino) {
+  if (!destino || !origem.startsWith("s:") || !destino.startsWith("s:")) return; // fora do mini-campo: nada
+  const a = Number(origem.slice(2)), b = Number(destino.slice(2));
+  if (a === b) return;
+  const mapa = lugaresConv();
+  const idA = mapa.get(a), idB = mapa.get(b);
+  if (idA === undefined) return;
+  mapa.set(b, idA);
+  if (idB === undefined) mapa.delete(a); else mapa.set(a, idB);
+  conv.lineupSlots = mapa;
+  renderConvocatoria();
+}
+
 /** Linha de squads a partir do formulário. status 'lista' só grava os convocados. */
 function squadDoFormulario(publicado, status) {
   const convocados = ordenarIdsConv(conv.convocados);
@@ -551,7 +584,8 @@ function squadDoFormulario(publicado, status) {
     captain_id: fase2 ? capitaoConv() || null : null, formation: conv.formation, published: !!publicado,
     squad_status: fase2 ? "completa" : "lista",
     concentration_time: fase2 && conv.concHora ? conv.concHora : null,
-    concentration_location: fase2 && conv.concLocal ? conv.concLocal : null
+    concentration_location: fase2 && conv.concLocal ? conv.concLocal : null,
+    ...(colunaLineupSlots ? { lineup_slots: fase2 ? Object.fromEntries(lugaresConv()) : {} } : {})
   };
 }
 
@@ -595,7 +629,8 @@ function renderConvocatoria() {
   // suspensões automáticas (AF Guarda): suspenso não entra no onze; aviso a um amarelo do limite
   const susp = new Map(plantel.map(p => [idJogadorBD(p), suspensaoAdmin(p)]));
   // proficiência dos titulares na posição onde ficam na pré-visualização (formação escolhida)
-  const lugares = fase2 ? VFNHub.lugaresDoOnze(titulares.map(id => jogadorPorIdBD(id)).filter(Boolean).map(j => ({ jogador: j })), conv.formation || "4-3-3") : new Map();
+  const slotsFormacao = VFN.FORMACOES_SLOTS[conv.formation] || VFN.FORMACOES_SLOTS["4-3-3"];
+  const lugares = new Map(fase2 ? [...lugaresConv()].map(([i, id]) => [id, slotsFormacao[i]]) : []);
   el("convPlantel").innerHTML = VFN.ordenarPorPosicao(plantel).map(j => {
     const id = idJogadorBD(j);
     const s = susp.get(id);
@@ -619,7 +654,7 @@ function renderConvocatoria() {
 
   renderOrdemImagem();
   const jogo = jogosCalendario.find(j => j.id === conv.matchId);
-  el("convPreview").innerHTML = jogo ? VFNComp.renderSquadView({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squadDoFormulario(conv.published, conv.modo), jogadorPorIdBD, { todos: plantel, campo: true }) : '<p class="empty-state">Escolhe um jogo.</p>';
+  el("convPreview").innerHTML = jogo ? VFNComp.renderSquadView({ matches: jogosCalendario, teams: equipasCalendario }, jogo, squadDoFormulario(conv.published, conv.modo), jogadorPorIdBD, { todos: plantel, campo: true, editarCampo: true }) : '<p class="empty-state">Escolhe um jogo.</p>';
 }
 
 async function guardarConvocatoria(publicar, status) {
@@ -635,13 +670,22 @@ async function guardarConvocatoria(publicar, status) {
   if (publicar && !(conv.published && conv.status === status) && !confirm(status === "completa" ? "Publicar o onze inicial? Os jogadores passam a ver titulares, suplentes e a concentração." : "Publicar a lista de convocados? Os jogadores passam a ver quem foi convocado.")) return;
   try {
     let gravada;
+    let semSlots = false;
+    // sem a coluna squads.lineup_slots (SQL no comentário acima): grava sem os lugares do mini-campo
+    const gravar = async l => {
+      try { return await dadosClube.guardar("squads", l); } catch (e) {
+        if (!("lineup_slots" in l) || !/lineup_slots/i.test(e.message || "")) throw e;
+        delete l.lineup_slots; colunaLineupSlots = false; semSlots = true;
+        return dadosClube.guardar("squads", l);
+      }
+    };
     try {
-      gravada = await dadosClube.guardar("squads", linha);
+      gravada = await gravar(linha);
     } catch (e) {
       // antes do SQL v6: sem squad_status/concentração (fica como a convocatória v5)
       if (!/squad_status|concentration/i.test(e.message || "")) throw e;
       ["squad_status", "concentration_time", "concentration_location"].forEach(k => delete linha[k]);
-      gravada = await dadosClube.guardar("squads", linha);
+      gravada = await gravar(linha);
       el("convErro").textContent = "Guardada sem os dois momentos e a concentração: corre a secção v6 do schema.sql.";
     }
     cacheAdmin.squads = cacheAdmin.squads.filter(s => String(s.id) !== String(gravada.id)).concat(gravada);
@@ -649,6 +693,7 @@ async function guardarConvocatoria(publicar, status) {
     conv.published = !!gravada.published;
     conv.status = gravada.squad_status === "completa" ? "completa" : "lista";
     renderConvocatoria();
+    if (semSlots) el("convErro").textContent = "Guardada sem os lugares no campo: corre o SQL de squads.lineup_slots (comentário em admin.js).";
   } catch (e) {
     el("convErro").textContent = /squads/i.test(e.message || "") && /does not exist|schema cache|could not find/i.test(e.message || "") ? "Falta a tabela squads: corre a secção de 03/10/2026 do schema.sql." : mensagemErro(e);
   }
