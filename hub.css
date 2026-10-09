@@ -326,6 +326,10 @@
 .forma-pontos.compacto { margin: -4px 0 10px; gap: 4px 10px; }
 .forma-pontos.compacto .forma-ponto { width: 12px; height: 12px; }
 
+/* Área do jogador (v15): ficha do adversário com o botão do H2H */
+.eq-h2h-bloco { display: grid; gap: 12px; margin-top: 14px; }
+.eq-h2h-bloco > .btn { justify-self: start; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
 let cliente = null;
 let utilizador = null;
 let perfil = null; // profiles (equipa técnica) ou null
-let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], fines: [], fine_types: [], match_reports: [], staff: [], squads: [] };
+let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], fines: [], fine_types: [], match_reports: [], staff: [], squads: [], h2h: [] };
 let jogadores = [];
 let eu = null; // o jogador com sessão iniciada (null para a equipa técnica)
 
@@ -38,8 +38,8 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
  * ("fines staff read" continua a dar todas as multas à equipa técnica; os valores de cada infração vêm de
  * fine_types, que os jogadores já podem ler.)
  */
-const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads" };
-const OPCIONAIS = ["external_players", "staff", "squads", "fine_types"];
+const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h" };
+const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/h2h.sql (leitura pública)
 
 async function carregarDados() {
   const chaves = Object.keys(TABELAS);
@@ -306,9 +306,47 @@ function renderGraficosPessoais() {
 
 const COLUNAS_STATS = [["nome", "Jogador", "texto"], ["jogos", "J", "numero"], ["minutos", "Min", "numero"], ["golos", "Golos", "numero"], ["assistencias", "Ass", "numero"], ["cartoesA", "Am.", "numero"], ["cartoesV", "Verm.", "numero"]];
 
+let filtroHeatmapEquipa = "marcados";
+
+/**
+ * Mapas de calor (v15): o pessoal (golos do jogador com sessão; só aparece com pelo menos 1 golo com zona_golo)
+ * e o da equipa (marcados / sofridos / ambos), a partir dos relatórios publicados.
+ */
+function renderHeatmapsEquipa() {
+  const eDele = idLocal => { const j = jogadorDoRelatorio(idLocal); return !!(eu && j && String(j.id) === String(eu.id)); };
+  const meusComZona = eu ? H.golosDosRelatorios(dados.match_reports).filter(e => e.tipo === "Golo" && e.equipa === "VFN" && e.zona_golo && eDele(e.jogadorId)).length : 0;
+  $("eqHeatmapPessoalCard").hidden = !meusComZona;
+  $("eqHeatmapPessoal").innerHTML = meusComZona ? H.renderHeatmapGolos(dados.match_reports, "marcados", { eDele }) : "";
+  $("eqHeatmapEquipa").innerHTML = H.renderHeatmapGolos(dados.match_reports, filtroHeatmapEquipa);
+  $("eqHeatmapFiltro").querySelectorAll("[data-filtro]").forEach(b => { const ativo = b.dataset.filtro === filtroHeatmapEquipa; b.classList.toggle("active", ativo); b.setAttribute("aria-pressed", String(ativo)); });
+}
+
+/* ---------- Adversários (v15): fichas das equipas e H2H do clube ---------- */
+
+function renderAdversarios() {
+  $("eqEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("eqEquipasPesquisa").value);
+}
+
+/** Ficha do adversário; o H2H (tabela h2h) abre com o botão "Ver H2H". */
+function abrirEquipa(teamId) {
+  const t = H.equipa(dados, teamId);
+  if (!teamId || !t || VFN.eVFN(t.name)) return;
+  $("eqEquipaPerfilCorpo").innerHTML = H.perfilEquipaHTML(dados, teamId);
+  const resumo = H.resumoH2H([t.name, t.full_name].filter(Boolean), dados.h2h);
+  const botao = $("btnEqVerH2H");
+  botao.hidden = false;
+  botao.disabled = !resumo;
+  botao.lastChild.textContent = resumo ? ` Ver H2H (${resumo.jogos.length} jogo${resumo.jogos.length === 1 ? "" : "s"})` : " Sem histórico de confrontos";
+  $("eqEquipaH2H").hidden = true;
+  $("eqEquipaH2H").innerHTML = resumo ? H.h2hHTML(resumo) : "";
+  $("modalEquipaPerfil").hidden = false;
+  $("btnFecharEquipaPerfil").focus();
+}
+
 function renderEstatisticas() {
   $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id, eu)) : H.vazio("Só para jogadores.");
   renderGraficosPessoais();
+  renderHeatmapsEquipa();
   const posicao = $("eqStatsPosicao").value;
   const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
   if (!lista.length) { $("eqStatsTabela").innerHTML = '<tbody><tr><td class="empty-state">Sem jogadores nesta posição.</td></tr></tbody>'; return; }
@@ -406,6 +444,7 @@ function renderTudo() {
   renderEstatisticas();
   $("eqDisponibilidade").innerHTML = H.disponibilidadeHTML(dados, jogadores);
   renderRelatorios();
+  renderAdversarios();
   VFN.refreshAOS();
 }
 
@@ -481,6 +520,14 @@ async function iniciar() {
   });
   $("eqMultasJogador").addEventListener("change", renderMultas);
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
+  $("eqHeatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmapEquipa = b.dataset.filtro; renderHeatmapsEquipa(); } });
+  $("eqEquipasPesquisa").addEventListener("input", renderAdversarios);
+  // emblema de uma equipa (cards dos adversários, jornadas...) abre a ficha com o H2H
+  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo && !e.target.closest(".modal-overlay")) abrirEquipa(alvo.dataset.equipa); });
+  $("btnEqVerH2H").addEventListener("click", () => { const h = $("eqEquipaH2H"); h.hidden = !h.hidden; $("btnEqVerH2H").hidden = !h.hidden; });
+  $("btnFecharEquipaPerfil").addEventListener("click", () => { $("modalEquipaPerfil").hidden = true; });
+  $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
   $("eqMultasEstado").addEventListener("change", renderMultas);
   $("eqRelatoriosLista").addEventListener("click", e => { const b = e.target.closest("[data-relatorio]"); if (b) abrirRelatorio(b.dataset.relatorio); });
   // relatório completo no resumo só para a equipa técnica (perfil); os jogadores mantêm o botão "Ver Relatório"

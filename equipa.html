@@ -74,6 +74,7 @@
   <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
   <button type="button" data-view="estatisticas"><span aria-hidden="true"><i data-icon="chart-column"></i></span>Estatísticas</button>
   <button type="button" data-view="disponibilidade"><span aria-hidden="true"><i data-icon="clipboard-check"></i></span>Plantel</button>
+  <button type="button" data-view="adversarios"><span aria-hidden="true"><i data-icon="shield"></i></span>Adversários</button>
   <button type="button" data-view="relatorios"><span aria-hidden="true"><i data-icon="file-text"></i></span>Relatórios</button>
 </nav>
 
@@ -186,6 +187,16 @@
       </div>
       <p id="eqGraficosVazio" class="muted" hidden></p>
     </div>
+    <!-- v15: mapa de calor pessoal (só com golos com zona) e o da equipa -->
+    <div class="card" id="eqHeatmapPessoalCard" data-aos="fade-up" hidden>
+      <h2 class="hub-card-title">De onde marquei <small class="muted">os meus golos com zona registada</small></h2>
+      <div id="eqHeatmapPessoal"></div>
+    </div>
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Zonas dos golos da equipa <small class="muted">de onde marcamos e de onde sofremos</small></h2>
+        <div class="filter-chips" id="eqHeatmapFiltro" role="group" aria-label="Golos a mostrar"><button type="button" class="filter-chip active" data-filtro="marcados" aria-pressed="true">Marcados</button><button type="button" class="filter-chip" data-filtro="sofridos" aria-pressed="false">Sofridos</button><button type="button" class="filter-chip" data-filtro="ambos" aria-pressed="false">Ambos</button></div></div>
+      <div id="eqHeatmapEquipa"></div>
+    </div>
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Estatísticas da época</h2><label class="sr-only" for="eqStatsPosicao">Posição</label><select id="eqStatsPosicao" class="compact-select"><option value="">Todas as posições</option><option value="GR">Guarda-redes</option><option value="Def">Defesas</option><option value="Meio">Médios</option><option value="Ata">Avançados</option></select></div>
       <div class="table-wrap stats-wrap"><table id="eqStatsTabela" class="stats-table stats-compacta" data-ordenar="stats-equipa"></table></div>
@@ -197,6 +208,14 @@
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Disponibilidade do plantel</h2>
       <div id="eqDisponibilidade"></div>
+    </div>
+  </section>
+
+  <!-- ADVERSÁRIOS (v15): equipas e H2H do clube (tabela h2h) -->
+  <section id="view-adversarios" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Adversários <small class="muted">toca num emblema para ver a ficha e o H2H</small></h2><label class="sr-only" for="eqEquipasPesquisa">Pesquisar equipa</label><input type="search" id="eqEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="eqEquipasGrid" class="teams-grid"></div>
     </div>
   </section>
 
@@ -216,6 +235,18 @@
 </main>
 
 <footer class="public-footer"><p>ACD Vila Franca das Naves · Época 2026/27</p></footer>
+</div>
+
+<!-- MODAL: ficha do adversário + H2H (v15) -->
+<div id="modalEquipaPerfil" class="modal-overlay" hidden>
+  <div class="modal-box modal-md perfil-equipa" role="dialog" aria-modal="true" aria-label="Ficha da equipa">
+    <div id="eqEquipaPerfilCorpo"></div>
+    <div class="eq-h2h-bloco">
+      <button type="button" id="btnEqVerH2H" class="btn btn-primary btn-sm"><i data-icon="swords" data-size="16"></i> Ver H2H (histórico de confrontos)</button>
+      <div id="eqEquipaH2H" hidden></div>
+    </div>
+    <div class="modal-actions"><button type="button" id="btnFecharEquipaPerfil" class="btn btn-accent">Fechar</button></div>
+  </div>
 </div>
 
 <!-- MODAL: ficha do jogador (só leitura) -->
