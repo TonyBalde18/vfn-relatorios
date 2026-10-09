@@ -34,14 +34,15 @@ async function carregarDados() {
    *
    * (A view corre com os privilégios de quem a cria: expõe só estas colunas, não os relatórios.)
    */
-  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", golos_zonas: "golos_zonas" };
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", golos_zonas: "golos_zonas", squads: "squads" };
   const chaves = Object.keys(pedidos);
   // do plantel só as colunas públicas da view (nunca a tabela players)
-  const colunas = { players: "id, name, display_name, full_name, position, number, photo_url, stats" };
+  // squads: só a formação (para o 11 mais utilizado); sem leitura pública (RLS) o 11 usa a posição do perfil
+  const colunas = { players: "id, name, display_name, full_name, position, number, photo_url, stats", squads: "formation, published, created_at" };
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   // tabelas novas (ainda por criar no Supabase) não disparam o aviso
-  const opcionais = ["external_players", "sessions", "golos_zonas"];
+  const opcionais = ["external_players", "sessions", "golos_zonas", "squads"];
   respostas.forEach((r, i) => { if (r.error && !opcionais.includes(chaves[i])) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
   semGolosZonas = !!respostas[chaves.indexOf("golos_zonas")].error;
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
@@ -173,7 +174,6 @@ function initJornadas() {
   $("pubJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 
-let onzeTaticoPub = null;
 let semGolosZonas = false; // view golos_zonas ainda por criar no Supabase
 
 function renderTudo() {
@@ -190,9 +190,8 @@ function renderTudo() {
   // minutos da ficha de cada jogador (players.stats, atualizados no admin)
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
     .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
-  // 11 mais utilizado com tática e arrastar (só na sessão)
-  if (!minutos.length) $("pubOnze").innerHTML = H.onzeCampoHTML(minutos);
-  else { if (!onzeTaticoPub) onzeTaticoPub = VFNComp.criarOnzeTatico($("pubOnze"), { chave: "publico" }); onzeTaticoPub.atualizar(minutos); }
+  // 11 mais utilizado: só de leitura, na formação mais usada (v15)
+  $("pubOnze").innerHTML = minutos.length ? H.onzeEstaticoHTML(minutos, dados) : H.onzeCampoHTML(minutos);
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);
   // marcadores por competição: liga e cada taça
