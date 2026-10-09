@@ -1373,19 +1373,21 @@
 
   /*
    * Camisola real (imagem) no modal do jogador. O GR identifica-se pela posição (players.position, código "GR"
-   * → categoriaPosicao === "GR"); cada GR com kit próprio é reconhecido pelo nome. GR sem kit → SVG genérico.
+   * → categoriaPosicao === "GR"); cada GR com kit próprio é reconhecido pelo nome. Outro GR → kit-gr-default.png
+   * (v15); se a imagem não existir, fica a camisola SVG genérica (VFN.kitFalhou). Uma foto do jogador tem prioridade.
    */
   const PASTA_KITS = "assets/kits/";
   const KITS_GR = [[/\bgravatas\b/, "kit-gr-gravatas.png"], [/\bdi[oe]go\b/, "kit-gr-diogo.png"], [/\btiago\b/, "kit-gr-tiago.png"]];
   const KIT_PRINCIPAL = "kit-principal-frente.png";
+  const KIT_GR_DEFAULT = "kit-gr-default.png";
 
-  /** Ficheiro do kit do jogador ("" = sem kit próprio, fica o SVG). */
+  /** Ficheiro do kit do jogador (em assets/kits/). */
   function kitJogador(j) {
     if (categoriaPosicao(j.position || j.posicao) !== "GR") return KIT_PRINCIPAL;
     const nomes = [j.name, j.display_name, j.full_name, j.nome, j.nomeCompleto].filter(Boolean).join(" ")
       .normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     const kit = KITS_GR.find(([re]) => re.test(nomes));
-    return kit ? kit[1] : "";
+    return kit ? kit[1] : KIT_GR_DEFAULT;
   }
 
   /** Imagem do kit com o número na frente; se a imagem falhar volta à camisola SVG (VFN.kitFalhou). */
