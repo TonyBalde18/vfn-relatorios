@@ -357,6 +357,15 @@
 
 .drawer-corpo .h2h-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
+/* Página pública · Jornadas (v15): no PC classificação | marcadores lado a lado, jornadas a toda a largura */
+.jorn-layout { display: grid; gap: 4px; }
+.jorn-jornadas .jornadas-lista { max-height: 560px; overflow-y: auto; }
+@media (min-width: 900px) {
+  .jorn-layout { grid-template-columns: minmax(0, 1.75fr) minmax(260px, 1fr); grid-template-areas: "class marc" "jorn jorn" "graf graf"; gap: 8px 22px; align-items: start; }
+  .jorn-classificacao { grid-area: class; } .jorn-marcadores { grid-area: marc; } .jorn-jornadas { grid-area: jorn; } .jorn-grafico { grid-area: graf; }
+  .jorn-marcadores .hub-card-head { margin-top: 0; }
+}
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

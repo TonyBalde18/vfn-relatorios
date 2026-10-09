@@ -103,13 +103,21 @@
         <label class="sr-only" for="pubJornEquipa">Equipa</label><select id="pubJornEquipa" class="compact-select"></select>
         <button type="button" id="pubJornOrdem" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
-      <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
-      <div class="chart-box chart-posicao"><canvas id="pubChartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
-      <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
-      <div id="pubJornClassificacaoWrap"><h3 class="subsecao-titulo" id="pubJornClassTitulo">Classificação</h3><div id="pubJornClassificacao"></div></div>
-      <div id="pubJornLista" class="jornadas-lista tabela-escura"></div>
-      <h3 class="subsecao-titulo">Melhores marcadores do campeonato</h3>
-      <div id="pubJornMarcadores"></div>
+      <!-- v15: no PC (≥900px) classificação | marcadores lado a lado, jornadas a toda a largura, gráfico no fim;
+           no telemóvel fica tudo em coluna, pela ordem do HTML -->
+      <div class="jorn-layout">
+        <div class="jorn-grafico">
+          <h3 class="subsecao-titulo">Posição do VFN por jornada</h3>
+          <div class="chart-box chart-posicao"><canvas id="pubChartPosicao" role="img" aria-label="Gráfico de linha com a posição do VFN no fim de cada jornada"></canvas></div>
+          <p class="empty-state" hidden>Ainda não há jornadas com resultados.</p>
+        </div>
+        <div id="pubJornClassificacaoWrap" class="jorn-classificacao"><h3 class="subsecao-titulo" id="pubJornClassTitulo">Classificação</h3><div id="pubJornClassificacao"></div></div>
+        <div class="jorn-jornadas"><h3 class="subsecao-titulo">Jornadas</h3><div id="pubJornLista" class="jornadas-lista tabela-escura"></div></div>
+        <div class="jorn-marcadores">
+          <div class="hub-card-head"><h3 class="subsecao-titulo">Melhores marcadores</h3><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+          <div id="pubJornMarcadores"></div>
+        </div>
+      </div>
     </div>
   </section>
 

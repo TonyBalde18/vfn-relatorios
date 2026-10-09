@@ -152,7 +152,7 @@ function renderJornadas() {
   $("pubJornClassTitulo").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
   $("pubJornClassificacao").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
   $("pubJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
-  $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 15);
+  $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 5); // top 5 ("Ver todos" abre os marcadores)
   graficoPosicaoPub = H.graficoPosicao($("pubChartPosicao"), dados, filtrosJornadas.competicao, graficoPosicaoPub);
 }
 
