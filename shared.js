@@ -1112,7 +1112,9 @@
   /** Botão claro/escuro: nas barras laterais (admin, dashboard), nos cabeçalhos (pública, área do jogador) e nos logins. */
   function ligarBotoesTema() {
     const botao = classe => `<button type="button" class="tema-btn ${classe}" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo">Tema escuro</span></button>`;
-    document.querySelectorAll(".sidebar-links").forEach(l => l.insertAdjacentHTML("beforeend", botao("tema-sidebar")));
+    // v15: no admin e no dashboard o botão fica no header fixo (sempre visível, também no telemóvel), ao lado do título;
+    // sai do fundo do sidebar, que no telemóvel podia ficar fora do ecrã
+    document.querySelectorAll(".app-header .header-title").forEach(t => t.insertAdjacentHTML("afterend", botao("tema-cabecalho")));
     document.querySelectorAll(".public-header").forEach(h => {
       const antes = h.querySelector(".public-entrar, .eq-avatar, .eq-sair");
       if (antes) antes.insertAdjacentHTML("beforebegin", botao("tema-cabecalho")); else h.insertAdjacentHTML("beforeend", botao("tema-cabecalho"));
