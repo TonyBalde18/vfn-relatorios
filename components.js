@@ -884,7 +884,9 @@
     const casa = VFN.jogoEmCasa(jogo);
     const adv = H().equipa(dados, jogo.opponent_team_id);
     const lado = (url, texto, t) => `<div class="jds-equipa"${VFN.estiloCorEquipa(t, 0.25)}><span class="jds-logo">${url ? `<img src="${esc(url)}" alt="">` : `<b>${esc(texto.slice(0, 2).toUpperCase())}</b>`}</span><strong>${esc(texto)}</strong></div>`;
-    const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv);
+    const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv)
+      // v16: kit do adversário por baixo do escudo (sem PNG em assets/opponents/kits/, não aparece)
+      .replace("</strong></div>", `</strong>${VFN.kitAdversarioHTML(adv, { classe: "kit-jogo-semana" })}</div>`);
     const c = partesContagem(jogo.date);
     const hora = VFN.horaIso(jogo.date);
     const fechado = (() => { try { return localStorage.getItem("vfnJogoSemana") === "fechado"; } catch (e) { return false; } })();

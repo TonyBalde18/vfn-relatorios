@@ -1372,6 +1372,26 @@
       `</svg>`;
   }
 
+  /*
+   * Kit do adversário (v16): PNG em assets/opponents/kits/<teams.id>.png. Se a imagem não existir, troca pelo
+   * o.fallback (ex.: a camisola SVG com as cores da equipa) ou desaparece (fallback vazio). o: { fallback, numero,
+   * classe, rotulo }. Tem a classe kit-camisola: VFN.fotoCarregou retira-o quando há foto do jogador.
+   */
+  function kitAdversarioHTML(t, opcoes) {
+    const o = opcoes || {};
+    const fallback = o.fallback || "";
+    if (!t || !t.id || String(t.id).startsWith("nome:") || eVFN(t.name)) return fallback;
+    const numero = escapeHtml(String(o.numero == null ? "" : o.numero).trim().slice(0, 3));
+    return `<span class="kit-adversario kit-camisola ${o.classe || ""}" data-fallback="${escapeHtml(fallback)}"><img src="assets/opponents/kits/${encodeURIComponent(t.id)}.png" alt="${escapeHtml(o.rotulo || "Equipamento " + (t.name || ""))}" loading="lazy" onerror="VFN.kitAdversarioFalhou(this)">` +
+      (numero ? `<b class="kit-numero">${numero}</b>` : "") + `</span>`;
+  }
+
+  function kitAdversarioFalhou(img) {
+    const caixa = img.closest(".kit-adversario");
+    if (!caixa) return;
+    if (caixa.dataset.fallback) caixa.outerHTML = caixa.dataset.fallback; else caixa.remove();
+  }
+
   /* ---------- Avatar camisola ---------- */
 
   let contadorAvatar = 0;
@@ -1460,7 +1480,9 @@
   function avatarExterno(p, equipa, classe) {
     const j = p || {};
     const id = String(j.id || "");
-    const camisola = camisolaEquipaSVG(equipa, { numero: j.number, tamanho: 40, rotulo: "Camisola " + (j.number ? "número " + j.number : "") });
+    // v16: kit PNG da equipa com o número; sem PNG, a camisola SVG com as cores da equipa
+    const svg = camisolaEquipaSVG(equipa, { numero: j.number, tamanho: 40, rotulo: "Camisola " + (j.number ? "número " + j.number : "") });
+    const camisola = kitAdversarioHTML(equipa, { numero: j.number, fallback: svg, classe: "kit-externo" });
     const candidatos = [j.photo_url, /^\d+$/.test(id) && `assets/external/${id}.jpg`].filter(Boolean);
     const chave = "ext:" + id;
     const conhecida = fotosConhecidas.get(chave);
@@ -1605,7 +1627,7 @@
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
-    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
+    BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, kitAdversarioHTML, kitAdversarioFalhou, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,

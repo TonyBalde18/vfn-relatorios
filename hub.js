@@ -1315,7 +1315,7 @@
         ${logoEquipa(t, t.name, "perfil-logo")}
         <div class="perfil-equipa-nome"><h3>${esc(t.name)}</h3>${t.full_name && t.full_name !== t.name ? `<p class="perfil-nome-completo">${esc(t.full_name)}</p>` : ""}
           ${t.city ? `<p class="muted">${VFN.icone("map-pin", 14)} ${esc(t.city)}</p>` : ""}${t.stadium ? `<p class="muted">${VFN.icone("landmark", 14)} ${esc(t.stadium)}</p>` : ""}</div>
-        ${cores.primaria ? `<div class="perfil-camisola" title="Equipamento principal">${VFN.camisolaEquipaSVG(t, { tamanho: 64 })}</div>` : ""}
+        <div class="perfil-camisola" title="Equipamento principal">${VFN.kitAdversarioHTML(t, { fallback: cores.primaria ? VFN.camisolaEquipaSVG(t, { tamanho: 64 }) : "" })}</div>
       </div>
       ${formaEquipaHTML(dados, teamId)}
       <div class="perfil-stats">
