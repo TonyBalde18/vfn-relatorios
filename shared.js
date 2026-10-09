@@ -390,11 +390,31 @@
     { id: "area-peq-centro", nome: "Área pequena · centro", pts: "135,0 165,0 165,24 135,24", tx: 150, ty: 14 },
     { id: "area-peq-dir", nome: "Área pequena · direita", pts: "165,0 195,0 195,24 165,24", tx: 180, ty: 14 }
   ];
+  /*
+   * Zona de origem (v15): campo completo (viewBox 0 -10 300 470; ataque em cima, campo de 0 a 450, meio-campo em
+   * y=225). Os ids da metade ofensiva são os de antes (zonas do golo + cantos), por isso os golos já registados
+   * continuam válidos; juntam-se o meio-campo ofensivo, o defensivo, o terço defensivo e a área própria.
+   */
+  const linhaTres = (id, nome, y1, y2) => [["esq", "esquerda", 0, 100], ["centro", "centro", 100, 200], ["dir", "direita", 200, 300]]
+    .map(([s, n, x1, x2]) => ({ id: `${id}-${s}`, nome: `${nome} · ${n}`, pts: `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`, tx: (x1 + x2) / 2, ty: (y1 + y2) / 2 }));
   const ZONAS_ORIGEM = ZONAS_GOLO.concat([
     { id: "canto-esq", nome: "Canto · esquerda", pts: "0,0 26,0 26,20 0,20", tx: 13, ty: 12 },
     { id: "canto-dir", nome: "Canto · direita", pts: "274,0 300,0 300,20 274,20", tx: 287, ty: 12 }
+  ], linhaTres("meio-ofensivo", "Meio-campo ofensivo", 150, 225), linhaTres("meio-defensivo", "Meio-campo defensivo", 225, 300), [
+    { id: "defesa-esq", nome: "Terço defensivo · esquerda", pts: "0,300 100,300 100,378 50,378 50,450 0,450", tx: 40, ty: 360 },
+    { id: "defesa-centro", nome: "Terço defensivo · centro", pts: "100,300 200,300 200,378 100,378", tx: 150, ty: 339 },
+    { id: "defesa-dir", nome: "Terço defensivo · direita", pts: "200,300 300,300 300,450 250,450 250,378 200,378", tx: 260, ty: 360 },
+    { id: "area-propria", nome: "Área própria (GR)", pts: "50,378 250,378 250,450 50,450", tx: 150, ty: 418 }
   ]);
-  const TIPOS_LANCE = [["jogo_corrido", "Jogo corrido"], ["livre", "Livre"], ["canto", "Canto"], ["penalty", "Penálti"], ["contra-ataque", "Contra-ataque"]];
+  /** Campo completo da zona de origem: viewBox e linhas (prefixo das classes: "zs" no seletor, "hm" no mapa). */
+  const CAMPO_ORIGEM = {
+    viewBox: "0 -10 300 470",
+    linhas: p => `<g class="${p}-linhas" pointer-events="none"><rect x="0" y="0" width="300" height="450"/><line x1="0" y1="225" x2="300" y2="225"/><circle cx="150" cy="225" r="30"/>` +
+      `<rect x="50" y="0" width="200" height="72"/><rect x="105" y="0" width="90" height="24"/><path d="M122 72 Q150 92 178 72"/>` +
+      `<rect x="50" y="378" width="200" height="72"/><rect x="105" y="426" width="90" height="24"/><path d="M122 378 Q150 358 178 378"/>` +
+      `<rect class="${p}-baliza" x="132" y="-8" width="36" height="8"/><rect class="${p}-baliza" x="132" y="450" width="36" height="8"/></g>`
+  };
+  const TIPOS_LANCE = [["jogo_corrido", "Jogo corrido"], ["livre", "Livre"], ["canto", "Canto"], ["penalty", "Penálti"], ["contra-ataque", "Contra-ataque"], ["lancamento_lateral", "Lançamento lateral"]];
   const nomeZona = id => ((ZONAS_ORIGEM.find(z => z.id === id) || {}).nome) || "";
   /** O golo foi sofrido pelo VFN? (golo do adversário, ou autogolo de um jogador do VFN) */
   const eGoloSofrido = ev => (ev.tipo === "Golo" && ev.equipa === "Adversário") || (ev.tipo === "Auto-golo" && ev.equipa === "VFN");
@@ -1584,7 +1604,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     NIVEIS_PROFICIENCIA, POSICOES_PROFICIENCIA, nivelProficiencia, posicaoDoLugar, proficienciaJogador, proficienciaPontoHTML, proficienciaBadgeHTML,

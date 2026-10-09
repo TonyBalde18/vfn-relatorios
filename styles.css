@@ -2111,6 +2111,7 @@ body.mj-aberto { overflow: hidden; }
 .zona-seletor { display: grid; gap: 4px; justify-items: center; }
 .zona-seletor svg { width: 100%; max-width: 420px; height: auto; border-radius: 8px; background: #2f7d3b; touch-action: manipulation; }
 .zona-seletor.pequeno svg { max-width: 260px; }
+.zona-seletor.campo-completo svg { max-width: 220px; } /* v15: origem no campo completo (alto) */
 .zs-zona { fill: rgba(255, 255, 255, .06); stroke: rgba(255, 255, 255, .25); stroke-width: .8; cursor: pointer; }
 .zs-zona:focus { outline: none; stroke: #FFD700; stroke-width: 2; }
 .zs-zona.sel { fill: rgba(255, 215, 0, .75); }
@@ -2144,6 +2145,7 @@ body.mj-aberto { overflow: hidden; }
 .hm-titulo { justify-self: start; font-size: .9rem; font-weight: 800; color: var(--heading); }
 .hm-nota { font-size: .74rem; color: var(--text-muted); }
 .hm-sem { margin: 24px 0; text-align: center; font-size: .85rem; }
+.hm-vista[data-hm="origem"] svg { max-width: 250px; } /* campo completo: mais alto que largo */
 .hm-barras { width: 100%; margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .hm-barras li { display: grid; grid-template-columns: minmax(88px, auto) 1fr 28px; align-items: center; gap: 8px; font-size: .82rem; }
 .hm-barra-nome { font-weight: 600; }

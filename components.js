@@ -1171,11 +1171,13 @@
 
   function seletorZonaHTML(campo, valor, opcoes) {
     const o = opcoes || {};
-    const zonas = campo === "zona_origem" ? VFN.ZONAS_ORIGEM : VFN.ZONAS_GOLO;
-    return `<div class="zona-seletor${o.pequeno ? " pequeno" : ""}" data-campo="${campo}" data-valor="${esc(valor || "")}">
-      <svg viewBox="0 -10 300 160" role="group" aria-label="${esc(o.rotulo || "Zona")}">
+    // origem (v15): campo completo (VFN.CAMPO_ORIGEM); golo: meio-campo de frente
+    const origem = campo === "zona_origem";
+    const zonas = origem ? VFN.ZONAS_ORIGEM : VFN.ZONAS_GOLO;
+    return `<div class="zona-seletor${o.pequeno ? " pequeno" : ""}${origem ? " campo-completo" : ""}" data-campo="${campo}" data-valor="${esc(valor || "")}">
+      <svg viewBox="${origem ? VFN.CAMPO_ORIGEM.viewBox : "0 -10 300 160"}" role="group" aria-label="${esc(o.rotulo || "Zona")}">
         ${zonas.map(z => `<polygon class="zs-zona${z.id === valor ? " sel" : ""}" points="${z.pts}" data-zona="${z.id}" tabindex="0" role="button" aria-pressed="${z.id === valor}" aria-label="${esc(z.nome)}"><title>${esc(z.nome)}</title></polygon>`).join("")}
-        ${LINHAS_ZONAS}
+        ${origem ? VFN.CAMPO_ORIGEM.linhas("zs") : LINHAS_ZONAS}
       </svg>
       <span class="zs-escolha">${valor ? esc(VFN.nomeZona(valor)) : (o.obrigatorio ? "Toca na zona" : "Opcional")}</span>
     </div>`;
