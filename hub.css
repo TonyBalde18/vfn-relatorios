@@ -366,6 +366,12 @@
   .jorn-marcadores .hub-card-head { margin-top: 0; }
 }
 
+/* Área do jogador (v15): estatísticas completas */
+.eq-ficha-tiles { margin: 14px 0 6px; }
+.eq-ficha-nota { margin: 0 0 10px; font-size: .76rem; }
+.eq-ficha-info { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 6px 0 14px; }
+.eq-ficha-info .pos-detalhe { margin: 0; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

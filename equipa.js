@@ -19,6 +19,7 @@ let perfil = null; // profiles (equipa técnica) ou null
 let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], sessions: [], fines: [], fine_types: [], match_reports: [], staff: [], squads: [], h2h: [] };
 let jogadores = [];
 let eu = null; // o jogador com sessão iniciada (null para a equipa técnica)
+let minhasPresencas = null; // registos de presença do jogador com sessão (null = sem acesso)
 
 // link do convite / recuperação: o Supabase põe o tipo no hash do URL antes de criar a sessão
 const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
@@ -62,6 +63,16 @@ async function carregarDados() {
   const multas = await pedidoMultas;
   if (multas.error) falhas.push("fines");
   dados.fines = multas.error ? [] : (multas.data || []).filter(f => !eu || String(f.player_id) === String(eu.id));
+  // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Para os jogadores
+  // lerem só as próprias presenças, correr no Supabase:
+  //   drop policy if exists "Players read own attendance" on public.attendance;
+  //   create policy "Players read own attendance" on public.attendance for select to authenticated
+  //     using (player_id in (select id from public.players where auth_user_id = auth.uid()));
+  minhasPresencas = null;
+  if (eu) {
+    const pres = await cliente.from("attendance").select("status").eq("player_id", eu.id);
+    minhasPresencas = pres.error ? null : (pres.data || []).filter(r => r.status);
+  }
   const aviso = $("avisoDados");
   aviso.hidden = !falhas.length;
   if (falhas.length) aviso.textContent = falhas.includes("players")
@@ -343,9 +354,56 @@ function abrirEquipa(teamId) {
   $("btnFecharEquipaPerfil").focus();
 }
 
+/** % de presenças (P e A contam como presente) do jogador com sessão; null sem dados. */
+function percentagemMinhasPresencas() {
+  if (!minhasPresencas || !minhasPresencas.length) return null;
+  return Math.round(minhasPresencas.filter(r => r.status === "P" || r.status === "A").length / minhasPresencas.length * 100);
+}
+
+let graficoRadarEq = null;
+
+/*
+ * Estatísticas completas do jogador com sessão (v15): presenças, minutos, golos, assistências, cartões, pé e
+ * posições; GR: jogos a zero, minutos sem sofrer, golos sofridos e média; radar (o mesmo do admin).
+ * As posições secundárias vêm de players_equipa, que ainda não as tem. Para as mostrar, correr no Supabase
+ * (acrescenta as duas colunas no fim da view; o resto fica igual ao schema.sql):
+ *   create or replace view public.players_equipa as
+ *   select id, name, display_name, full_name, position, number, photo_url, date_of_birth, availability,
+ *     jsonb_build_object('jogos', coalesce(stats->'jogos', '0'::jsonb), 'golos', coalesce(stats->'golos', '0'::jsonb),
+ *       'assistencias', coalesce(stats->'assistencias', '0'::jsonb), 'cartoesA', coalesce(stats->'cartoesA', '0'::jsonb),
+ *       'cartoesV', coalesce(stats->'cartoesV', '0'::jsonb), 'minutos', coalesce(stats->'minutos', '0'::jsonb),
+ *       'pePreferencial', coalesce(stats->'pePreferencial', '""'::jsonb)) as stats,
+ *     coalesce(auth_user_id = auth.uid(), false) as e_eu,
+ *     sub_posicao, posicoes_secundarias
+ *   from public.players where public.vfn_is_player() or public.vfn_is_staff();
+ */
+function renderFichaCompleta() {
+  if (graficoRadarEq) { graficoRadarEq.destroy(); graficoRadarEq = null; }
+  $("eqRadarBox").hidden = !eu || !window.Chart;
+  if (!eu) { $("eqFichaCompleta").innerHTML = ""; return; }
+  const pct = percentagemMinhasPresencas();
+  const presentes = minhasPresencas ? minhasPresencas.filter(r => r.status === "P" || r.status === "A").length : 0;
+  const tile = (rotulo, valor) => `<div class="summary-tile"><span>${rotulo}</span><strong>${valor}</strong></div>`;
+  const gr = statsGR(eu);
+  $("eqFichaCompleta").innerHTML = `
+    <div class="summary-tiles eq-ficha-tiles">
+      ${tile("Presenças (época)", pct == null ? "—" : `${pct}%`)}${tile("Minutos", eu.minutos + "'")}${tile("Golos", eu.golos)}${tile("Assistências", eu.assistencias)}${tile("Amarelos", eu.cartoesA)}${tile("Vermelhos", eu.cartoesV)}
+    </div>
+    ${pct != null ? `<p class="muted eq-ficha-nota">${presentes} presença${presentes === 1 ? "" : "s"} em ${minhasPresencas.length} sessões registadas</p>` : ""}
+    <dl class="info-grid eq-ficha-info">
+      <div><dt>Pé preferido</dt><dd>${esc(eu.info.pe || "—")}</dd></div>
+      <div><dt>Posição</dt><dd>${VFN.posicaoDetalhadaHTML(eu.posicao, eu.subPosicao, eu.posicoesSecundarias) || esc(eu.posicao || "—")}</dd></div>
+    </dl>
+    ${gr ? `<h3 class="subsecao-titulo">🧤 Guarda-redes</h3><div class="summary-tiles eq-ficha-tiles">
+      ${tile("Jogos a zero", gr.jogosZero)}${tile("Minutos sem sofrer", gr.minutosZero + "'")}${tile("Golos sofridos", gr.golosSofridos)}${tile("Média sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ","))}
+    </div><p class="muted eq-ficha-nota">Jogo a zero: jogou o jogo todo (sem ser substituído) e o adversário não marcou. Minutos sem sofrer: soma dos minutos desses jogos. Golos sofridos: só com ele em campo. Jogos oficiais.</p>` : ""}`;
+  if (!$("eqRadarBox").hidden) requestAnimationFrame(() => { graficoRadarEq = H.radarJogador($("eqRadarCanvas"), eu, jogadores, { presencas: j => j === eu ? percentagemMinhasPresencas() : null, anterior: graficoRadarEq }); });
+}
+
 function renderEstatisticas() {
   $("eqMinhaFicha").innerHTML = eu ? H.fichaVisualHTML(eu, jogadores, H.opcoesFicha(dados, eu.id, eu)) : H.vazio("Só para jogadores.");
   renderGraficosPessoais();
+  renderFichaCompleta();
   renderHeatmapsEquipa();
   const posicao = $("eqStatsPosicao").value;
   const lista = jogadores.filter(j => VFN.posicaoNaCategoria(j.posicao, posicao)).sort((a, b) => b.golos - a.golos || b.minutos - a.minutos || a.nome.localeCompare(b.nome, "pt"));
@@ -542,7 +600,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
-  document.addEventListener("vfn:tema", () => { if (eu) renderGraficosPessoais(); }); // cores dos gráficos no tema claro/escuro
+  document.addEventListener("vfn:tema", () => { if (eu) { renderGraficosPessoais(); renderFichaCompleta(); } }); // cores dos gráficos no tema claro/escuro
   // telemóvel: puxar para atualizar no início (resultados), calendário e competições
   VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
 

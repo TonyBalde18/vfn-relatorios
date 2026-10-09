@@ -1640,6 +1640,41 @@
       ${h2hHTML(r)}`;
   }
 
+  /**
+   * Radar do jogador (v15, partilhado pelo admin e pela área do jogador): 5 eixos — golos, assistências, cartões
+   * (vermelho conta 2), minutos (em % do melhor do plantel) e presenças (% real). Aceita jogadores do admin
+   * (minutosTotais, cartoesAmarelos...) e das vistas (minutos, cartoesA...). o: { presencas(j) → % ou null,
+   * anterior: gráfico a destruir }. Devolve o Chart (ou null sem Chart.js).
+   */
+  function radarJogador(canvas, jogador, plantel, o) {
+    const opcoes = o || {};
+    if (opcoes.anterior) opcoes.anterior.destroy();
+    if (!canvas || !window.Chart || !jogador) return null;
+    const n = v => Number(v) || 0;
+    const cartoes = j => n(j.cartoesA != null ? j.cartoesA : j.cartoesAmarelos) + 2 * n(j.cartoesV != null ? j.cartoesV : j.cartoesVermelhos);
+    const minutos = j => n(j.minutos != null ? j.minutos : j.minutosTotais);
+    const presencas = j => { const p = opcoes.presencas ? opcoes.presencas(j) : null; return p == null ? null : n(p); };
+    const eixos = [["Golos", j => n(j.golos)], ["Assistências", j => n(j.assistencias)], ["Cartões", cartoes], ["Minutos", minutos], ["Presenças", presencas]];
+    const valores = eixos.map(([, f]) => f(jogador));
+    const relativos = eixos.map(([nome, f], i) => {
+      if (nome === "Presenças") return valores[i] || 0;
+      const maximo = Math.max(0, ...(plantel || []).map(f));
+      return maximo ? Math.round(valores[i] / maximo * 100) : 0;
+    });
+    const escuro = document.documentElement.classList.contains("tema-escuro");
+    const linha = escuro ? "#E4E9F2" : "#0A1628", grelha = escuro ? "rgba(255,255,255,.14)" : "rgba(10,22,40,.12)";
+    const rotulo = (i, v) => eixos[i][0] === "Presenças" ? (v == null ? "sem dados" : v + "%") : eixos[i][0] === "Minutos" ? v + "'" : v;
+    return new Chart(canvas, {
+      type: "radar",
+      data: { labels: eixos.map(([nome]) => nome), datasets: [{ label: jogador.nome, data: relativos, backgroundColor: "rgba(255,215,0,.35)", borderColor: linha, borderWidth: 2, pointBackgroundColor: linha, pointRadius: 3 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const i = c.dataIndex; return ` ${eixos[i][0]}: ${rotulo(i, valores[i])}${eixos[i][0] === "Cartões" ? " (vermelho conta 2)" : ""}${eixos[i][0] === "Presenças" ? "" : ` · ${relativos[i]}% do máximo`}`; } } } },
+        scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: { size: 12, weight: "600" }, color: linha }, grid: { color: grelha }, angleLines: { color: grelha } } }
+      }
+    });
+  }
+
   /* ---------- Suspensões automáticas (AF Guarda) ---------- */
 
   // amarelos que dão 1 jogo de suspensão: 5.º, 9.º, 12.º, 14.º e depois a cada 2 (16.º, 18.º...)
@@ -1805,7 +1840,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();
