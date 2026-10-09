@@ -1638,18 +1638,21 @@
     return "";
   }
 
-  /* ---------- Mapa de calor das zonas dos golos ---------- */
+  /* ---------- Mapa de calor das zonas dos golos (v15: escala de calor e 3 vistas) ---------- */
 
   const LINHAS_HEATMAP = '<g class="hm-linhas" pointer-events="none"><rect x="50" y="0" width="200" height="72"/><rect x="105" y="0" width="90" height="24"/><path d="M122 72 Q150 92 178 72"/><circle cx="150" cy="48" r="1.6"/><path d="M0 150 L0 0 L300 0 L300 150"/><rect class="hm-baliza" x="132" y="-8" width="36" height="8"/></g>';
 
-  /**
-   * Mapa de calor das zonas dos golos (campo de frente, cor do clube #043792 com opacidade proporcional
-   * ao nº de golos e o número em cada zona). matchReports: relatórios (só os publicados contam, um por jogo)
-   * ou linhas já com { tipo, equipa, zona_golo } (view golos_zonas da página pública).
-   * filtro: "marcados" | "sofridos" | "ambos".
-   */
-  function renderHeatmapGolos(matchReports, filtro) {
-    const f = filtro || "ambos";
+  // campos das vistas: zona do golo (meio-campo de frente) e zona de origem (VFN.CAMPO_ORIGEM, se existir)
+  const CAMPOS_HEATMAP = {
+    golo: () => ({ viewBox: "0 -10 300 160", zonas: VFN.ZONAS_GOLO, linhas: LINHAS_HEATMAP }),
+    origem: () => VFN.CAMPO_ORIGEM ? { viewBox: VFN.CAMPO_ORIGEM.viewBox, zonas: VFN.ZONAS_ORIGEM, linhas: VFN.CAMPO_ORIGEM.linhas("hm") } : { viewBox: "0 -10 300 160", zonas: VFN.ZONAS_ORIGEM, linhas: LINHAS_HEATMAP }
+  };
+
+  /** Cor de calor para a intensidade t (0–1): verde → amarelo → laranja → vermelho. */
+  const corCalor = t => `hsl(${Math.round(120 * (1 - Math.max(0, Math.min(1, t))))} 85% 46%)`;
+
+  /** Eventos de golo dos relatórios publicados (um relatório por jogo) ou das linhas da view golos_zonas. */
+  function golosDosRelatorios(matchReports) {
     const golos = [];
     const porJogo = new Map();
     (matchReports || []).forEach(r => {
@@ -1660,29 +1663,74 @@
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
     });
     porJogo.forEach(r => (r.match_data.jogo.eventos || []).forEach(e => golos.push(e)));
-    const contagem = {};
-    let total = 0, semZona = 0;
-    golos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").forEach(e => {
-      const sofrido = VFN.eGoloSofrido(e);
-      if ((f === "marcados" && sofrido) || (f === "sofridos" && !sofrido)) return;
-      total++;
-      if (!e.zona_golo) { semZona++; return; }
-      contagem[e.zona_golo] = (contagem[e.zona_golo] || 0) + 1;
-    });
-    const max = Math.max(1, ...Object.values(contagem));
-    const titulo = { marcados: "golos marcados", sofridos: "golos sofridos", ambos: "golos" }[f] || "golos";
-    if (!total) return vazio(`Ainda não há ${titulo} registados nos relatórios.`);
-    const zonas = VFN.ZONAS_GOLO.map(z => {
-      const n = contagem[z.id] || 0;
-      const opacidade = n ? (0.18 + 0.72 * n / max).toFixed(2) : 0.04;
-      return `<polygon class="hm-zona" points="${z.pts}" fill="#043792" fill-opacity="${opacidade}"><title>${esc(z.nome)}: ${n} golo${n === 1 ? "" : "s"}</title></polygon>` +
-        (n ? `<text class="hm-num${n / max > 0.5 ? " claro" : ""}" x="${z.tx}" y="${z.ty}">${n}</text>` : "");
-    }).join("");
-    return `<figure class="heatmap-golos">
-      <svg viewBox="0 -10 300 160" role="img" aria-label="Mapa das zonas dos ${titulo}: ${VFN.ZONAS_GOLO.filter(z => contagem[z.id]).map(z => `${z.nome} ${contagem[z.id]}`).join(", ") || "sem zonas"}">${zonas}${LINHAS_HEATMAP}</svg>
-      <figcaption>${total} ${titulo}${semZona ? ` · ${semZona} sem zona registada` : ""}</figcaption>
-    </figure>`;
+    return golos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo");
   }
+
+  /** Vista de campo: zonas pintadas pela escala de calor (normalizada pela zona com mais golos) e o nº de golos. */
+  function vistaCampoHeatmap(campo, contagem, titulo) {
+    const max = Math.max(1, ...Object.values(contagem));
+    const zonas = campo.zonas.map(z => {
+      const n = contagem[z.id] || 0;
+      const cor = n ? corCalor(n / max) : "#ffffff";
+      return `<polygon class="hm-zona" points="${z.pts}" fill="${cor}" fill-opacity="${n ? 0.82 : 0.06}"><title>${esc(z.nome)}: ${n} golo${n === 1 ? "" : "s"}</title></polygon>` +
+        (n ? `<text class="hm-num" x="${z.tx}" y="${z.ty}">${n}</text>` : "");
+    }).join("");
+    const resumo = campo.zonas.filter(z => contagem[z.id]).map(z => `${z.nome} ${contagem[z.id]}`).join(", ") || "sem zonas";
+    return `<svg viewBox="${campo.viewBox}" role="img" aria-label="${esc(titulo)}: ${esc(resumo)}">${zonas}${campo.linhas}</svg>`;
+  }
+
+  /** Vista do tipo de lance: barras com a mesma escala de calor. */
+  function vistaLanceHeatmap(contagem) {
+    const tipos = VFN.TIPOS_LANCE.map(([v, t]) => [t, contagem[v] || 0]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
+    if (!tipos.length) return `<p class="muted hm-sem">Sem tipo de lance registado.</p>`;
+    const max = tipos[0][1];
+    return `<ul class="hm-barras">${tipos.map(([t, n]) => `<li><span class="hm-barra-nome">${esc(t)}</span><span class="hm-barra"><i style="width:${Math.max(6, n / max * 100)}%;background:${corCalor(n / max)}"></i></span><b>${n}</b></li>`).join("")}</ul>`;
+  }
+
+  /**
+   * Mapa de calor dos golos em 3 vistas: zona do golo (baliza), zona de origem (campo) e tipo de lance (barras),
+   * na escala verde → amarelo → laranja → vermelho (intensidade = golos da zona / zona com mais golos).
+   * PC (≥768px): lado a lado; telemóvel: separadores. matchReports: relatórios (só os publicados, um por jogo)
+   * ou linhas da view golos_zonas. filtro: "marcados" | "sofridos" | "ambos".
+   * o.eDele(jogadorId): só os golos marcados por esse jogador (área do jogador).
+   */
+  function renderHeatmapGolos(matchReports, filtro, o) {
+    const opcoes = o || {};
+    const f = opcoes.eDele ? "marcados" : filtro || "ambos";
+    const golos = golosDosRelatorios(matchReports).filter(e => {
+      const sofrido = VFN.eGoloSofrido(e);
+      if ((f === "marcados" && sofrido) || (f === "sofridos" && !sofrido)) return false;
+      return !opcoes.eDele || (e.tipo === "Golo" && e.equipa === "VFN" && opcoes.eDele(e.jogadorId));
+    });
+    const titulo = { marcados: "golos marcados", sofridos: "golos sofridos", ambos: "golos" }[f] || "golos";
+    if (!golos.length) return vazio(`Ainda não há ${titulo} registados nos relatórios.`);
+    const conta = campo => golos.reduce((c, e) => { if (e[campo]) c[e[campo]] = (c[e[campo]] || 0) + 1; return c; }, {});
+    const semDados = campo => golos.filter(e => !e[campo]).length;
+    const nota = (campo, texto) => semDados(campo) ? `${semDados(campo)} sem ${texto}` : "";
+    const vista = (id, nome, conteudo, rodape) => `<figure class="hm-vista heatmap-golos${id === "golo" ? " ativa" : ""}" data-hm="${id}">
+        <figcaption class="hm-titulo">${nome}</figcaption>${conteudo}${rodape ? `<span class="hm-nota">${rodape}</span>` : ""}</figure>`;
+    const origem = conta("zona_origem");
+    return `<div class="hm-tres">
+      <div class="hm-tabs" role="tablist" aria-label="Vista do mapa de calor">
+        <button type="button" role="tab" class="ativa" aria-selected="true" data-hm-vista="golo">Zonas de golo</button><button type="button" role="tab" aria-selected="false" data-hm-vista="origem">Zona de origem</button><button type="button" role="tab" aria-selected="false" data-hm-vista="lance">Tipo de lance</button>
+      </div>
+      <div class="hm-vistas">
+        ${vista("golo", "Zonas de golo", vistaCampoHeatmap(CAMPOS_HEATMAP.golo(), conta("zona_golo"), "Zonas dos " + titulo), nota("zona_golo", "zona"))}
+        ${vista("origem", "Zona de origem", Object.keys(origem).length ? vistaCampoHeatmap(CAMPOS_HEATMAP.origem(), origem, "Zona de origem dos " + titulo) : `<p class="muted hm-sem">Sem zona de origem registada.</p>`, nota("zona_origem", "origem"))}
+        ${vista("lance", "Tipo de lance", vistaLanceHeatmap(conta("tipo_lance")), nota("tipo_lance", "tipo de lance"))}
+      </div>
+      <p class="hm-legenda"><span>Menos</span><span class="hm-escala" aria-hidden="true"></span><span>Mais</span><span class="hm-total">· ${golos.length} ${titulo}</span></p>
+    </div>`;
+  }
+
+  // separadores do mapa de calor (telemóvel): mostram uma vista de cada vez
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-hm-vista]");
+    if (!b) return;
+    const caixa = b.closest(".hm-tres");
+    caixa.querySelectorAll("[data-hm-vista]").forEach(x => { const ativo = x === b; x.classList.toggle("ativa", ativo); x.setAttribute("aria-selected", String(ativo)); });
+    caixa.querySelectorAll(".hm-vista").forEach(v => v.classList.toggle("ativa", v.dataset.hm === b.dataset.hmVista));
+  });
 
   /* ---------- Rodapé ---------- */
 
@@ -1698,7 +1746,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

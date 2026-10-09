@@ -2127,15 +2127,36 @@ body.mj-aberto { overflow: hidden; }
 .mj-overlay .zs-escolha { color: #FFD700; font-size: 16px; }
 .mj-overlay .zg-lance label, .mj-overlay .zg-sofrido { min-height: 44px; font-size: 16px; }
 .mj-overlay .zg-lance input, .mj-overlay .zg-sofrido input { width: 22px; height: 22px; accent-color: #FFD700; }
-.heatmap-golos { margin: 0; display: grid; gap: 6px; justify-items: center; }
-.heatmap-golos svg { width: 100%; max-width: 520px; height: auto; border-radius: 10px; background: #e8eef7; }
-.heatmap-golos .hm-linhas { stroke: rgba(4, 55, 146, .45); }
-.heatmap-golos .hm-baliza { fill: var(--azul-royal); }
-.hm-zona { stroke: rgba(4, 55, 146, .25); stroke-width: .8; }
-.hm-num { fill: var(--azul-royal); font: 800 15px Inter, Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
-.hm-num.claro { fill: #fff; }
-.heatmap-golos figcaption { font-size: .82rem; color: var(--text-muted); }
-
+/* Mapa de calor dos golos (v15): escala verde → amarelo → laranja → vermelho; 3 vistas lado a lado no PC, separadores no telemóvel */
+.hm-tres { display: grid; gap: 10px; }
+.hm-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--surface-2); }
+.hm-tabs button { flex: 1; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.hm-tabs button.ativa { background: var(--surface); color: var(--heading); box-shadow: 0 1px 4px rgba(10, 22, 40, .15); }
+.hm-vistas { display: grid; gap: 14px; }
+.hm-vista { display: none; }
+.hm-vista.ativa { display: grid; }
+.heatmap-golos { margin: 0; gap: 6px; justify-items: center; align-content: start; }
+.heatmap-golos svg { width: 100%; max-width: 520px; height: auto; border-radius: 10px; background: #13294B; }
+.heatmap-golos .hm-linhas { stroke: rgba(255, 255, 255, .8); }
+.heatmap-golos .hm-baliza { fill: #fff; }
+.hm-zona { stroke: rgba(255, 255, 255, .22); stroke-width: .8; }
+.hm-num { fill: #0A1628; stroke: rgba(255, 255, 255, .85); stroke-width: 3px; paint-order: stroke; font: 800 15px Inter, Arial, sans-serif; text-anchor: middle; dominant-baseline: middle; }
+.hm-titulo { justify-self: start; font-size: .9rem; font-weight: 800; color: var(--heading); }
+.hm-nota { font-size: .74rem; color: var(--text-muted); }
+.hm-sem { margin: 24px 0; text-align: center; font-size: .85rem; }
+.hm-barras { width: 100%; margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.hm-barras li { display: grid; grid-template-columns: minmax(88px, auto) 1fr 28px; align-items: center; gap: 8px; font-size: .82rem; }
+.hm-barra-nome { font-weight: 600; }
+.hm-barra { height: 14px; border-radius: 7px; background: var(--surface-2); overflow: hidden; }
+.hm-barra i { display: block; height: 100%; border-radius: 7px; }
+.hm-barras b { text-align: right; font-variant-numeric: tabular-nums; }
+.hm-legenda { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: .74rem; color: var(--text-muted); }
+.hm-escala { width: 120px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, hsl(120 85% 46%), hsl(60 85% 46%), hsl(30 85% 46%), hsl(0 85% 46%)); }
+@media (min-width: 768px) {
+  .hm-tabs { display: none; }
+  .hm-vistas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hm-vista, .hm-vista.ativa { display: grid; }
+}
 /* comparação de dois jogadores (VFNComp.ligarComparacao / abrirComparacao) */
 .cmp-item { position: relative; display: grid; }
 .cmp-item > .player-card { height: 100%; }
