@@ -736,8 +736,9 @@
       try { localStorage.setItem("vfnJogoSemana", fechado ? "fechado" : "aberto"); } catch (e) { /* ignora */ }
     });
     const jogo = (dados.matches || []).find(j => String(j.id) === card.dataset.jogoSemana);
-    // fundo: foto do estádio onde se joga (em casa: vfn.jpg; fora: a do adversário)
-    VFN.aplicarFundoEstadio(contentor, jogo ? (VFN.jogoEmCasa(jogo) ? "vfn" : jogo.opponent_team_id) : "");
+    // fundo: foto do estádio onde se joga (em casa: vfn.jpg; fora: a do adversário). O banner do Pré-Jogo
+    // do admin (#jogoSemanaAdmin) fica só com o gradiente azul do .jds-card (a foto ampliada ficava mal).
+    if (contentor.id !== "jogoSemanaAdmin") VFN.aplicarFundoEstadio(contentor, jogo ? (VFN.jogoEmCasa(jogo) ? "vfn" : jogo.opponent_team_id) : "");
     const alvo = card.querySelector("[data-meteo]");
     try {
       const p = await previsaoDoJogo(jogo, dados.teams);

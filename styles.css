@@ -2028,10 +2028,6 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 html.tema-escuro .mapa-estadios .leaflet-popup-content-wrapper, html.tema-escuro .mapa-estadios .leaflet-popup-tip { background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--fg); }
 html.tema-escuro .mapa-popup span { color: var(--fg-muted); }
 html.tema-escuro .mapa-estadios .leaflet-popup-close-button { color: var(--fg-muted); }
-/* v14: banner do Pré-Jogo (admin) — cover como no dashboard (o contain deixava a foto pequena e repetida),
-   blur ligeiro e menos opacidade. */
-#jogoSemanaAdmin.com-estadio::before { inset: 0; background: var(--fundo-estadio) center / cover no-repeat; filter: blur(2px); opacity: .12; }
-#jogoSemanaAdmin.com-estadio > * { position: relative; z-index: 1; }
 
 /* logo do patrocinador ao lado do nome da competição (VFN.logoSponsorHTML), até 20px de altura */
 .comp-nome { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
