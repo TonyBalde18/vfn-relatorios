@@ -44,7 +44,7 @@
   }
 
   function logoVFN(dados) {
-    const t = (dados.teams || []).find(x => VFN.eVFN(x.name));
+    const t = VFN.equipaVFN(dados.teams);
     return VFN.urlLogoEquipa(t, "VFN") || VFN.LOGO_VFN;
   }
 

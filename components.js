@@ -1046,8 +1046,9 @@
     const desenhar = () => {
       if (!mapa) return;
       camada.clearLayers();
-      const equipas = obterEquipas() || [];
-      const vfn = equipas.find(t => VFN.eVFN(t.name)) || { name: "ACD Vila Franca das Naves" };
+      // v16: a cópia do clube vinda do zerozero (VF Naves, 11083) não entra no mapa; o VFN é a linha "vfn"
+      const equipas = (obterEquipas() || []).filter(t => String(t.id) !== VFN.ID_CLUBE_ZEROZERO);
+      const vfn = VFN.equipaVFN(equipas);
       const lista = equipas.some(t => VFN.eVFN(t.name)) ? equipas : [...equipas, vfn];
       let semCoordenadas = 0;
       lista.forEach(t => {

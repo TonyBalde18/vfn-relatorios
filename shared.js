@@ -325,8 +325,10 @@
 
   /* ---------- Jogos, equipas e classificação ---------- */
 
+  // v16: "VF Naves" (nome da equipa no zerozero, teams.id 11083) também é o próprio clube
+  const ID_CLUBE_ZEROZERO = "11083";
   function eVFN(nome) {
-    return /vila\s*franca|^\s*vfn\s*$/i.test(String(nome || ""));
+    return /vila\s*franca|^\s*vfn\s*$|^\s*v\.?\s*f\.?\s*naves\s*$/i.test(String(nome || ""));
   }
 
   /** Jogo do VFN (os jogos entre outras equipas têm home_team_id e away_team_id preenchidos). */
@@ -456,7 +458,9 @@
   }
 
   function equipaVFN(equipas) {
-    return (equipas || []).find(t => eVFN(t.name)) || { id: "vfn", name: "ACD Vila Franca das Naves" };
+    // a linha "vfn" primeiro (a do zerozero, 11083 "VF Naves", é uma cópia do clube)
+    const lista = equipas || [];
+    return lista.find(t => String(t.id) === "vfn") || lista.find(t => eVFN(t.name)) || { id: "vfn", name: "ACD Vila Franca das Naves" };
   }
 
   /** Equipas da casa e de fora de um jogo, como { id, nome }. */
@@ -1628,7 +1632,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, kitAdversarioHTML, kitAdversarioFalhou, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, ID_CLUBE_ZEROZERO, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     NIVEIS_PROFICIENCIA, POSICOES_PROFICIENCIA, nivelProficiencia, posicaoDoLugar, proficienciaJogador, proficienciaPontoHTML, proficienciaBadgeHTML,
