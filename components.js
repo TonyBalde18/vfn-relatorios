@@ -190,6 +190,7 @@
       });
     }
     drawerAberto = { aoFechar: opcoes.aoFechar, foco: document.activeElement };
+    d.classList.toggle("lateral", !!opcoes.lateral); // v15: painel lateral no PC (bottom sheet no telemóvel)
     d.querySelector("#vfnDrawerTitulo").textContent = opcoes.titulo || "";
     const corpo = d.querySelector(".drawer-corpo");
     corpo.innerHTML = opcoes.corpo || "";

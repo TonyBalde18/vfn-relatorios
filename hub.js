@@ -1607,6 +1607,39 @@
       </li>`).join("")}</ol>`;
   }
 
+  /** Equipa (teams) que corresponde a um nome da tabela h2h (para o logo); null se não houver. */
+  function equipaDoNomeH2H(dados, nome) {
+    return (dados.teams || []).find(t => !VFN.eVFN(t.name) && mesmoAdversario(nome, [t.name, t.full_name])) || null;
+  }
+
+  /** Adversários com histórico (nomes da tabela h2h), o do próximo jogo primeiro e depois por nº de jogos. */
+  function adversariosH2H(dados, proximo) {
+    const nomes = [...new Set((dados.h2h || []).flatMap(l => l.equipa_casa === NOME_VFN_H2H ? [l.equipa_fora] : l.equipa_fora === NOME_VFN_H2H ? [l.equipa_casa] : []))];
+    return nomes.map(n => resumoH2H(n, dados.h2h)).filter(Boolean)
+      .sort((a, b) => (b.adversario === proximo) - (a.adversario === proximo) || b.jogos.length - a.jogos.length || a.adversario.localeCompare(b.adversario, "pt"));
+  }
+
+  /** Grelha de cards compactos (v15): logo, nome, V/E/D e os últimos 5 resultados. Clique: data-h2h-adv. */
+  function h2hCardsHTML(dados, proximo) {
+    const lista = adversariosH2H(dados, proximo);
+    if (!lista.length) return vazio("Ainda não há histórico de confrontos. Corre o sql/h2h.sql no Supabase.");
+    return `<div class="h2h-cards">${lista.map(r => `<button type="button" class="h2h-card${r.adversario === proximo ? " proximo" : ""}" data-h2h-adv="${esc(r.adversario)}">
+        ${logoEquipa(equipaDoNomeH2H(dados, r.adversario), r.adversario)}
+        <strong>${esc(r.adversario)}</strong>
+        <span class="h2h-card-reg"><b class="v">${r.V}V</b> <b class="e">${r.E}E</b> <b class="d">${r.D}D</b></span>
+        <span class="form-row form-row-sm">${r.jogos.slice(0, 5).map(j => VFN.chipForma(j.letra)).join("")}</span>
+        ${r.adversario === proximo ? `<span class="h2h-card-tag">Próximo jogo</span>` : ""}
+      </button>`).join("")}</div>`;
+  }
+
+  /** Conteúdo do painel de detalhe: logo e nome grandes, registo (V/E/D, golos, % vitórias) e os jogos. */
+  function h2hPainelHTML(dados, adversario) {
+    const r = resumoH2H(adversario, dados.h2h);
+    if (!r) return vazio("Sem jogos registados contra este adversário.");
+    return `<div class="h2h-painel-cab">${logoEquipa(equipaDoNomeH2H(dados, r.adversario), r.adversario, "h2h-painel-logo")}<div><h3>${esc(r.adversario)}</h3><p class="muted">${r.jogos.length} jogo${r.jogos.length === 1 ? "" : "s"} contra o VFN</p></div></div>
+      ${h2hHTML(r)}`;
+  }
+
   /* ---------- Suspensões automáticas (AF Guarda) ---------- */
 
   // amarelos que dão 1 jogo de suspensão: 5.º, 9.º, 12.º, 14.º e depois a cada 2 (16.º, 18.º...)
@@ -1772,7 +1805,7 @@
     proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
     jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

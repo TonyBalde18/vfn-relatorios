@@ -90,23 +90,17 @@ function nomesDoAdversario(jogo) {
 
 /* ---------- Confrontos (H2H): tabela h2h ---------- */
 
-let adversarioH2H = "";
-
+/** Confrontos (v15): cards compactos por adversário; o card abre o painel lateral (PC) / bottom sheet (telemóvel). */
 function renderH2H() {
-  const sel = $("h2hAdversario");
-  if (!sel) return;
-  const vfn = "VF Naves";
-  const adversarios = [...new Set(dados.h2h.flatMap(l => l.equipa_casa === vfn ? [l.equipa_fora] : l.equipa_fora === vfn ? [l.equipa_casa] : []))].sort((a, b) => a.localeCompare(b, "pt"));
-  if (!adversarios.length) { sel.innerHTML = ""; sel.hidden = true; $("h2hConteudo").innerHTML = H.vazio("Ainda não há histórico de confrontos. Corre o sql/h2h.sql no Supabase."); return; }
-  sel.hidden = false;
-  // por omissão: o adversário do próximo jogo (se tiver histórico), senão o primeiro
-  if (!adversarios.includes(adversarioH2H)) {
-    const proximo = VFN.proximoJogo(dados.matches);
-    const r = proximo && H.resumoH2H(nomesDoAdversario(proximo), dados.h2h);
-    adversarioH2H = r ? r.adversario : adversarios[0];
-  }
-  sel.innerHTML = adversarios.map(a => `<option ${a === adversarioH2H ? "selected" : ""}>${esc(a)}</option>`).join("");
-  $("h2hConteudo").innerHTML = H.h2hHTML(H.resumoH2H(adversarioH2H, dados.h2h));
+  const caixa = $("h2hConteudo");
+  if (!caixa) return;
+  const proximo = VFN.proximoJogo(dados.matches);
+  const r = proximo && H.resumoH2H(nomesDoAdversario(proximo), dados.h2h);
+  caixa.innerHTML = H.h2hCardsHTML(dados, r ? r.adversario : "");
+}
+
+function abrirPainelH2H(adversario) {
+  VFNComp.abrirDrawer({ titulo: "Confrontos (H2H)", corpo: H.h2hPainelHTML(dados, adversario), lateral: true });
 }
 
 function proximoAdversarioHTML() {
@@ -787,7 +781,7 @@ function abrirEquipa(teamId) {
 function initEquipas() {
   $("dbEquipasPesquisa").addEventListener("input", renderEquipas);
   // qualquer elemento com data-equipa abre a ficha
-  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo) abrirEquipa(alvo.dataset.equipa); });
+  document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo && !e.target.closest(".h2h-card, .vfn-drawer")) abrirEquipa(alvo.dataset.equipa); });
   $("btnFecharEquipaPerfil").addEventListener("click", () => { $("modalEquipaPerfil").hidden = true; });
   $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
@@ -916,7 +910,7 @@ async function iniciar() {
   initConvocatoriaDash();
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("statsPosicao").addEventListener("change", renderTabelaStats);
-  $("h2hAdversario").addEventListener("change", e => { adversarioH2H = e.target.value; renderH2H(); });
+  $("h2hConteudo").addEventListener("click", e => { const c = e.target.closest("[data-h2h-adv]"); if (c) abrirPainelH2H(c.dataset.h2hAdv); });
   $("heatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmap = b.dataset.filtro; renderHeatmap(); } });
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
