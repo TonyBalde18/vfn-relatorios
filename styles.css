@@ -2264,6 +2264,23 @@ body.mj-aberto { overflow: hidden; }
 .conv-ordem-linha.toque-longo { outline: 2px solid var(--vfn-yellow); }
 .arrasta-fantasma.conv-ordem-linha { list-style: none; background: var(--surface, #fff); }
 
+/* Cronómetro do Modo Jogo (v15): em destaque no topo */
+.mj-cronometro { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .14); }
+.mj-crono-visor { display: flex; align-items: baseline; gap: 8px; }
+.mj-crono-tempo { color: #FFD700; font: 800 clamp(2.6rem, 11vw, 3.6rem)/1 Inter, Arial, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.mj-crono-alvo { color: rgba(255, 255, 255, .6); font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mj-crono-estado { justify-self: end; padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; font-size: .8rem; font-weight: 700; }
+.mj-cronometro.estado-jogo .mj-crono-estado { background: #15803d; }
+.mj-cronometro.estado-pausa .mj-crono-estado, .mj-cronometro.estado-intervalo .mj-crono-estado { background: #b45309; }
+.mj-cronometro.estado-pausa .mj-crono-tempo, .mj-cronometro.estado-intervalo .mj-crono-tempo { animation: mjPisca 1.2s ease-in-out infinite; }
+.mj-cronometro.estado-fim .mj-crono-tempo { color: rgba(255, 255, 255, .7); }
+.mj-crono-botoes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.mj-crono-btn { flex: 1 1 140px; min-height: 48px; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, .4); border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+.mj-crono-btn.principal { background: #FFD700; border-color: #FFD700; color: #0A1628; }
+.mj-crono-btn.perigo { border-color: rgba(248, 113, 113, .7); color: #fecaca; }
+@keyframes mjPisca { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .mj-cronometro .mj-crono-tempo { animation: none; } }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }

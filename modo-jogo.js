@@ -52,9 +52,10 @@ function mjCriarOverlay() {
   caixa.setAttribute("aria-labelledby", "mjTitulo");
   caixa.innerHTML = `
     <header class="mj-topo">
-      <div><strong id="mjTitulo">🎮 Modo Jogo</strong><span id="mjPlacar" class="mj-placar"></span></div>
+      <div><strong id="mjTitulo">⚽ Modo Jogo</strong><span id="mjPlacar" class="mj-placar"></span></div>
       <button type="button" class="mj-fechar" data-mj="fechar">✗ Fechar Modo Jogo</button>
     </header>
+    <section class="mj-cronometro" id="mjCronometro" aria-label="Cronómetro do jogo"></section>
     <div class="mj-grelha" id="mjGrelha">
       ${MODO_JOGO_TIPOS.map(t => `<button type="button" class="mj-botao" data-mj-tipo="${escapeHtml(t.tipo)}" style="background:${t.cor};color:${t.texto || "#fff"}"><span class="mj-ic" aria-hidden="true">${mjIcone(t)}</span><span>${escapeHtml(t.rotulo || t.tipo)}</span></button>`).join("")}
     </div>
@@ -74,6 +75,7 @@ function mjCriarOverlay() {
     const b = e.target.closest("[data-mj], [data-mj-tipo], [data-mj-valor]");
     if (!b) return;
     if (b.dataset.mjTipo) mjAbrirForm(b.dataset.mjTipo);
+    else if (b.dataset.mj && b.dataset.mj.startsWith("crono-")) mjCronoAcao(b.dataset.mj.slice(6));
     else if (b.dataset.mj === "fechar") fecharModoJogo();
     else if (b.dataset.mj === "cancelar") mjFecharForm();
     else if (b.dataset.mj === "desfazer") mjDesfazer();
@@ -109,6 +111,7 @@ function abrirModoJogo() {
   modoJogo.ultimoMinuto = Math.max(0, ...state.jogo.eventos.map(ev => Number(ev.minuto) || 0));
   mjFecharForm();
   mjAtualizarTopo();
+  mjCronoCarregar();
   mjEl("modoJogo").hidden = false;
   document.body.classList.add("mj-aberto");
 }
@@ -117,6 +120,7 @@ function fecharModoJogo() {
   const caixa = mjEl("modoJogo");
   if (caixa) caixa.hidden = true;
   document.body.classList.remove("mj-aberto");
+  mjCronoParar();
 }
 
 function mjAtualizarTopo() {
@@ -129,7 +133,10 @@ function mjAtualizarTopo() {
 
 function mjAbrirForm(tipo) {
   const equipa = TIPOS_SEM_EQUIPA.includes(tipo) || tipo === "Nota" || tipo === "Tempo Acrescentado" ? "" : "VFN";
-  modoJogo.rascunho = { tipo, equipa, minuto: tipo === "Intervalo" ? 45 : modoJogo.ultimoMinuto, acrescimo: "", jogadorId: "", jogadorSaiId: "", assistId: "", detalhe: "", autogolo: false };
+  // com o cronómetro a contar, o minuto vem dele (pode sempre ser corrigido no formulário)
+  const crono = mjCronoMinuto();
+  const minuto = tipo === "Intervalo" ? (crono && crono.minuto > 45 ? 90 : 45) : crono ? crono.minuto : modoJogo.ultimoMinuto;
+  modoJogo.rascunho = { tipo, equipa, minuto, acrescimo: tipo !== "Intervalo" && crono && crono.acrescimo ? crono.acrescimo : "", jogadorId: "", jogadorSaiId: "", assistId: "", detalhe: "", autogolo: false };
   const def = MODO_JOGO_TIPOS.find(t => t.tipo === tipo) || {};
   mjEl("mjFormTitulo").textContent = `${def.icone || ""} ${def.rotulo || tipo}`;
   mjEl("mjErro").textContent = "";
@@ -248,6 +255,7 @@ function mjGuardar() {
   guardarRascunho();
   mjFecharForm();
   mjAtualizarTopo();
+  if (ev.tipo === "Intervalo") mjCronoAcao("intervalo"); // o intervalo pausa o cronómetro
 }
 
 function mjDesfazer() {
@@ -338,4 +346,94 @@ function abrirZonasEvento(ev) {
   mjEl("zgCampos").innerHTML = VFNComp.camposZonasGoloHTML(ev, "zg", VFN.eGoloSofrido(ev));
   mjEl("zgErro").textContent = "";
   modal.hidden = false;
+}
+
+/* ---------- Cronómetro do jogo (v15) ----------
+   Estados: "parado" (antes do apito) → "jogo" (a contar) ⇄ "pausa" (manual) → "intervalo" (evento
+   Intervalo; recomeça com "Recomeçar 2.ª parte") → "jogo" (2.ª parte, a partir de metade da duração)
+   → "fim" (botão "Terminar Jogo"). Conta a partir de timestamps (não perde tempo com o separador em
+   segundo plano) e guarda-se em localStorage "vfn_timer_<matchId>" para sobreviver a um reload. */
+
+const mjCrono = { estado: "parado", parte: 1, acumuladoMs: 0, inicioMs: 0 };
+let mjCronoIntervalo = 0;
+
+const mjCronoChave = () => "vfn_timer_" + ((state.preJogo && state.preJogo.matchId) || "rascunho");
+const mjCronoMetadeMs = () => ((Number(state.jogo.duracaoJogo) || 90) / 2) * 60000;
+
+/** Tempo de jogo em ms (2.ª parte começa em metade da duração, ex. 45:00). */
+function mjCronoMs() {
+  const decorrido = mjCrono.acumuladoMs + (mjCrono.estado === "jogo" ? Date.now() - mjCrono.inicioMs : 0);
+  return (mjCrono.parte === 2 ? mjCronoMetadeMs() : 0) + decorrido;
+}
+
+/** Minuto do evento a partir do cronómetro: 0:30 → 1'; depois do fim da parte, 45+X / 90+X. Null parado. */
+function mjCronoMinuto() {
+  if (mjCrono.estado === "parado" || mjCrono.estado === "fim") return null;
+  const minuto = Math.floor(mjCronoMs() / 60000) + 1;
+  const limite = (mjCrono.parte === 2 ? 2 : 1) * mjCronoMetadeMs() / 60000;
+  return minuto > limite ? { minuto: limite, acrescimo: minuto - limite } : { minuto, acrescimo: "" };
+}
+
+function mjCronoGuardar() {
+  try { localStorage.setItem(mjCronoChave(), JSON.stringify(mjCrono)); } catch (e) { /* sem storage: só nesta sessão */ }
+}
+
+function mjCronoCarregar() {
+  let guardado = null;
+  try { guardado = JSON.parse(localStorage.getItem(mjCronoChave()) || "null"); } catch (e) { /* ignora */ }
+  Object.assign(mjCrono, { estado: "parado", parte: 1, acumuladoMs: 0, inicioMs: 0 }, guardado || {});
+  mjCronoRender();
+  clearInterval(mjCronoIntervalo);
+  mjCronoIntervalo = setInterval(mjCronoTique, 1000);
+}
+
+function mjCronoParar() {
+  clearInterval(mjCronoIntervalo);
+  mjCronoIntervalo = 0;
+}
+
+const mjFormatarTempo = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+
+function mjCronoTique() {
+  const visor = mjEl("mjCronoTempo");
+  if (visor) visor.textContent = mjFormatarTempo(mjCronoMs());
+}
+
+function mjCronoAcao(acao) {
+  const agora = Date.now();
+  const congelar = () => { if (mjCrono.estado === "jogo") mjCrono.acumuladoMs += agora - mjCrono.inicioMs; };
+  if (acao === "iniciar") Object.assign(mjCrono, { estado: "jogo", parte: 1, acumuladoMs: 0, inicioMs: agora });
+  else if (acao === "pausa") { congelar(); mjCrono.estado = "pausa"; }
+  else if (acao === "retomar") Object.assign(mjCrono, { estado: "jogo", inicioMs: agora });
+  else if (acao === "intervalo") { if (mjCrono.estado !== "jogo" && mjCrono.estado !== "pausa") return; congelar(); mjCrono.estado = "intervalo"; }
+  else if (acao === "segunda") Object.assign(mjCrono, { estado: "jogo", parte: 2, acumuladoMs: 0, inicioMs: agora });
+  else if (acao === "terminar") {
+    if (!confirm("Terminar o jogo? O cronómetro para.")) return;
+    congelar(); mjCrono.estado = "fim";
+  } else if (acao === "repor") {
+    if (!confirm("Repor o cronómetro a 00:00?")) return;
+    Object.assign(mjCrono, { estado: "parado", parte: 1, acumuladoMs: 0, inicioMs: 0 });
+  }
+  mjCronoGuardar();
+  mjCronoRender();
+}
+
+function mjCronoRender() {
+  const caixa = mjEl("mjCronometro");
+  if (!caixa) return;
+  const total = (Number(state.jogo.duracaoJogo) || 90);
+  const alvo = mjCrono.parte === 2 ? total : total / 2;
+  const b = (acao, texto, classe) => `<button type="button" class="mj-crono-btn ${classe || ""}" data-mj="crono-${acao}">${texto}</button>`;
+  const rotulo = { parado: "Antes do apito inicial", jogo: mjCrono.parte === 2 ? "2.ª parte" : "1.ª parte", pausa: "Em pausa", intervalo: "Intervalo", fim: "Jogo terminado" }[mjCrono.estado];
+  const botoes = {
+    parado: b("iniciar", "▶ Iniciar Jogo", "principal"),
+    jogo: b("pausa", "⏸ Pausa") + b("terminar", "■ Terminar Jogo", "perigo"),
+    pausa: b("retomar", "▶ Retomar", "principal") + b("terminar", "■ Terminar Jogo", "perigo"),
+    intervalo: b("segunda", "▶ Recomeçar 2.ª parte", "principal") + b("terminar", "■ Terminar Jogo", "perigo"),
+    fim: b("repor", "↺ Repor")
+  }[mjCrono.estado];
+  caixa.className = `mj-cronometro estado-${mjCrono.estado}`;
+  caixa.innerHTML = `<div class="mj-crono-visor"><span id="mjCronoTempo" class="mj-crono-tempo" aria-live="off">${mjFormatarTempo(mjCronoMs())}</span><span class="mj-crono-alvo">/ ${mjFormatarTempo(alvo * 60000)}</span></div>
+    <span class="mj-crono-estado">${rotulo}</span>
+    <div class="mj-crono-botoes">${botoes}</div>`;
 }
