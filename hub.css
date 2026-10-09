@@ -330,6 +330,10 @@
 .eq-h2h-bloco { display: grid; gap: 12px; margin-top: 14px; }
 .eq-h2h-bloco > .btn { justify-self: start; }
 
+/* 11 mais utilizado (v15): só de leitura, na formação mais usada */
+.onze-estatico .pitch-player { pointer-events: none; cursor: default; }
+.onze-formacao { margin: -4px 0 8px; font-size: .78rem; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

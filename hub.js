@@ -596,6 +596,30 @@
     return gr ? [gr, ...campo.slice(0, 10)] : campo.slice(0, 11);
   }
 
+  /**
+   * Formação mais usada (v15) para o 11 mais utilizado: a mais frequente nas convocatórias (squads.formation;
+   * publicadas, se houver), em empate a mais recente; sem convocatórias, a dos relatórios (jogo.formacaoVFN).
+   * "" se não houver nenhuma (o campo usa então a posição do perfil).
+   */
+  function formacaoMaisUsada(dados) {
+    const validas = f => VFN.FORMACOES.includes(f);
+    const squads = (dados.squads || []).filter(s => validas(s.formation));
+    const publicadas = squads.filter(s => s.published);
+    const fonte = (publicadas.length ? publicadas : squads).map(s => ({ f: s.formation, data: String(s.created_at || "") }));
+    const relatorios = (dados.match_reports || []).map(r => ({ f: ((r.match_data || {}).jogo || {}).formacaoVFN, data: String(r.updated_at || r.created_at || "") })).filter(x => validas(x.f));
+    const lista = fonte.length ? fonte : relatorios;
+    if (!lista.length) return "";
+    const conta = new Map();
+    lista.forEach(({ f, data }) => { const c = conta.get(f) || { n: 0, data: "" }; c.n++; if (data > c.data) c.data = data; conta.set(f, c); });
+    return [...conta.entries()].sort((a, b) => b[1].n - a[1].n || b[1].data.localeCompare(a[1].data))[0][0];
+  }
+
+  /** 11 mais utilizado só de leitura (dashboard e página pública), na formação mais usada. o: opções de onzeCampoHTML. */
+  function onzeEstaticoHTML(lista, dados, o) {
+    const formacao = formacaoMaisUsada(dados);
+    return `<div class="onze-estatico">${formacao ? `<p class="onze-formacao muted">Formação mais usada: <b>${esc(formacao)}</b></p>` : ""}${onzeCampoHTML(lista, { ...(o || {}), formacao })}</div>`;
+  }
+
   /** Lista de minutos: [{ jogador, minutos, jogos }], já ordenada. */
   function minutosListaHTML(lista) {
     if (!lista.length) return vazio("Ainda não há minutos registados.");
@@ -620,7 +644,9 @@
   function onzeCampoHTML(lista, opcoes) {
     const o = opcoes || {};
     if (!lista.length) return vazio(o.rotulo ? "Onze ainda não definido." : "Ainda não há minutos registados.");
-    const onze = o.rotulo ? lista.slice(0, 11) : onzeMaisUtilizado(lista);
+    // 11 mais utilizado com formação: o GR primeiro e os outros por posição (enchem as linhas da formação)
+    const maisUsado = o.rotulo ? null : onzeMaisUtilizado(lista);
+    const onze = o.rotulo ? lista.slice(0, 11) : o.formacao ? VFN.ordenarPorPosicao(maisUsado.map(t => t.jogador)).map(j => maisUsado.find(t => t.jogador === j)) : maisUsado;
     // com lugares (slot → jogador): geometria de cada lugar; com formação: linhas da formação; sem formação: perfil
     const geometria = o.formacao ? geometriaDaFormacao(o.formacao) : [];
     const marcadores = o.lugares && o.formacao
@@ -1747,6 +1773,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

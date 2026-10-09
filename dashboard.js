@@ -495,16 +495,13 @@ function renderMinutos() {
     const vazio = H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
     $("minutosLista").innerHTML = vazio;
     $("onzeCampo").innerHTML = vazio;
-    onzeTatico = null; // volta a ligar quando houver minutos
     return;
   }
   $("minutosLista").innerHTML = H.minutosListaHTML(lista);
-  // 11 mais utilizado com tática e arrastar (só na sessão)
-  if (!onzeTatico) onzeTatico = VFNComp.criarOnzeTatico($("onzeCampo"), { chave: "dashboard", proficiencia: true });
-  onzeTatico.atualizar(lista);
+  // 11 mais utilizado: só de leitura, na formação mais usada nas convocatórias (v15)
+  $("onzeCampo").innerHTML = H.onzeEstaticoHTML(lista, dados, { proficiencia: true });
 }
 
-let onzeTatico = null;
 
 /* ---------- Convocatória (só leitura) ---------- */
 
