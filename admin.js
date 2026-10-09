@@ -11,7 +11,7 @@
 
 const CICLO_PRESENCA = ["", "P", "F", "A", "J"];
 const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada" };
-const TABS_GESTAO = ["multas", "convocatoria", "presencas", "calendario", "resultados", "jornadas", "historico", "classificacao", "adversarios"];
+const TABS_GESTAO = ["multas", "convocatoria", "presencas", "calendario", "resultados", "jornadas", "relatorios", "classificacao", "adversarios"];
 
 const cacheAdmin = { fines: [], attendance: [], sessions: [], opponents: [], fine_types: [], staff: [], squads: [] };
 let colunaTipoMulta = true; // fines.fine_type_id (v4); passa a false se a BD ainda não a tiver
@@ -1960,7 +1960,7 @@ function renderEstadoRelatorio() {
   badge.textContent = publicado ? "Publicado" : "Rascunho";
   botao.innerHTML = publicado ? `${VFN.icone("undo-2", 18)} Voltar a rascunho` : `${VFN.icone("send", 18)} Publicar`;
   if (typeof renderResultados === "function" && el("resultadosLista")) renderResultados();
-  if (el("historicoBody")) renderHistoricoAdmin();
+  if (el("relatoriosBody")) renderRelatoriosAdmin();
 }
 
 async function alternarPublicacao() {
@@ -2003,8 +2003,8 @@ function abrirRelatorioPublicado(relatorioId) {
   if (matchId) abrirRelatorioDoJogo(matchId);
 }
 
-function renderHistoricoAdmin() {
-  const tbody = el("historicoBody");
+function renderRelatoriosAdmin() {
+  const tbody = el("relatoriosBody");
   if (!tbody) return;
   const lista = [...relatoriosAdmin].map(r => {
     const matchId = r.match_id || ((r.match_data || {}).preJogo || {}).matchId;
@@ -2426,8 +2426,8 @@ async function abrirTabGestao(tab) {
     renderResultados();
   } else if (tab === "jornadas") {
     renderJornadasAdmin();
-  } else if (tab === "historico") {
-    renderHistoricoAdmin();
+  } else if (tab === "relatorios") {
+    renderRelatoriosAdmin();
   } else if (tab === "classificacao") {
     renderClassificacaoAdmin();
   } else if (tab === "adversarios") {

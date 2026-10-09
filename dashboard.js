@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", historico: "Histórico de relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", relatorios: "Relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -423,18 +423,18 @@ function ctxRelatorio() {
   };
 }
 
-function renderHistorico() {
+function renderRelatoriosPublicados() {
   const lista = relatoriosPublicados();
-  $("historicoInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
+  $("relatoriosInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
   if (!lista.length) {
-    $("historicoLista").innerHTML = H.vazio("Ainda não há relatórios publicados.");
+    $("relatoriosLista").innerHTML = H.vazio("Ainda não há relatórios publicados.");
     return;
   }
-  $("historicoLista").innerHTML = lista.map(({ r, d }) => {
+  $("relatoriosLista").innerHTML = lista.map(({ r, d }) => {
     const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
-    return `<button type="button" class="historico-item${relatorioAberto && String(relatorioAberto.id) === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
+    return `<button type="button" class="relatorios-item${relatorioAberto && String(relatorioAberto.id) === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
-      <span class="historico-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
+      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
       <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("");
@@ -446,13 +446,13 @@ function abrirRelatorio(id) {
   if (!r || VFN.estadoRelatorio(r) !== "published") return;
   relatorioAberto = relatorioCompleto(r);
   document.querySelectorAll(".modal-overlay").forEach(m => { m.hidden = true; });
-  mostrarVista("historico");
-  renderHistorico();
-  $("historicoDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
-  VFNRelatorio.carregarSituacoes($("historicoDetalhe"), relatorioAberto, cliente); // imagens do bucket privado (URLs assinados)
+  mostrarVista("relatorios");
+  renderRelatoriosPublicados();
+  $("relatoriosDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
+  VFNRelatorio.carregarSituacoes($("relatoriosDetalhe"), relatorioAberto, cliente); // imagens do bucket privado (URLs assinados)
   $("btnExportarWord").hidden = false;
   $("btnPartilharRelatorio").hidden = !(relatorioAberto.match_id || ((relatorioAberto.match_data || {}).preJogo || {}).matchId);
-  if (window.innerWidth < 900) $("historicoDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (window.innerWidth < 900) $("relatoriosDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function exportarWordRelatorio() {
@@ -475,8 +475,8 @@ async function exportarWordRelatorio() {
   }
 }
 
-function initHistorico() {
-  $("historicoLista").addEventListener("click", e => {
+function initRelatoriosPublicados() {
+  $("relatoriosLista").addEventListener("click", e => {
     const b = e.target.closest("[data-relatorio]");
     if (b) abrirRelatorio(b.dataset.relatorio);
   });
@@ -835,7 +835,7 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("dbPresencasGrelha", "linhas", 8);
   H.mostrarEsqueleto("dbConvocatoria", "linhas", 6);
   H.mostrarEsqueleto("dbEquipasGrid", "cards", 6);
-  H.mostrarEsqueleto("historicoLista", "linhas", 6);
+  H.mostrarEsqueleto("relatoriosLista", "linhas", 6);
   H.mostrarEsqueleto("statsTop", "linhas", 3);
 }
 
@@ -853,7 +853,7 @@ function renderTudo() {
   renderMultasDash();
   renderPresencasDash();
   renderCalendario();
-  renderHistorico();
+  renderRelatoriosPublicados();
   renderH2H();
   VFN.refreshAOS();
 }
@@ -900,7 +900,7 @@ async function iniciar() {
   VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
   initEquipas();
-  initHistorico();
+  initRelatoriosPublicados();
   H.ligarDetalheJogo(() => dados, {
     // dashboard = admin, treinador e dirigentes: o resumo inclui o relatório completo
     jogador: id => jogadorDoRelatorio(id),

@@ -66,7 +66,7 @@
     <button class="tab-btn nav-item" data-tab="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="tab-btn nav-item" data-tab="classificacao"><span class="nav-icon"><i data-icon="trophy"></i></span><span class="nav-label">Classificação</span></button>
     <button class="tab-btn nav-item" data-tab="adversarios"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Adversários</span></button>
-    <button class="tab-btn nav-item" data-tab="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
+    <button class="tab-btn nav-item" data-tab="relatorios"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Relatórios</span></button>
   </nav>
   <div class="sidebar-links"><a href="dashboard.html"><span class="nav-icon"><i data-icon="layout-dashboard"></i></span>Dashboard equipa técnica</a><a href="public.html" target="_blank" rel="noopener"><span class="nav-icon"><i data-icon="globe"></i></span>HUB VFN</a></div>
   <button id="btnLogout" class="sidebar-logout"><span class="nav-icon"><i data-icon="log-out"></i></span><span class="nav-label">Sair</span></button>
@@ -510,14 +510,14 @@
   </section>
 
   <!-- TAB: HISTÓRICO DE RELATÓRIOS -->
-  <section id="tab-historico" class="tab-panel">
+  <section id="tab-relatorios" class="tab-panel">
     <div class="card" data-aos="fade-up">
       <div class="section-header-row"><h2 class="section-title">Relatórios de jogo</h2></div>
       <p class="muted">Rascunhos e relatórios publicados. Os publicados ficam visíveis para o treinador e os dirigentes no Dashboard.</p>
       <div class="table-wrap">
-        <table class="data-table" data-ordenar="historico-admin">
+        <table class="data-table" data-ordenar="relatorios-admin">
           <thead><tr><th data-tipo="data">Data</th><th data-tipo="texto">Adversário</th><th data-tipo="texto">Competição</th><th class="num">Resultado</th><th data-tipo="texto">Estado</th><th></th></tr></thead>
-          <tbody id="historicoBody"></tbody>
+          <tbody id="relatoriosBody"></tbody>
         </table>
       </div>
     </div>

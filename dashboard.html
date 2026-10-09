@@ -53,7 +53,7 @@
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
     <button class="nav-item" data-view="h2h"><span class="nav-icon"><i data-icon="swords"></i></span><span class="nav-label">H2H</span></button>
-    <button class="nav-item" data-view="historico"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Histórico</span></button>
+    <button class="nav-item" data-view="relatorios"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Relatórios</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
   </nav>
   <div class="sidebar-links">
@@ -270,16 +270,16 @@
     </div>
   </section>
 
-  <!-- HISTÓRICO DE RELATÓRIOS (só leitura, publicados) -->
-  <section id="view-historico" class="view">
-    <div class="historico-grid">
+  <!-- RELATÓRIOS (só leitura, publicados) -->
+  <section id="view-relatorios" class="view">
+    <div class="relatorios-grid">
       <div class="card" data-aos="fade-up">
-        <div class="hub-card-head"><h2 class="hub-card-title">Relatórios publicados</h2><span id="historicoInfo" class="muted"></span></div>
-        <div id="historicoLista" class="historico-lista"></div>
+        <div class="hub-card-head"><h2 class="hub-card-title">Relatórios publicados</h2><span id="relatoriosInfo" class="muted"></span></div>
+        <div id="relatoriosLista" class="relatorios-lista"></div>
       </div>
-      <div class="card historico-detalhe" data-aos="fade-up">
+      <div class="card relatorios-detalhe" data-aos="fade-up">
         <div class="hub-card-head"><h2 class="hub-card-title">Relatório</h2><button type="button" id="btnPartilharRelatorio" class="btn btn-ghost btn-sm" hidden>📸 Partilhar Resultado</button><button type="button" id="btnExportarWord" class="btn btn-accent btn-sm" hidden><i data-icon="file-down" data-size="16"></i> Exportar Word</button></div>
-        <div id="historicoDetalhe"><p class="muted">Escolhe um relatório da lista.</p></div>
+        <div id="relatoriosDetalhe"><p class="muted">Escolhe um relatório da lista.</p></div>
       </div>
     </div>
   </section>

@@ -402,9 +402,9 @@ function renderRelatorios() {
   $("eqRelatoriosInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
   $("eqRelatoriosLista").innerHTML = lista.length ? lista.map(({ r, d }) => {
     const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
-    return `<button type="button" class="historico-item${relatorioAberto === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
+    return `<button type="button" class="relatorios-item${relatorioAberto === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
-      <span class="historico-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
+      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
       <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("") : H.vazio("Ainda não há relatórios publicados.");

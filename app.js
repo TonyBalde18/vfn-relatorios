@@ -602,7 +602,7 @@ function sanitizarNomeFicheiro(str) {
 
 function initTabs() {
   const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", convocatoria: "Convocatória", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Competições", historico: "Histórico de relatórios", classificacao: "Classificação", adversarios: "Adversários" };
+  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", convocatoria: "Convocatória", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Competições", relatorios: "Relatórios", classificacao: "Classificação", adversarios: "Adversários" };
   botoes.forEach(btn => {
     btn.addEventListener("click", () => {
       guardarRascunho(); // preserva dados sempre que se muda de separador
@@ -866,7 +866,7 @@ let calendarioCarregado = false;
 async function carregarCalendario() {
   if (!calendarioCarregado && window.VFNHub) {
     // skeletons até chegarem os jogos, resultados e relatórios
-    [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["historicoBody", "", 5]]
+    [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["relatoriosBody", "", 5]]
       .forEach(([id, tipo, n]) => VFNHub.mostrarEsqueleto(id, tipo, n));
   }
   try {
