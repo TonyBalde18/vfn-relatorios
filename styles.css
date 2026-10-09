@@ -412,9 +412,12 @@ th, td {
   vertical-align: middle;
   font-size: 0.85rem;
 }
+/* v15: cabeçalhos com os tokens do tema (antes --silver fixo: no escuro ficava cinzento claro com texto claro) */
 th {
-  background: var(--silver);
-  color: var(--coffee-bean);
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  font-weight: 700;
+  border-bottom: 2px solid var(--border-color);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2301,7 +2304,6 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) textarea { background: var(--input-bg); }
 :where(html.tema-escuro) .toggle-btn { background: var(--surface); }
 :where(html.tema-escuro) .lineup-label { color: var(--heading); }
-:where(html.tema-escuro) th { color: var(--heading); }
 :where(html.tema-escuro) .partial-score { color: var(--heading); }
 :where(html.tema-escuro) .tl-rotulo { color: var(--heading); }
 :where(html.tema-escuro) .season-stats-card { background: linear-gradient(135deg, var(--surface), color-mix(in srgb, #fffbe0 14%, var(--surface))); }
