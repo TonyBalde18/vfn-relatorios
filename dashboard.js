@@ -911,6 +911,7 @@ async function iniciar() {
   document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("statsPosicao").addEventListener("change", renderTabelaStats);
   $("h2hConteudo").addEventListener("click", e => { const c = e.target.closest("[data-h2h-adv]"); if (c) abrirPainelH2H(c.dataset.h2hAdv); });
+  $("btnExportarPDF").addEventListener("click", () => VFNComp.abrirExportarRelatorio(dados, { jogadores, jogadorDoRelatorio }));
   $("heatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmap = b.dataset.filtro; renderHeatmap(); } });
   $("hubCompeticao").addEventListener("change", e => { competicaoHub = e.target.value; $("hubClassificacao").innerHTML = H.classificacaoHTML(dados, competicaoHub); VFN.anim.linhas($("hubClassificacao").querySelectorAll("tbody tr")); });
   $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });

@@ -662,6 +662,178 @@
     return exportarImagemHTML(renderAnuncioConvocatoria(dados, jogo, squad, pessoa, formato, fotos, ordem), { nome: `convocatoria_vfn_${nome}_${formato}.png`, titulo: "Convocatória VFN", largura: 540, fundo: "#0A1628" });
   }
 
+  /* ---------- Relatório da época em PDF (v16, dashboard) ----------
+     A4 horizontal, uma secção por página: capa, resumo do clube, marcadores, presenças, mapa de calor dos
+     golos e jogos. Cada página é HTML (com o CSS da app) num documento à parte, capturado com html2canvas e
+     juntado com jsPDF. periodo: { tipo: "epoca" | "oficiais" | "ultimos", n }. */
+
+  const PDF_LARGURA = 1123, PDF_ALTURA = 794; // A4 horizontal a 96 dpi
+
+  function jogosDoPeriodo(dados, periodo) {
+    let jogos = VFN.ultimosJogos(dados.matches, Infinity); // jogados, do mais recente para o mais antigo
+    if (periodo.tipo === "oficiais") jogos = jogos.filter(j => VFN.competicaoOficial(j.competition));
+    if (periodo.tipo === "ultimos") jogos = jogos.slice(0, Math.max(1, Number(periodo.n) || 5));
+    return jogos;
+  }
+
+  const rotuloPeriodo = (p, jogos) => p.tipo === "oficiais" ? "Jogos oficiais" : p.tipo === "ultimos" ? `Últimos ${jogos.length} jogos` : "Época inteira";
+
+  /** Relatórios publicados (um por jogo) dos jogos escolhidos. */
+  function relatoriosDosJogos(dados, jogos) {
+    const ids = new Set(jogos.map(j => String(j.id)));
+    const porJogo = new Map();
+    (dados.match_reports || []).forEach(r => {
+      const m = (r && r.match_data) || {};
+      const id = String(r.match_id || (m.preJogo || {}).matchId || "");
+      if (!ids.has(id) || VFN.estadoRelatorio(r) !== "published" || !m.jogo) return;
+      const atual = porJogo.get(id);
+      if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(id, r);
+    });
+    return [...porJogo.values()];
+  }
+
+  function paginaPDF(conteudo, n, total, classe) {
+    const hoje = VFN.dataDDMMAAAA(new Date().toISOString().slice(0, 10));
+    return `<section class="pdf-pagina ${classe || ""}">${conteudo}
+      <footer class="pdf-rodape"><span>ACD Vila Franca das Naves · Época 2026/27 · Gerado em ${esc(hoje)}</span><span>${n} / ${total}</span></footer></section>`;
+  }
+
+  function capaPDF(periodo, jogos) {
+    return `<div class="pdf-capa"><img src="assets/logo.png" alt=""><h1>ACD Vila Franca das Naves</h1><p>Época 2026/27</p><p class="pdf-capa-sub">Relatório da época · ${esc(rotuloPeriodo(periodo, jogos))}</p></div>`;
+  }
+
+  function resumoPDF(jogos) {
+    const t = { J: jogos.length, V: 0, E: 0, D: 0, GM: 0, GS: 0 };
+    jogos.forEach(j => { const g = VFN.golosJogo(j); t[VFN.letraResultado(j)]++; t.GM += g.vfn; t.GS += g.adv; });
+    const pct = t.J ? Math.round(t.V / t.J * 100) : 0;
+    let seq = 0;
+    const letra = jogos[0] ? VFN.letraResultado(jogos[0]) : "";
+    for (const j of jogos) { if (VFN.letraResultado(j) !== letra) break; seq++; }
+    const nomes = { V: ["vitória", "vitórias"], E: ["empate", "empates"], D: ["derrota", "derrotas"] };
+    const sequencia = letra ? `${seq} ${nomes[letra][seq === 1 ? 0 : 1]} seguida${seq === 1 ? "" : "s"}` : "—";
+    const card = (rotulo, valor, classe) => `<div class="pdf-card ${classe || ""}"><span>${rotulo}</span><strong>${valor}</strong></div>`;
+    return `<h2 class="pdf-titulo">Resumo do clube</h2>
+      <div class="pdf-cards">${card("Jogos", t.J)}${card("Vitórias", t.V, "v")}${card("Empates", t.E, "e")}${card("Derrotas", t.D, "d")}
+        ${card("Golos marcados", t.GM)}${card("Golos sofridos", t.GS)}${card("% vitórias", pct + "%")}${card("Sequência atual", sequencia, "seq")}</div>
+      <h3 class="pdf-subtitulo">Forma · últimos 5 jogos</h3>
+      <div class="pdf-forma">${jogos.slice(0, 5).reverse().map(j => { const g = VFN.golosJogo(j); return `<div class="pdf-forma-jogo">${VFN.chipForma(VFN.letraResultado(j))}<span>${g.vfn}–${g.adv}</span><small>${esc(VFN.dataCurta(j.date))}</small></div>`; }).join("") || "<p>Sem jogos.</p>"}</div>`;
+  }
+
+  function marcadoresPDF(linhas, nota) {
+    const top = linhas.filter(l => l.golos || l.assistencias).sort((a, b) => b.golos - a.golos || b.assistencias - a.assistencias || b.minutos - a.minutos).slice(0, 10);
+    return `<h2 class="pdf-titulo">Melhores marcadores <small>top 10</small></h2>
+      ${top.length ? `<table class="pdf-tabela"><thead><tr><th>#</th><th>Jogador</th><th class="num">Golos</th><th class="num">Assistências</th><th class="num">Minutos</th></tr></thead>
+      <tbody>${top.map((l, i) => `<tr><td>${i + 1}</td><td><strong>${esc(l.nome)}</strong> <small>${esc(l.posicao || "")}</small></td><td class="num"><b>${l.golos}</b></td><td class="num">${l.assistencias}</td><td class="num">${l.minutos}'</td></tr>`).join("")}</tbody></table>` : "<p>Sem golos nem assistências no período.</p>"}
+      ${nota ? `<p class="pdf-nota">${esc(nota)}</p>` : ""}`;
+  }
+
+  function presencasPDF(linhas) {
+    const lista = linhas.filter(l => l.total).sort((a, b) => b.pct - a.pct || a.nome.localeCompare(b.nome, "pt"));
+    if (!lista.length) return `<h2 class="pdf-titulo">Presenças nos treinos</h2><p>Sem presenças registadas no período.</p>`;
+    const cor = p => p >= 80 ? "#16a34a" : p >= 60 ? "#ca8a04" : "#dc2626";
+    const metade = Math.ceil(lista.length / 2);
+    const coluna = l => `<ul class="pdf-barras">${l.map(x => `<li><span class="pdf-barra-nome">${esc(x.nome)}</span><span class="pdf-barra"><i style="width:${Math.max(2, x.pct)}%;background:${cor(x.pct)}"></i></span><b>${x.pct}%</b><small>${x.presentes}/${x.total}</small></li>`).join("")}</ul>`;
+    return `<h2 class="pdf-titulo">Presenças nos treinos <small>% de sessões com presença (atraso conta como presente)</small></h2>
+      <div class="pdf-duas">${coluna(lista.slice(0, metade))}${coluna(lista.slice(metade))}</div>`;
+  }
+
+  function heatmapPDF(relatorios) {
+    return `<h2 class="pdf-titulo">Mapa de calor dos golos <small>marcados e sofridos</small></h2><div class="pdf-heatmap">${H().renderHeatmapGolos(relatorios, "ambos")}</div>`;
+  }
+
+  function jogosPDF(dados, jogos, parte, partes) {
+    return `<h2 class="pdf-titulo">Estatísticas por jogo${partes > 1 ? ` <small>${parte}/${partes}</small>` : ""}</h2>
+      <table class="pdf-tabela"><thead><tr><th>Data</th><th>Adversário</th><th>Competição</th><th class="num">Resultado</th><th class="num">Marcados</th><th class="num">Sofridos</th></tr></thead>
+      <tbody>${jogos.map(j => { const g = VFN.golosJogo(j), l = VFN.letraResultado(j); return `<tr><td>${esc(VFN.dataDDMMAAAA(VFN.dataIso(j.date)))}</td><td><strong>${esc(H().nomeAdversario(dados, j))}</strong> <small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"}</small></td><td>${esc(VFN.nomeCurtoCompeticao(j.competition))}</td><td class="num">${VFN.chipForma(l)} ${g.vfn}–${g.adv}</td><td class="num">${g.vfn}</td><td class="num">${g.adv}</td></tr>`; }).join("")}</tbody></table>`;
+  }
+
+  /**
+   * Gera e descarrega o PDF. o: { jogadores (vistas), jogadorDoRelatorio(idLocal) → jogador, periodo }.
+   * Época inteira: marcadores das fichas (players.stats); outros períodos: dos relatórios desses jogos.
+   */
+  async function exportarRelatorioPDF(dados, o) {
+    const opcoes = o || {};
+    const periodo = opcoes.periodo || { tipo: "epoca" };
+    if (!window.html2canvas || !window.jspdf) { alert("As bibliotecas do PDF não carregaram. Verifica a ligação à internet."); return; }
+    const jogos = jogosDoPeriodo(dados, periodo);
+    const relatorios = relatoriosDosJogos(dados, jogos);
+    // marcadores
+    let marcadores, nota = "";
+    if (periodo.tipo === "epoca") {
+      marcadores = (opcoes.jogadores || []).map(j => ({ nome: j.nome, posicao: j.posicao, golos: j.golos || 0, assistencias: j.assistencias || 0, minutos: j.minutos || 0 }));
+    } else {
+      const porId = new Map();
+      const linha = idLocal => { const j = opcoes.jogadorDoRelatorio && opcoes.jogadorDoRelatorio(idLocal); if (!j) return null; if (!porId.has(j.id)) porId.set(j.id, { nome: j.nome, posicao: j.posicao, golos: 0, assistencias: 0, minutos: 0 }); return porId.get(j.id); };
+      relatorios.forEach(r => {
+        Object.entries(H().minutosDoRelatorio(r.match_data)).forEach(([id, min]) => { const l = linha(id); if (l) l.minutos += min; });
+        (r.match_data.jogo.eventos || []).filter(e => e.tipo === "Golo" && e.equipa === "VFN").forEach(e => { const m = linha(e.jogadorId); if (m) m.golos++; const a = e.assistId && linha(e.assistId); if (a) a.assistencias++; });
+      });
+      marcadores = [...porId.values()];
+      nota = `Calculado a partir dos relatórios publicados dos ${jogos.length} jogos do período (${relatorios.length} com relatório).`;
+    }
+    // presenças (treinos): no período "últimos N jogos", desde a data do mais antigo
+    const desde = periodo.tipo === "ultimos" && jogos.length ? VFN.dataIso(jogos[jogos.length - 1].date) : "";
+    const presencas = (opcoes.jogadores || []).map(j => {
+      const regs = (dados.attendance || []).filter(a => String(a.player_id) === String(j.id) && a.status && (!desde || String(a.session_date || "") >= desde));
+      const presentes = regs.filter(a => a.status === "P" || a.status === "A").length;
+      return { nome: j.nome, total: regs.length, presentes, pct: regs.length ? Math.round(presentes / regs.length * 100) : 0 };
+    });
+    // páginas (a tabela dos jogos divide-se em blocos de 14)
+    const blocos = [];
+    for (let i = 0; i < Math.max(1, jogos.length); i += 14) blocos.push(jogos.slice(i, i + 14));
+    const conteudos = [[capaPDF(periodo, jogos), "pdf-pagina-capa"], [resumoPDF(jogos)], [marcadoresPDF(marcadores, nota)], [presencasPDF(presencas)], [heatmapPDF(relatorios)],
+      ...blocos.map((b, i) => [jogosPDF(dados, b, i + 1, blocos.length)])];
+    const html = conteudos.map(([c, classe], i) => paginaPDF(c, i + 1, conteudos.length, classe)).join("");
+
+    const palco = document.createElement("iframe");
+    palco.className = "dividas-palco";
+    palco.style.width = PDF_LARGURA + "px";
+    palco.style.height = PDF_ALTURA + "px";
+    palco.setAttribute("aria-hidden", "true");
+    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="hub.css"></head><body class="pdf-corpo">${html}</body></html>`;
+    document.body.appendChild(palco);
+    try {
+      await new Promise(r => { palco.onload = r; });
+      const doc = palco.contentDocument;
+      if (doc.fonts && doc.fonts.ready) await doc.fonts.ready;
+      await Promise.all([...doc.querySelectorAll("img")].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+      const pdf = new window.jspdf.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const paginas = [...doc.querySelectorAll(".pdf-pagina")];
+      for (let i = 0; i < paginas.length; i++) {
+        const canvas = await window.html2canvas(paginas[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, width: PDF_LARGURA, height: PDF_ALTURA, windowWidth: PDF_LARGURA });
+        if (i) pdf.addPage();
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 297, 210);
+      }
+      pdf.save(`relatorio_vfn_${periodo.tipo === "ultimos" ? "ultimos" + jogos.length : periodo.tipo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } finally {
+      palco.remove();
+    }
+  }
+
+  /** Escolha do período (painel) e exportação. o: como exportarRelatorioPDF (sem periodo). */
+  function abrirExportarRelatorio(dados, o) {
+    const corpo = abrirDrawer({ titulo: "Exportar relatório (PDF)", corpo: `<form class="pdf-escolha" novalidate>
+        <fieldset><legend>Período</legend>
+          <label><input type="radio" name="pdfPeriodo" value="epoca" checked> Época inteira</label>
+          <label><input type="radio" name="pdfPeriodo" value="oficiais"> Apenas jogos oficiais</label>
+          <label><input type="radio" name="pdfPeriodo" value="ultimos"> Últimos <input type="number" name="pdfN" min="1" max="60" value="5" inputmode="numeric" aria-label="Número de jogos"> jogos</label>
+        </fieldset>
+        <p class="muted">A4 horizontal: capa, resumo, marcadores, presenças, mapa de calor e jogos.</p>
+        <p class="form-error" role="alert"></p>
+        <button type="submit" class="btn btn-primary">📄 Gerar PDF</button>
+      </form>` });
+    const form = corpo.querySelector("form");
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const tipo = form.querySelector("input[name=pdfPeriodo]:checked").value;
+      const botao = form.querySelector("button[type=submit]");
+      botao.disabled = true; botao.textContent = "A gerar o PDF…";
+      try { await exportarRelatorioPDF(dados, { ...o, periodo: { tipo, n: form.pdfN.value } }); fecharDrawer(); }
+      catch (err) { form.querySelector(".form-error").textContent = "Não foi possível gerar o PDF: " + (err.message || err); }
+      finally { botao.disabled = false; botao.textContent = "📄 Gerar PDF"; }
+    });
+  }
+
   /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
 
   // códigos WMO do Open-Meteo → [ícone Lucide, descrição]
@@ -1399,7 +1571,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico, ordenarConvocados,
+    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,

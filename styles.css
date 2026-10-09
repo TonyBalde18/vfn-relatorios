@@ -2315,6 +2315,57 @@ body.mj-aberto { overflow: hidden; }
 .campo-editavel .alvo-ativo { outline: 2px dashed rgba(255, 215, 0, .9); outline-offset: 2px; border-radius: 10px; background: rgba(255, 215, 0, .12); }
 .campo-editavel .arrasta-selecionado { outline: 2px solid #FFD700; outline-offset: 2px; border-radius: 10px; }
 
+/* Relatório da época em PDF (v16): páginas A4 horizontais (1123×794 px) capturadas com html2canvas */
+.export-barra { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.pdf-escolha { display: grid; gap: 12px; }
+.pdf-escolha fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.pdf-escolha legend { margin-bottom: 4px; font-weight: 700; }
+.pdf-escolha label { display: flex; align-items: center; gap: 8px; }
+.pdf-escolha input[type=number] { width: 64px; padding: 4px 6px; }
+.pdf-corpo { margin: 0; background: #fff; }
+.pdf-pagina { position: relative; box-sizing: border-box; width: 1123px; height: 794px; padding: 44px 56px 64px; overflow: hidden; background: #fff; color: #0A1628; font-family: Inter, Arial, sans-serif; }
+.pdf-pagina-capa { padding: 0; background: linear-gradient(135deg, #043792, #131E4E); color: #fff; }
+.pdf-capa { display: grid; place-items: center; align-content: center; gap: 10px; height: 100%; text-align: center; }
+.pdf-capa img { width: 190px; height: 190px; object-fit: contain; margin-bottom: 12px; }
+.pdf-capa h1 { margin: 0; font-size: 48px; font-weight: 800; color: #fff; }
+.pdf-capa p { margin: 0; font-size: 26px; color: #FFD700; font-weight: 700; }
+.pdf-capa .pdf-capa-sub { margin-top: 18px; font-size: 18px; color: rgba(255, 255, 255, .8); font-weight: 600; }
+.pdf-rodape { position: absolute; left: 56px; right: 56px; bottom: 22px; display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
+.pdf-pagina-capa .pdf-rodape { border-top-color: rgba(255, 255, 255, .25); color: rgba(255, 255, 255, .75); }
+.pdf-titulo { margin: 0 0 22px; font-size: 28px; font-weight: 800; color: #043792; }
+.pdf-titulo small { font-size: 14px; font-weight: 600; color: #64748b; }
+.pdf-subtitulo { margin: 30px 0 12px; font-size: 18px; color: #0A1628; }
+.pdf-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.pdf-card { display: grid; gap: 6px; padding: 18px 20px; border-radius: 14px; background: #f1f5fb; border-left: 6px solid #043792; }
+.pdf-card span { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
+.pdf-card strong { font-size: 34px; font-weight: 800; color: #0A1628; }
+.pdf-card.v { border-left-color: #16a34a; } .pdf-card.e { border-left-color: #64748b; } .pdf-card.d { border-left-color: #dc2626; }
+.pdf-card.seq strong { font-size: 22px; }
+.pdf-forma { display: flex; gap: 18px; }
+.pdf-forma-jogo { display: grid; justify-items: center; gap: 6px; font-size: 16px; font-weight: 700; }
+.pdf-forma-jogo .form-chip { width: 44px; height: 44px; font-size: 18px; border-radius: 10px; }
+.pdf-forma-jogo small { font-size: 12px; color: #64748b; font-weight: 600; }
+.pdf-tabela { width: 100%; border-collapse: collapse; font-size: 15px; }
+.pdf-tabela th { padding: 10px 12px; background: #043792; color: #fff; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; border: 0; }
+.pdf-tabela td { padding: 9px 12px; border-bottom: 1px solid #e2e8f0; }
+.pdf-tabela tr:nth-child(even) td { background: #f8fafc; }
+.pdf-tabela .num { text-align: center; }
+.pdf-tabela small { color: #64748b; font-size: 12px; }
+.pdf-tabela .form-chip { width: 22px; height: 22px; font-size: 11px; vertical-align: middle; }
+.pdf-nota { margin-top: 14px; font-size: 12px; color: #64748b; }
+.pdf-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.pdf-barras { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.pdf-barras li { display: grid; grid-template-columns: 130px 1fr 46px 46px; align-items: center; gap: 10px; font-size: 13px; }
+.pdf-barra-nome { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdf-barra { height: 14px; border-radius: 7px; background: #e9eef5; overflow: hidden; }
+.pdf-barra i { display: block; height: 100%; border-radius: 7px; }
+.pdf-barras b { text-align: right; } .pdf-barras small { color: #64748b; }
+/* mapa de calor no PDF: sempre as 3 vistas lado a lado (o documento do PDF não depende do ecrã) */
+.pdf-heatmap .hm-tabs { display: none; }
+.pdf-heatmap .hm-vistas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pdf-heatmap .hm-vista { display: grid; }
+.pdf-heatmap .hm-vista[data-hm="origem"] svg { max-width: 260px; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }
