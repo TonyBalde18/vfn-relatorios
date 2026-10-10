@@ -413,6 +413,9 @@
 }
 html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-linhas .vb { color: #fbbf24; }
 
+/* Mapa dos estádios (v16): filtro por divisão/distrito */
+.mapa-filtros { margin: 0 0 10px; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

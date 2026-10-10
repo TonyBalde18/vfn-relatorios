@@ -1256,14 +1256,42 @@
    * cor do clube. O popup mostra o emblema grande, o estádio e o relvado.
    * Só se cria quando o contentor fica visível (o Leaflet precisa do tamanho). Devolve { render }.
    */
+  /*
+   * v16: filtro do mapa por divisão/distrito (teams.division, teams.district — SQL em sql/v16_equipas.sql):
+   * "2liga" = 2ª Liga da Guarda; "guarda" = distrito da Guarda; "todos" = sem filtro. O VFN aparece sempre.
+   */
+  const FILTROS_MAPA = [["2liga", "2ª Liga · Guarda"], ["guarda", "Distrito da Guarda"], ["todos", "Todos"]];
+  const normalizarFiltro = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  function passaFiltroMapa(t, filtro) {
+    if (filtro === "todos" || VFN.eVFN(t.name)) return true;
+    const guarda = normalizarFiltro(t.district) === "guarda";
+    return filtro === "guarda" ? guarda : guarda && normalizarFiltro(t.division) === "2liga"; // "2ª Liga", "2.ª liga"…
+  }
+
   function criarMapaEstadios(contentor, obterEquipas) {
     if (!contentor) return { render() {} };
     let mapa = null, camada = null;
+    let filtro = "todos";
+    try { filtro = localStorage.getItem("vfnMapaFiltro") || "todos"; } catch (e) { /* sem storage */ }
+    if (!FILTROS_MAPA.some(([v]) => v === filtro)) filtro = "todos";
+    // pills por cima do mapa; mudar o filtro só redesenha os marcadores
+    contentor.insertAdjacentHTML("beforebegin", `<div class="filter-chips mapa-filtros" role="group" aria-label="Equipas no mapa">${FILTROS_MAPA.map(([v, t]) => `<button type="button" class="filter-chip${v === filtro ? " active" : ""}" data-mapa-filtro="${v}" aria-pressed="${v === filtro}">${t}</button>`).join("")}</div>`);
+    const pills = contentor.previousElementSibling;
+    pills.addEventListener("click", e => {
+      const b = e.target.closest("[data-mapa-filtro]");
+      if (!b) return;
+      filtro = b.dataset.mapaFiltro;
+      try { localStorage.setItem("vfnMapaFiltro", filtro); } catch (err) { /* sem storage */ }
+      pills.querySelectorAll("[data-mapa-filtro]").forEach(x => { const a = x === b; x.classList.toggle("active", a); x.setAttribute("aria-pressed", String(a)); });
+      desenhar();
+    });
     const desenhar = () => {
       if (!mapa) return;
       camada.clearLayers();
       // v16: a cópia do clube vinda do zerozero (VF Naves, 11083) não entra no mapa; o VFN é a linha "vfn"
-      const equipas = (obterEquipas() || []).filter(t => String(t.id) !== VFN.ID_CLUBE_ZEROZERO);
+      const todasEquipas = (obterEquipas() || []).filter(t => String(t.id) !== VFN.ID_CLUBE_ZEROZERO);
+      const semDados = filtro !== "todos" && !todasEquipas.some(t => t.district);
+      const equipas = todasEquipas.filter(t => semDados || passaFiltroMapa(t, filtro));
       const vfn = VFN.equipaVFN(equipas);
       const lista = equipas.some(t => VFN.eVFN(t.name)) ? equipas : [...equipas, vfn];
       let semCoordenadas = 0;
@@ -1281,7 +1309,7 @@
         window.L.marker([e.lat, e.lng], { icon: icone, title: t.name, zIndexOffset: souVFN ? 1000 : 0 }).bindPopup(popupEstadioHTML(t, vfn)).addTo(camada);
       });
       const aviso = contentor.parentElement && contentor.parentElement.querySelector(".mapa-aviso");
-      if (aviso) aviso.textContent = semCoordenadas ? `${semCoordenadas} equipa${semCoordenadas === 1 ? "" : "s"} sem coordenadas do estádio.` : "";
+      if (aviso) aviso.textContent = [semDados ? "Ainda sem divisão/distrito nas equipas (teams.division / teams.district): a mostrar todas." : "", semCoordenadas ? `${semCoordenadas} equipa${semCoordenadas === 1 ? "" : "s"} sem coordenadas do estádio.` : ""].filter(Boolean).join(" ");
     };
     const iniciar = () => {
       if (mapa || !window.L) { if (mapa) mapa.invalidateSize(); return; }
