@@ -134,7 +134,14 @@ function renderInicio() {
     $("eqBoasVindas").innerHTML = `<div class="eq-ola"><div><span class="muted">Olá,</span><h2>${esc((perfil && perfil.full_name) || utilizador.email)}</h2><p class="muted">Entraste como equipa técnica: vês os dados do plantel, sem as secções pessoais.</p></div></div>`;
   }
   $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores, { semIdadeMedia: true });
-  $("eqProximoJogo").innerHTML = H.proximoJogoHTML(dados);
+  // v17: o mesmo banner do dashboard (só redesenha quando o próximo jogo muda: a contagem e a meteorologia continuam)
+  const jogo = VFN.proximoJogo(dados.matches);
+  const chave = jogo ? `${jogo.id}|${jogo.date}|${jogo.opponent_team_id}` : "";
+  if ($("eqJogoSemana").dataset.chave !== chave || !$("eqJogoSemana").innerHTML) {
+    $("eqJogoSemana").dataset.chave = chave;
+    $("eqJogoSemana").innerHTML = VFNComp.renderJogoDaSemana(dados);
+    VFNComp.ligarJogoDaSemana($("eqJogoSemana"), dados);
+  }
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
 }
@@ -522,7 +529,7 @@ function renderTudo() {
 function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqBoasVindas", "linhas", 2);
   H.mostrarEsqueleto("eqHubInicio", "linhas", 2);
-  H.mostrarEsqueleto("eqProximoJogo", "hero");
+  H.mostrarEsqueleto("eqJogoSemana", "hero");
   H.mostrarEsqueleto("eqResultados", "resultados", 5);
   H.mostrarEsqueleto("eqConvocatoria", "linhas", 5);
   H.mostrarEsqueleto("eqJornTabela", "tabela", 8);
