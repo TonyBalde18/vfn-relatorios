@@ -458,3 +458,4 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 :where(html.tema-escuro) .h2h-tiles .h2h-e strong { color: var(--fg-muted); }
 :where(html.tema-escuro) .h2h-card-reg .e { color: var(--fg-muted); }
 /* ===== FIM TEMA ESCURO ===== */
+.kit-jogo-semana.kit-vfn img { width: 52px; }

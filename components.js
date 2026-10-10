@@ -1142,7 +1142,9 @@
     // sem opponent_team_id (jogos antigos), procura a equipa pelo nome do adversário
     const adv = H().equipa(dados, jogo.opponent_team_id) || (dados.teams || []).find(t => !VFN.eVFN(t.name) && [t.name, t.full_name].includes(nome)) || null;
     const lado = (url, texto, t) => `<div class="jds-equipa"${VFN.estiloCorEquipa(t, 0.25)}><span class="jds-logo">${url ? `<img src="${esc(url)}" alt="">` : `<b>${esc(texto.slice(0, 2).toUpperCase())}</b>`}</span><strong>${esc(texto)}</strong></div>`;
-    const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv)
+    // v18: kit do VFN por baixo do escudo, como o do adversário (sem a imagem, desaparece)
+    const kitVFN = `<span class="kit-adversario kit-jogo-semana kit-vfn"><img src="assets/kits/kit-principal-frente.png" alt="Equipamento VFN" loading="lazy" onerror="this.parentElement.remove()"></span>`;
+    const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)).replace("</strong></div>", `</strong>${kitVFN}</div>`), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv)
       // kit do adversário por baixo do escudo: o configurado (kit_config), o PNG ou a camisola com as cores da equipa
       .replace("</strong></div>", `</strong>${VFN.kitAdversarioHTML(adv, { classe: "kit-jogo-semana", fallback: adv && VFN.coresEquipa(adv).primaria ? `<span class="kit-jogo-semana kit-cores">${VFN.camisolaEquipaSVG(adv, { tamanho: 46 })}</span>` : "" })}</div>`);
     const c = partesContagem(jogo.date);
