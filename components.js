@@ -834,6 +834,133 @@
     });
   }
 
+  /* ---------- Kits dos adversários (v16): SVG gerado a partir de teams.kit_config ----------
+     kit_config = { padrao, cor1, cor2, cor3 (gola/punhos, opcional), cor_calcoes, cor_meias }.
+     Desenhado no browser (sem PNG): a ficha, os jogadores conhecidos e o Jogo da Semana usam-no. */
+
+  const KIT_PADROES = [
+    ["liso", "Liso"], ["listras_v", "Listras verticais"], ["listras_h", "Listras horizontais"], ["faixa_central", "Faixa central"],
+    ["faixa_horizontal", "Faixa no peito"], ["metades", "Metades"], ["xadrez", "Xadrez"], ["diagonal", "Diagonal"],
+    ["ombros", "Ombros coloridos"], ["mangas", "Mangas de outra cor"]
+  ];
+  const KIT_PADRAO = { padrao: "liso", cor1: "#cbd5e1", cor2: "#ffffff", cor3: null, cor_calcoes: "#ffffff", cor_meias: "#cbd5e1" };
+  let contadorKit = 0;
+  const corValida = c => /^#[0-9a-f]{6}$/i.test(String(c || "")) ? c : null;
+
+  /** Configuração completa (com valores por omissão); null se não houver padrão. */
+  function configKit(cfg) {
+    if (!cfg || !cfg.padrao) return null;
+    const c = { ...KIT_PADRAO, ...cfg };
+    ["cor1", "cor2", "cor3", "cor_calcoes", "cor_meias"].forEach(k => { c[k] = corValida(c[k]) || (k === "cor3" ? null : KIT_PADRAO[k]); });
+    return c;
+  }
+
+  /**
+   * Camisola (e, com o.completo, calções e meias) em SVG. o: { tamanho (largura px), completo, numero, rotulo }.
+   * Padrões: liso, listras_v, listras_h, faixa_central, faixa_horizontal, metades, xadrez, diagonal, ombros, mangas.
+   */
+  function renderKitSVG(config, opcoes) {
+    const o = opcoes || {};
+    const c = configKit(config) || { ...KIT_PADRAO };
+    const id = `vfnKit${++contadorKit}`;
+    const corpo = "M27 7 L13 12 L2 28 L13 38 L19 32 L19 86 Q40 90 61 86 L61 32 L67 38 L78 28 L67 12 L53 7 Q40 17 27 7 Z";
+    const mangas = "M2 28 L13 12 L19 10 L19 34 L13 38 Z M78 28 L67 12 L61 10 L61 34 L67 38 Z";
+    const c1 = c.cor1, c2 = c.cor2, det = c.cor3 || c2;
+    const fundo = cor => `<rect x="0" y="0" width="80" height="92" fill="${cor}"/>`;
+    const padroes = {
+      liso: () => fundo(c1),
+      listras_v: () => `<pattern id="${id}p" width="12" height="10" patternUnits="userSpaceOnUse"><rect width="6" height="10" fill="${c1}"/><rect x="6" width="6" height="10" fill="${c2}"/></pattern><rect width="80" height="92" fill="url(#${id}p)"/>`,
+      listras_h: () => `<pattern id="${id}p" width="10" height="12" patternUnits="userSpaceOnUse"><rect width="10" height="6" fill="${c1}"/><rect y="6" width="10" height="6" fill="${c2}"/></pattern><rect width="80" height="92" fill="url(#${id}p)"/>`,
+      faixa_central: () => fundo(c1) + `<rect x="32" y="0" width="16" height="92" fill="${c2}"/>`,
+      faixa_horizontal: () => fundo(c1) + `<rect x="0" y="36" width="80" height="14" fill="${c2}"/>`,
+      metades: () => fundo(c1) + `<rect x="40" y="0" width="40" height="92" fill="${c2}"/>`,
+      xadrez: () => `<pattern id="${id}p" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="${c1}"/><rect width="8" height="8" fill="${c2}"/><rect x="8" y="8" width="8" height="8" fill="${c2}"/></pattern><rect width="80" height="92" fill="url(#${id}p)"/>`,
+      diagonal: () => fundo(c1) + `<polygon points="10,0 30,0 78,92 58,92" fill="${c2}"/>`,
+      ombros: () => fundo(c1) + `<path d="M0 0 H80 V24 Q40 30 0 24 Z" fill="${c2}"/>`,
+      mangas: () => fundo(c1) + `<path d="${mangas}" fill="${c2}"/>`
+    };
+    const camisola = `<defs><clipPath id="${id}c"><path d="${corpo}"/></clipPath></defs>` +
+      `<g clip-path="url(#${id}c)">${(padroes[c.padrao] || padroes.liso)()}` +
+      `<path d="M2 28 L13 38 L15 36 L4 26 Z M78 28 L67 38 L65 36 L76 26 Z" fill="${det}"/></g>` +
+      `<path d="M27 7 Q40 17 53 7" fill="none" stroke="${det}" stroke-width="4"/>` +
+      `<path d="${corpo}" fill="none" stroke="#0A1628" stroke-opacity=".35" stroke-width="1.2"/>`;
+    const numero = String(o.numero == null ? "" : o.numero).trim().slice(0, 3);
+    const textoNumero = numero ? `<text x="40" y="62" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${numero.length > 1 ? 24 : 28}" fill="#fff" stroke="#0A1628" stroke-width="2.5" paint-order="stroke">${esc(numero)}</text>` : "";
+    const resto = o.completo ? `<path d="M20 92 H60 L62 118 H44 L40 104 L36 118 H18 Z" fill="${c.cor_calcoes}" stroke="#0A1628" stroke-opacity=".35" stroke-width="1.2"/>` +
+      `<rect x="21" y="122" width="12" height="26" rx="3" fill="${c.cor_meias}" stroke="#0A1628" stroke-opacity=".3"/><rect x="47" y="122" width="12" height="26" rx="3" fill="${c.cor_meias}" stroke="#0A1628" stroke-opacity=".3"/>` +
+      `<rect x="21" y="124" width="12" height="4" fill="${det}"/><rect x="47" y="124" width="12" height="4" fill="${det}"/>` : "";
+    const alto = o.completo ? 150 : 92;
+    const largura = o.tamanho || 80;
+    return `<svg class="kit-svg" xmlns="http://www.w3.org/2000/svg" width="${largura}" height="${Math.round(largura * alto / 80)}" viewBox="0 0 80 ${alto}" role="img" aria-label="${esc(o.rotulo || "Equipamento")}">${camisola}${textoNumero}${resto}</svg>`;
+  }
+
+  /** Editor do kit (separador "🎽 Kit" da equipa, admin): padrões em miniatura, cores e pré-visualização. */
+  function editorKitHTML(config) {
+    const c = configKit(config) || { ...KIT_PADRAO, padrao: "liso" };
+    const cor = (campo, rotulo, valor, opcional) => `<div class="kit-cor"><label><span>${rotulo}</span><input type="color" data-kit-cor="${campo}" value="${valor || "#ffffff"}"></label>${opcional ? `<label class="kit-sem"><input type="checkbox" data-kit-sem="${campo}" ${valor ? "" : "checked"}> igual à cor 2</label>` : ""}</div>`;
+    return `<div class="kit-editor">
+      <div class="kit-preview" data-kit-preview>${renderKitSVG(c, { completo: true, tamanho: 150 })}</div>
+      <div class="kit-campos">
+        <div class="kit-padroes" role="radiogroup" aria-label="Padrão">${KIT_PADROES.map(([v, t]) => `<button type="button" class="kit-padrao${v === c.padrao ? " ativo" : ""}" data-kit-padrao="${v}" role="radio" aria-checked="${v === c.padrao}" title="${esc(t)}">${renderKitSVG({ ...c, padrao: v }, { tamanho: 40 })}<span>${esc(t)}</span></button>`).join("")}</div>
+        <div class="kit-cores">${cor("cor1", "Cor 1", c.cor1)}${cor("cor2", "Cor 2", c.cor2)}${cor("cor3", "Gola e punhos", c.cor3, true)}${cor("cor_calcoes", "Calções", c.cor_calcoes)}${cor("cor_meias", "Meias", c.cor_meias)}</div>
+      </div>
+    </div>`;
+  }
+
+  /** Lê o editor (kit_config). */
+  function lerEditorKit(raiz) {
+    const ativo = raiz.querySelector("[data-kit-padrao].ativo");
+    const cfg = { padrao: ativo ? ativo.dataset.kitPadrao : "liso" };
+    raiz.querySelectorAll("[data-kit-cor]").forEach(i => { cfg[i.dataset.kitCor] = i.value; });
+    const sem = raiz.querySelector('[data-kit-sem="cor3"]');
+    if (sem && sem.checked) cfg.cor3 = null;
+    return cfg;
+  }
+
+  /** Liga o editor: escolher padrão e cores atualiza a pré-visualização e as miniaturas. */
+  function ligarEditorKit(raiz) {
+    if (!raiz || raiz.dataset.kitLigado) return;
+    raiz.dataset.kitLigado = "1";
+    const atualizar = () => {
+      const cfg = lerEditorKit(raiz);
+      const prev = raiz.querySelector("[data-kit-preview]");
+      if (prev) prev.innerHTML = renderKitSVG(cfg, { completo: true, tamanho: 150 });
+      raiz.querySelectorAll("[data-kit-padrao]").forEach(b => { b.querySelector("svg").outerHTML = renderKitSVG({ ...cfg, padrao: b.dataset.kitPadrao }, { tamanho: 40 }); });
+    };
+    raiz.addEventListener("click", e => {
+      const b = e.target.closest("[data-kit-padrao]");
+      if (!b) return;
+      raiz.querySelectorAll("[data-kit-padrao]").forEach(x => { const a = x === b; x.classList.toggle("ativo", a); x.setAttribute("aria-checked", String(a)); });
+      atualizar();
+    });
+    raiz.addEventListener("input", atualizar);
+    raiz.addEventListener("change", atualizar);
+  }
+
+  /** PNG do kit (para descarregar e guardar em assets/opponents/kits/<id>.png, se se quiser). */
+  async function kitParaPNG(config, nome) {
+    const svg = renderKitSVG(config, { completo: true, tamanho: 400 });
+    const img = new Image();
+    await new Promise((r, f) => { img.onload = r; img.onerror = f; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width; canvas.height = img.height;
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = nome || "kit.png";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  /** Aviso rápido no fundo do ecrã ("Kit guardado ✓"). */
+  function toast(texto) {
+    let t = document.getElementById("vfnToast");
+    if (!t) { t = document.createElement("div"); t.id = "vfnToast"; t.className = "vfn-toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+    t.textContent = texto;
+    t.classList.add("visivel");
+    clearTimeout(t._fechar);
+    t._fechar = setTimeout(() => t.classList.remove("visivel"), 2400);
+  }
+
   /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
 
   // códigos WMO do Open-Meteo → [ícone Lucide, descrição]
@@ -1574,7 +1701,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio,
+    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,

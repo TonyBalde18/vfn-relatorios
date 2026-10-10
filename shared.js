@@ -1385,6 +1385,9 @@
     const o = opcoes || {};
     const fallback = o.fallback || "";
     if (!t || !t.id || String(t.id).startsWith("nome:") || eVFN(t.name)) return fallback;
+    // 1.º o kit configurado no admin (teams.kit_config, desenhado em SVG); depois o PNG; por fim o fallback
+    const comp = window.VFNComp;
+    if (comp && comp.configKit && comp.configKit(t.kit_config)) return `<span class="kit-adversario kit-camisola kit-config ${o.classe || ""}">${comp.renderKitSVG(t.kit_config, { numero: o.numero, rotulo: o.rotulo || "Equipamento " + (t.name || "") })}</span>`;
     const numero = escapeHtml(String(o.numero == null ? "" : o.numero).trim().slice(0, 3));
     return `<span class="kit-adversario kit-camisola ${o.classe || ""}" data-fallback="${escapeHtml(fallback)}"><img src="assets/opponents/kits/${encodeURIComponent(t.id)}.png" alt="${escapeHtml(o.rotulo || "Equipamento " + (t.name || ""))}" loading="lazy" onerror="VFN.kitAdversarioFalhou(this)">` +
       (numero ? `<b class="kit-numero">${numero}</b>` : "") + `</span>`;

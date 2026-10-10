@@ -712,6 +712,9 @@
 <div id="modalEquipa" class="modal-overlay" hidden>
   <div class="modal-box modal-md" role="dialog" aria-modal="true" aria-labelledby="modalEquipaTitulo">
     <h3 id="modalEquipaTitulo" class="modal-title">Adicionar Equipa</h3>
+    <!-- v16: separadores Ficha | Kit -->
+    <div class="eq-abas seg-control" id="equipaAbas" role="tablist"><button type="button" class="ativo" data-eq-aba="ficha" role="tab" aria-selected="true">Ficha</button><button type="button" data-eq-aba="kit" role="tab" aria-selected="false">🎽 Kit</button></div>
+    <div data-eq-painel="ficha">
     <div class="grid grid-2">
       <div class="field"><label for="equipaIdZerozero">ID Zerozero</label><input type="text" id="equipaIdZerozero" inputmode="numeric" placeholder="Ex: 11085" aria-describedby="equipaIdAjuda"><small id="equipaIdAjuda" class="muted">Usado para o logo assets/opponents/{id}.png. Não pode ser alterado depois.</small></div>
       <div class="field"><label for="equipaCidade">Cidade</label><input type="text" id="equipaCidade" placeholder="Ex: Guarda"></div>
@@ -756,6 +759,13 @@
         <div class="field"><label for="equipaFracos">Pontos fracos</label><textarea id="equipaFracos" rows="3"></textarea></div>
       </div>
       <div class="field"><label for="equipaHistorico">Histórico / notas</label><textarea id="equipaHistorico" rows="3" placeholder="Resultados anteriores, jogadores a vigiar..."></textarea></div>
+    </div>
+    </div>
+    <div data-eq-painel="kit" hidden>
+      <p class="muted kit-ajuda">Escolhe o padrão e as cores. Fica guardado na equipa (teams.kit_config) e aparece na ficha do adversário, nos jogadores conhecidos e no Jogo da Semana.</p>
+      <div id="equipaKitEditor"></div>
+      <p id="equipaKitErro" class="form-error" role="alert"></p>
+      <div class="kit-acoes"><button type="button" id="btnKitPNG" class="btn btn-ghost btn-sm">⬇️ Descarregar PNG</button><button type="button" id="btnKitGuardar" class="btn btn-primary btn-sm">Guardar Kit</button></div>
     </div>
     <p id="equipaErro" class="form-error" role="alert"></p>
     <div class="modal-actions">

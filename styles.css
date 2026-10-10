@@ -2366,6 +2366,28 @@ body.mj-aberto { overflow: hidden; }
 .pdf-heatmap .hm-vista { display: grid; }
 .pdf-heatmap .hm-vista[data-hm="origem"] svg { max-width: 260px; }
 
+/* Kits dos adversários (v16): editor no modal da equipa (admin), SVG nas fichas e toast */
+.eq-abas { margin: 0 0 12px; }
+.kit-ajuda { margin: 0 0 10px; font-size: .82rem; }
+.kit-editor { display: grid; grid-template-columns: 170px 1fr; gap: 18px; align-items: start; }
+.kit-preview { display: grid; place-items: center; padding: 12px; border-radius: 12px; background: repeating-linear-gradient(180deg, #2f7d3b 0 18px, #2a7235 18px 36px); }
+.kit-preview svg { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35)); }
+.kit-padroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-bottom: 12px; }
+.kit-padrao { display: grid; justify-items: center; gap: 3px; padding: 6px 4px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--surface); color: var(--heading); font: inherit; font-size: .66rem; font-weight: 600; cursor: pointer; }
+.kit-padrao.ativo { border-color: #FFD700; box-shadow: 0 0 0 2px rgba(255, 215, 0, .35); }
+.kit-cores { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px 12px; }
+.kit-cor > label { display: grid; gap: 3px; font-size: .78rem; font-weight: 600; }
+.kit-cor input[type=color] { width: 100%; height: 34px; padding: 2px; border-radius: 8px; }
+.kit-cor .kit-sem { display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: .7rem; font-weight: 500; }
+.kit-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.kit-config svg { display: block; }
+.perfil-camisola .kit-config svg { width: 64px; height: auto; }
+.avatar-externo .kit-config { width: 100%; height: 100%; } .avatar-externo .kit-config svg { width: 100%; height: 100%; }
+.kit-jogo-semana.kit-config svg { width: 46px; height: auto; margin-top: 2px; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
+.vfn-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 4000; padding: 10px 18px; border-radius: 999px; background: #0A1628; color: #fff; font-weight: 700; font-size: .9rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .3); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: transform .2s ease, opacity .2s ease; }
+.vfn-toast.visivel { transform: translate(-50%, 0); opacity: 1; }
+@media (max-width: 600px) { .kit-editor { grid-template-columns: 1fr; } }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }

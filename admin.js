@@ -2117,6 +2117,11 @@ function initAdversarios() {
   el("btnAddEquipa").addEventListener("click", () => abrirModalEquipa(null));
   el("btnEquipaCancelar").addEventListener("click", () => fecharModalAdmin("modalEquipa"));
   el("btnEquipaGuardar").addEventListener("click", guardarEquipa);
+  // v16: separadores Ficha | 🎽 Kit e editor do kit
+  el("equipaAbas").addEventListener("click", e => { const b = e.target.closest("[data-eq-aba]"); if (b) mostrarAbaEquipa(b.dataset.eqAba); });
+  VFNComp.ligarEditorKit(el("equipaKitEditor"));
+  el("btnKitGuardar").addEventListener("click", guardarKitEquipa);
+  el("btnKitPNG").addEventListener("click", () => VFNComp.kitParaPNG(VFNComp.lerEditorKit(el("equipaKitEditor")), `${(equipaEmEdicaoAdmin && equipaEmEdicaoAdmin.id) || "kit"}.png`));
   el("btnEquipaApagar").addEventListener("click", apagarEquipa);
   el("btnExtGuardar").addEventListener("click", guardarExterno);
   el("btnExtCancelar").addEventListener("click", limparFormExterno);
@@ -2210,6 +2215,11 @@ function abrirModalEquipa(equipa) {
   // ficha completa (forma, confrontos, jogos com o VFN e jogadores conhecidos), só de leitura
   renderFichaEquipaAdmin();
   limparFormExterno();
+  // kit: o guardado (teams.kit_config) ou um ponto de partida com as cores da equipa
+  el("equipaKitEditor").innerHTML = VFNComp.editorKitHTML(equipa && VFNComp.configKit(equipa.kit_config) ? equipa.kit_config : { padrao: "liso", cor1: cores.primaria && cores.primaria.length === 7 ? cores.primaria : "#cbd5e1", cor2: cores.secundaria && cores.secundaria.length === 7 ? cores.secundaria : "#ffffff", cor_calcoes: cores.secundaria && cores.secundaria.length === 7 ? cores.secundaria : "#ffffff", cor_meias: cores.primaria && cores.primaria.length === 7 ? cores.primaria : "#cbd5e1" });
+  el("equipaKitErro").textContent = "";
+  el("equipaAbas").querySelector('[data-eq-aba="kit"]').hidden = !!equipa && VFN.eVFN(equipa.name);
+  mostrarAbaEquipa("ficha");
   abrirModalAdmin("modalEquipa");
 }
 
@@ -2298,6 +2308,37 @@ function idEquipaNovo(nome) {
   let id = base, n = 2;
   while (equipaPorId(id)) id = `${base}-${n++}`;
   return id;
+}
+
+/* ---- Kit do adversário (v16): teams.kit_config ----
+   Coluna nova no Supabase (correr no SQL Editor; também em sql/v16_equipas.sql):
+     ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS kit_config JSONB DEFAULT '{}';
+   O kit é desenhado em SVG no browser (VFNComp.renderKitSVG); o PNG é só para quem o quiser descarregar. */
+
+function mostrarAbaEquipa(aba) {
+  el("equipaAbas").querySelectorAll("[data-eq-aba]").forEach(b => { const a = b.dataset.eqAba === aba; b.classList.toggle("ativo", a); b.setAttribute("aria-selected", String(a)); });
+  el("modalEquipa").querySelectorAll("[data-eq-painel]").forEach(p => { p.hidden = p.dataset.eqPainel !== aba; });
+}
+
+async function guardarKitEquipa() {
+  const equipa = equipaEmEdicaoAdmin;
+  if (!equipa) { el("equipaKitErro").textContent = "Guarda primeiro a equipa (separador Ficha) e depois o kit."; return; }
+  const kit = VFNComp.lerEditorKit(el("equipaKitEditor"));
+  const botao = el("btnKitGuardar");
+  botao.disabled = true;
+  el("equipaKitErro").textContent = "";
+  try {
+    const gravada = await dadosClube.guardar("teams", { ...equipa, kit_config: kit });
+    equipaEmEdicaoAdmin = gravada;
+    equipasCalendario = equipasCalendario.filter(t => String(t.id) !== String(gravada.id)).concat(gravada);
+    renderFichaEquipaAdmin();
+    if (typeof renderAdversarios === "function") renderAdversarios();
+    VFNComp.toast("Kit guardado ✓");
+  } catch (e) {
+    el("equipaKitErro").textContent = /kit_config/i.test(e.message || "") ? "Falta a coluna teams.kit_config: corre o SQL (comentário em admin.js / sql/v16_equipas.sql)." : mensagemErro(e);
+  } finally {
+    botao.disabled = false;
+  }
 }
 
 async function guardarEquipa() {
