@@ -1009,8 +1009,8 @@
 
     function barra(va, vb, menor) {
       const a = Number(va) || 0, b = Number(vb) || 0, total = a + b;
-      // menor é melhor: a barra pende para o valor mais baixo (a parte de A é a de B e vice-versa)
-      const pa = total ? Math.round((menor ? b : a) / total * 100) : 50;
+      // valores iguais (incluindo 0–0 e "—"): 50% / 50%. Menor é melhor: a barra pende para o valor mais baixo
+      const pa = a === b || !total ? 50 : Math.round((menor ? b : a) / total * 100);
       return `<span class="cmpx-barra${total ? "" : " vazia"}${menor ? " invertida" : ""}"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${100 - pa}%"></i></span>`;
     }
     function cabecalho(j, lado, fixo, candidatos) {
@@ -1704,11 +1704,12 @@
       <strong>${esc(j.nome)}</strong><small>${esc(j.posicao || "")}${j.numero !== "" && j.numero != null ? " · Nº " + esc(j.numero) : ""}</small>
       <label class="cmp-trocar"><span class="sr-only">Trocar jogador</span><select data-cmp-trocar="${qual}">${candidatos.map(c => `<option value="${esc(c.id)}" ${String(c.id) === String(j.id) ? "selected" : ""} ${String(c.id) === String((qual === "a" ? b : a).id) ? "disabled" : ""}>${esc(c.nome)}</option>`).join("")}</select></label>
     </div>`;
-    const barra = (v, max, lado) => `<span class="cmp-barra ${lado}"><i style="width:${max ? Math.round(v / max * 100) : 0}%;background:${COR_CLUBE}"></i></span>`;
+    // v18: valores iguais (incluindo 0–0) ficam a 50% cada; senão o maior a 100% e o outro proporcional
+    const barra = (v, max, lado, outro) => `<span class="cmp-barra ${lado}"><i style="width:${v === outro ? 50 : max ? Math.round(v / max * 100) : 0}%;background:${COR_CLUBE}"></i></span>`;
     return `<div class="cmp-cab">${lado(a, "a")}<span class="cmp-vs">vs</span>${lado(b, "b")}<button type="button" class="modal-x cmp-fechar" data-cmp="fechar" aria-label="Fechar comparação">×</button></div>
       <div class="cmp-corpo">${linhasComparacao(a, b).map(([rotulo, f, nota]) => {
         const va = Number(f(a)) || 0, vb = Number(f(b)) || 0, max = Math.max(va, vb);
-        return `<div class="cmp-linha"><span class="cmp-valor${va > vb ? " maior" : ""}">${va}</span><span class="cmp-rotulo">${esc(rotulo)}${nota ? `<small>${esc(nota)}</small>` : ""}</span><span class="cmp-valor${vb > va ? " maior" : ""}">${vb}</span>${barra(va, max, "esq")}${barra(vb, max, "dir")}</div>`;
+        return `<div class="cmp-linha"><span class="cmp-valor${va > vb ? " maior" : ""}">${va}</span><span class="cmp-rotulo">${esc(rotulo)}${nota ? `<small>${esc(nota)}</small>` : ""}</span><span class="cmp-valor${vb > va ? " maior" : ""}">${vb}</span>${barra(va, max, "esq", vb)}${barra(vb, max, "dir", va)}</div>`;
       }).join("")}</div>`;
   }
 
