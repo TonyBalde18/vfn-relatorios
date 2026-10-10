@@ -118,6 +118,8 @@ function kpisPessoais(j) {
   return tiles.map(([l, v]) => `<div class="summary-tile"><span>${l}</span><strong>${v}</strong></div>`).join("");
 }
 
+let graficoGolosEq = null;
+
 function renderInicio() {
   const euro = v => VFN.formatoEuro.format(v);
   if (eu) {
@@ -143,6 +145,10 @@ function renderInicio() {
     VFNComp.ligarJogoDaSemana($("eqJogoSemana"), dados);
   }
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
+  // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
+  const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
+  $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeEstaticoHTML(minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
+  graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") });
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
 }
 
@@ -442,6 +448,8 @@ function renderEstatisticas() {
 
 /* ---------- Ficha do jogador (modal) ---------- */
 
+let radarModalEq = null;
+
 function abrirJogador(id) {
   const j = jogadores.find(x => String(x.id) === String(id));
   if (!j) return;
@@ -453,6 +461,11 @@ function abrirJogador(id) {
     ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", j.minutos]]
     : [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]).map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
   $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j));
+  // v17: perfil da época (o mesmo radar do admin, VFNHub.radarJogador); presenças só do próprio
+  if (window.Chart) {
+    $("ejCorpo").insertAdjacentHTML("beforeend", `<div class="player-radar"><h4>Perfil da época <small class="muted">comparado com o plantel</small></h4><div class="radar-box"><canvas id="ejRadar" role="img" aria-label="Gráfico radar: golos, assistências, cartões, minutos e presenças"></canvas></div></div>`);
+    requestAnimationFrame(() => { radarModalEq = H.radarJogador($("ejRadar"), j, jogadores, { presencas: x => (eu && x === eu ? percentagemMinhasPresencas() : null), anterior: radarModalEq }); });
+  }
   $("modalJogador").hidden = false;
   $("btnFecharJogador").focus();
 }
@@ -631,7 +644,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
-  document.addEventListener("vfn:tema", () => { if (eu) { renderGraficosPessoais(); renderFichaCompleta(); } }); // cores dos gráficos no tema claro/escuro
+  document.addEventListener("vfn:tema", () => { if (eu) { renderGraficosPessoais(); renderFichaCompleta(); } graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") }); }); // cores dos gráficos no tema claro/escuro
   // telemóvel: puxar para atualizar no início (resultados), calendário e competições
   VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
 

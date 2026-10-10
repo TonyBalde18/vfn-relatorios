@@ -615,6 +615,62 @@
     return [...conta.entries()].sort((a, b) => b[1].n - a[1].n || b[1].data.localeCompare(a[1].data))[0][0];
   }
 
+  /**
+   * Minutos da época por jogador (v17, partilhado pelo dashboard e pela área do jogador): relatórios publicados de
+   * jogos oficiais, um por jogo. jogadorDoRelatorio(idLocal) liga os ids dos relatórios ao jogador.
+   * Devolve { lista: [{ jogador, minutos, jogos }] (mais minutos primeiro), relatorios }.
+   */
+  function minutosJogadosEpoca(dados, jogadorDoRelatorio) {
+    const porJogo = new Map();
+    (dados.match_reports || []).filter(r => VFN.estadoRelatorio(r) === "published").forEach(r => {
+      const m = r.match_data || {}, pre = m.preJogo || {};
+      const chave = r.match_id || pre.matchId || `${pre.data || ""}|${pre.adversario || ""}|${r.id}`;
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || r.created_at || "") > String(atual.updated_at || atual.created_at || "")) porJogo.set(chave, r);
+    });
+    const relatorios = [...porJogo.values()].filter(r => relatorioOficial(r, dados));
+    const totais = new Map();
+    relatorios.forEach(r => Object.entries(minutosDoRelatorio(r.match_data)).forEach(([idLocal, min]) => {
+      const j = jogadorDoRelatorio(idLocal);
+      if (!j) return;
+      const t = totais.get(j.id) || { jogador: j, minutos: 0, jogos: 0 };
+      t.minutos += min; t.jogos++;
+      totais.set(j.id, t);
+    }));
+    return { lista: [...totais.values()].sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt")), relatorios: relatorios.length };
+  }
+
+  /**
+   * Gráfico "Golos marcados vs sofridos" (últimos 10 jogos, do mais antigo para o mais recente), partilhado pelo
+   * dashboard e pela área do jogador. Devolve o Chart (ou null sem jogos/Chart.js); o.anterior é destruído.
+   * o.vazio: elemento a mostrar sem jogos.
+   */
+  function graficoGolos(canvas, dados, o) {
+    const opcoes = o || {};
+    if (opcoes.anterior) opcoes.anterior.destroy();
+    if (!canvas || !window.Chart) return null;
+    const jogos = VFN.ultimosJogos(dados.matches, 10).reverse();
+    if (opcoes.vazio) opcoes.vazio.hidden = jogos.length > 0;
+    canvas.parentElement.hidden = !jogos.length;
+    if (!jogos.length) return null;
+    VFN.estilizarGraficos();
+    const marcados = "#1d4ed8", sofridos = "#ea580c";
+    const serie = (label, f, cor, extra) => ({ label, data: jogos.map(j => f(VFN.golosJogo(j))), borderColor: cor, backgroundColor: cor, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: "#fff", pointBorderWidth: 2, tension: 0, ...(extra || {}) });
+    return new Chart(canvas, {
+      type: "line",
+      data: { labels: jogos.map(j => VFN.dataCurta(j.date)), datasets: [serie("Marcados", g => g.vfn, marcados), serie("Sofridos", g => g.adv, sofridos, { borderDash: [6, 4] })] },
+      options: {
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "top", align: "end", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 } },
+          tooltip: { callbacks: { title: items => { const j = jogos[items[0].dataIndex]; return `${VFN.dataCurta(j.date)} · ${nomeAdversario(dados, j)} (${VFN.jogoEmCasa(j) ? "C" : "F"})`; } } }
+        },
+        scales: { x: { grid: { display: false }, border: { color: "rgba(10,22,40,.2)" } }, y: { beginAtZero: true, grace: 1, border: { display: false }, grid: { color: Chart.defaults.borderColor }, ticks: { precision: 0, stepSize: 1 } } }
+      }
+    });
+  }
+
   /** 11 mais utilizado só de leitura (dashboard e página pública), na formação mais usada. o: opções de onzeCampoHTML. */
   function onzeEstaticoHTML(lista, dados, o) {
     const formacao = formacaoMaisUsada(dados);
@@ -1842,6 +1898,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

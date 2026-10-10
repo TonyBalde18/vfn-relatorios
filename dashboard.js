@@ -10,7 +10,6 @@ const $ = id => document.getElementById(id);
 
 const TITULOS_VISTA = { hub: "Hub", comparar: "Comparar jogadores", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", relatorios: "Relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
-const COR_SOFRIDOS = "#ea580c";
 
 let cliente = null;
 let utilizador = null;
@@ -176,32 +175,8 @@ function eixoY(extra) {
 function renderGraficos() {
   if (!estiloGraficos()) return;
 
-  // Golos: últimos 10 jogos, do mais antigo para o mais recente
-  const jogos = VFN.ultimosJogos(dados.matches, 10).reverse();
-  $("chartGolosVazio").hidden = jogos.length > 0;
-  $("chartGolos").parentElement.hidden = !jogos.length;
-  if (graficos.golos) graficos.golos.destroy();
-  if (jogos.length) {
-    graficos.golos = new Chart($("chartGolos"), {
-      type: "line",
-      data: {
-        labels: jogos.map(j => VFN.dataCurta(j.date)),
-        datasets: [
-          { label: "Marcados", data: jogos.map(j => VFN.golosJogo(j).vfn), borderColor: COR_MARCADOS, backgroundColor: COR_MARCADOS, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: "#fff", pointBorderWidth: 2, tension: 0 },
-          { label: "Sofridos", data: jogos.map(j => VFN.golosJogo(j).adv), borderColor: COR_SOFRIDOS, backgroundColor: COR_SOFRIDOS, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: "#fff", pointBorderWidth: 2, tension: 0, borderDash: [6, 4] }
-        ]
-      },
-      options: {
-        maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: { position: "top", align: "end", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 } },
-          tooltip: { callbacks: { title: items => { const j = jogos[items[0].dataIndex]; return `${VFN.dataCurta(j.date)} · ${H.nomeAdversario(dados, j)} (${VFN.jogoEmCasa(j) ? "C" : "F"})`; } } }
-        },
-        scales: { x: { grid: { display: false }, border: { color: "rgba(10,22,40,.2)" } }, y: eixoY({ grace: 1, ticks: { precision: 0, stepSize: 1 } }) }
-      }
-    });
-  }
+  // Golos: últimos 10 jogos (VFNHub.graficoGolos, partilhado com a área do jogador)
+  graficos.golos = H.graficoGolos($("chartGolos"), dados, { anterior: graficos.golos, vazio: $("chartGolosVazio") });
 
   // Presença mensal: (P + A) / registos do mês
   const porMes = {};
@@ -361,9 +336,6 @@ function relatoriosUnicos() {
   return [...porJogo.values()];
 }
 
-// minutos de cada jogador num relatório: H.minutosDoRelatorio (hub.js, partilhado com as tendências)
-const minutosDoRelatorio = H.minutosDoRelatorio;
-
 /** Os relatórios guardam o id local do plantel; na tabela players pode ser "1014939" ou "<uid>-3". */
 function jogadorDoRelatorio(idLocal) {
   const alvo = String(idLocal);
@@ -371,20 +343,9 @@ function jogadorDoRelatorio(idLocal) {
 }
 
 /** Minutos por jogador (11 mais utilizado e lista de minutos): só jogos oficiais, sem amigáveis. */
+/** Minutos da época (VFNHub.minutosJogadosEpoca, partilhado com a área do jogador). */
 function calcularMinutosJogados() {
-  const totais = new Map();
-  const relatorios = relatoriosUnicos().filter(r => H.relatorioOficial(r, dados));
-  relatorios.forEach(r => {
-    Object.entries(minutosDoRelatorio(r.match_data)).forEach(([idLocal, min]) => {
-      const j = jogadorDoRelatorio(idLocal);
-      if (!j) return;
-      const t = totais.get(j.id) || { jogador: j, minutos: 0, jogos: 0 };
-      t.minutos += min;
-      t.jogos++;
-      totais.set(j.id, t);
-    });
-  });
-  return { lista: [...totais.values()].sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt")), relatorios: relatorios.length };
+  return H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
 }
 
 /* ---------- Histórico de relatórios (só os publicados) ---------- */
