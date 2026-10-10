@@ -800,8 +800,8 @@ let graficoRadar = null;
 
 /** % de presenças (P + A sobre os registos) do jogador na época. */
 function percentagemPresencas(j) {
-  const registos = cacheAdmin.attendance.filter(r => r.player_id === idJogadorBD(j) && r.status);
-  return registos.length ? Math.round(registos.filter(r => r.status === "P" || r.status === "A").length / registos.length * 100) : 0;
+  const p = VFN.calcularPresencas(idJogadorBD(j), cacheAdmin.attendance);
+  return p ? p.pct : 0;
 }
 
 /** Radar com 5 eixos, cada um em % do melhor valor do plantel (presenças em % real). */

@@ -226,10 +226,7 @@ function renderPlantel() {
 }
 
 function presencaJogador(id) {
-  const registos = dados.attendance.filter(a => String(a.player_id) === String(id) && a.status);
-  if (!registos.length) return null;
-  const presentes = registos.filter(a => a.status === "P" || a.status === "A").length;
-  return { pct: Math.round(presentes / registos.length * 100), presentes, total: registos.length };
+  return VFN.calcularPresencas(id, dados.attendance);
 }
 
 /** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */

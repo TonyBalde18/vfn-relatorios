@@ -1156,6 +1156,18 @@
 
   const ORDEM_CATEGORIA = { GR: 0, Def: 1, Meio: 2, Ata: 3 };
 
+  /**
+   * Presenças (v18, partilhado por admin, dashboard e área do jogador): registos com estado; presente = P ou A
+   * (atraso conta como presente). playerId null = todos os registos dados (ex.: só os do próprio jogador).
+   * Devolve { pct, presentes, total } ou null sem registos.
+   */
+  function calcularPresencas(playerId, attendanceRows) {
+    const registos = (attendanceRows || []).filter(a => a && a.status && (playerId == null || String(a.player_id) === String(playerId)));
+    if (!registos.length) return null;
+    const presentes = registos.filter(a => a.status === "P" || a.status === "A").length;
+    return { pct: Math.round(presentes / registos.length * 100), presentes, total: registos.length };
+  }
+
   /** Ordena jogadores por posição (GR, defesas, médios, avançados) e depois pelo número. */
   function ordenarPorPosicao(lista) {
     return [...lista].sort((a, b) =>
@@ -1635,7 +1647,7 @@
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, kitAdversarioHTML, kitAdversarioFalhou, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
-    eVFN, ID_CLUBE_ZEROZERO, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
+    eVFN, ID_CLUBE_ZEROZERO, calcularPresencas, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
     jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     NIVEIS_PROFICIENCIA, POSICOES_PROFICIENCIA, nivelProficiencia, posicaoDoLugar, proficienciaJogador, proficienciaPontoHTML, proficienciaBadgeHTML,

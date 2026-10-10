@@ -390,8 +390,8 @@ function abrirEquipa(teamId) {
 
 /** % de presenças (P e A contam como presente) do jogador com sessão; null sem dados. */
 function percentagemMinhasPresencas() {
-  if (!minhasPresencas || !minhasPresencas.length) return null;
-  return Math.round(minhasPresencas.filter(r => r.status === "P" || r.status === "A").length / minhasPresencas.length * 100);
+  const p = VFN.calcularPresencas(null, minhasPresencas); // só os registos do próprio (RLS)
+  return p ? p.pct : null;
 }
 
 let graficoRadarEq = null;
@@ -416,14 +416,15 @@ function renderFichaCompleta() {
   $("eqRadarBox").hidden = !eu || !window.Chart;
   if (!eu) { $("eqFichaCompleta").innerHTML = ""; return; }
   const pct = percentagemMinhasPresencas();
-  const presentes = minhasPresencas ? minhasPresencas.filter(r => r.status === "P" || r.status === "A").length : 0;
+  const minhas = VFN.calcularPresencas(null, minhasPresencas) || { presentes: 0, total: 0 };
+  const presentes = minhas.presentes;
   const tile = (rotulo, valor) => `<div class="summary-tile"><span>${rotulo}</span><strong>${valor}</strong></div>`;
   const gr = statsGR(eu);
   $("eqFichaCompleta").innerHTML = `
     <div class="summary-tiles eq-ficha-tiles">
       ${tile("Presenças (época)", pct == null ? "—" : `${pct}%`)}${tile("Minutos", eu.minutos + "'")}${tile("Golos", eu.golos)}${tile("Assistências", eu.assistencias)}${tile("Amarelos", eu.cartoesA)}${tile("Vermelhos", eu.cartoesV)}
     </div>
-    ${pct != null ? `<p class="muted eq-ficha-nota">${presentes} presença${presentes === 1 ? "" : "s"} em ${minhasPresencas.length} sessões registadas</p>` : ""}
+    ${pct != null ? `<p class="muted eq-ficha-nota">${presentes} presença${presentes === 1 ? "" : "s"} em ${minhas.total} sessões registadas</p>` : ""}
     <dl class="info-grid eq-ficha-info">
       <div><dt>Pé preferido</dt><dd>${esc(eu.info.pe || "—")}</dd></div>
       <div><dt>Posição</dt><dd>${VFN.posicaoDetalhadaHTML(eu.posicao, eu.subPosicao, eu.posicoesSecundarias) || esc(eu.posicao || "—")}</dd></div>
