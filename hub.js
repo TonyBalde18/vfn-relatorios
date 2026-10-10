@@ -671,6 +671,112 @@
     });
   }
 
+  /* ---------- 11 mais utilizado pela posição real (v18) ----------
+     A posição de cada jogador vem dos relatórios: o onze inicial está por slot (match_data.jogo.titulares[i] =
+     VFN.FORMACOES_SLOTS[formacaoVFN][i]) e quem entra herda o slot de quem sai (substituições, com minutos).
+     Cada jogador fica na posição onde jogou mais minutos; a formação é a mais usada nos relatórios. */
+
+  const CATEGORIA_SLOT = { GR: "GR", DD: "Def", DC: "Def", DE: "Def", MDEF: "Meio", MCEN: "Meio", MOFE: "Meio", ED: "Ata", EE: "Ata", PL: "Ata" };
+  const categoriaSlot = label => CATEGORIA_SLOT[String(label || "").toUpperCase()] || "";
+
+  /**
+   * relatorios: match_reports (publicados, um por jogo, só oficiais) ou linhas da view onze_jogos (página pública:
+   * { match_id, competition, updated_at, formacao, duracao, titulares, substituicoes }).
+   * jogadorDoRelatorio(idLocal) → jogador. Devolve { formacao, lugares: [{ jogador, minutos, posicao } | null], jogos }
+   * (lugares pelo índice de VFN.FORMACOES_SLOTS[formacao]) ou null sem dados.
+   */
+  function calcularOnzeMaisUtilizado(relatorios, jogadorDoRelatorio, dados) {
+    const porJogo = new Map();
+    (relatorios || []).forEach(r => {
+      if (!r) return;
+      const jogo = r.match_data ? (r.match_data.jogo || {}) : { formacaoVFN: r.formacao, titulares: r.titulares, eventos: r.substituicoes, duracaoJogo: r.duracao };
+      if (r.match_data && VFN.estadoRelatorio(r) !== "published") return;
+      const comp = r.match_data ? competicaoDoRelatorio(r, dados) : r.competition;
+      if (!VFN.competicaoOficial(comp)) return; // como os minutos: só jogos oficiais
+      const chave = String(r.match_id || ((r.match_data || {}).preJogo || {}).matchId || r.id || r.report_id);
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || "") > String(atual.r.updated_at || "")) porJogo.set(chave, { r, jogo });
+    });
+    const acum = new Map(); // jogador.id → { jogador, total, porPosicao: { label: minutos } }
+    const formacoes = new Map();
+    const creditar = (idLocal, label, minutos) => {
+      if (minutos <= 0) return;
+      const j = jogadorDoRelatorio(idLocal);
+      if (!j) return;
+      const a = acum.get(j.id) || { jogador: j, total: 0, porPosicao: {} };
+      a.total += minutos;
+      a.porPosicao[label] = (a.porPosicao[label] || 0) + minutos;
+      acum.set(j.id, a);
+    };
+    let jogos = 0;
+    porJogo.forEach(({ r, jogo }) => {
+      const slots = VFN.FORMACOES_SLOTS[jogo.formacaoVFN] || [];
+      const titulares = Array.isArray(jogo.titulares) ? jogo.titulares : [];
+      if (!slots.length || !titulares.some(Boolean)) return;
+      jogos++;
+      const f = formacoes.get(jogo.formacaoVFN) || { n: 0, data: "" };
+      f.n++; if (String(r.updated_at || "") > f.data) f.data = String(r.updated_at || "");
+      formacoes.set(jogo.formacaoVFN, f);
+      const duracao = Number(jogo.duracaoJogo) || 90;
+      const emCampo = new Map(); // índice do slot → { id, inicio }
+      titulares.forEach((id, i) => { if (id && slots[i]) emCampo.set(i, { id: String(id), inicio: 0 }); });
+      (jogo.eventos || []).filter(e => e && e.tipo === "Substituição" && (e.equipa === "VFN" || e.equipa == null) && e.jogadorSaiId && e.jogadorId)
+        .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+        .forEach(e => {
+          const minuto = Math.min(duracao, Number(e.minuto) || 0);
+          const lugar = [...emCampo.entries()].find(([, v]) => v.id === String(e.jogadorSaiId));
+          if (!lugar) return;
+          const [i, v] = lugar;
+          creditar(v.id, slots[i].label, minuto - v.inicio);
+          emCampo.set(i, { id: String(e.jogadorId), inicio: minuto }); // quem entra herda o lugar
+        });
+      emCampo.forEach((v, i) => creditar(v.id, slots[i].label, duracao - v.inicio));
+    });
+    if (!acum.size) return null;
+    const formacao = [...formacoes.entries()].sort((a, b) => b[1].n - a[1].n || b[1].data.localeCompare(a[1].data))[0][0];
+    const slots = VFN.FORMACOES_SLOTS[formacao];
+    const lugares = slots.map(() => null);
+    const usados = new Set();
+    // 1.º: cada jogador na posição onde jogou mais minutos (os pares com mais minutos escolhem primeiro)
+    const pares = [];
+    acum.forEach(a => {
+      const [label, minutos] = Object.entries(a.porPosicao).sort((x, y) => y[1] - x[1])[0];
+      pares.push({ a, label, minutos });
+    });
+    pares.sort((x, y) => y.minutos - x.minutos || y.a.total - x.a.total).forEach(({ a, label }) => {
+      const i = slots.findIndex((s, k) => !lugares[k] && s.label === label);
+      if (i < 0 || usados.has(a.jogador.id)) return;
+      lugares[i] = { jogador: a.jogador, minutos: a.total, posicao: label };
+      usados.add(a.jogador.id);
+    });
+    // 2.º: lugares vazios → quem tem mais minutos nessa posição; depois na mesma categoria; por fim quem tem mais minutos
+    const restantes = () => [...acum.values()].filter(a => !usados.has(a.jogador.id)).sort((x, y) => y.total - x.total);
+    slots.forEach((s, i) => {
+      if (lugares[i]) return;
+      const r = restantes();
+      const escolha = r.filter(a => a.porPosicao[s.label]).sort((x, y) => y.porPosicao[s.label] - x.porPosicao[s.label])[0]
+        || r.find(a => Object.keys(a.porPosicao).some(l => categoriaSlot(l) === categoriaSlot(s.label)))
+        || (categoriaSlot(s.label) === "GR" ? null : r.find(a => !Object.keys(a.porPosicao).every(l => categoriaSlot(l) === "GR")));
+      if (!escolha) return;
+      lugares[i] = { jogador: escolha.jogador, minutos: escolha.total, posicao: s.label };
+      usados.add(escolha.jogador.id);
+    });
+    return { formacao, lugares, jogos };
+  }
+
+  /**
+   * 11 mais utilizado (dashboard, área do jogador e página pública): pela posição real quando há relatórios com o
+   * onze por slot; senão, como antes (posição do perfil, na formação mais usada). listaMinutos: [{ jogador, minutos }].
+   */
+  function onzeMaisUtilizadoHTML(relatorios, jogadorDoRelatorio, listaMinutos, dados) {
+    const real = calcularOnzeMaisUtilizado(relatorios, jogadorDoRelatorio, dados);
+    if (!real || real.lugares.filter(Boolean).length < 6) {
+      return listaMinutos && listaMinutos.length ? onzeEstaticoHTML(listaMinutos, dados) : vazio("Ainda não há minutos registados.");
+    }
+    const lugares = real.lugares.map(l => l && { jogador: l.jogador, minutos: l.minutos });
+    return `<div class="onze-estatico"><p class="onze-formacao muted">Formação mais usada: <b>${esc(real.formacao)}</b> · cada jogador na posição onde jogou mais minutos (${real.jogos} jogo${real.jogos === 1 ? "" : "s"})</p>${onzeCampoHTML(lugares.filter(Boolean), { formacao: real.formacao, lugares, rotulo: t => t.minutos + "'" })}</div>`;
+  }
+
   /** 11 mais utilizado só de leitura (dashboard e página pública), na formação mais usada. o: opções de onzeCampoHTML. */
   function onzeEstaticoHTML(lista, dados, o) {
     const formacao = formacaoMaisUsada(dados);
@@ -1898,6 +2004,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

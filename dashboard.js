@@ -450,7 +450,8 @@ function renderMinutos() {
   }
   $("minutosLista").innerHTML = H.minutosListaHTML(lista);
   // 11 mais utilizado: só de leitura, na formação mais usada nas convocatórias (v15)
-  $("onzeCampo").innerHTML = H.onzeEstaticoHTML(lista, dados, { proficiencia: true });
+  // v18: posição real (slot do onze inicial + substituições nos relatórios); sem relatórios por slot, a do perfil
+  $("onzeCampo").innerHTML = H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, lista, dados);
 }
 
 

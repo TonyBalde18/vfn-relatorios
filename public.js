@@ -17,6 +17,12 @@ let filtroPosicao = "";
 let filtroCalendario = "todos";
 const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Futebol Zero Graus Produções
 
+/** Os relatórios guardam o id local do plantel ("1014939" ou "<uid>-3"). */
+function jogadorDoRelatorioPub(idLocal) {
+  const alvo = String(idLocal);
+  return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+}
+
 async function carregarDados() {
   const cliente = VFN.criarClienteSupabase({ semSessao: true });
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
@@ -25,7 +31,7 @@ async function carregarDados() {
    * golos_zonas. Para deixar de a expor no Supabase (opcional):
    *   drop view if exists public.golos_zonas;
    */
-  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", squads: "squads" };
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", squads: "squads", onze_jogos: "onze_jogos" };
   const chaves = Object.keys(pedidos);
   // do plantel só as colunas públicas da view (nunca a tabela players)
   // squads: só a formação (para o 11 mais utilizado); sem leitura pública (RLS) o 11 usa a posição do perfil
@@ -33,7 +39,7 @@ async function carregarDados() {
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   // tabelas novas (ainda por criar no Supabase) não disparam o aviso
-  const opcionais = ["external_players", "sessions", "squads"];
+  const opcionais = ["external_players", "sessions", "squads", "onze_jogos"];
   respostas.forEach((r, i) => { if (r.error && !opcionais.includes(chaves[i])) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
@@ -178,7 +184,8 @@ function renderTudo() {
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
     .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
   // 11 mais utilizado: só de leitura, na formação mais usada (v15)
-  $("pubOnze").innerHTML = minutos.length ? H.onzeEstaticoHTML(minutos, dados) : H.onzeCampoHTML(minutos);
+  // v18: posição real pela view onze_jogos (sql/v18_onze_publico.sql); sem ela, a posição do perfil
+  $("pubOnze").innerHTML = minutos.length ? H.onzeMaisUtilizadoHTML(dados.onze_jogos, jogadorDoRelatorioPub, minutos, dados) : H.onzeCampoHTML(minutos);
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);
   // marcadores por competição: liga e cada taça

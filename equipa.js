@@ -147,7 +147,7 @@ function renderInicio() {
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
   const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
-  $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeEstaticoHTML(minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
+  $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
   graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") });
   $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
 }
