@@ -351,6 +351,17 @@ function renderComparar() {
   if (comparador) comparador.render();
 }
 
+/* ---------- Plantel (v17): grelha de cards como no dashboard ----------
+   Golos, assistências e minutos de todos; a disponibilidade só no próprio jogador (destacado). A equipa técnica vê a de todos. */
+
+let filtroPosicaoEq = "";
+
+function renderPlantelEq() {
+  $("eqPlantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicaoEq);
+  $("eqPlantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicaoEq, { disponibilidade: eu ? "eu" : true, eu: eu ? eu.id : null, stats: true });
+  $("eqPlantelTotal").textContent = `· ${jogadores.length} jogadores`;
+}
+
 function renderAdversarios() {
   $("eqEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("eqEquipasPesquisa").value);
 }
@@ -517,7 +528,7 @@ function renderTudo() {
   renderCalendario();
   renderMultas();
   renderEstatisticas();
-  $("eqDisponibilidade").innerHTML = H.disponibilidadeHTML(dados, jogadores);
+  renderPlantelEq();
   renderRelatorios();
   renderAdversarios();
   renderComparar();
@@ -538,7 +549,7 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqMinhasMultas", "linhas", 4);
   H.mostrarEsqueleto("eqTabelaMultas", "linhas", 5);
   H.mostrarEsqueleto("eqMinhaFicha", "cards", 1);
-  H.mostrarEsqueleto("eqDisponibilidade", "jogadores", 8);
+  H.mostrarEsqueleto("eqPlantelGrid", "jogadores", 8);
   H.mostrarEsqueleto("eqRelatoriosLista", "linhas", 4);
 }
 
@@ -596,6 +607,8 @@ async function iniciar() {
   });
   $("eqMultasJogador").addEventListener("change", renderMultas);
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
+  $("eqPlantelFiltros").addEventListener("click", e => { const b = e.target.closest("[data-posicao]"); if (b) { filtroPosicaoEq = b.dataset.posicao; renderPlantelEq(); } });
+  $("eqPlantelGrid").addEventListener("click", e => { const c = e.target.closest(".player-card"); if (c) abrirJogador(c.dataset.id); });
   $("eqHeatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmapEquipa = b.dataset.filtro; renderHeatmapsEquipa(); } });
   $("eqEquipasPesquisa").addEventListener("input", renderAdversarios);
   // emblema de uma equipa (cards dos adversários, jornadas...) abre a ficha com o H2H

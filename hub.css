@@ -418,6 +418,11 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 
 .kit-jogo-semana.kit-cores svg { display: block; margin: 2px auto 0; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
 
+/* Plantel (v17): estatísticas no card e o próprio jogador destacado (área do jogador) */
+.player-card-stats { display: flex; justify-content: center; gap: 8px; margin-top: 2px; font-size: .72rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.player-card.eu { border: 2px solid #FFD700; box-shadow: 0 0 0 3px rgba(255, 215, 0, .25); }
+.player-card-eu { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); z-index: 2; padding: 1px 7px; border-radius: 999px; background: #FFD700; color: #0A1628; font-size: .62rem; font-weight: 800; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

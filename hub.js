@@ -358,7 +358,8 @@
       .sort((a, b) => (Number(a.numero) || 999) - (Number(b.numero) || 999) || a.nome.localeCompare(b.nome, "pt"));
     if (!lista.length) return vazio("Sem jogadores nesta posição.");
     const capitao = capitaoAtivo(jogadores);
-    return lista.map(j => window.VFNComp.renderPlayerCard(j, { capitao: String(j.id) === capitao, disponibilidade: o.disponibilidade, comparar: o.comparar })).join("");
+    // o.eu: id do jogador com sessão (destacado e o único com disponibilidade, se o.disponibilidade === "eu")
+    return lista.map(j => { const souEu = o.eu != null && String(j.id) === String(o.eu); return window.VFNComp.renderPlayerCard(j, { capitao: String(j.id) === capitao, disponibilidade: o.disponibilidade === "eu" ? souEu : o.disponibilidade, comparar: o.comparar, eu: souEu, stats: o.stats }); }).join("");
   }
 
   /** Capitão ativo do plantel: o primeiro da lista de prioridade que está disponível. */

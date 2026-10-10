@@ -204,11 +204,12 @@
     </div>
   </section>
 
-  <!-- DISPONIBILIDADE / PLANTEL -->
+  <!-- PLANTEL (v17): a mesma grelha de cards do dashboard; a disponibilidade só aparece no próprio jogador -->
   <section id="view-disponibilidade" class="view">
     <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Disponibilidade do plantel</h2>
-      <div id="eqDisponibilidade"></div>
+      <div class="hub-card-head"><h2 class="hub-card-title">Plantel <small class="muted" id="eqPlantelTotal"></small></h2></div>
+      <div id="eqPlantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div>
+      <div id="eqPlantelGrid" class="players-grid"></div>
     </div>
   </section>
 

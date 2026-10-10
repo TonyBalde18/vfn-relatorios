@@ -46,12 +46,14 @@
   /** Cartão de um jogador do plantel. o: { capitao: true para o badge C, disponibilidade: mostrar o estado } */
   function renderPlayerCard(j, o) {
     const opcoes = o || {};
-    const cartao = `<button type="button" class="player-card" data-id="${esc(j.id)}">
+    // v17: opcoes.eu destaca o próprio jogador (área do jogador); opcoes.stats mostra golos, assistências e minutos
+    const cartao = `<button type="button" class="player-card${opcoes.eu ? " eu" : ""}" data-id="${esc(j.id)}">${opcoes.eu ? `<span class="player-card-eu">Tu</span>` : ""}
       ${VFN.avatarJogador(j)}${opcoes.capitao ? VFN.badgeCapitao("no-card") : ""}
       <span class="player-card-number">${j.numero !== "" ? "#" + esc(j.numero) : ""}</span>
       <strong>${esc(j.nome)}</strong>
       <small>${esc(j.posicao)}</small>
       ${opcoes.disponibilidade && j.disponibilidade ? VFN.badgeDisponibilidade(j.disponibilidade) : ""}
+      ${opcoes.stats ? `<span class="player-card-stats" aria-label="${j.golos || 0} golos, ${j.assistencias || 0} assistências, ${j.minutos || 0} minutos"><span title="Golos">⚽ ${j.golos || 0}</span><span title="Assistências">🅰️ ${j.assistencias || 0}</span><span title="Minutos">⏱ ${j.minutos || 0}'</span></span>` : ""}
     </button>`;
     // com comparação: o botão "Comparar" fica ao lado do cartão (não pode ir dentro de outro botão)
     return opcoes.comparar ? `<div class="cmp-item">${cartao}<button type="button" class="btn-comparar" data-comparar="${esc(j.id)}" aria-label="Comparar ${esc(j.nome)} com outro jogador">⚖ Comparar</button></div>` : cartao;
