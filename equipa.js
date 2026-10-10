@@ -214,8 +214,6 @@ let calendario = null;
 let mapaEquipa = null;
 
 function renderCalendario() {
-  if (!mapaEquipa) mapaEquipa = VFNComp.criarMapaEstadios($("mapaEquipa"), () => dados.teams);
-  else mapaEquipa.render();
   if (calendario) { calendario.render(); return; }
   calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), {
     obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),
@@ -369,6 +367,9 @@ function renderPlantelEq() {
 }
 
 function renderAdversarios() {
+  // mapa dos estádios (v18: na secção dos adversários)
+  if (!mapaEquipa) mapaEquipa = VFNComp.criarMapaEstadios($("mapaEquipa"), () => dados.teams);
+  else mapaEquipa.render();
   $("eqEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("eqEquipasPesquisa").value);
 }
 
