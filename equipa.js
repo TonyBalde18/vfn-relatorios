@@ -353,7 +353,7 @@ let comparador = null;
 
 function renderComparar() {
   $("eqCompararAjuda").textContent = eu ? "tu e outro jogador à escolha" : "escolhe os dois jogadores";
-  if (!comparador) comparador = VFNComp.criarComparador($("eqComparar"), { jogadores: () => jogadores, fixoA: eu ? () => eu.id : null, presencas: j => (eu && j === eu ? percentagemMinhasPresencas() : null) });
+  if (!comparador) comparador = VFNComp.criarComparador($("eqComparar"), { jogadores: () => jogadores, statsGR, fixoA: eu ? () => eu.id : null, presencas: j => (eu && j === eu ? percentagemMinhasPresencas() : null) });
   if (comparador) comparador.render();
 }
 

@@ -969,6 +969,18 @@
 
   const COR_A = "#043792", COR_B = "#f59e0b";
 
+  /** "gr" se os dois forem guarda-redes; senão "outfield" (o comparador só junta jogadores do mesmo tipo). */
+  function tipoComparacao(a, b) {
+    const eGR = j => !!j && VFN.categoriaPosicao(j.posicao || j.position) === "GR";
+    return eGR(a) && eGR(b) ? "gr" : "outfield";
+  }
+
+  /**
+   * o: { jogadores() → lista, fixoA() → id do jogador A fixo (área do jogador), presencas(j) → % ou null,
+   *      statsGR(j) → VFNHub.calcularStatsGR (jogosZero, golosSofridos, mediaSofridos) }.
+   * GR só se compara com GR e jogador de campo com jogador de campo. Métricas com menor = melhor (cartões, golos
+   * sofridos): a barra pende para o valor mais baixo.
+   */
   function criarComparador(contentor, opcoes) {
     if (!contentor) return null;
     const o = opcoes || {};
@@ -976,20 +988,33 @@
     let radar = null;
     const lista = () => (o.jogadores && o.jogadores()) || [];
     const porId = id => lista().find(j => String(j.id) === String(id)) || null;
+    const eGR = j => !!j && VFN.categoriaPosicao(j.posicao) === "GR";
+    const mesmoTipo = (x, y) => eGR(x) === eGR(y);
     const presenca = j => { const p = o.presencas ? o.presencas(j) : null; return p == null ? null : Number(p); };
-    const metricas = [
-      ["Jogos", j => j.jogos || 0], ["Golos", j => j.golos || 0], ["Assistências", j => j.assistencias || 0],
-      ["Minutos", j => j.minutos || 0, v => v + "'"], ["Presenças", presenca, v => v == null ? "—" : v + "%"],
-      ["Cartões amarelos", j => j.cartoesA || 0], ["Cartões vermelhos", j => j.cartoesV || 0]
-    ];
+    const gr = j => (o.statsGR && o.statsGR(j)) || { jogosZero: 0, golosSofridos: 0, mediaSofridos: 0 };
+    const minutosFmt = v => v + "'";
+    const METRICAS = {
+      outfield: [
+        { nome: "Jogos", f: j => j.jogos || 0 }, { nome: "Golos", f: j => j.golos || 0 }, { nome: "Assistências", f: j => j.assistencias || 0 },
+        { nome: "Minutos", f: j => j.minutos || 0, fmt: minutosFmt }, { nome: "Presenças", f: presenca, fmt: v => v == null ? "—" : v + "%" },
+        { nome: "Cartões amarelos", f: j => j.cartoesA || 0, menor: true }, { nome: "Cartões vermelhos", f: j => j.cartoesV || 0, menor: true }
+      ],
+      gr: [
+        { nome: "Jogos disputados", f: j => j.jogos || 0 }, { nome: "Minutos jogados", f: j => j.minutos || 0, fmt: minutosFmt },
+        { nome: "Clean sheets", f: j => gr(j).jogosZero }, { nome: "Golos sofridos", f: j => gr(j).golosSofridos, menor: true },
+        { nome: "Média sofridos/jogo", f: j => gr(j).mediaSofridos, fmt: v => Number(v).toFixed(2).replace(".", ","), menor: true },
+        { nome: "Cartões amarelos", f: j => j.cartoesA || 0, menor: true }
+      ]
+    };
 
-    function barra(va, vb) {
+    function barra(va, vb, menor) {
       const a = Number(va) || 0, b = Number(vb) || 0, total = a + b;
-      const pa = total ? Math.round(a / total * 100) : 50;
-      return `<span class="cmpx-barra${total ? "" : " vazia"}"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${100 - pa}%"></i></span>`;
+      // menor é melhor: a barra pende para o valor mais baixo (a parte de A é a de B e vice-versa)
+      const pa = total ? Math.round((menor ? b : a) / total * 100) : 50;
+      return `<span class="cmpx-barra${total ? "" : " vazia"}${menor ? " invertida" : ""}"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${100 - pa}%"></i></span>`;
     }
-    function cabecalho(j, lado, fixo) {
-      const opcoesSel = lista().slice().sort((x, y) => x.nome.localeCompare(y.nome, "pt"))
+    function cabecalho(j, lado, fixo, candidatos) {
+      const opcoesSel = candidatos.slice().sort((x, y) => x.nome.localeCompare(y.nome, "pt"))
         .map(x => `<option value="${esc(x.id)}" ${String(x.id) === String(j ? j.id : "") ? "selected" : ""}>${esc(x.nome)}</option>`).join("");
       return `<div class="cmpx-jogador cmpx-${lado}">
         ${j ? VFN.avatarJogador(j, "avatar-lg") : `<span class="cmpx-vazio">?</span>`}
@@ -999,16 +1024,20 @@
       </div>`;
     }
 
-    function desenharRadar(a, b) {
+    function desenharRadar(a, b, tipo) {
       if (radar) { radar.destroy(); radar = null; }
       const canvas = contentor.querySelector("[data-cmpx-radar]");
       if (!canvas || !window.Chart || !a || !b) return;
-      const todos = lista();
+      const todos = lista().filter(j => mesmoTipo(j, a)); // máximos entre jogadores do mesmo tipo
       const cartoes = j => (j.cartoesA || 0) + 2 * (j.cartoesV || 0);
       const maxDe = f => Math.max(1, ...todos.map(f));
-      const eixos = [["Golos", j => (j.golos || 0) / maxDe(x => x.golos || 0) * 100], ["Assistências", j => (j.assistencias || 0) / maxDe(x => x.assistencias || 0) * 100],
-        ["Minutos", j => (j.minutos || 0) / maxDe(x => x.minutos || 0) * 100], ["Presenças", j => presenca(j) || 0],
-        ["Disciplina", j => 100 - cartoes(j) / maxDe(cartoes) * 100]];
+      const pct = (f, j) => f(j) / maxDe(f) * 100;
+      const disciplina = j => 100 - cartoes(j) / maxDe(cartoes) * 100;
+      const eixos = tipo === "gr"
+        ? [["Jogos", j => pct(x => x.jogos || 0, j)], ["Minutos", j => pct(x => x.minutos || 0, j)], ["Clean sheets", j => pct(x => gr(x).jogosZero, j)],
+          ["Golos sofridos (inv.)", j => 100 - pct(x => gr(x).golosSofridos, j)], ["Disciplina", disciplina]]
+        : [["Golos", j => pct(x => x.golos || 0, j)], ["Assistências", j => pct(x => x.assistencias || 0, j)], ["Minutos", j => pct(x => x.minutos || 0, j)],
+          ["Presenças", j => presenca(j) || 0], ["Disciplina", disciplina]];
       const escuro = document.documentElement.classList.contains("tema-escuro");
       const linha = escuro ? "#E4E9F2" : "#0A1628", grelha = escuro ? "rgba(255,255,255,.14)" : "rgba(10,22,40,.12)";
       const ds = (j, cor, fundo) => ({ label: j.nome, data: eixos.map(([, f]) => Math.round(f(j))), borderColor: cor, backgroundColor: fundo, borderWidth: 2, pointBackgroundColor: cor, pointRadius: 3 });
@@ -1022,24 +1051,33 @@
 
     function render() {
       const todos = lista();
-      if (o.fixoA) estado.a = String(o.fixoA());
-      if (!estado.a && todos[0]) estado.a = String(todos[0].id);
-      if (!estado.b || estado.b === estado.a) { const outro = todos.find(j => String(j.id) !== estado.a && VFN.categoriaPosicao(j.posicao) === VFN.categoriaPosicao((porId(estado.a) || {}).posicao)) || todos.find(j => String(j.id) !== estado.a); estado.b = outro ? String(outro.id) : ""; }
-      const a = porId(estado.a), b = porId(estado.b);
       if (!todos.length) { contentor.innerHTML = H().vazio("Sem jogadores."); return; }
-      const linhas = metricas.map(([nome, f, fmt]) => {
-        const va = a ? f(a) : null, vb = b ? f(b) : null;
-        const mostrar = v => fmt ? fmt(v) : (v == null ? "—" : v);
-        const maior = va != null && vb != null && va !== vb ? (va > vb ? "a" : "b") : "";
-        return `<li><span class="cmpx-metrica">${nome}</span><b class="va${maior === "a" ? " maior" : ""}">${mostrar(va)}</b>${barra(va, vb)}<b class="vb${maior === "b" ? " maior" : ""}">${mostrar(vb)}</b></li>`;
+      if (o.fixoA) estado.a = String(o.fixoA());
+      if (!estado.a || !porId(estado.a)) estado.a = String(todos[0].id);
+      const a = porId(estado.a);
+      // B: só do mesmo tipo (GR com GR, campo com campo); de preferência da mesma categoria
+      const candidatosB = todos.filter(j => String(j.id) !== estado.a && mesmoTipo(j, a));
+      if (!candidatosB.some(j => String(j.id) === estado.b)) {
+        const outro = candidatosB.find(j => VFN.categoriaPosicao(j.posicao) === VFN.categoriaPosicao(a.posicao)) || candidatosB[0];
+        estado.b = outro ? String(outro.id) : "";
+      }
+      const b = porId(estado.b);
+      const tipo = tipoComparacao(a, b || a);
+      const badge = eGR(a) ? `<span class="comp-tipo-badge gr">🧤 Comparação GR</span>` : `<span class="comp-tipo-badge">⚽ Comparação Jogadores de Campo</span>`;
+      const linhas = METRICAS[eGR(a) ? "gr" : "outfield"].map(m => {
+        const va = a ? m.f(a) : null, vb = b ? m.f(b) : null;
+        const mostrar = v => m.fmt ? m.fmt(v) : (v == null ? "—" : v);
+        const melhor = va != null && vb != null && Number(va) !== Number(vb) ? ((Number(va) > Number(vb)) !== !!m.menor ? "a" : "b") : "";
+        return `<li><span class="cmpx-metrica">${m.nome}${m.menor ? ' <small title="Menos é melhor">↓</small>' : ""}</span><b class="va${melhor === "a" ? " maior" : ""}">${mostrar(va)}</b>${barra(va, vb, m.menor)}<b class="vb${melhor === "b" ? " maior" : ""}">${mostrar(vb)}</b></li>`;
       }).join("");
-      contentor.innerHTML = `<div class="cmpx">
-        ${cabecalho(a, "a", !!o.fixoA)}
-        <div class="cmpx-radar"><div class="radar-box"><canvas data-cmpx-radar role="img" aria-label="Radar: golos, assistências, minutos, presenças e disciplina dos dois jogadores"></canvas></div></div>
-        ${cabecalho(b, "b", false)}
+      contentor.innerHTML = `<div class="cmpx-topo">${badge}${eGR(a) ? '<small class="muted">os guarda-redes só se comparam entre si</small>' : '<small class="muted">sem guarda-redes (comparam-se entre si)</small>'}</div>
+      <div class="cmpx">
+        ${cabecalho(a, "a", !!o.fixoA, todos)}
+        <div class="cmpx-radar"><div class="radar-box"><canvas data-cmpx-radar role="img" aria-label="Radar dos dois jogadores"></canvas></div></div>
+        ${b ? cabecalho(b, "b", false, candidatosB) : `<div class="cmpx-jogador cmpx-b"><span class="cmpx-vazio">?</span><small>Sem outro ${eGR(a) ? "guarda-redes" : "jogador de campo"} para comparar.</small></div>`}
         <ul class="cmpx-linhas">${linhas}</ul>
       </div>`;
-      requestAnimationFrame(() => desenharRadar(a, b));
+      requestAnimationFrame(() => desenharRadar(a, b, tipo));
     }
 
     contentor.addEventListener("change", e => {
@@ -1051,6 +1089,7 @@
     document.addEventListener("vfn:tema", () => { if (radar) render(); });
     return { render };
   }
+
 
   /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
 
@@ -1821,7 +1860,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast, criarComparador,
+    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast, criarComparador, tipoComparacao,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,

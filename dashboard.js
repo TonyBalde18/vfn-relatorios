@@ -103,7 +103,7 @@ function renderH2H() {
 let comparador = null;
 
 function renderComparar() {
-  if (!comparador) comparador = VFNComp.criarComparador($("dbComparar"), { jogadores: () => jogadores, presencas: j => { const p = presencaJogador(j.id); return p ? p.pct : null; } });
+  if (!comparador) comparador = VFNComp.criarComparador($("dbComparar"), { jogadores: () => jogadores, statsGR, presencas: j => { const p = presencaJogador(j.id); return p ? p.pct : null; } });
   if (comparador) comparador.render();
 }
 
