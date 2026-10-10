@@ -2388,6 +2388,24 @@ body.mj-aberto { overflow: hidden; }
 .vfn-toast.visivel { transform: translate(-50%, 0); opacity: 1; }
 @media (max-width: 600px) { .kit-editor { grid-template-columns: 1fr; } }
 
+/* Mapa de posições (v17): principal/secundária bem distintas, legenda e popover das sub-posições */
+.position-pitch { overflow: visible; }
+.position-point.primary { background: #FFD700; border: 2px solid #fff; color: #0A1628; box-shadow: 0 0 0 3px rgba(255, 215, 0, .45), 0 2px 6px rgba(0, 0, 0, .35); z-index: 2; }
+.position-point.secondary { background: rgba(255, 215, 0, .18); border: 2px dashed #FFD700; color: #fff; }
+.pp-um { position: absolute; top: -7px; right: -7px; display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: #0A1628; color: #FFD700; font-size: .5rem; font-weight: 800; }
+.pos-legenda { display: flex; gap: 14px; font-size: .74rem; }
+.pos-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.pos-legenda i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+.pos-legenda .pl-principal { background: #FFD700; box-shadow: 0 0 0 2px rgba(255, 215, 0, .45); }
+.pos-legenda .pl-secundaria { background: rgba(255, 215, 0, .18); border: 2px dashed #c9a400; }
+.pos-popover { position: absolute; z-index: 30; display: grid; gap: 4px; min-width: 150px; padding: 8px; border-radius: 10px; background: var(--surface, #fff); border: 1px solid var(--border-color); box-shadow: 0 10px 28px rgba(10, 22, 40, .3); transform: translate(-50%, 16px); }
+.pos-popover strong { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.pos-popover button { padding: 7px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-2); color: var(--heading); font: inherit; font-size: .82rem; font-weight: 600; text-align: left; cursor: pointer; }
+.pos-popover button:hover, .pos-popover button:focus-visible { border-color: #FFD700; outline: none; }
+.pos-popover button.atual { background: #FFD700; border-color: #FFD700; color: #0A1628; }
+.pos-popover button.remover { color: #dc2626; }
+.sub-resumo { display: block; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-weight: 700; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }
@@ -2529,4 +2547,5 @@ body.mj-aberto { overflow: hidden; }
 :where(html.tema-escuro) .prof-campo { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
 :where(html.tema-escuro) .conv-ordem { border-top: 1px solid var(--border, var(--border)); }
 :where(html.tema-escuro) .conv-ordem-linha { background: var(--surface-2, color-mix(in srgb, #f3f4f6 14%, var(--surface))); }
+:where(html.tema-escuro) .pos-popover { background: var(--surface, var(--surface)); }
 /* ===== FIM TEMA ESCURO ===== */

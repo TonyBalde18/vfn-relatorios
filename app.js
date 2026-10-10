@@ -1790,7 +1790,6 @@ function initPlantel() {
   el("modalNumero").addEventListener("input", () => { if (!el("modalFoto").value) el("playerModalPhoto").innerHTML = generateJerseyAvatar(el("modalNumero").value); });
   el("modalFoto").addEventListener("input", () => renderPlayerModalHeader({ nome: el("modalNome").value || "Novo jogador", posicao: el("modalPosicao").value, numero: el("modalNumero").value, fotoUrl: el("modalFoto").value, golos: 0, assistencias: 0, minutosTotais: 0 }));
   el("modalPosicao").addEventListener("input", () => { posicoesModal = el("modalPosicao").value.split("/").filter(Boolean).map(normalizarCodigoPosicao); posicaoPrincipalModal = posicoesModal[0] || ""; renderPositionMap(); });
-  el("modalSubPosicao").addEventListener("change", e => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); subPosicaoModal = e.target.value; renderSubPosicoesModal(); });
   el("modalSecundarias").addEventListener("change", () => { secundariasModal = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value); renderProficienciaModal(); });
   el("modalProficiencia").addEventListener("input", e => {
     const i = e.target.closest("input[data-prof]");
@@ -1851,22 +1850,116 @@ function abrirModalExistente(jogador) {
   el("modalOverlay").hidden = false;
 }
 
+/*
+ * Mapa de posições (v17): o clique preenche players.position (códigos, principal primeiro), sub_posicao e
+ * posicoes_secundarias. Ponto livre com uma sub-posição: aplica logo; com várias (MC, PL): popover para escolher.
+ * Ponto já marcado: popover com trocar a sub-posição, "Tornar principal" e "Remover".
+ * MD, ME e Segundo Avançado sem ponto próprio: pelo popover do MC/PL ou pelas checkboxes das secundárias.
+ */
+const SUB_POSICOES_MAPA = {
+  GR: [], DC: ["Defesa Central"], DD: ["Defesa Direito"], DE: ["Defesa Esquerdo"], MDC: ["Médio Defensivo"],
+  MC: ["Médio Centro", "Médio Direito", "Médio Esquerdo"], MOC: ["Médio Ofensivo"],
+  ED: ["Extremo Direito"], EE: ["Extremo Esquerdo"], PL: ["Ponta de Lança", "Segundo Avançado"]
+};
+
+/** Códigos com a principal em primeiro (é ela que dá a categoria) e o campo de texto (escondido) atualizado. */
+function sincronizarPosicoesModal() {
+  posicoesModal = posicaoPrincipalModal ? [posicaoPrincipalModal, ...posicoesModal.filter(p => p !== posicaoPrincipalModal)] : posicoesModal;
+  el("modalPosicao").value = posicoesModal.join("/");
+}
+
+/** Marca o ponto (principal ou secundário) e a sub-posição escolhida. */
+function aplicarSubPosicao(codigo, subPosicao, isPrimaria) {
+  if (!posicoesModal.includes(codigo)) posicoesModal.push(codigo);
+  if (isPrimaria) {
+    // a antiga principal passa a secundária (com a sua sub-posição)
+    if (posicaoPrincipalModal && posicaoPrincipalModal !== codigo && subPosicaoModal && !secundariasModal.includes(subPosicaoModal)) secundariasModal.push(subPosicaoModal);
+    posicaoPrincipalModal = codigo;
+    subPosicaoModal = subPosicao || "";
+    secundariasModal = secundariasModal.filter(s => s !== subPosicao);
+  } else if (subPosicao && !secundariasModal.includes(subPosicao)) {
+    secundariasModal.push(subPosicao);
+  }
+  sincronizarPosicoesModal();
+  renderPositionMap();
+}
+
+/** Tira o ponto e as suas sub-posições; se era a principal, a seguinte passa a principal. */
+function removerPosicaoModal(codigo) {
+  const subs = SUB_POSICOES_MAPA[codigo] || [];
+  posicoesModal = posicoesModal.filter(p => p !== codigo);
+  secundariasModal = secundariasModal.filter(s => !subs.includes(s));
+  if (codigo === posicaoPrincipalModal) {
+    posicaoPrincipalModal = posicoesModal[0] || "";
+    const subsNova = SUB_POSICOES_MAPA[posicaoPrincipalModal] || [];
+    subPosicaoModal = subsNova.find(s => secundariasModal.includes(s)) || "";
+    secundariasModal = secundariasModal.filter(s => s !== subPosicaoModal);
+  }
+  sincronizarPosicoesModal();
+  renderPositionMap();
+}
+
+function fecharPopoverPosicao() {
+  const p = document.querySelector(".pos-popover");
+  if (p) p.remove();
+}
+
+/** Popover junto ao ponto: sub-posições (várias), tornar principal, remover. */
+function abrirPopoverPosicao(botao) {
+  fecharPopoverPosicao();
+  const codigo = botao.dataset.position;
+  const subs = SUB_POSICOES_MAPA[codigo] || [];
+  const marcado = posicoesModal.includes(codigo), principal = codigo === posicaoPrincipalModal;
+  const atual = principal ? subPosicaoModal : subs.find(s => secundariasModal.includes(s)) || "";
+  const isPrimaria = principal || !posicaoPrincipalModal;
+  const opcoes = [];
+  if (subs.length > 1) subs.forEach(s => opcoes.push(`<button type="button" data-pos-sub="${escapeHtml(s)}" class="${s === atual ? "atual" : ""}">${s === atual ? "✓ " : ""}${escapeHtml(s)}</button>`));
+  if (marcado && !principal) opcoes.push(`<button type="button" data-pos-acao="principal">★ Tornar principal</button>`);
+  if (marcado) opcoes.push(`<button type="button" data-pos-acao="remover" class="remover">✕ Remover</button>`);
+  const pop = document.createElement("div");
+  pop.className = "pos-popover";
+  pop.setAttribute("role", "menu");
+  pop.innerHTML = `<strong>${escapeHtml(codigo)}${marcado ? (principal ? " · principal" : " · secundária") : isPrimaria ? " · principal" : " · secundária"}</strong>${opcoes.join("")}`;
+  pop.style.left = botao.style.left;
+  pop.style.top = botao.style.top;
+  botao.parentElement.appendChild(pop);
+  pop.addEventListener("click", e => {
+    e.stopPropagation();
+    const b = e.target.closest("button");
+    if (!b) return;
+    fecharPopoverPosicao();
+    if (b.dataset.posSub) {
+      if (marcado && !principal) secundariasModal = secundariasModal.filter(s => !subs.includes(s)); // troca a sub-posição da secundária
+      aplicarSubPosicao(codigo, b.dataset.posSub, isPrimaria);
+    } else if (b.dataset.posAcao === "principal") aplicarSubPosicao(codigo, atual || subs[0] || "", true);
+    else if (b.dataset.posAcao === "remover") removerPosicaoModal(codigo);
+  });
+  const primeiro = pop.querySelector("button");
+  if (primeiro) primeiro.focus();
+}
+
 function renderPositionMap() {
   const container = el("positionPoints");
   if (!container) return;
+  fecharPopoverPosicao();
   container.innerHTML = Object.entries(POSICOES_MAPA).map(([posicao, [left, top]]) => {
     const classe = posicao === posicaoPrincipalModal ? "primary" : (posicoesModal.includes(posicao) ? "secondary" : "");
-    return `<button type="button" class="position-point ${classe}" data-position="${posicao}" style="left:${left}%;top:${top}%">${posicao}</button>`;
+    const titulo = posicao === posicaoPrincipalModal ? "Posição principal" : posicoesModal.includes(posicao) ? "Posição secundária" : "Marcar posição";
+    return `<button type="button" class="position-point ${classe}" data-position="${posicao}" style="left:${left}%;top:${top}%" title="${titulo}">${posicao}${classe === "primary" ? '<span class="pp-um" aria-hidden="true">1</span>' : ""}</button>`;
   }).join("");
-  container.querySelectorAll(".position-point").forEach(button => button.addEventListener("click", () => {
+  container.querySelectorAll(".position-point").forEach(button => button.addEventListener("click", e => {
+    e.stopPropagation();
     const posicao = button.dataset.position;
-    if (!posicoesModal.includes(posicao)) { posicoesModal.push(posicao); if (!posicaoPrincipalModal) posicaoPrincipalModal = posicao; }
-    else if (posicao === posicaoPrincipalModal) { posicaoPrincipalModal = posicoesModal.find(item => item !== posicao) || ""; posicoesModal = posicoesModal.filter(item => item !== posicao); }
-    else posicoesModal = posicoesModal.filter(item => item !== posicao);
-    el("modalPosicao").value = posicoesModal.join("/"); renderPositionMap();
+    const subs = SUB_POSICOES_MAPA[posicao] || [];
+    // ponto livre com 0/1 sub-posições: aplica logo; os outros casos abrem o popover
+    if (!posicoesModal.includes(posicao) && subs.length <= 1) aplicarSubPosicao(posicao, subs[0] || "", !posicaoPrincipalModal);
+    else abrirPopoverPosicao(button);
   }));
   renderSubPosicoesModal();
 }
+
+document.addEventListener("click", e => { if (!e.target.closest(".pos-popover")) fecharPopoverPosicao(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") fecharPopoverPosicao(); });
 
 /* ---- Sub-posição e posições secundárias (players.sub_posicao / posicoes_secundarias) ---- */
 
@@ -1881,7 +1974,8 @@ function renderSubPosicoesModal() {
   const opcoes = VFN.SUB_POSICOES[cat] || [];
   if (!opcoes.includes(subPosicaoModal)) subPosicaoModal = VFN.subPosicaoSugerida(el("modalPosicao").value);
   wrap.hidden = !opcoes.length;
-  el("modalSubPosicao").innerHTML = '<option value="">— Escolher —</option>' + opcoes.map(o => `<option ${o === subPosicaoModal ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
+  // v17: resumo (a sub-posição escolhe-se no mapa)
+  el("subPosicaoResumo").textContent = subPosicaoModal || "— toca na posição principal no mapa —";
   el("modalSecundarias").innerHTML = VFN.TODAS_SUB_POSICOES.filter(o => o !== subPosicaoModal)
     .map(o => `<label class="sub-check"><input type="checkbox" value="${escapeHtml(o)}" ${secundariasModal.includes(o) ? "checked" : ""}> ${escapeHtml(o)}</label>`).join("");
   el("modalSubPosicaoAviso").hidden = colunaSubPosicao || !supabaseClient || !currentUser;
@@ -1890,7 +1984,7 @@ function renderSubPosicoesModal() {
 
 function lerSubPosicoesModal(jogador) {
   const cat = VFN.categoriaPosicao(jogador.posicao);
-  jogador.subPosicao = cat === "GR" ? "" : el("modalSubPosicao").value;
+  jogador.subPosicao = cat === "GR" || !(VFN.SUB_POSICOES[cat] || []).includes(subPosicaoModal) ? "" : subPosicaoModal;
   jogador.posicoesSecundarias = [...el("modalSecundarias").querySelectorAll("input:checked")].map(c => c.value).filter(v => v !== jogador.subPosicao);
   lerProficienciaModal(jogador);
 }
