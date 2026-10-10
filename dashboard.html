@@ -81,29 +81,38 @@
     <div id="hubInicio" data-aos="fade-up"></div>
     <div class="hub-grid">
       <article id="cardProximoJogo" class="card jds-card span-2" data-aos="fade-up"></article>
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Últimos resultados</h2>
-        <div id="hubForma" class="hub-forma"></div>
-        <div id="hubResultados"></div>
-      </article>
+      <!-- v18: ao lado do Jogo da Semana: últimos resultados + próximos jogos -->
+      <div class="hub-coluna">
+        <article class="card" data-aos="fade-up">
+          <h2 class="hub-card-title">Últimos resultados</h2>
+          <div id="hubForma" class="hub-forma"></div>
+          <div id="hubResultados"></div>
+        </article>
+        <article class="card" data-aos="fade-up">
+          <h2 class="hub-card-title">Próximos jogos</h2>
+          <div id="hubProximosJogos"></div>
+        </article>
+      </div>
 
       <article class="card span-2 card-classificacao" data-aos="fade-up">
         <div class="hub-card-head"><h2 class="hub-card-title">Classificação</h2><label class="sr-only" for="hubCompeticao">Competição</label><select id="hubCompeticao" class="compact-select"></select></div>
         <div id="hubClassificacao"></div>
       </article>
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Top marcadores</h2>
-        <div id="hubMarcadores"></div>
-      </article>
-
       <article class="card span-2" data-aos="fade-up">
         <h2 class="hub-card-title">11 mais utilizados <small class="muted">por minutos jogados</small></h2>
         <div id="onzeCampo"></div>
       </article>
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Top jogadores por minutos <small id="minutosInfo" class="muted"></small></h2>
-        <div id="minutosLista" class="minutes-scroll"></div>
-      </article>
+      <!-- v18: coluna ao lado do 11: marcadores + minutos — a linha fica completa, sem espaço vazio -->
+      <div class="hub-coluna">
+        <article class="card" data-aos="fade-up">
+          <h2 class="hub-card-title">Top marcadores</h2>
+          <div id="hubMarcadores"></div>
+        </article>
+        <article class="card" data-aos="fade-up">
+          <h2 class="hub-card-title">Top jogadores por minutos <small id="minutosInfo" class="muted"></small></h2>
+          <div id="minutosLista" class="minutes-scroll"></div>
+        </article>
+      </div>
 
       <article class="card span-3" data-aos="fade-up">
         <h2 class="hub-card-title">Presenças <small class="muted">época · % de sessões com presença</small></h2>

@@ -66,6 +66,7 @@ function renderHub() {
   VFNComp.ligarJogoDaSemana($("cardProximoJogo"), dados);
   $("hubForma").innerHTML = H.formaHTML(dados, 5);
   $("hubResultados").innerHTML = H.resultadosHTML(dados, 5);
+  $("hubProximosJogos").innerHTML = H.proximosJogosHTML(dados, 3);
 
   if (!competicaoHub || !H.competicoesComClassificacao(dados).includes(competicaoHub)) competicaoHub = H.competicaoPreferida(dados);
   $("hubCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicaoHub);

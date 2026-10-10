@@ -84,6 +84,22 @@
       <div class="hero-countdown" aria-live="off"><span>Faltam</span><strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></div>`;
   }
 
+  /** Próximos n jogos do VFN (data, adversário, competição, casa/fora) — dashboard (v18). */
+  function proximosJogosHTML(dados, n) {
+    const agora = Date.now() - 3 * 3600 * 1000;
+    const jogos = VFN.jogosDoVFN(dados.matches || [])
+      .filter(j => !["jogado", "cancelado"].includes(VFN.estadoJogo(j)) && (VFN.paraData(j.date) || 0) >= agora)
+      .sort((a, b) => VFN.paraData(a.date) - VFN.paraData(b.date)).slice(0, n || 3);
+    if (!jogos.length) return vazio("Sem jogos agendados.");
+    return `<ul class="proximos-jogos">${jogos.map(j => {
+      const nome = nomeAdversario(dados, j), hora = VFN.horaIso(j.date);
+      return `<li>
+        <span class="pj-data"><b>${esc(VFN.dataCurta(j.date))}</b>${hora && hora !== "00:00" ? `<small>${esc(hora)}</small>` : ""}</span>
+        <span class="result-teams">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<span><strong>${esc(nome)}</strong><small>${VFN.jogoEmCasa(j) ? "Casa" : "Fora"} · ${esc(VFN.nomeCurtoCompeticao(j.competition))}${VFN.etiquetaJornada(j) ? " · " + esc(VFN.etiquetaJornada(j)) : ""}</small></span></span>
+      </li>`;
+    }).join("")}</ul>`;
+  }
+
   /** Atualiza as contagens decrescentes visíveis (chamado por intervalo). */
   function atualizarContagens() {
     document.querySelectorAll("[data-countdown]").forEach(n => { n.textContent = VFN.contagemDecrescente(n.dataset.countdown); });
@@ -2000,7 +2016,7 @@
 
   window.VFNHub = {
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
-    proximoJogoHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
+    proximoJogoHTML, proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,

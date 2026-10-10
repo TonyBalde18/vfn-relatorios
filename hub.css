@@ -429,6 +429,20 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 .comp-tipo-badge.gr { background: rgba(255, 215, 0, .22); }
 .cmpx-metrica small { font-size: .8em; opacity: .7; }
 
+.kit-jogo-semana.kit-vfn img { width: 52px; }
+
+/* Dashboard (v18): coluna ao lado do 11 mais utilizado (minutos + próximos jogos) */
+.hub-coluna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.hub-coluna > .card:last-child { flex: 1; }
+.proximos-jogos { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.proximos-jogos li { display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+.proximos-jogos li:last-child { border-bottom: 0; padding-bottom: 0; }
+.pj-data { display: grid; justify-items: center; padding: 6px 4px; border-radius: 8px; background: var(--surface-2); font-size: .8rem; line-height: 1.2; }
+.pj-data small { color: var(--text-muted); font-size: .7rem; }
+
+.hub-coluna > .card { margin: 0; }
+.hub-coluna .minutes-scroll { max-height: 380px; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }
@@ -458,4 +472,3 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 :where(html.tema-escuro) .h2h-tiles .h2h-e strong { color: var(--fg-muted); }
 :where(html.tema-escuro) .h2h-card-reg .e { color: var(--fg-muted); }
 /* ===== FIM TEMA ESCURO ===== */
-.kit-jogo-semana.kit-vfn img { width: 52px; }
