@@ -2162,6 +2162,7 @@ function renderAdversarios() {
   else mapaAdmin.render();
   const termo = el("equipasPesquisa").value.trim().toLocaleLowerCase("pt-PT");
   const equipas = [...equipasCalendario]
+    .filter(t => String(t.id) !== VFN.ID_CLUBE_ZEROZERO) // "VF Naves" do zerozero = cópia do clube (o VFN é a linha "vfn")
     .filter(t => !termo || [t.name, t.full_name, t.city].some(v => String(v || "").toLocaleLowerCase("pt-PT").includes(termo)))
     .sort((a, b) => a.name.localeCompare(b.name, "pt"));
   const grelha = el("equipasGrid");
