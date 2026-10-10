@@ -173,7 +173,14 @@ function initJornadas() {
 
 
 function renderTudo() {
-  $("pubProximoJogo").innerHTML = H.proximoJogoHTML(dados);
+  // v18: banner completo (escudos, kits, contagem, competição, jornada, estádio, meteorologia); só redesenha quando o jogo muda
+  const proximo = VFN.proximoJogo(dados.matches);
+  const chave = proximo ? `${proximo.id}|${proximo.date}|${proximo.opponent_team_id}` : "";
+  if ($("pubProximoJogo").dataset.chave !== chave || !$("pubProximoJogo").querySelector("[data-jogo-semana], .jds-vazio")) {
+    $("pubProximoJogo").dataset.chave = chave;
+    $("pubProximoJogo").innerHTML = VFNComp.renderJogoDaSemana(dados);
+    VFNComp.ligarJogoDaSemana($("pubProximoJogo"), dados);
+  }
   $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
   $("pubForma").innerHTML = H.formaHTML(dados, 5, { rotulo: false }) || H.vazio("Ainda não há jogos disputados.");
 
