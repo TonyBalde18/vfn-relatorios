@@ -104,7 +104,8 @@ function renderCalendario() {
   if (!mapaPub) mapaPub = VFNComp.criarMapaEstadios($("mapaPub"), () => dados.teams);
   else mapaPub.render();
   if (!calendarioMensal) {
-    calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: () => dados, perfil: "publico" });
+    // v18: na página pública o calendário só mostra jogos (sem os treinos de sessions)
+    calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: () => ({ ...dados, sessions: (dados.sessions || []).filter(x => x.session_type !== "treino") }), perfil: "publico" });
     VFNComp.ligarAlternanciaCalendario($("pubCalModos"), $("pubCalMes"), $("pubCalLista"), "vfnCalModoPublico");
   } else calendarioMensal.render();
   $("pubCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
