@@ -74,6 +74,7 @@
   <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
   <button type="button" data-view="estatisticas"><span aria-hidden="true"><i data-icon="chart-column"></i></span>Estatísticas</button>
   <button type="button" data-view="disponibilidade"><span aria-hidden="true"><i data-icon="clipboard-check"></i></span>Plantel</button>
+  <button type="button" data-view="comparar"><span aria-hidden="true"><i data-icon="scale"></i></span>Comparar</button>
   <button type="button" data-view="adversarios"><span aria-hidden="true"><i data-icon="shield"></i></span>Adversários</button>
   <button type="button" data-view="relatorios"><span aria-hidden="true"><i data-icon="file-text"></i></span>Relatórios</button>
 </nav>
@@ -211,6 +212,14 @@
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">Disponibilidade do plantel</h2>
       <div id="eqDisponibilidade"></div>
+    </div>
+  </section>
+
+  <!-- COMPARAR (v16): o jogador A é o próprio (fixo); escolhe-se o B -->
+  <section id="view-comparar" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">⚖️ Comparar <small class="muted" id="eqCompararAjuda">escolhe com quem te queres comparar</small></h2>
+      <div id="eqComparar"></div>
     </div>
   </section>
 

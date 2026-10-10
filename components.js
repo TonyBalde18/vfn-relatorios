@@ -961,6 +961,95 @@
     t._fechar = setTimeout(() => t.classList.remove("visivel"), 2400);
   }
 
+  /* ---------- Comparar dois jogadores (v16): separador próprio, mobile-first ----------
+     Telemóvel: A | B lado a lado e barras comparativas (a barra pende para o maior valor; A azul, B laranja).
+     PC (≥768px): A | radar (5 eixos, 2 linhas) | B e as barras por baixo. Muda ao escolher, sem botão. */
+
+  const COR_A = "#043792", COR_B = "#f59e0b";
+
+  function criarComparador(contentor, opcoes) {
+    if (!contentor) return null;
+    const o = opcoes || {};
+    const estado = { a: "", b: "" };
+    let radar = null;
+    const lista = () => (o.jogadores && o.jogadores()) || [];
+    const porId = id => lista().find(j => String(j.id) === String(id)) || null;
+    const presenca = j => { const p = o.presencas ? o.presencas(j) : null; return p == null ? null : Number(p); };
+    const metricas = [
+      ["Jogos", j => j.jogos || 0], ["Golos", j => j.golos || 0], ["Assistências", j => j.assistencias || 0],
+      ["Minutos", j => j.minutos || 0, v => v + "'"], ["Presenças", presenca, v => v == null ? "—" : v + "%"],
+      ["Cartões amarelos", j => j.cartoesA || 0], ["Cartões vermelhos", j => j.cartoesV || 0]
+    ];
+
+    function barra(va, vb) {
+      const a = Number(va) || 0, b = Number(vb) || 0, total = a + b;
+      const pa = total ? Math.round(a / total * 100) : 50;
+      return `<span class="cmpx-barra${total ? "" : " vazia"}"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${100 - pa}%"></i></span>`;
+    }
+    function cabecalho(j, lado, fixo) {
+      const opcoesSel = lista().slice().sort((x, y) => x.nome.localeCompare(y.nome, "pt"))
+        .map(x => `<option value="${esc(x.id)}" ${String(x.id) === String(j ? j.id : "") ? "selected" : ""}>${esc(x.nome)}</option>`).join("");
+      return `<div class="cmpx-jogador cmpx-${lado}">
+        ${j ? VFN.avatarJogador(j, "avatar-lg") : `<span class="cmpx-vazio">?</span>`}
+        <label class="sr-only" for="cmpx${lado}">Jogador ${lado.toUpperCase()}</label>
+        <select id="cmpx${lado}" data-cmpx="${lado}" class="compact-select" ${fixo ? "disabled" : ""}>${j ? "" : `<option value="">Escolher…</option>`}${opcoesSel}</select>
+        ${j ? `<small>${esc(j.posicao || "")}</small>` : ""}
+      </div>`;
+    }
+
+    function desenharRadar(a, b) {
+      if (radar) { radar.destroy(); radar = null; }
+      const canvas = contentor.querySelector("[data-cmpx-radar]");
+      if (!canvas || !window.Chart || !a || !b) return;
+      const todos = lista();
+      const cartoes = j => (j.cartoesA || 0) + 2 * (j.cartoesV || 0);
+      const maxDe = f => Math.max(1, ...todos.map(f));
+      const eixos = [["Golos", j => (j.golos || 0) / maxDe(x => x.golos || 0) * 100], ["Assistências", j => (j.assistencias || 0) / maxDe(x => x.assistencias || 0) * 100],
+        ["Minutos", j => (j.minutos || 0) / maxDe(x => x.minutos || 0) * 100], ["Presenças", j => presenca(j) || 0],
+        ["Disciplina", j => 100 - cartoes(j) / maxDe(cartoes) * 100]];
+      const escuro = document.documentElement.classList.contains("tema-escuro");
+      const linha = escuro ? "#E4E9F2" : "#0A1628", grelha = escuro ? "rgba(255,255,255,.14)" : "rgba(10,22,40,.12)";
+      const ds = (j, cor, fundo) => ({ label: j.nome, data: eixos.map(([, f]) => Math.round(f(j))), borderColor: cor, backgroundColor: fundo, borderWidth: 2, pointBackgroundColor: cor, pointRadius: 3 });
+      radar = new Chart(canvas, {
+        type: "radar",
+        data: { labels: eixos.map(([n]) => n), datasets: [ds(a, COR_A, "rgba(4,55,146,.22)"), ds(b, COR_B, "rgba(245,158,11,.22)")] },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { color: linha } } },
+          scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, pointLabels: { font: { size: 12, weight: "600" }, color: linha }, grid: { color: grelha }, angleLines: { color: grelha } } } }
+      });
+    }
+
+    function render() {
+      const todos = lista();
+      if (o.fixoA) estado.a = String(o.fixoA());
+      if (!estado.a && todos[0]) estado.a = String(todos[0].id);
+      if (!estado.b || estado.b === estado.a) { const outro = todos.find(j => String(j.id) !== estado.a && VFN.categoriaPosicao(j.posicao) === VFN.categoriaPosicao((porId(estado.a) || {}).posicao)) || todos.find(j => String(j.id) !== estado.a); estado.b = outro ? String(outro.id) : ""; }
+      const a = porId(estado.a), b = porId(estado.b);
+      if (!todos.length) { contentor.innerHTML = H().vazio("Sem jogadores."); return; }
+      const linhas = metricas.map(([nome, f, fmt]) => {
+        const va = a ? f(a) : null, vb = b ? f(b) : null;
+        const mostrar = v => fmt ? fmt(v) : (v == null ? "—" : v);
+        const maior = va != null && vb != null && va !== vb ? (va > vb ? "a" : "b") : "";
+        return `<li><span class="cmpx-metrica">${nome}</span><b class="va${maior === "a" ? " maior" : ""}">${mostrar(va)}</b>${barra(va, vb)}<b class="vb${maior === "b" ? " maior" : ""}">${mostrar(vb)}</b></li>`;
+      }).join("");
+      contentor.innerHTML = `<div class="cmpx">
+        ${cabecalho(a, "a", !!o.fixoA)}
+        <div class="cmpx-radar"><div class="radar-box"><canvas data-cmpx-radar role="img" aria-label="Radar: golos, assistências, minutos, presenças e disciplina dos dois jogadores"></canvas></div></div>
+        ${cabecalho(b, "b", false)}
+        <ul class="cmpx-linhas">${linhas}</ul>
+      </div>`;
+      requestAnimationFrame(() => desenharRadar(a, b));
+    }
+
+    contentor.addEventListener("change", e => {
+      const s = e.target.closest("[data-cmpx]");
+      if (!s) return;
+      estado[s.dataset.cmpx] = s.value;
+      render();
+    });
+    document.addEventListener("vfn:tema", () => { if (radar) render(); });
+    return { render };
+  }
+
   /* ---------- Card "Jogo da Semana" (próximo jogo, contagem e meteorologia) ---------- */
 
   // códigos WMO do Open-Meteo → [ícone Lucide, descrição]
@@ -1701,7 +1790,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast,
+    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast, criarComparador,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,

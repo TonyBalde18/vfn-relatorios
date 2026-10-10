@@ -334,6 +334,16 @@ function renderHeatmapsEquipa() {
 
 /* ---------- Adversários (v15): fichas das equipas e H2H do clube ---------- */
 
+/* ---------- Comparar (v16): o jogador com sessão é o A (fixo); a equipa técnica escolhe os dois ---------- */
+
+let comparador = null;
+
+function renderComparar() {
+  $("eqCompararAjuda").textContent = eu ? "tu e outro jogador à escolha" : "escolhe os dois jogadores";
+  if (!comparador) comparador = VFNComp.criarComparador($("eqComparar"), { jogadores: () => jogadores, fixoA: eu ? () => eu.id : null, presencas: j => (eu && j === eu ? percentagemMinhasPresencas() : null) });
+  if (comparador) comparador.render();
+}
+
 function renderAdversarios() {
   $("eqEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("eqEquipasPesquisa").value);
 }
@@ -503,6 +513,7 @@ function renderTudo() {
   $("eqDisponibilidade").innerHTML = H.disponibilidadeHTML(dados, jogadores);
   renderRelatorios();
   renderAdversarios();
+  renderComparar();
   VFN.refreshAOS();
 }
 

@@ -8,7 +8,7 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", relatorios: "Relatórios", calendario: "Calendário" };
+const TITULOS_VISTA = { hub: "Hub", comparar: "Comparar jogadores", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", relatorios: "Relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 const COR_SOFRIDOS = "#ea580c";
 
@@ -97,6 +97,15 @@ function renderH2H() {
   const proximo = VFN.proximoJogo(dados.matches);
   const r = proximo && H.resumoH2H(nomesDoAdversario(proximo), dados.h2h);
   caixa.innerHTML = H.h2hCardsHTML(dados, r ? r.adversario : "");
+}
+
+/* ---------- Comparar (v16): separador próprio ---------- */
+
+let comparador = null;
+
+function renderComparar() {
+  if (!comparador) comparador = VFNComp.criarComparador($("dbComparar"), { jogadores: () => jogadores, presencas: j => { const p = presencaJogador(j.id); return p ? p.pct : null; } });
+  if (comparador) comparador.render();
 }
 
 function abrirPainelH2H(adversario) {
@@ -230,8 +239,8 @@ function renderGraficos() {
 
 function renderPlantel() {
   $("plantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicao);
-  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao, { disponibilidade: true, estado: filtroEstado, comparar: true });
-  VFNComp.ligarComparacao($("plantelGrid"), { jogador: jogadorParaComparar, candidatos: candidatosComparacao, alvo: ".player-card", idDoAlvo: c => c.dataset.id });
+  // v16: a comparação passou para o separador "Comparar"
+  $("plantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicao, { disponibilidade: true, estado: filtroEstado });
   $("plantelTotal").textContent = `· ${jogadores.length} jogadores`;
   $("plantelFiltros").querySelectorAll(".filter-chip").forEach(b => b.addEventListener("click", () => { filtroPosicao = b.dataset.posicao; renderPlantel(); VFN.refreshAOS(); }));
   const selEstado = $("plantelEstado");
@@ -245,15 +254,6 @@ function presencaJogador(id) {
   if (!registos.length) return null;
   const presentes = registos.filter(a => a.status === "P" || a.status === "A").length;
   return { pct: Math.round(presentes / registos.length * 100), presentes, total: registos.length };
-}
-
-/* ---------- Comparação de dois jogadores (stats da época; GR: jogos a zero e minutos sem sofrer) ---------- */
-
-function jogadorParaComparar(id) {
-  const j = jogadores.find(x => String(x.id) === String(id));
-  if (!j) return null;
-  const gr = VFN.categoriaPosicao(j.posicao) === "GR" ? H.estatisticasGR(dados, idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }) : null;
-  return { id: j.id, nome: j.nome, numero: j.numero, posicao: j.posicao, fotoUrl: j.fotoUrl, jogos: j.jogos, minutos: j.minutos, golos: j.golos, assistencias: j.assistencias, amarelos: j.cartoesA, vermelhos: j.cartoesV, gr };
 }
 
 /** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */
@@ -275,10 +275,6 @@ function renderRankingGR() {
       <span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}</span></span>
       <span class="rgr-num"><strong>${gr.jogosZero}</strong><small>jogos a zero</small></span>
       <span class="rgr-num"><strong>${gr.mediaSofridos.toFixed(2).replace(".", ",")}</strong><small>sofridos/jogo</small></span></li>`).join("")}</ol>`;
-}
-
-function candidatosComparacao(categoria) {
-  return jogadores.filter(j => VFN.categoriaPosicao(j.posicao) === categoria).sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => ({ id: j.id, nome: j.nome }));
 }
 
 function abrirJogador(id) {
@@ -846,6 +842,7 @@ function renderTudo() {
   renderCalendario();
   renderRelatoriosPublicados();
   renderH2H();
+  renderComparar();
   VFN.refreshAOS();
 }
 

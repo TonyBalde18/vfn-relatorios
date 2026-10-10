@@ -381,6 +381,38 @@
 .avatar-externo .kit-adversario .kit-numero { top: 34%; font-size: .72rem; -webkit-text-stroke-width: 1px; }
 .kit-jogo-semana img { width: 48px; margin-top: 2px; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
 
+/* Comparar jogadores (v16): telemóvel A | B e barras; PC A | radar | B e barras por baixo */
+.cmpx { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "a b" "linhas linhas"; gap: 14px 12px; }
+.cmpx-a { grid-area: a; } .cmpx-b { grid-area: b; } .cmpx-radar { grid-area: radar; display: none; } .cmpx-linhas { grid-area: linhas; }
+.cmpx-jogador { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.cmpx-jogador .vfn-avatar.avatar-lg { width: 88px; height: 99px; }
+.cmpx-jogador .vfn-avatar.avatar-lg.has-photo { width: 92px; height: 92px; }
+.cmpx-a .vfn-avatar.has-photo { border-color: #043792; } .cmpx-b .vfn-avatar.has-photo { border-color: #f59e0b; }
+.cmpx-jogador select { width: 100%; max-width: 220px; font-weight: 700; }
+.cmpx-a select { border-left: 4px solid #043792; } .cmpx-b select { border-left: 4px solid #f59e0b; }
+.cmpx-jogador select:disabled { opacity: 1; background: var(--surface-2); color: var(--heading); }
+.cmpx-jogador small { color: var(--text-muted); font-size: .74rem; }
+.cmpx-vazio { display: grid; place-items: center; width: 88px; height: 88px; border-radius: 50%; background: var(--surface-2); color: var(--text-muted); font-size: 2rem; font-weight: 800; }
+.cmpx-linhas { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.cmpx-linhas li { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "nome nome" "va vb" "barra barra"; gap: 2px 8px; }
+.cmpx-metrica { grid-area: nome; text-align: center; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.cmpx-linhas .va { grid-area: va; color: #043792; } .cmpx-linhas .vb { grid-area: vb; text-align: right; color: #b45309; }
+.cmpx-linhas b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.cmpx-linhas b.maior { font-size: 1.2rem; }
+.cmpx-barra { grid-area: barra; display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-2); }
+.cmpx-barra i { display: block; height: 100%; transition: width .3s ease; }
+.cmpx-barra .a { background: #043792; } .cmpx-barra .b { background: #f59e0b; }
+.cmpx-barra.vazia i { opacity: .25; }
+@media (min-width: 768px) {
+  .cmpx { grid-template-columns: 1fr minmax(260px, 1.3fr) 1fr; grid-template-areas: "a radar b" "linhas linhas linhas"; align-items: start; }
+  .cmpx-radar { display: block; }
+  .cmpx-radar .radar-box { height: 300px; max-width: none; }
+  .cmpx-linhas li { grid-template-columns: 160px 60px 1fr 60px; grid-template-areas: "nome va barra vb"; align-items: center; gap: 12px; }
+  .cmpx-metrica { text-align: left; }
+  .cmpx-linhas .va { text-align: right; } .cmpx-linhas .vb { text-align: left; }
+}
+html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-linhas .vb { color: #fbbf24; }
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }

@@ -52,6 +52,7 @@
     <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
     <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
     <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
+    <button class="nav-item" data-view="comparar"><span class="nav-icon"><i data-icon="scale"></i></span><span class="nav-label">Comparar</span></button>
     <button class="nav-item" data-view="h2h"><span class="nav-icon"><i data-icon="swords"></i></span><span class="nav-label">H2H</span></button>
     <button class="nav-item" data-view="relatorios"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Relatórios</span></button>
     <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
@@ -261,6 +262,14 @@
       <h3 class="subsecao-titulo">Mapa dos estádios</h3>
       <div id="mapaDash" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
       <p class="muted mapa-aviso"></p>
+    </div>
+  </section>
+
+  <!-- COMPARAR DOIS JOGADORES (v16, VFNComp.criarComparador) -->
+  <section id="view-comparar" class="view">
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">⚖️ Comparar jogadores <small class="muted">escolhe os dois jogadores</small></h2>
+      <div id="dbComparar"></div>
     </div>
   </section>
 
