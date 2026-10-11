@@ -145,6 +145,7 @@ function renderInicio() {
     VFNComp.ligarJogoDaSemana($("eqJogoSemana"), dados);
   }
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
+  $("eqProximosJogos").innerHTML = H.proximosJogosHTML(dados, 3);
   // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
   const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
   $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
