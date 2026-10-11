@@ -373,13 +373,6 @@
 .eq-ficha-info .pos-detalhe { margin: 0; }
 
 /* Kit do adversário (v16): assets/opponents/kits/<id>.png (VFN.kitAdversarioHTML) */
-.kit-adversario { position: relative; display: inline-grid; place-items: center; }
-.kit-adversario img { display: block; height: auto; object-fit: contain; }
-.perfil-camisola .kit-adversario img { width: 72px; max-height: 84px; }
-.avatar-externo .kit-adversario { width: 100%; height: 100%; }
-.avatar-externo .kit-adversario img { max-width: 100%; max-height: 100%; }
-.avatar-externo .kit-adversario .kit-numero { top: 34%; font-size: .72rem; -webkit-text-stroke-width: 1px; }
-.kit-jogo-semana img { width: 48px; margin-top: 2px; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
 
 /* Comparar jogadores (v16): telemóvel A | B e barras; PC A | radar | B e barras por baixo */
 .cmpx { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "a b" "linhas linhas"; gap: 14px 12px; }
@@ -416,7 +409,6 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 /* Mapa dos estádios (v16): filtro por divisão/distrito */
 .mapa-filtros { margin: 0 0 10px; }
 
-.kit-jogo-semana.kit-cores svg { display: block; margin: 2px auto 0; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
 
 /* Plantel (v17): estatísticas no card e o próprio jogador destacado (área do jogador) */
 .player-card-stats { display: flex; justify-content: center; gap: 8px; margin-top: 2px; font-size: .72rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -429,7 +421,6 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 .comp-tipo-badge.gr { background: rgba(255, 215, 0, .22); }
 .cmpx-metrica small { font-size: .8em; opacity: .7; }
 
-.kit-jogo-semana.kit-vfn img { width: 52px; }
 
 /* Dashboard (v18): coluna ao lado do 11 mais utilizado (minutos + próximos jogos) */
 .hub-coluna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }

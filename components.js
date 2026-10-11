@@ -1146,7 +1146,7 @@
     const kitVFN = `<span class="kit-adversario kit-jogo-semana kit-vfn"><img src="assets/kits/kit-principal-frente.png" alt="Equipamento VFN" loading="lazy" onerror="this.parentElement.remove()"></span>`;
     const vfn = lado(H().logoVFN(dados), "VFN", VFN.equipaVFN(dados.teams)).replace("</strong></div>", `</strong>${kitVFN}</div>`), outro = lado(VFN.urlLogoEquipa(adv, nome), nome, adv)
       // kit do adversário por baixo do escudo: o configurado (kit_config), o PNG ou a camisola com as cores da equipa
-      .replace("</strong></div>", `</strong>${VFN.kitAdversarioHTML(adv, { classe: "kit-jogo-semana", fallback: adv && VFN.coresEquipa(adv).primaria ? `<span class="kit-jogo-semana kit-cores">${VFN.camisolaEquipaSVG(adv, { tamanho: 46 })}</span>` : "" })}</div>`);
+      .replace("</strong></div>", `</strong>${VFN.kitAdversarioHTML(adv, { classe: "kit-jogo-semana", fallback: adv && VFN.coresEquipa(adv).primaria ? `<span class="kit-jogo-semana kit-svg-cores">${VFN.camisolaEquipaSVG(adv, { tamanho: 46 })}</span>` : "" })}</div>`);
     const c = partesContagem(jogo.date);
     const hora = VFN.horaIso(jogo.date);
     const fechado = (() => { try { return localStorage.getItem("vfnJogoSemana") === "fechado"; } catch (e) { return false; } })();
