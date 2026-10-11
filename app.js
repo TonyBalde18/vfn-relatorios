@@ -220,7 +220,7 @@ function atualizarEstatisticasEpoca() {
 function renderSeasonStats(stats) {
   const container = el("seasonStatsCard");
   if (!container) return;
-  container.innerHTML = `<h2 class="section-title">Estatísticas Rápidas da Época</h2><div class="season-stats-grid">${[["Jogos", stats.jogos], ["Vitórias", stats.vitorias], ["Empates", stats.empates], ["Derrotas", stats.derrotas], ["Golos marcados", stats.marcados], ["Golos sofridos", stats.sofridos]].map(([label, value]) => `<div class="season-stat"><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>${stats.jogos === 0 ? '<small class="season-empty">Ainda não há jogos do VFN com resultado no calendário.</small>' : '<small class="season-empty">Calculado a partir dos jogos do VFN com estado "jogado".</small>'}`;
+  container.innerHTML = `<h2 class="section-title">Estatísticas Rápidas da Época</h2><div class="season-stats-grid">${[["Jogos", stats.jogos], ["Vitórias", stats.vitorias], ["Empates", stats.empates], ["Derrotas", stats.derrotas], ["Golos marcados", stats.marcados], ["Golos sofridos", stats.sofridos]].map(([label, value]) => `<div class="season-stat"><strong>${value}</strong><span>${label}</span></div>`).join("")}</div>${stats.jogos === 0 ? '<small class="season-empty">Ainda não há jogos do VFN com resultado no calendário.</small>' : ''}`;
 }
 
 async function guardarRelatorioSupabase() {
@@ -1027,7 +1027,7 @@ function renderCapitao() {
   if (!select) return;
   atualizarCapitao();
   select.innerHTML = '<option value="">Automático</option>' + titularesIds().map(id => `<option value="${id}" ${state.jogo.capitaoManual && eCapitao(id) ? "selected" : ""}>${escapeHtml(nomeJogador(id))}</option>`).join("");
-  el("jgCapitaoAtual").innerHTML = state.jogo.capitaoId ? `${VFN.badgeCapitao()} ${escapeHtml(nomeJogador(state.jogo.capitaoId))}${state.jogo.capitaoManual ? "" : " <small class=\"muted\">(automático)</small>"}` : '<span class="muted">Sem capitão da lista no onze — escolhe um.</span>';
+  el("jgCapitaoAtual").innerHTML = state.jogo.capitaoId ? `${VFN.badgeCapitao()} ${escapeHtml(nomeJogador(state.jogo.capitaoId))}${state.jogo.capitaoManual ? "" : " <small class=\"muted\">(automático)</small>"}` : "";
 }
 
 /* Lista de dropdowns dos titulares — é aqui que o onze é realmente definido */

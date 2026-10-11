@@ -161,12 +161,11 @@
             <div class="pitch-linhas" aria-hidden="true"><span class="pl-meio"></span><span class="pl-circulo"></span><span class="pl-ponto"></span><span class="pl-area pl-cima"></span><span class="pl-pequena pl-cima"></span><span class="pl-penalti pl-cima"></span><span class="pl-meialua pl-cima"></span><span class="pl-area pl-baixo"></span><span class="pl-pequena pl-baixo"></span><span class="pl-penalti pl-baixo"></span><span class="pl-meialua pl-baixo"></span></div>
             <div class="pitch" id="pitch"></div>
           </div>
-          <p class="pitch-hint">Arrasta um jogador da lista para uma posição (ou toca no jogador e depois na posição). Arrasta entre posições para trocar e para a lista para tirar do onze. Os menus ao lado também funcionam.</p>
           <div id="pitchJogadores" class="pitch-jogadores" data-alvo="lista" aria-label="Jogadores para o onze"></div>
         </div>
         <div class="lineup-panel">
           <h3>Titulares (Onze Inicial)</h3>
-          <div class="capitao-campo"><div class="field"><label for="jgCapitao">Capitão</label><select id="jgCapitao"></select></div><p id="jgCapitaoAtual" class="capitao-atual"></p><small class="muted">Automático pela ordem: Toneca, Silvestre, Marco, Macedo (o primeiro que estiver no onze e disponível).</small></div>
+          <div class="capitao-campo"><div class="field"><label for="jgCapitao">Capitão</label><select id="jgCapitao"></select></div><p id="jgCapitaoAtual" class="capitao-atual"></p></div>
           <div id="titularesList" class="lineup-list"></div>
           <h3>Suplentes (até 7)</h3>
           <div id="benchList" class="lineup-list"></div>
@@ -211,14 +210,12 @@
     <!-- 2. Síntese -->
     <div class="card">
       <h2 class="section-title">Síntese</h2>
-      <p class="muted section-hint">Um parágrafo para quem só lê isto: o resultado em contexto, o que decidiu o jogo e a conclusão principal. É a primeira coisa no relatório.</p>
       <div class="field"><label for="sinteseText" class="sr-only">Síntese</label><textarea id="sinteseText" rows="5" placeholder="Ex.: Vitória justa frente a um adversário fechado. A pressão alta na 2.ª parte decidiu o jogo; continuamos a sofrer em transição defensiva."></textarea></div>
     </div>
 
     <!-- 3. Evolução do jogo -->
     <div class="card">
       <h2 class="section-title">Evolução do Jogo</h2>
-      <p class="muted section-hint">A narrativa: como o jogo foi mudando (resultado, domínio, momentos de viragem, efeito das substituições). A avaliação de cada momento do jogo fica na Análise Tática.</p>
       <div class="grid grid-2">
         <div class="field"><label for="primeiroTempoText">1.ª parte</label><textarea id="primeiroTempoText" rows="5"></textarea></div>
         <div class="field"><label for="segundoTempoText">2.ª parte</label><textarea id="segundoTempoText" rows="5"></textarea></div>
@@ -229,7 +226,6 @@
     <div class="card">
       <div class="section-header-row"><h2 class="section-title">Momentos e Situações</h2><label for="situacaoUpload" class="btn btn-accent btn-sm file-btn">+ Adicionar Situação</label><input type="file" id="situacaoUpload" accept="image/png,image/jpeg,image/svg+xml" multiple hidden></div>
       <div class="field"><label for="destaquesText">Momentos de destaque</label><textarea id="destaquesText" rows="3" placeholder="Um por linha. Ex.: 23' — golo de canto ensaiado"></textarea></div>
-      <p class="muted">Situações de jogo: até 10 imagens (PNG, JPG ou SVG) com legenda. Arrasta para reordenar. Ficam no relatório (treinador e dirigentes) e no Word.</p>
       <p id="situacoesErro" class="form-error" role="alert"></p>
       <ol id="situacoesLista" class="situacoes-lista"></ol>
     </div>
@@ -237,14 +233,13 @@
     <!-- 5. Análise tática: os 5 momentos do jogo e o adversário -->
     <div class="card">
       <h2 class="section-title">Análise Tática</h2>
-      <p class="muted section-hint">Os 5 momentos do jogo (avaliação e análise) e o adversário. Os momentos avaliados como Médio ou Mau aparecem nos Tópicos para o Treino.</p>
     </div>
     <div id="taticalSections"></div>
     <div class="card">
       <h2 class="section-title">Adversário</h2>
       <div class="field">
         <label for="advEstilo">Estilo de Jogo</label>
-        <small class="muted">Como joga: organização, saída de bola, pressão, bolas paradas. Descrição, sem juízos.</small>
+        <small class="muted">Como joga: organização, saída de bola, pressão, bolas paradas.</small>
         <textarea id="advEstilo" rows="4" placeholder="Ex.: 4-4-2 compacto em bloco médio, saída longa para o ponta-de-lança..."></textarea>
       </div>
       <div class="field">
@@ -449,7 +444,7 @@
       <div class="section-header-row">
         <h2 class="section-title">Resultados</h2>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="resultadosCompeticao">Competição</label><select id="resultadosCompeticao"></select><span class="muted">Jogos do VFN. Os resultados gravam ao sair do campo; os jogos entre outras equipas lançam-se em Jornadas AF Guarda.</span></div>
+      <div class="toolbar"><label class="toolbar-label" for="resultadosCompeticao">Competição</label><select id="resultadosCompeticao"></select></div>
       <p id="resultadosErro" class="form-error" role="alert"></p>
       <div id="resultadosLista"></div>
     </div>
@@ -529,7 +524,7 @@
       <div class="section-header-row">
         <h2 class="section-title">Classificação</h2>
       </div>
-      <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select><span class="muted">Calculada em tempo real a partir dos jogos do VFN (Resultados) e dos jogos entre as outras equipas (Jornadas AF Guarda). Pts = V×3 + E; DG = GM − GS.</span></div>
+      <div class="toolbar"><label class="toolbar-label" for="classificacaoCompeticao">Competição</label><select id="classificacaoCompeticao"></select></div>
       <div class="table-wrap">
         <div id="classificacaoTabela"></div>
       </div>
