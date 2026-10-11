@@ -416,7 +416,7 @@
       `<rect x="50" y="378" width="200" height="72"/><rect x="105" y="426" width="90" height="24"/><path d="M122 378 Q150 358 178 378"/>` +
       `<rect class="${p}-baliza" x="132" y="-8" width="36" height="8"/><rect class="${p}-baliza" x="132" y="450" width="36" height="8"/></g>`
   };
-  const TIPOS_LANCE = [["jogo_corrido", "Jogo corrido"], ["livre", "Livre"], ["canto", "Canto"], ["penalty", "Penálti"], ["contra-ataque", "Contra-ataque"], ["lancamento_lateral", "Lançamento lateral"], ["bola_longa", "Bola Longa"]];
+  const TIPOS_LANCE = [["jogo_corrido", "Jogo corrido"], ["livre", "Livre"], ["canto", "Canto"], ["penalty", "Penálti"], ["contra-ataque", "Contra-ataque"], ["lancamento_lateral", "Lançamento lateral"], ["bola_longa", "Bola Longa"], ["cruzamento", "Cruzamento"]];
   const nomeZona = id => ((ZONAS_ORIGEM.find(z => z.id === id) || {}).nome) || "";
   /** O golo foi sofrido pelo VFN? (golo do adversário, ou autogolo de um jogador do VFN) */
   const eGoloSofrido = ev => (ev.tipo === "Golo" && ev.equipa === "Adversário") || (ev.tipo === "Auto-golo" && ev.equipa === "VFN");
