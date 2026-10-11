@@ -5,7 +5,7 @@
    Lê apenas dados públicos: teams, matches e a view
    players_public (sem atributos, notas, multas nem presenças).
    Conteúdo: calendário, plantel, resultados, classificação da 2ª Liga,
-   jornadas e marcadores (liga e cada taça). Sem fichas das equipas adversárias.
+   jornadas (com os marcadores de cada competição). Sem fichas das equipas adversárias.
    ========================================================= */
 
 const H = VFNHub;
@@ -66,7 +66,6 @@ function mostrarVista(vista) {
   VFN.anim.seccao($(`view-${vista}`)); // fade-in da secção
   if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
   if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
-  if (vista === "marcadores") VFN.anim.contar($("pubMarcadores"));
   if (vista === "jornadas" && graficoPosicaoPub) graficoPosicaoPub.resize();
   VFN.refreshAOS();
 }
@@ -122,7 +121,6 @@ function mostrarEsqueletos() {
   $("pubClassificacao").innerHTML = H.esqueleto("tabela", 8);
   $("pubCalendario").innerHTML = H.esqueleto("resultados", 5);
   $("pubCalMes").innerHTML = H.esqueleto("calendario");
-  $("pubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubHubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubMinutos").innerHTML = H.esqueleto("linhas", 6);
   $("pubHubMarcadoresCamp").innerHTML = H.esqueleto("linhas", 5);
@@ -149,7 +147,7 @@ function renderJornadas() {
   $("pubJornClassTitulo").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
   $("pubJornClassificacao").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
   $("pubJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
-  $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 5); // top 5 ("Ver todos" abre os marcadores)
+  $("pubJornMarcadores").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, filtrosJornadas.competicao, 10); // top 10 (v19: o separador Marcadores saiu; os marcadores ficam aqui, por competição)
   graficoPosicaoPub = H.graficoPosicao($("pubChartPosicao"), dados, filtrosJornadas.competicao, graficoPosicaoPub);
 }
 
@@ -186,7 +184,6 @@ function renderTudo() {
 
   renderClassificacaoPub();
 
-  $("pubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 10);
   $("pubHubMarcadores").innerHTML = H.marcadoresHTML(jogadores, 5);
   // minutos da ficha de cada jogador (players.stats, atualizados no admin)
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
@@ -196,10 +193,6 @@ function renderTudo() {
   $("pubOnze").innerHTML = minutos.length ? H.onzeMaisUtilizadoHTML(dados.onze_jogos, jogadorDoRelatorioPub, minutos, dados) : H.onzeCampoHTML(minutos);
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);
-  // marcadores por competição: liga e cada taça
-  $("pubMarcadoresCampeonato").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 10);
-  $("pubMarcadoresHonra").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, "Taça de Honra Comunilog", 10);
-  $("pubMarcadoresFDM").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, "Taça 2ª Liga FDM", 10);
   renderPlantel();
   renderJornadas();
   renderCalendario();

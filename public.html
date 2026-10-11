@@ -36,7 +36,6 @@
   <button type="button" data-view="classificacao"><span aria-hidden="true"><i data-icon="trophy"></i></span>Tabela</button>
   <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="list-checks"></i></span>Jornadas</button>
   <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Jogos</button>
-  <button type="button" data-view="marcadores"><span aria-hidden="true"><i data-icon="bola"></i></span>Marcadores</button>
 </nav>
 
 <main class="public-main">
@@ -61,11 +60,11 @@
     </div>
     <div class="public-stack two-col">
       <article class="card" data-aos="fade-up">
-        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 marcadores do VFN</h2><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 marcadores do VFN</h2></div>
         <div id="pubHubMarcadores"></div>
       </article>
       <article class="card" data-aos="fade-up">
-        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 do campeonato</h2><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+        <div class="hub-card-head"><h2 class="hub-card-title">Top 5 do campeonato</h2><button type="button" class="link-btn" data-ir-vista="jornadas">Ver todos</button></div>
         <div id="pubHubMarcadoresCamp"></div>
       </article>
     </div>
@@ -115,7 +114,7 @@
         <div id="pubJornClassificacaoWrap" class="jorn-classificacao"><h3 class="subsecao-titulo" id="pubJornClassTitulo">Classificação</h3><div id="pubJornClassificacao"></div></div>
         <div class="jorn-jornadas"><h3 class="subsecao-titulo">Jornadas</h3><div id="pubJornLista" class="jornadas-lista tabela-escura"></div></div>
         <div class="jorn-marcadores">
-          <div class="hub-card-head"><h3 class="subsecao-titulo">Melhores marcadores</h3><button type="button" class="link-btn" data-ir-vista="marcadores">Ver todos</button></div>
+          <div class="hub-card-head"><h3 class="subsecao-titulo">Melhores marcadores</h3></div>
           <div id="pubJornMarcadores"></div>
         </div>
       </div>
@@ -133,24 +132,7 @@
     <div class="card mapa-card" data-aos="fade-up"><h2 class="hub-card-title">Mapa dos estádios <small class="muted">toca num emblema</small></h2><div id="mapaPub" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div><p class="muted mapa-aviso"></p></div>
   </section>
 
-  <section id="view-marcadores" class="view">
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Top marcadores do VFN</h2>
-      <div id="pubMarcadores"></div>
-    </div>
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Marcadores · Liga <small class="muted">2ª Liga Futebol Zero Graus Produções</small></h2>
-      <div id="pubMarcadoresCampeonato"></div>
-    </div>
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Marcadores · Taça de Honra <small class="muted">Taça de Honra Comunilog</small></h2>
-      <div id="pubMarcadoresHonra"></div>
-    </div>
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Marcadores · Taça 2ª Liga <small class="muted">Taça 2ª Liga FDM</small></h2>
-      <div id="pubMarcadoresFDM"></div>
-    </div>
-  </section>
+
 </main>
 
 <footer class="public-footer">
