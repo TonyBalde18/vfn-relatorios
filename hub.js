@@ -795,8 +795,10 @@
 
   /** 11 mais utilizado só de leitura (dashboard e página pública), na formação mais usada. o: opções de onzeCampoHTML. */
   function onzeEstaticoHTML(lista, dados, o) {
-    const formacao = formacaoMaisUsada(dados);
-    return `<div class="onze-estatico">${formacao ? `<p class="onze-formacao muted">Formação mais usada: <b>${esc(formacao)}</b></p>` : ""}${onzeCampoHTML(lista, { ...(o || {}), formacao })}</div>`;
+    // v19: sem formação conhecida (ex.: página pública sem acesso às convocatórias), 4-3-3 — sempre um campo tático
+    const usada = formacaoMaisUsada(dados);
+    const formacao = usada || "4-3-3";
+    return `<div class="onze-estatico"><p class="onze-formacao muted">${usada ? `Formação mais usada: <b>${esc(usada)}</b>` : `Formação: <b>4-3-3</b>`}</p>${onzeCampoHTML(lista, { ...(o || {}), formacao })}</div>`;
   }
 
   /** Lista de minutos: [{ jogador, minutos, jogos }], já ordenada. */
