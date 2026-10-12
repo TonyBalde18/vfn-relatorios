@@ -582,6 +582,9 @@ function mostrarLogin(mensagem, definirPassword) {
   $("loginMessage").textContent = mensagem || "";
 }
 
+const appInstalada = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const vindoDoSite = () => { try { return !!document.referrer && new URL(document.referrer).origin === location.origin && !/\/entrada\.html$/.test(new URL(document.referrer).pathname); } catch (e) { return false; } };
+
 async function entrarComSessao(sessao) {
   utilizador = sessao.user;
   // primeiro login: liga a conta ao jogador com o mesmo email (se o admin já o indicou)
@@ -590,6 +593,9 @@ async function entrarComSessao(sessao) {
   // não dá o modo equipa técnica: o jogador entra pela ligação players.auth_user_id
   perfil = await VFN.obterPapel(cliente, utilizador);
   if (!perfil || !["admin", "treinador", "dirigente"].includes(perfil.role)) perfil = null;
+  // app instalada (PWA) aberta aqui com conta da equipa técnica: vai para a sua área (o iPhone abre a app
+  // no URL onde foi instalada). Chegar por um link do próprio site (referrer) mantém a Área do Jogador.
+  if (perfil && appInstalada() && !vindoDoSite()) { location.replace(perfil.role === "admin" ? "index.html" : "dashboard.html"); return; }
   mostrarEcra("eqShell");
   mostrarEsqueletos();
   await carregarDados();
