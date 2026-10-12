@@ -583,9 +583,8 @@ function mostrarLogin(mensagem, definirPassword) {
 }
 
 const appInstalada = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-const vindoDoSite = () => { try { return !!document.referrer && new URL(document.referrer).origin === location.origin && !/\/entrada\.html$/.test(new URL(document.referrer).pathname); } catch (e) { return false; } };
 
-async function entrarComSessao(sessao) {
+async function entrarComSessao(sessao, viaFormulario) {
   utilizador = sessao.user;
   // primeiro login: liga a conta ao jogador com o mesmo email (se o admin já o indicou)
   try { await cliente.rpc("vfn_ligar_minha_conta"); } catch (e) { /* função ainda não criada */ }
@@ -593,9 +592,9 @@ async function entrarComSessao(sessao) {
   // não dá o modo equipa técnica: o jogador entra pela ligação players.auth_user_id
   perfil = await VFN.obterPapel(cliente, utilizador);
   if (!perfil || !["admin", "treinador", "dirigente"].includes(perfil.role)) perfil = null;
-  // app instalada (PWA) aberta aqui com conta da equipa técnica: vai para a sua área (o iPhone abre a app
-  // no URL onde foi instalada). Chegar por um link do próprio site (referrer) mantém a Área do Jogador.
-  if (perfil && appInstalada() && !vindoDoSite()) { location.replace(perfil.role === "admin" ? "index.html" : "dashboard.html"); return; }
+  // conta da equipa técnica: login feito aqui (a página pública só tem o botão "Área do Jogador") ou app
+  // instalada (PWA) → a sua área. No browser, com sessão já aberta, mantém-se o modo equipa técnica.
+  if (perfil && (viaFormulario || appInstalada())) { location.replace(perfil.role === "admin" ? "index.html" : "dashboard.html"); return; }
   mostrarEcra("eqShell");
   mostrarEsqueletos();
   await carregarDados();
@@ -665,7 +664,7 @@ async function iniciar() {
     $("loginMessage").textContent = "";
     const { data, error } = await cliente.auth.signInWithPassword({ email: $("loginEmail").value, password: $("loginPassword").value });
     if (error) { $("loginMessage").textContent = error.message === "Invalid login credentials" ? "Email ou password incorretos." : error.message; return; }
-    await entrarComSessao(data.session);
+    await entrarComSessao(data.session, true);
   });
   $("btnEsqueci").addEventListener("click", async () => {
     const email = $("loginEmail").value.trim();
