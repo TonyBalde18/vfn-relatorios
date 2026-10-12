@@ -62,7 +62,7 @@ async function carregarDados() {
   if (eu) pedidoMultas = pedidoMultas.eq("player_id", eu.id);
   const multas = await pedidoMultas;
   if (multas.error) falhas.push("fines");
-  dados.fines = multas.error ? [] : (multas.data || []).filter(f => !eu || String(f.player_id) === String(eu.id));
+  dados.fines = multas.error ? [] : VFN.normalizarMultas(multas.data).filter(f => !eu || String(f.player_id) === String(eu.id));
   // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Para os jogadores
   // lerem só as próprias presenças, correr no Supabase:
   //   drop policy if exists "Players read own attendance" on public.attendance;

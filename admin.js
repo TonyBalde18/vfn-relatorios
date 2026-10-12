@@ -43,7 +43,8 @@ function mostrarErroAdmin(id, erro) {
 async function carregarTabelaAdmin(tabela, erroId, forcar) {
   if (tabelasCarregadas.has(tabela) && !forcar) return;
   try {
-    cacheAdmin[tabela] = await dadosClube.listar(tabela);
+    const linhas = await dadosClube.listar(tabela);
+    cacheAdmin[tabela] = tabela === "fines" ? VFN.normalizarMultas(linhas) : linhas; // multas do treinador: staff_id → player_id
     tabelasCarregadas.add(tabela);
     mostrarErroAdmin(erroId, null);
   } catch (e) {
@@ -293,15 +294,32 @@ async function abrirModalMulta(multa) {
 }
 
 /** Grava uma multa; se a BD ainda não tiver fines.fine_type_id, grava sem essa coluna. */
+/** A pessoa da multa é da equipa técnica (não está no plantel)? */
+const eMultaStaff = id => !jogadorPorIdBD(id) && staffAdmin().some(p => p.id === String(id));
+
+/**
+ * Grava uma multa (v19.2): as do treinador vão em fines.staff_id com player_id a NULL (fines.player_id é FK para
+ * players). Devolve a linha já normalizada (player_id preenchido) para o resto da app.
+ */
+async function gravarMultaBD(linha) {
+  const paraBD = VFN.linhaMultaParaBD(linha, eMultaStaff(linha.player_id));
+  try {
+    return VFN.normalizarMultas([await dadosClube.guardar("fines", paraBD)])[0];
+  } catch (e) {
+    if (/staff_id|fines_player_id_fkey|player_id.*not-null|null value in column "player_id"/i.test(e.message || "")) throw new Error("Para multar a equipa técnica corre o sql/v19_multas_staff.sql no Supabase (coluna fines.staff_id).");
+    throw e;
+  }
+}
+
 async function guardarLinhaMulta(linha) {
   const { fine_type_id, ...semTipo } = linha;
-  if (!colunaTipoMulta) return dadosClube.guardar("fines", semTipo);
+  if (!colunaTipoMulta) return gravarMultaBD(semTipo);
   try {
-    return await dadosClube.guardar("fines", linha);
+    return await gravarMultaBD(linha);
   } catch (e) {
-    if (!/fine_type_id|does not exist|schema cache|could not find/i.test(e.message || "")) throw e;
+    if (!/fine_type_id|does not exist|schema cache|could not find/i.test(e.message || "") || /staff_id/i.test(e.message || "")) throw e;
     colunaTipoMulta = false;
-    return dadosClube.guardar("fines", semTipo);
+    return gravarMultaBD(semTipo);
   }
 }
 
@@ -412,7 +430,7 @@ async function alternarPagamento(multa, pago) {
   multa.paid_date = pago ? hojeIso() : null;
   renderMultas();
   try {
-    const gravada = await dadosClube.guardar("fines", multa);
+    const gravada = await gravarMultaBD(multa);
     Object.assign(multa, gravada);
   } catch (e) {
     Object.assign(multa, anterior);

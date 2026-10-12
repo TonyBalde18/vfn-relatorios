@@ -90,6 +90,21 @@
   // Equipa técnica por omissão (tabela staff no Supabase)
   const STAFF_PADRAO = [{ id: "1635906", name: "Ricardo Isento", full_name: "Ricardo Manuel Mendes Isento", role: "treinador", date_of_birth: "1975-10-25", photo_url: "" }];
 
+  /*
+   * Multas da equipa técnica (v19.2): fines.player_id é FK para players; as do treinador gravam-se em fines.staff_id
+   * (FK para staff) com player_id a NULL — sql/v19_multas_staff.sql. Na app tudo continua a usar f.player_id:
+   * normalizarMultas copia staff_id para player_id ao ler; linhaMultaParaBD faz o contrário ao gravar.
+   */
+  function normalizarMultas(linhas) {
+    return (linhas || []).map(f => f && !f.player_id && f.staff_id ? { ...f, player_id: String(f.staff_id) } : f);
+  }
+  function linhaMultaParaBD(linha, eStaff) {
+    const l = { ...linha };
+    if (eStaff) { l.staff_id = String(linha.player_id); l.player_id = null; }
+    else if ("staff_id" in l) l.staff_id = null; // a coluna existe (veio da BD): limpa-a
+    return l;
+  }
+
   /** Linha de staff -> objeto com o mesmo formato dos jogadores nas vistas (nome, fotoUrl, ...). */
   function pessoaStaff(t) {
     return { id: String(t.id), idBD: String(t.id), nome: t.name, nomeCompleto: t.full_name || t.name, posicao: t.role === "treinador" ? "Treinador" : (t.role || "Staff"), numero: "", fotoUrl: t.photo_url || `${BASE_SITE}assets/staff/${t.id}.png`, staff: true };
@@ -1641,7 +1656,7 @@
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
     DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, normalizarMultas, linhaMultaParaBD, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,

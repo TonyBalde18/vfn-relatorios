@@ -38,6 +38,7 @@ async function carregarDados() {
   });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
+  dados.fines = VFN.normalizarMultas(dados.fines); // multas do treinador (staff_id) com o mesmo formato
   jogadores = dados.players.map(H.jogadorDeLinha);
   VFN.definirTiposMulta(dados.fine_types);
   const aviso = $("avisoDados");
