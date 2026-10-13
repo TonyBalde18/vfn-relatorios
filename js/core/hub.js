@@ -1978,7 +1978,23 @@
 
   /* ---------- Rodapé ---------- */
 
+  /**
+   * Navegação por separadores das páginas com .public-nav (Área do Jogador e página pública): mostra a secção
+   * #view-<vista>, marca o botão ativo (aria-current), volta ao topo e anima a entrada. O resto é de cada página.
+   */
+  function ativarVista(vista, seletorNav) {
+    document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
+    document.querySelectorAll(seletorNav).forEach(b => {
+      const ativo = b.dataset.view === vista;
+      b.classList.toggle("active", ativo);
+      if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    window.scrollTo({ top: 0 });
+    VFN.anim.seccao(document.getElementById(`view-${vista}`)); // fade-in da secção
+  }
+
   window.VFNHub = {
+    ativarVista,
     jogadorPorIdRelatorio, statsGRJogador,
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,

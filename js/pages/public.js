@@ -54,14 +54,7 @@ function mostrarAviso(texto) {
 document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
 
 function mostrarVista(vista) {
-  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
-  document.querySelectorAll(".public-nav button").forEach(b => {
-    const ativo = b.dataset.view === vista;
-    b.classList.toggle("active", ativo);
-    if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-  });
-  window.scrollTo({ top: 0 });
-  VFN.anim.seccao($(`view-${vista}`)); // fade-in da secção
+  H.ativarVista(vista, ".public-nav button");
   if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
   if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
   if (vista === "jornadas" && graficoPosicaoPub) graficoPosicaoPub.resize();
