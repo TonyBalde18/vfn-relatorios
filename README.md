@@ -13,23 +13,42 @@ Aplicação web estática (GitHub Pages + Supabase) do ACD Vila Franca das Naves
 
 ## Ficheiros
 
-- `index.html`, `app.js` — relatório de jogo (Pré-Jogo, Jogo, Análise, Equipa) e exportação Word.
-- `admin.js` — tabs de gestão do admin (Multas, Presenças, Calendário, Classificação, Adversários).
-- `dashboard.html`, `dashboard.js` — dashboard da equipa técnica (gráficos Chart.js).
-- `public.html`, `public.js` — página pública dos atletas.
-- `shared.js` — cliente Supabase com spinner, avatar `generateJerseyAvatar(number)` e utilitários.
-- `hub.js` — componentes de leitura partilhados pelo dashboard e pela página pública.
-- `styles.css` (base) e `hub.css` (dashboard e página pública).
-- `schema.sql` — tabelas, view pública e políticas RLS.
-- `config.js` — URL e chave **anon** do projeto Supabase.
-- `assets/` — `logo.png`, `logo-icon.ico`, `players/`, `opponents/`, `external/` e `staff/`.
+```
+/                    páginas (ficam na raiz: links partilhados, convites e PWA apontam para aqui)
+├── index.html       admin: relatório de jogo e gestão
+├── dashboard.html   equipa técnica (só leitura)
+├── equipa.html      Área do Jogador
+├── public.html      página pública
+├── entrada.html     arranque da app instalada: encaminha pelo papel da sessão
+├── manifest.json · sw.js   PWA (o service worker tem de estar na raiz)
+├── css/
+│   ├── styles.css   base, admin e componentes (+ bloco do tema escuro gerado)
+│   └── hub.css      extra das páginas do hub (dashboard, equipa, pública)
+├── js/
+│   ├── config.js    URL e chave anon do Supabase
+│   ├── core/        partilhados por várias páginas, cada um num namespace global
+│   │   ├── shared.js      VFN: utilitários base (datas, competições, posições, multas, avatares, tema, Supabase)
+│   │   ├── hub.js         VFNHub: componentes de leitura (resultados, classificação, 11, calendário, H2H…)
+│   │   ├── components.js  VFNComp: componentes interativos (cards, comparador, mapa, kits, PDF…)
+│   │   └── relatorio.js   VFNRelatorio: relatório de jogo (HTML, Word, situações)
+│   ├── admin/       index.html (scripts clássicos que partilham globais; app.js tem de vir primeiro)
+│   │   ├── app.js         estado do relatório, camada de dados, plantel, pré-jogo, jogo, análise, Word, login
+│   │   ├── admin.js       separadores de gestão (multas, presenças, convocatória, calendário…)
+│   │   └── modo-jogo.js   Modo Jogo (cronómetro e eventos ao vivo)
+│   └── pages/       dashboard.js · equipa.js · public.js (um por página)
+├── sql/             ver sql/README.md (schema base, migrações e seeds, pela ordem de execução)
+├── tools/           tema-escuro.js (gera o bloco escuro: node tools/tema-escuro.js css/styles.css css/hub.css)
+└── assets/          logo, players/, opponents/ (+ kits/), stadiums/, icons/, sponsors/, kits/, staff/, external/
+```
+
+Os caminhos para `assets/` no JS são relativos à página (na raiz). Ao mudar um JS/CSS, sobe o `?v=` nas páginas e o `VERSAO` no `sw.js`.
 
 ## Configuração Supabase
 
 1. No SQL Editor, corre **todo** o `schema.sql`. É idempotente: completa as tabelas existentes, cria `profiles`, `opponents`, `sessions` e a view `players_public`, e substitui as políticas RLS destas tabelas.
 2. No fim do ficheiro, descomenta o bloco **1. ADMIN**, põe o teu email e corre-o. **Sem isto o `index.html` deixa de conseguir gravar.**
 3. Em Authentication > Users cria as contas do treinador e dos dirigentes e atribui-lhes o papel com o bloco **2** do `schema.sql`.
-4. Confirma que `config.js` tem o Project URL e a anon key (Settings > API):
+4. Confirma que `js/config.js` tem o Project URL e a anon key (Settings > API):
 
 ```js
 const SUPABASE_URL = 'https://o-teu-projeto.supabase.co';
@@ -89,7 +108,7 @@ A app usa `fetch` para o logo e CDNs para Supabase/docx. Usa um servidor HTTP:
 npx http-server -p 8000
 ```
 
-Sem credenciais reais em `config.js`, o botão **Entrar em modo local** permite testar a interface com `localStorage`. Com credenciais configuradas, o login é obrigatório e os dados ficam isolados por utilizador através de RLS.
+Sem credenciais reais em `js/config.js`, o botão **Entrar em modo local** permite testar a interface com `localStorage`. Com credenciais configuradas, o login é obrigatório e os dados ficam isolados por utilizador através de RLS.
 
 ## Funcionalidades
 
@@ -107,7 +126,7 @@ Sem credenciais reais em `config.js`, o botão **Entrar em modo local** permite 
 
 1. Faz commit de todos os ficheiros, incluindo a pasta `assets/`.
 2. Publica o ramo `main` em Settings > Pages > Deploy from branch.
-3. Usa HTTPS e confirma que `config.js` contém apenas a chave **anon**. Nunca publiques a service role key.
+3. Usa HTTPS e confirma que `js/config.js` contém apenas a chave **anon**. Nunca publiques a service role key.
 
 ## Telemóvel/tablet no estádio
 

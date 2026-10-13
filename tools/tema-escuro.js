@@ -1,5 +1,5 @@
 /*
- * Uso: node tools/tema-escuro.js styles.css hub.css
+ * Uso: node tools/tema-escuro.js css/styles.css css/hub.css
  * Volta a gerar, no fim de cada ficheiro, o bloco "TEMA ESCURO (gerado…)" a partir das regras claras.
  * Correr depois de mudar cores nas regras (o bloco anterior é substituído).
  */

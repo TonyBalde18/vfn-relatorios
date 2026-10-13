@@ -1068,7 +1068,8 @@
     el.style.removeProperty("--fundo-estadio");
     fotoEstadio(id).then(url => {
       if (!url || el.dataset.fotoEstadio !== String(id || "")) return; // entretanto mudou de jogo
-      el.style.setProperty("--fundo-estadio", `url("${url}")`);
+      // URL absoluto: um url() dentro de var() resolve-se a partir da folha de estilo que o usa (css/), não da página
+      el.style.setProperty("--fundo-estadio", `url("${new URL(url, document.baseURI).href}")`);
       el.classList.add("com-estadio");
     });
   }
