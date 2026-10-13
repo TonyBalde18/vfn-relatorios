@@ -27,17 +27,10 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
 /* ---------- Dados ---------- */
 
 /*
- * v10: a área do jogador já não lê presenças (attendance) e as multas (fines) são pedidas à parte:
- * um jogador só pede as suas (player_id = o seu id); a equipa técnica pede todas.
- * Para que a base de dados também só devolva as próprias multas a um jogador, correr no Supabase:
- *
- *   drop policy if exists "Players read fines" on public.fines;
- *   create policy "Players read own fines" on public.fines for select to authenticated
- *     using (player_id in (select id from public.players where auth_user_id = auth.uid()));
- *   drop policy if exists "Players read attendance" on public.attendance;
- *
- * ("fines staff read" continua a dar todas as multas à equipa técnica; os valores de cada infração vêm de
- * fine_types, que os jogadores já podem ler.)
+ * v10: a área do jogador já não lê presenças (attendance).
+ * v20: as multas (fines) voltam a ser do plantel todo: cada jogador vê as suas, as dos colegas e as do
+ * treinador, com os totais (como no dashboard). Para a base de dados devolver todas a um jogador, correr
+ * sql/v20_multas_jogadores.sql (política "Players read fines"). Sem ele, o jogador continua a ver só as suas.
  */
 const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h" };
 const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/h2h.sql (leitura pública)
@@ -57,12 +50,10 @@ async function carregarDados() {
   jogadores = dados.players.map(p => ({ ...H.jogadorDeLinha(p), eEu: !!p.e_eu }));
   eu = jogadores.find(j => j.eEu) || null;
   VFN.definirTiposMulta(dados.fine_types);
-  // multas: o jogador só pede as suas; a equipa técnica todas
-  let pedidoMultas = cliente.from("fines").select("*");
-  if (eu) pedidoMultas = pedidoMultas.eq("player_id", eu.id);
-  const multas = await pedidoMultas;
+  // multas do plantel e da equipa técnica (a RLS decide o que cada conta lê)
+  const multas = await cliente.from("fines").select("*");
   if (multas.error) falhas.push("fines");
-  dados.fines = multas.error ? [] : VFN.normalizarMultas(multas.data).filter(f => !eu || String(f.player_id) === String(eu.id));
+  dados.fines = multas.error ? [] : VFN.normalizarMultas(multas.data);
   // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Para os jogadores
   // lerem só as próprias presenças, correr no Supabase:
   //   drop policy if exists "Players read own attendance" on public.attendance;
@@ -265,19 +256,23 @@ function renderMultas() {
     $("eqMinhasMultas").innerHTML = H.vazio("Só para jogadores.");
   }
   $("eqTabelaMultas").innerHTML = tabelaValoresMultasHTML();
-  // jogadores: só as suas multas (sem dados dos outros); a equipa técnica vê as do plantel
-  $("eqMultasEquipa").hidden = !!eu;
-  if (eu) return;
+  // v20: jogadores e equipa técnica veem as multas de todos (incluindo as do treinador)
   $("eqDividas").innerHTML = VFNComp.renderDebtReport(dados.fines, { pessoa });
   const sel = $("eqMultasJogador");
   const atual = sel.value;
-  sel.innerHTML = '<option value="">Todos os jogadores</option>' + [...jogadores].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => `<option value="${esc(j.id)}">${esc(j.nome)}</option>`).join("");
+  // quem tem multas além do plantel (o treinador) também aparece no filtro
+  const extra = [...new Set(dados.fines.map(f => String(f.player_id)))].filter(id => !jogadores.some(j => String(j.id) === id)).map(pessoa).filter(Boolean);
+  sel.innerHTML = '<option value="">Todos</option>' + [...jogadores, ...extra].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => `<option value="${esc(j.id)}">${esc(j.nome)}</option>`).join("");
   sel.value = atual;
   const estado = $("eqMultasEstado").value;
   const todas = dados.fines
     .filter(f => !sel.value || String(f.player_id) === sel.value)
     .filter(f => !estado || (estado === "pago" ? f.paid : !f.paid))
     .sort(porData);
+  const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  $("eqMultasEquipaResumo").innerHTML = `<div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${euro(soma(todas.filter(f => !f.paid)))}</strong></div>
+    <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${euro(soma(todas.filter(f => f.paid)))}</strong></div>
+    <div class="summary-tile"><span>Nº de multas</span><strong>${todas.length}</strong></div>`;
   $("eqMultasTodas").innerHTML = linhasMultasHTML(todas, true);
 }
 

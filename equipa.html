@@ -176,15 +176,16 @@
       <h2 class="hub-card-title">Valores das multas <small class="muted">quanto custa cada infração</small></h2>
       <div id="eqTabelaMultas"></div>
     </div>
-    <!-- só para a equipa técnica (os jogadores só veem as suas multas) -->
-    <div id="eqMultasEquipa" hidden>
+    <!-- v20: multas de toda a equipa (jogadores e treinador), para jogadores e equipa técnica -->
+    <div id="eqMultasEquipa">
     <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Multas do plantel <small class="muted">por pagar</small></h2>
+      <h2 class="hub-card-title">Multas da equipa <small class="muted">por pagar</small></h2>
       <div id="eqDividas"></div>
     </div>
     <div class="card" data-aos="fade-up">
       <div class="hub-card-head"><h2 class="hub-card-title">Todas as multas</h2>
         <div class="toolbar toolbar-inline"><label class="sr-only" for="eqMultasJogador">Jogador</label><select id="eqMultasJogador" class="compact-select"></select><label class="sr-only" for="eqMultasEstado">Estado</label><select id="eqMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select></div></div>
+      <div id="eqMultasEquipaResumo" class="summary-tiles"></div>
       <div id="eqMultasTodas"></div>
     </div>
     </div>
