@@ -606,13 +606,13 @@
     return `<section class="conv-bloco"><h4 class="perfil-subtitulo">Pré-visualização tática <small class="muted">${esc(formacao)} · só no admin${o.editarCampo ? " · arrasta um jogador para outro lugar para os trocar" : ""}</small></h4>${campo}</section>`;
   }
 
-  /** Primeira foto que existe de cada jogador (photo_url, assets/players/{id}.jpg ou .png); null = camisola. */
+  /** Primeira foto que existe de cada jogador (photo_url, assets/players/{id}.png ou .jpg); null = camisola. */
   async function fotosDosJogadores(jogadores) {
     const testar = url => new Promise(r => { const img = new Image(); img.onload = () => r(url); img.onerror = () => r(null); img.src = url; });
     const fotos = new Map();
     await Promise.all(jogadores.map(async j => {
       const id = idDe(j);
-      for (const url of [j.photo_url || j.fotoUrl, `assets/players/${id}.jpg`, `assets/players/${id}.png`].filter(Boolean)) {
+      for (const url of [j.photo_url || j.fotoUrl, `assets/players/${id}.png`, `assets/players/${id}.jpg`].filter(Boolean)) {
         if (await testar(url)) { fotos.set(id, url); return; }
       }
       fotos.set(id, null);

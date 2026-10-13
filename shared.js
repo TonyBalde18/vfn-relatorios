@@ -1475,13 +1475,13 @@
     if (span) span.outerHTML = generateJerseyAvatar(span.dataset.numero);
   }
 
-  // Fotos em assets/players/{id}.jpg ou .png. Guarda o resultado para não repetir pedidos falhados.
+  // Fotos em assets/players/{id}.png (ou .jpg). Guarda o resultado para não repetir pedidos falhados.
   const PASTA_FOTOS = "assets/players/";
   const fotosConhecidas = new Map(); // id -> url encontrado | null (sem foto)
 
   /**
    * Avatar de jogador: começa pela camisola e tenta a foto real em segundo plano
-   * (photo_url, depois assets/players/{id}.jpg e .png); se nenhuma existir, fica a camisola.
+   * (photo_url, depois assets/players/{id}.png e .jpg — as do repositório são .png); se nenhuma existir, fica a camisola.
    * Aceita jogadores do app.js (idBD/fotoUrl/numero/nome) e do Supabase (id/photo_url/number/name).
    */
   function avatarJogador(jogador, classe) {
@@ -1491,7 +1491,7 @@
     const id = String(j.idBD || j.id || "");
     const cls = `vfn-avatar ${classe || ""}`.trim();
     const attrJogador = id ? ` data-jogador="${escapeHtml(id)}"` : ""; // clicável: abre a ficha do jogador
-    const candidatos = [j.photo_url || j.fotoUrl, id && `${PASTA_FOTOS}${id}.jpg`, id && `${PASTA_FOTOS}${id}.png`].filter(Boolean);
+    const candidatos = [j.photo_url || j.fotoUrl, id && `${PASTA_FOTOS}${id}.png`, id && `${PASTA_FOTOS}${id}.jpg`].filter(Boolean);
     const conhecida = fotosConhecidas.get(id);
     if (conhecida) return `<span class="${cls} has-photo"${attrJogador}><img src="${escapeHtml(conhecida)}" alt="Fotografia de ${escapeHtml(nome)}" loading="lazy"></span>`;
     // no modal do jogador: imagem real do kit; nas listas: camisola SVG
