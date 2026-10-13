@@ -309,7 +309,7 @@
     const jogo = ((relatorio || {}).match_data || {}).jogo || {};
     const nome = id => (nomeJogador && nomeJogador(id)) || "—";
     const onze = (jogo.titulares || []).filter(Boolean);
-    if (!onze.length) return '<p class="muted">Escalação ainda não registada.</p>';
+    if (!onze.length) return '<p class="muted">Onze inicial ainda não registado.</p>';
     const linha = id => `<li>${esc(nome(id))}${String(id) === String(jogo.capitaoId) ? " " + VFN.badgeCapitao() : ""}</li>`;
     return `${jogo.formacaoVFN ? `<p class="esc-formacao">Formação <strong>${esc(jogo.formacaoVFN)}</strong></p>` : ""}
       <div class="esc-grid"><div><h5>Onze inicial</h5><ol>${onze.map(linha).join("")}</ol></div>
@@ -336,7 +336,7 @@
       <button type="button" class="btn btn-ghost btn-sm" data-jogo="vfn:${esc(jogo.id)}">${VFN.icone("eye", 16)} Ver detalhe do jogo</button>`;
     if (!o.comRelatorios) return `<section class="dia-bloco">${resumo}</section>`;
     return `<section class="dia-bloco">
-      <div class="abas" role="tablist"><button type="button" class="ativa" role="tab" aria-selected="true" data-aba="resumo">Resumo</button><button type="button" role="tab" aria-selected="false" data-aba="eventos">Eventos</button><button type="button" role="tab" aria-selected="false" data-aba="escalacao">Escalação</button></div>
+      <div class="abas" role="tablist"><button type="button" class="ativa" role="tab" aria-selected="true" data-aba="resumo">Resumo</button><button type="button" role="tab" aria-selected="false" data-aba="eventos">Eventos</button><button type="button" role="tab" aria-selected="false" data-aba="escalacao">Onze inicial</button></div>
       <div data-painel="resumo">${resumo}</div>
       <div data-painel="eventos" hidden>${relatorio ? renderMatchEvents(relatorio, o.nomeRelatorio) : '<p class="muted">Ainda não há relatório deste jogo.</p>'}</div>
       <div data-painel="escalacao" hidden>${relatorio ? escalacaoHTML(relatorio, o.nomeRelatorio) : '<p class="muted">Ainda não há relatório deste jogo.</p>'}</div>
