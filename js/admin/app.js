@@ -567,9 +567,9 @@ function opcoesJogadoresHTML(selecionadoId, opts) {
   return html;
 }
 
+/** O mesmo de VFN.escapeHtml (fica com este nome: é usado em app.js, admin.js e modo-jogo.js). */
 function escapeHtml(str) {
-  return String(str == null ? "" : str)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return VFN.escapeHtml(str);
 }
 
 function uid() { return Date.now() + Math.floor(Math.random() * 1000); }
