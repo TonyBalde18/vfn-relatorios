@@ -517,15 +517,18 @@ function celulaJogadorDash(id) {
   return j ? `<span class="player-cell">${VFN.avatarJogador(j, "avatar-xs")}<span>${esc(j.nome)}</span></span>` : '<span class="player-cell muted">Jogador removido</span>';
 }
 
-function opcoesJogadoresDash(selecionado, rotulo) {
-  return `<option value="">${rotulo}</option>` + [...jogadores].sort((a, b) => a.nome.localeCompare(b.nome, "pt"))
+/** Opções do filtro de pessoa; extra: outras pessoas a juntar ao plantel (ex.: o treinador nas multas). */
+function opcoesJogadoresDash(selecionado, rotulo, extra) {
+  return `<option value="">${rotulo}</option>` + [...jogadores, ...(extra || [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt"))
     .map(j => `<option value="${esc(j.id)}" ${String(j.id) === String(selecionado) ? "selected" : ""}>${esc(j.nome)}</option>`).join("");
 }
 
 function renderMultasDash() {
   if (!$("dbMultasBody")) return;
   const tipos = [...new Set([...VFN.TIPOS_MULTA.map(t => t.tipo), ...dados.fines.map(f => f.infraction_type)])];
-  $("dbMultasJogador").innerHTML = opcoesJogadoresDash(filtrosMultas.jogador, "Todos os jogadores");
+  // quem tem multas além do plantel (o treinador) também aparece no filtro, como na Área do Jogador
+  const extra = [...new Set(dados.fines.map(f => String(f.player_id)))].filter(id => !jogadores.some(j => String(j.id) === id)).map(jogadorPorIdDash).filter(Boolean);
+  $("dbMultasJogador").innerHTML = opcoesJogadoresDash(filtrosMultas.jogador, extra.length ? "Todos" : "Todos os jogadores", extra);
   $("dbMultasTipo").innerHTML = '<option value="">Todos os tipos</option>' + tipos.map(t => `<option value="${esc(t)}" ${t === filtrosMultas.tipo ? "selected" : ""}>${esc(VFN.rotuloMulta(t))}</option>`).join("");
   $("dbMultasEstado").value = filtrosMultas.estado;
   $("dbMultasMes").innerHTML = '<option value="epoca">Época inteira</option>' + VFN.mesesDaEpoca(new Date()).map(m => `<option value="${m.valor}" ${m.valor === filtrosMultas.mes ? "selected" : ""}>${m.rotulo}</option>`).join("");

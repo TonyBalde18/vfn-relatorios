@@ -1509,8 +1509,9 @@
   }
 
   /**
-   * Avatar de um jogador externo (external_players): photo_url ou assets/external/{id}.jpg;
-   * sem foto fica a camisola da equipa com o número (avatar genérico).
+   * Avatar de um jogador externo (external_players): photo_url (campo Foto da ficha no admin); sem foto fica a
+   * camisola da equipa com o número. V1.0: já não se tenta assets/external/{id}.jpg por omissão (a pasta estava
+   * vazia e cada externo mostrado dava um 404); uma foto nessa pasta usa-se pondo o caminho no photo_url.
    */
   function avatarExterno(p, equipa, classe) {
     const j = p || {};
@@ -1518,7 +1519,7 @@
     // v16: kit PNG da equipa com o número; sem PNG, a camisola SVG com as cores da equipa
     const svg = camisolaEquipaSVG(equipa, { numero: j.number, tamanho: 40, rotulo: "Camisola " + (j.number ? "número " + j.number : "") });
     const camisola = kitAdversarioHTML(equipa, { numero: j.number, fallback: svg, classe: "kit-externo" });
-    const candidatos = [j.photo_url, /^\d+$/.test(id) && `assets/external/${id}.jpg`].filter(Boolean);
+    const candidatos = [j.photo_url].filter(Boolean);
     const chave = "ext:" + id;
     const conhecida = fotosConhecidas.get(chave);
     const cls = `vfn-avatar avatar-externo ${classe || ""}`.trim();

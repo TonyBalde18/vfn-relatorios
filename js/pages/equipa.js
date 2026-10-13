@@ -380,8 +380,8 @@ let graficoRadarEq = null;
 /*
  * Estatísticas completas do jogador com sessão (v15): presenças, minutos, golos, assistências, cartões, pé e
  * posições; GR: jogos a zero, minutos sem sofrer, golos sofridos e média; radar (o mesmo do admin).
- * As posições secundárias vêm de players_equipa, que só as tem com a versão da view em
- * sql/migrations/v24_migracoes_em_comentarios.sql, ponto 3 (sem ela fica só a posição principal).
+ * As posições secundárias vêm de players_equipa, que só as tem depois de sql/migrations/v25_players_equipa_posicoes.sql
+ * (sem ela fica só a posição principal).
  */
 function renderFichaCompleta() {
   if (graficoRadarEq) { graficoRadarEq.destroy(); graficoRadarEq = null; }

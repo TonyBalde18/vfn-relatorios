@@ -647,7 +647,7 @@ on conflict (id) do update set
   color_secondary = excluded.color_secondary,
   logo_url = excluded.logo_url;
 
--- [v5 Tarefa 5] Jogadores externos: foto (assets/external/<id>.jpg por omissão) e número da camisola
+-- [v5 Tarefa 5] Jogadores externos: foto (photo_url; desde a V1.0 sem procura automática em assets/external/) e número da camisola
 alter table public.external_players add column if not exists photo_url text;
 alter table public.external_players add column if not exists number integer;
 

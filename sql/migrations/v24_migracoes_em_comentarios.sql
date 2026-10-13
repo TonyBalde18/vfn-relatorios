@@ -16,7 +16,8 @@
 -- alter table public.players add column if not exists sub_posicao text;
 -- alter table public.players add column if not exists posicoes_secundarias jsonb default '[]';
 
--- 3) players_equipa com as sub-posições (Área do Jogador: posições secundárias na ficha) — NÃO APLICADO (verificado 13/10/2026)
+-- 3) players_equipa com as sub-posições (Área do Jogador: posições secundárias na ficha) — SUBSTITUÍDO pela v25
+--    (sql/migrations/v25_players_equipa_posicoes.sql, com a verificação). Fica aqui só como histórico.
 --    A view base está no sql/schema.sql; esta versão acrescenta as duas colunas no fim. Sem ela a ficha
 --    da Área do Jogador mostra só a posição principal. Se for aplicada, repetir o revoke/grant da v21
 --    (create or replace view mantém os privilégios, mas confirmar com a verificação da v21).
