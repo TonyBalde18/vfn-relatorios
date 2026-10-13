@@ -854,19 +854,22 @@ async function carregarCalendario() {
     [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["relatoriosBody", "", 5]]
       .forEach(([id, tipo, n]) => VFNHub.mostrarEsqueleto(id, tipo, n));
   }
-  try {
-    [jogosCalendario, equipasCalendario] = await Promise.all([dadosClube.listar("matches"), dadosClube.listar("teams")]);
+  // V1.0: os 4 pedidos em paralelo (antes: jogos+equipas, depois resultados, depois relatórios)
+  const [calendario, resultados, relatorios] = await Promise.allSettled([
+    Promise.all([dadosClube.listar("matches"), dadosClube.listar("teams")]),
+    dadosClube.listar("league_results"),
+    dadosClube.listar("match_reports")
+  ]);
+  if (calendario.status === "fulfilled") {
+    [jogosCalendario, equipasCalendario] = calendario.value;
     jogosCalendario = VFN.normalizarLinhas(jogosCalendario); // nomes antigos da competição → nome oficial
-  } catch (e) {
-    console.warn("Não foi possível carregar o calendário:", e.message || e);
-  }
-  try {
-    resultadosLiga = VFN.normalizarLinhas(await dadosClube.listar("league_results"));
-  } catch (e) {
+  } else console.warn("Não foi possível carregar o calendário:", calendario.reason.message || calendario.reason);
+  if (resultados.status === "fulfilled") resultadosLiga = VFN.normalizarLinhas(resultados.value);
+  else {
     resultadosLiga = [];
-    console.warn("league_results indisponível (corre a atualização de 01/10 do schema.sql):", e.message || e);
+    console.warn("league_results indisponível (corre a atualização de 01/10 do schema.sql):", resultados.reason.message || resultados.reason);
   }
-  try { relatoriosAdmin = await dadosClube.listar("match_reports"); } catch (e) { relatoriosAdmin = []; }
+  relatoriosAdmin = relatorios.status === "fulfilled" ? relatorios.value : [];
   calendarioCarregado = true;
   renderProximoJogoPreJogo();
   if (typeof renderCalendarioAdmin === "function") renderCalendarioAdmin();

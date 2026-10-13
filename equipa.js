@@ -32,7 +32,7 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
  * treinador, com os totais (como no dashboard). Para a base de dados devolver todas a um jogador, correr
  * sql/v20_multas_jogadores.sql (política "Players read fines"). Sem ele, o jogador continua a ver só as suas.
  */
-const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h" };
+const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h", fines: "fines" };
 const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/h2h.sql (leitura pública)
 
 async function carregarDados() {
@@ -50,10 +50,8 @@ async function carregarDados() {
   jogadores = dados.players.map(p => ({ ...H.jogadorDeLinha(p), eEu: !!p.e_eu }));
   eu = jogadores.find(j => j.eEu) || null;
   VFN.definirTiposMulta(dados.fine_types);
-  // multas do plantel e da equipa técnica (a RLS decide o que cada conta lê)
-  const multas = await cliente.from("fines").select("*");
-  if (multas.error) falhas.push("fines");
-  dados.fines = multas.error ? [] : VFN.normalizarMultas(multas.data);
+  // multas do plantel e da equipa técnica (a RLS decide o que cada conta lê); pedidas com as outras tabelas
+  dados.fines = VFN.normalizarMultas(dados.fines);
   // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Para os jogadores
   // lerem só as próprias presenças, correr no Supabase:
   //   drop policy if exists "Players read own attendance" on public.attendance;
