@@ -509,10 +509,7 @@ const NOMES_PRESENCA = { P: "Presente", F: "Falta", A: "Atraso", J: "Justificada
 
 /** Jogador, ou elemento da equipa técnica (as multas do treinador usam o id dele). */
 function jogadorPorIdDash(id) {
-  const jogador = jogadores.find(j => String(j.id) === String(id));
-  if (jogador) return jogador;
-  const staff = (dados.staff.length ? dados.staff : VFN.STAFF_PADRAO).find(t => String(t.id) === String(id));
-  return staff ? VFN.pessoaStaff(staff) : null;
+  return VFN.pessoaPorId(jogadores, dados.staff, id);
 }
 
 function celulaJogadorDash(id) {

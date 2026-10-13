@@ -110,6 +110,14 @@
     return { id: String(t.id), idBD: String(t.id), nome: t.name, nomeCompleto: t.full_name || t.name, posicao: t.role === "treinador" ? "Treinador" : (t.role || "Staff"), numero: "", fotoUrl: t.photo_url || `${BASE_SITE}assets/staff/${t.id}.png`, staff: true };
   }
 
+  /** Jogador da lista ou, se não for, elemento da equipa técnica (staff; sem linhas usa STAFF_PADRAO). null se nenhum. */
+  function pessoaPorId(jogadores, staff, id) {
+    const j = (jogadores || []).find(x => String(x.id) === String(id));
+    if (j) return j;
+    const t = (staff && staff.length ? staff : STAFF_PADRAO).find(x => String(x.id) === String(id));
+    return t ? pessoaStaff(t) : null;
+  }
+
   /**
    * Aniversariantes para o calendário: jogadores (nascimento em j.nascimento ou j.info.nascimento)
    * e equipa técnica (linhas de staff; sem linhas usa STAFF_PADRAO).
@@ -1649,7 +1657,7 @@
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
     DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, normalizarMultas, linhaMultaParaBD, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,

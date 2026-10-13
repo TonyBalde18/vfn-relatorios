@@ -68,10 +68,7 @@ async function carregarDados() {
 
 /** Jogador (ou elemento da equipa técnica, nas multas do treinador). */
 function pessoa(id) {
-  const j = jogadores.find(x => String(x.id) === String(id));
-  if (j) return j;
-  const t = (dados.staff.length ? dados.staff : VFN.STAFF_PADRAO).find(x => String(x.id) === String(id));
-  return t ? VFN.pessoaStaff(t) : null;
+  return VFN.pessoaPorId(jogadores, dados.staff, id);
 }
 
 /* ---------- Navegação ---------- */
