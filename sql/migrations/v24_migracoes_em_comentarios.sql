@@ -30,8 +30,11 @@
 --   sub_posicao, posicoes_secundarias
 -- from public.players where public.vfn_is_player() or public.vfn_is_staff();
 
--- 4) Presenças: cada jogador lê só as suas (v15) — NÃO APLICADO (verificado 13/10/2026)
---    Sem esta política a ficha da Área do Jogador mostra "—" nas presenças (js/pages/equipa.js).
+-- 4) Presenças: cada jogador lê só as suas (v15) — NÃO NECESSÁRIO (decisão 13/10/2026)
+--    Está ativa a política mais larga "Players read attendance" do sql/schema.sql (cada jogador lê as
+--    presenças de todo o plantel), que cobre as do próprio: a ficha da Área do Jogador mostra-as. Mantém-se
+--    assim por decisão do clube. Esta alternativa (só as suas) fica documentada caso se queira restringir:
+--    nesse caso apagar também "Players read attendance".
 -- drop policy if exists "Players read own attendance" on public.attendance;
 -- create policy "Players read own attendance" on public.attendance for select to authenticated
 --   using (player_id in (select id from public.players where auth_user_id = auth.uid()));
@@ -47,6 +50,6 @@ select
   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'squads' and column_name = 'lineup_slots') as "1_lineup_slots",
   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'players' and column_name = 'sub_posicao') as "2_sub_posicao",
   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'players_equipa' and column_name = 'sub_posicao') as "3_players_equipa_com_posicoes",
-  exists (select 1 from pg_policies where tablename = 'attendance' and policyname = 'Players read own attendance') as "4_presencas_jogador",
+  exists (select 1 from pg_policies where tablename = 'attendance' and policyname in ('Players read attendance', 'Players read own attendance')) as "4_jogador_le_presencas",
   not exists (select 1 from information_schema.views where table_schema = 'public' and table_name = 'golos_zonas') as "5_golos_zonas_apagada",
   not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'match_reports' and column_name = 'individual_notes') as "6_individual_notes_apagada";

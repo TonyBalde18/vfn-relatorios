@@ -52,8 +52,8 @@ async function carregarDados() {
   VFN.definirTiposMulta(dados.fine_types);
   // multas do plantel e da equipa técnica (a RLS decide o que cada conta lê); pedidas com as outras tabelas
   dados.fines = VFN.normalizarMultas(dados.fines);
-  // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Política
-  // "Players read own attendance": sql/migrations/v24_migracoes_em_comentarios.sql, ponto 4.
+  // v15: presenças do próprio jogador (o pedido filtra pelo seu id). A RLS em uso, "Players read attendance"
+  // (sql/schema.sql), deixa os jogadores ler as de todo o plantel; sem leitura, a ficha mostra "—".
   minhasPresencas = null;
   if (eu) {
     const pres = await cliente.from("attendance").select("status").eq("player_id", eu.id);
