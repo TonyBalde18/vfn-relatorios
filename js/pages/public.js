@@ -19,8 +19,7 @@ const LIGA = VFN.COMPETICOES_CLASSIFICACAO[0]; // 2ª Liga Futebol Zero Graus Pr
 
 /** Os relatórios guardam o id local do plantel ("1014939" ou "<uid>-3"). */
 function jogadorDoRelatorioPub(idLocal) {
-  const alvo = String(idLocal);
-  return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+  return H.jogadorPorIdRelatorio(jogadores, idLocal);
 }
 
 async function carregarDados() {

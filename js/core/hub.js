@@ -1021,6 +1021,18 @@
     return { jogosZero, minutosSemSofrer: melhor };
   }
 
+  /** Jogador da lista com o id local de um relatório (no plantel pode ser "1014939" ou "<uid>-3"); null se não houver. */
+  function jogadorPorIdRelatorio(jogadores, idLocal) {
+    const alvo = String(idLocal);
+    return (jogadores || []).find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+  }
+
+  /** Estatísticas de GR (calcularStatsGR) de um jogador do plantel; null se não for GR. dados: { match_reports, matches }. */
+  function statsGRJogador(j, jogadores, dados) {
+    if (VFN.categoriaPosicao(j.posicao) !== "GR") return null;
+    return calcularStatsGR(idLocal => { const x = jogadorPorIdRelatorio(jogadores, idLocal); return !!x && String(x.id) === String(j.id); }, dados.match_reports, { matches: dados.matches });
+  }
+
   /**
    * Estatísticas de guarda-redes (v14), a partir de match_reports (publicados ou com presenças aplicadas,
    * um por jogo, só competições oficiais — como os minutos):
@@ -1967,6 +1979,7 @@
   /* ---------- Rodapé ---------- */
 
   window.VFNHub = {
+    jogadorPorIdRelatorio, statsGRJogador,
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,

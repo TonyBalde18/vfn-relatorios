@@ -232,8 +232,7 @@ function presencaJogador(id) {
 
 /** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */
 function statsGR(j) {
-  if (VFN.categoriaPosicao(j.posicao) !== "GR") return null;
-  return H.calcularStatsGR(idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }, dados.match_reports, { matches: dados.matches });
+  return H.statsGRJogador(j, jogadores, dados);
 }
 
 /** Ranking de GR (só com 2+ GR com jogos): jogos a zero ↓, desempate pela média de golos sofridos ↑. */
@@ -337,8 +336,7 @@ function relatoriosUnicos() {
 
 /** Os relatórios guardam o id local do plantel; na tabela players pode ser "1014939" ou "<uid>-3". */
 function jogadorDoRelatorio(idLocal) {
-  const alvo = String(idLocal);
-  return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+  return H.jogadorPorIdRelatorio(jogadores, idLocal);
 }
 
 /** Minutos por jogador (11 mais utilizado e lista de minutos): só jogos oficiais, sem amigáveis. */

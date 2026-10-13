@@ -92,8 +92,7 @@ function mostrarVista(vista) {
 
 /** Estatísticas de GR (H.calcularStatsGR) de um jogador do plantel; null se não for GR. */
 function statsGR(j) {
-  if (VFN.categoriaPosicao(j.posicao) !== "GR") return null;
-  return H.calcularStatsGR(idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }, dados.match_reports, { matches: dados.matches });
+  return H.statsGRJogador(j, jogadores, dados);
 }
 
 /** KPIs pessoais: golos e assistências; um GR vê jogos a zero, minutos sem sofrer e média de sofridos. */
@@ -458,8 +457,7 @@ function abrirJogador(id) {
 
 /** Os relatórios guardam o id local do plantel do admin ("1014939" ou "<uid>-3"). */
 function jogadorDoRelatorio(idLocal) {
-  const alvo = String(idLocal);
-  return jogadores.find(j => String(j.id) === alvo || String(j.id).endsWith("-" + alvo)) || null;
+  return H.jogadorPorIdRelatorio(jogadores, idLocal);
 }
 
 function relatoriosPublicados() {
