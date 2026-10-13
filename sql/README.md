@@ -17,7 +17,7 @@ Tudo corre à mão no **SQL Editor do Supabase**. A app nunca altera o schema. O
 | 9 | `migrations/v21_views_grants.sql` | Views públicas e `players_equipa` só de leitura. | aplicado |
 | 10 | `migrations/v22_security_advisor.sql` | Avisos do Security Advisor (funções, trigger, bucket de fotos). | aplicado |
 | 11 | `migrations/v23_player_photos_admin.sql` | Bucket `player-photos`: só o admin carrega ficheiros. | aplicado |
-| 12 | `migrations/v24_migracoes_em_comentarios.sql` | **Documentação**: migrações que estavam em comentários do JS (lineup_slots, sub-posições…), com o estado de cada uma e uma consulta de verificação. | 1, 2 e 5 aplicados; 3 e 4 por confirmar |
+| 12 | `migrations/v24_migracoes_em_comentarios.sql` | **Documentação**: migrações que estavam em comentários do JS (lineup_slots, sub-posições…), com o estado de cada uma e uma consulta de verificação. | 1, 2 e 5 aplicados; 3, 4 e 6 não aplicados (verificado 13/10/2026) |
 
 ## Convenções
 

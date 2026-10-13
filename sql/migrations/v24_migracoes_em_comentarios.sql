@@ -16,7 +16,7 @@
 -- alter table public.players add column if not exists sub_posicao text;
 -- alter table public.players add column if not exists posicoes_secundarias jsonb default '[]';
 
--- 3) players_equipa com as sub-posições (Área do Jogador: posições secundárias na ficha) — POR CONFIRMAR
+-- 3) players_equipa com as sub-posições (Área do Jogador: posições secundárias na ficha) — NÃO APLICADO (verificado 13/10/2026)
 --    A view base está no sql/schema.sql; esta versão acrescenta as duas colunas no fim. Sem ela a ficha
 --    da Área do Jogador mostra só a posição principal. Se for aplicada, repetir o revoke/grant da v21
 --    (create or replace view mantém os privilégios, mas confirmar com a verificação da v21).
@@ -30,7 +30,7 @@
 --   sub_posicao, posicoes_secundarias
 -- from public.players where public.vfn_is_player() or public.vfn_is_staff();
 
--- 4) Presenças: cada jogador lê só as suas (v15) — POR CONFIRMAR
+-- 4) Presenças: cada jogador lê só as suas (v15) — NÃO APLICADO (verificado 13/10/2026)
 --    Sem esta política a ficha da Área do Jogador mostra "—" nas presenças (js/pages/equipa.js).
 -- drop policy if exists "Players read own attendance" on public.attendance;
 -- create policy "Players read own attendance" on public.attendance for select to authenticated
@@ -39,7 +39,7 @@
 -- 5) View golos_zonas (mapa de calor público, retirado na v15) — APLICADO: a view já não existe (13/10/2026)
 -- drop view if exists public.golos_zonas;
 
--- 6) Notas individuais dos relatórios (removidas na v9; a coluna deixou de ser escrita) — OPCIONAL
+-- 6) Notas individuais dos relatórios (removidas na v9; a coluna deixou de ser escrita) — OPCIONAL, NÃO APLICADO (a coluna ainda existe, sem uso)
 -- alter table public.match_reports drop column if exists individual_notes;
 
 -- Verificação (pode correr-se): estado de cada ponto
