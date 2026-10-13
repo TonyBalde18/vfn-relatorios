@@ -273,12 +273,6 @@
     return lista.map(s => s.data || (urlsAssinados.get(s.path) || {}).url || "");
   }
 
-  /** Galeria (só leitura). As imagens carregam depois com carregarSituacoes(contentor, r, cliente). */
-  function situacoesHTML(r) {
-    const galeria = situacoesGaleria(r);
-    return galeria ? `<section class="rel-bloco"><h4>Situações de jogo</h4>${galeria}</section>` : "";
-  }
-
   /** Só a grelha das situações (na secção "Momentos e Situações"). */
   function situacoesGaleria(r) {
     const lista = situacoesDe(r);
@@ -375,5 +369,5 @@
     return blocos;
   }
 
-  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesHTML, situacoesGaleria, carregarSituacoes, abrirLightbox, situacoesParaWord };
+  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesGaleria, carregarSituacoes, abrirLightbox, situacoesParaWord };
 })();

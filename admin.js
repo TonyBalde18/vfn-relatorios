@@ -2322,13 +2322,6 @@ async function carregarLogoEquipa(ficheiro, teamId) {
   return supabaseClient.storage.from("player-photos").getPublicUrl(caminho).data.publicUrl;
 }
 
-function idEquipaNovo(nome) {
-  const base = VFN.slug(nome);
-  let id = base, n = 2;
-  while (equipaPorId(id)) id = `${base}-${n++}`;
-  return id;
-}
-
 /* ---- Kit do adversário (v16): teams.kit_config ----
    Coluna nova no Supabase (correr no SQL Editor; também em sql/v16_equipas.sql):
      ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS kit_config JSONB DEFAULT '{}';

@@ -1517,115 +1517,6 @@
     });
   }
 
-  /* ---------- 11 mais utilizado com tática (dashboard e página pública) ----------
-     "Automático": o onze pelas posições do perfil (VFNHub.onzeCampoHTML). Com uma tática: camisolas
-     vazias nas posições da formação e a lista de jogadores para arrastar. Só na sessão (sessionStorage),
-     não grava na base de dados. */
-
-  const yNoCampo = y => Math.round(8 + y * 0.84); // posições das formações (campo 2:3) no campo 68×105
-
-/**
-   * Coloca o onze nas posições da formação: primeiro quem tem essa posição exata (DD no DD), depois
-   * quem é da mesma linha (Def/Meio/Ata), por fim quem sobrar. Devolve os ids pela ordem dos lugares.
-   */
-  function preencherFormacao(onze, lugares) {
-    const livres = [...onze];
-    const posicoes = lugares.map(() => null);
-    const passos = [
-      (t, slot) => VFN.posicaoNaCategoria(t.jogador.posicao, "") && String(t.jogador.posicao || "").toUpperCase().split("/").map(x => x.trim()).includes(slot.label.toUpperCase()),
-      (t, slot) => VFN.posicaoNaCategoria(t.jogador.posicao, VFN.categoriaPosicao(slot.label)),
-      () => true
-    ];
-    passos.forEach(serve => lugares.forEach((slot, i) => {
-      if (posicoes[i]) return;
-      const k = livres.findIndex(t => serve(t, slot));
-      if (k >= 0) posicoes[i] = String(livres.splice(k, 1)[0].jogador.id);
-    }));
-    return posicoes;
-  }
-
-  function criarOnzeTatico(contentor, opcoes) {
-    if (!contentor) return null;
-    if (contentor.vfnOnzeTatico) return contentor.vfnOnzeTatico; // já ligado: não repete os eventos
-    const chave = "vfnOnzeTatico:" + (opcoes.chave || contentor.id);
-    let lista = [];
-    let estado = { formacao: "", posicoes: [] };
-    try { estado = Object.assign(estado, JSON.parse(sessionStorage.getItem(chave) || "{}")); } catch (e) { /* sem sessionStorage */ }
-    const guardar = () => { try { sessionStorage.setItem(chave, JSON.stringify(estado)); } catch (e) { /* sem sessionStorage */ } };
-    const porId = id => lista.find(t => String(t.jogador.id) === String(id));
-    const slots = () => VFN.FORMACOES_SLOTS[estado.formacao] || [];
-
-    function jogadorNoCampoHTML(t, i, slot) {
-      // proficiência na posição (só no dashboard/admin: opcoes.proficiencia)
-      const prof = opcoes.proficiencia ? VFN.proficienciaPontoHTML(VFN.proficienciaJogador(t.jogador, slot)) : "";
-      return `<div class="pitch-player tatico" style="left:${slot.x}%;top:${yNoCampo(slot.y)}%;width:20%" data-alvo="s:${i}" data-arrasta="s:${i}" tabindex="0" title="${esc(t.jogador.nome)} · ${esc(slot.label)}">
-        <span class="pitch-player-avatar">${VFN.avatarJogador(t.jogador, "avatar-sm")}${prof}</span>
-        <span class="pitch-player-name"><span>${esc(t.jogador.nome)}</span><b>${t.minutos}'</b></span></div>`;
-    }
-    function lugarVazioHTML(i, slot) {
-      return `<div class="pitch-player tatico vazio" style="left:${slot.x}%;top:${yNoCampo(slot.y)}%;width:20%" data-alvo="s:${i}" tabindex="0" aria-label="Posição ${esc(slot.label)} (vazia)">
-        <span class="camisola-vazia">${VFN.generateJerseyAvatar("")}</span>
-        <span class="pitch-player-name"><span>${esc(slot.label)}</span></span></div>`;
-    }
-
-    function render() {
-      const formacoes = VFN.FORMACOES.map(f => `<option value="${esc(f)}" ${f === estado.formacao ? "selected" : ""}>${esc(f)}</option>`).join("");
-      const cab = `<div class="onze-tatico-cab"><label class="toolbar-label" for="${esc(contentor.id)}Tatica">Tática</label>
-        <select id="${esc(contentor.id)}Tatica" data-tatica><option value="">Automático (posições do perfil)</option>${formacoes}</select>
-        ${estado.formacao ? `<button type="button" class="btn btn-ghost btn-sm" data-onze="preencher">Preencher com os mais utilizados</button><button type="button" class="btn btn-ghost btn-sm" data-onze="limpar">Limpar</button>` : ""}</div>`;
-      if (!estado.formacao) { contentor.innerHTML = cab + VFNHub.onzeCampoHTML(lista); return; }
-      const s = slots();
-      estado.posicoes = s.map((_, i) => (estado.posicoes[i] && porId(estado.posicoes[i])) ? String(estado.posicoes[i]) : null);
-      const usados = new Set(estado.posicoes.filter(Boolean));
-      const livres = lista.filter(t => !usados.has(String(t.jogador.id)));
-      contentor.innerHTML = cab + `<div class="onze-tatico">
-        <div class="mini-pitch" role="group" aria-label="Campo: ${esc(estado.formacao)}"><span class="mini-pitch-lines" aria-hidden="true"></span>
-          ${s.map((slot, i) => { const t = estado.posicoes[i] && porId(estado.posicoes[i]); return t ? jogadorNoCampoHTML(t, i, slot) : lugarVazioHTML(i, slot); }).join("")}
-        </div>
-        <div class="onze-banco" data-alvo="lista" aria-label="Jogadores">
-          <p class="muted onze-dica">Arrasta um jogador para uma posição (ou toca no jogador e depois na posição). Arrasta para aqui para o tirar do campo.</p>
-          ${livres.length ? `<ul>${livres.map(t => `<li class="onze-chip" data-arrasta="j:${esc(t.jogador.id)}" tabindex="0">${VFN.avatarJogador(t.jogador, "avatar-xs")}<span>${esc(t.jogador.nome)}<small>${esc(t.jogador.posicao || "")}</small></span><b>${t.minutos}'</b></li>`).join("")}</ul>` : '<p class="muted">Todos os jogadores estão no campo.</p>'}
-        </div>
-      </div>`;
-    }
-
-    function aoLargar(origem, destino) {
-      if (!destino) return;
-      const [tipo, valor] = origem.split(/:(.+)/);
-      const id = tipo === "j" ? valor : estado.posicoes[Number(valor)];
-      if (!id) return;
-      if (destino === "lista") { if (tipo === "s") estado.posicoes[Number(valor)] = null; }
-      else {
-        const i = Number(destino.slice(2));
-        if (tipo === "s") { const a = Number(valor); [estado.posicoes[a], estado.posicoes[i]] = [estado.posicoes[i] || null, id]; }
-        else { estado.posicoes = estado.posicoes.map(p => p === String(id) ? null : p); estado.posicoes[i] = String(id); }
-      }
-      guardar();
-      render();
-    }
-
-    contentor.addEventListener("change", e => {
-      if (!e.target.matches("[data-tatica]")) return;
-      estado.formacao = e.target.value;
-      if (!estado.posicoes.some(Boolean)) estado.posicoes = [];
-      guardar();
-      render();
-    });
-    contentor.addEventListener("click", e => {
-      const b = e.target.closest("[data-onze]");
-      if (!b) return;
-      if (b.dataset.onze === "limpar") estado.posicoes = [];
-      else {
-        estado.posicoes = preencherFormacao(VFNHub.onzeMaisUtilizado(lista), slots());
-      }
-      guardar();
-      render();
-    });
-    ligarArrastar(contentor, aoLargar);
-    contentor.vfnOnzeTatico = { atualizar(novaLista) { lista = novaLista || []; render(); } };
-    return contentor.vfnOnzeTatico;
-  }
-
   /* ---------- Zonas do golo (formulário do golo: Modo Jogo e tabela de eventos) ----------
      Mini-campo de frente, clicável (SVG): zona do golo (obrigatória) e zona de origem (opcional, mais
      pequeno). A escolha fica em data-valor do .zona-seletor; ligarSeletoresZona trata dos cliques. */
@@ -1863,7 +1754,7 @@
     gerarImagemResultado, resultadoImagemHTML,
     abrirComparacao, ligarComparacao,
     seletorZonaHTML, camposZonasGoloHTML, ligarSeletoresZona, lerZonasGolo,
-    ligarArrastar, criarOnzeTatico, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast, criarComparador, tipoComparacao,
+    ligarArrastar, ordenarConvocados, exportarRelatorioPDF, abrirExportarRelatorio, KIT_PADROES, configKit, renderKitSVG, editorKitHTML, lerEditorKit, ligarEditorKit, kitParaPNG, toast, criarComparador, tipoComparacao,
     renderMatchCard, renderPlayerCard, renderBracket, ligarBrackets,
     abrirDrawer, fecharDrawer,
     dividasPorPessoa, multasEmDivida, opcoesTipoDividaHTML, renderDebtReport, exportarImagemDividas, exportarImagemHTML,

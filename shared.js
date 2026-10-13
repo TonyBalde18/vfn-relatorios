@@ -492,11 +492,6 @@
     return jogoEmCasa(jogo) ? { casa: nosso, fora: deles } : { casa: deles, fora: nosso };
   }
 
-  /** Competições de liga presentes no calendário (as que têm classificação). */
-  function competicoesLiga(jogos) {
-    return [...new Set((jogos || []).map(j => j.competition).filter(c => c && categoriaCompeticao(c) === "liga"))].sort();
-  }
-
   /** Equipas de uma linha de league_results, como { id, nome }. */
   function equipasDoResultadoLiga(r, equipas) {
     const porId = id => (equipas || []).find(t => String(t.id) === String(id));
@@ -985,8 +980,6 @@
   }
 
   /* ---------- Mapa de presenças (estilo GitHub) ---------- */
-
-  const PRESENTE = e => e === "P" || e === "A";
 
   /**
    * Mapa de calor da época: uma coluna por semana, uma linha por dia (Seg–Dom).
@@ -1663,7 +1656,7 @@
     paraData, dataIso, horaIso, dataDDMMAAAA, dataCurta, dataLonga, contagemDecrescente, mesesDaEpoca, mesAtual,
     BASE_SITE, LOGO_VFN, urlLogoEquipa, ESTADIO_VFN, estadioDaEquipa, estadioDoJogo, distanciaKm, SUPERFICIES, badgeRelvado, iconeRelvado, kitAdversarioHTML, kitAdversarioFalhou, coresEquipa, corComOpacidade, estiloCorEquipa, camisolaEquipaSVG,
     eVFN, ID_CLUBE_ZEROZERO, calcularPresencas, eJogoVFN, jogoEmCasa, estadoJogo, eGoloAdversario, ZONAS_GOLO, ZONAS_ORIGEM, CAMPO_ORIGEM, TIPOS_LANCE, nomeZona, eGoloSofrido, iconeEvento, iconeEventoFalhou, ICONES_EVENTO_FICHEIRO, golosJogo, letraResultado, proximoJogo, ultimosJogos, ordenarClassificacao,
-    jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, competicoesLiga, calcularClassificacao,
+    jogosDoVFN, equipaVFN, equipasDoJogo, equipasDoResultadoLiga, calcularClassificacao,
     chipForma, badgeEstado, categoriaPosicao, posicaoNaCategoria, NOME_CATEGORIA, SUB_POSICOES, TODAS_SUB_POSICOES, subPosicaoSugerida, posicaoDetalhadaHTML,
     NIVEIS_PROFICIENCIA, POSICOES_PROFICIENCIA, nivelProficiencia, posicaoDoLugar, proficienciaJogador, proficienciaPontoHTML, proficienciaBadgeHTML,
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou, kitJogador, camisolaKitHTML, kitFalhou,

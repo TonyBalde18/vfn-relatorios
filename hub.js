@@ -65,24 +65,7 @@
     return `<p class="empty-state">${esc(texto)}</p>`;
   }
 
-  /* ---------- Próximo jogo (cartão destaque) ---------- */
-
-  function proximoJogoHTML(dados) {
-    const jogo = VFN.proximoJogo(dados.matches);
-    if (!jogo) return `<h2 class="hub-card-title">Próximo jogo</h2>${vazio("Sem jogos agendados.")}`;
-    const nome = nomeAdversario(dados, jogo);
-    const casa = VFN.jogoEmCasa(jogo);
-    const vfn = `<div class="hero-team">${logoEquipa({ logo_url: logoVFN(dados) }, "VFN", "hero-logo")}<strong>VFN</strong></div>`;
-    const adv = `<div class="hero-team">${logoEquipa(equipa(dados, jogo.opponent_team_id), nome, "hero-logo")}<strong>${esc(nome)}</strong></div>`;
-    return `
-      <div class="hero-head"><h2 class="hub-card-title">Próximo jogo</h2>${tagCompeticao(jogo.competition)}</div>
-      <div class="hero-teams">${casa ? vfn : adv}<span class="hero-vs">vs</span>${casa ? adv : vfn}</div>
-      <div class="hero-meta">
-        <span>${VFN.icone("calendar-days", 16)} ${esc(VFN.dataLonga(jogo.date, true))}</span>
-        <span>${casa ? VFN.icone("house", 16) + " Casa" : VFN.icone("bus", 16) + " Fora"}${VFN.etiquetaJornada(jogo) ? ` · ${esc(VFN.etiquetaJornada(jogo))}` : ""}${VFN.estadioDoJogo(jogo, dados.teams).nome ? ` · ${esc(VFN.estadioDoJogo(jogo, dados.teams).nome)}` : ""}</span>
-      </div>
-      <div class="hero-countdown" aria-live="off"><span>Faltam</span><strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></div>`;
-  }
+  /* ---------- Próximos jogos ---------- */
 
   /** Próximos n jogos do VFN (data, adversário, competição, casa/fora) — dashboard (v18). */
   function proximosJogosHTML(dados, n) {
@@ -336,11 +319,6 @@
     if (!lista.length) return vazio(VFN.semVFN(competicao) ? "O VFN não joga esta competição." : "Ainda sem golos do VFN nesta competição.");
     return `<div class="tabela-escura tabela-marcadores"><table class="scorers-table"><thead><tr><th scope="col">Pos</th><th scope="col" class="team-col">Jogador</th><th scope="col">Golos</th></tr></thead>
       <tbody>${lista.map((m, i) => `<tr><td class="pos-col">${i + 1}</td><td class="team-col">${m.jogador ? `<span class="player-cell">${VFN.avatarJogador(m.jogador, "avatar-xs")}<span>${esc(m.nome)}</span></span>` : esc(m.nome)}</td><td class="pts-col">${m.golos}</td></tr>`).join("")}</tbody></table></div>`;
-  }
-
-  /** Tabela classificativa mostrada nas Jornadas para as competições sem o VFN ("" nas outras). */
-  function classificacaoJornadasHTML(dados, competicao) {
-    return VFN.semVFN(competicao) ? classificacaoHTML(dados, competicao) : "";
   }
 
   function marcadoresCampeonatoHTML(dados, jogadoresVFN, competicao, n) {
@@ -930,13 +908,6 @@
       const livre = [...Array(n).keys()].find(i => !mapa.has(i));
       if (livre !== undefined) { mapa.set(livre, id); colocados.add(id); }
     });
-    return mapa;
-  }
-
-  /** Lugar de cada titular (id → slot) com o onze colocado pela formação, como na pré-visualização. */
-  function lugaresDoOnze(onze, formacao) {
-    const mapa = new Map();
-    posicoesDaFormacao(onze, formacao).forEach(m => { if (m.slot) mapa.set(String(m.t.jogador.idBD || m.t.jogador.id), m.slot); });
     return mapa;
   }
 
@@ -1748,20 +1719,6 @@
     return r;
   }
 
-  /**
-   * Busca os jogos VFN × adversário (equipa_casa ou equipa_fora = 'VF Naves') e calcula o resumo.
-   * fonte: cliente Supabase (faz o pedido) ou as linhas já carregadas da tabela h2h.
-   */
-  async function carregarH2H(adversario, fonte) {
-    let linhas = fonte;
-    if (fonte && typeof fonte.from === "function") {
-      const { data, error } = await fonte.from("h2h").select("*").or(`equipa_casa.eq.${NOME_VFN_H2H},equipa_fora.eq.${NOME_VFN_H2H}`);
-      if (error) return null;
-      linhas = data || [];
-    }
-    return resumoH2H(adversario, linhas);
-  }
-
   /** "VFN 3-2 Casal Cinza" (ou "Casal Cinza 1-3 VFN" fora de casa). */
   const resultadoH2H = j => j.vfnCasa ? `VFN ${j.golosVFN}-${j.golosAdv} ${j.adversario}` : `${j.adversario} ${j.golosAdv}-${j.golosVFN} VFN`;
   const mesAnoH2H = data => { const d = VFN.paraData(data); return d ? `${VFN.MESES_CURTOS[d.getMonth()]} ${d.getFullYear()}` : ""; };
@@ -2009,19 +1966,12 @@
 
   /* ---------- Rodapé ---------- */
 
-  function competicaoAtiva(dados) {
-    const proximo = VFN.proximoJogo(dados.matches);
-    if (proximo) return proximo.competition;
-    const ultimo = VFN.ultimosJogos(dados.matches, 1)[0];
-    return ultimo ? ultimo.competition : "";
-  }
-
   window.VFNHub = {
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
-    proximoJogoHTML, proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
+    proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, competicaoAtiva, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, carregarH2H, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, classificacaoJornadasHTML, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, lugaresDoOnze, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

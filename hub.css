@@ -45,9 +45,6 @@
 .hero-team .team-logo-placeholder.hero-logo { font-size: 1.1rem; background: rgba(255,255,255,.14); color: #fff; }
 .hero-vs { color: var(--silver); font-weight: 700; font-size: .9rem; }
 .hero-meta { display: grid; gap: 4px; margin-top: 16px; text-align: center; color: var(--silver); font-size: .88rem; }
-.hero-countdown { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12); }
-.hero-countdown span { color: var(--silver); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
-.hero-countdown strong { color: var(--vfn-yellow); font-size: 1.7rem; font-variant-numeric: tabular-nums; }
 .hero-teams.compact .hero-logo { width: 52px !important; height: 52px !important; }
 .big-score { font-size: 2.2rem; font-weight: 800; color: var(--vfn-yellow); line-height: 1; }
 .empty-state { margin: 0; }
@@ -90,10 +87,6 @@
 .info-grid div { padding: 8px 10px; border-radius: 7px; background: #F7F8FA; }
 .info-grid dt { color: var(--text-muted); font-size: .7rem; }
 .info-grid dd { margin: 2px 0 0; font-weight: 700; color: var(--vfn-navy); }
-.attr-list { display: grid; gap: 7px; }
-.attr-row { display: grid; grid-template-columns: 1fr 1.4fr 26px; gap: 10px; align-items: center; font-size: .8rem; }
-.attr-row strong { text-align: right; }
-.coach-notes { margin: 0; padding: 10px 12px; border-radius: 7px; background: #FFFBEA; font-size: .86rem; }
 
 /* ---------- Estatísticas ---------- */
 .top-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
@@ -142,7 +135,6 @@
   .scout-grid, .info-grid { grid-template-columns: minmax(0, 1fr); }
   .hide-xs { display: none; }
   .hero-logo { width: 58px !important; height: 58px !important; }
-  .hero-countdown strong { font-size: 1.35rem; }
   .players-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .match-item { grid-template-columns: 44px 1fr auto; gap: 10px; padding: 10px; }
   .player-modal-profile { flex-direction: column; text-align: center; }
@@ -189,8 +181,6 @@
 @media (max-width: 520px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ---------- Minutos jogados e 11 mais utilizados ---------- */
-.minutes-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-.minutes-grid > .card { margin-bottom: 0; }
 .minutes-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .minutes-list li { display: grid; grid-template-columns: 22px minmax(0, 1.2fr) minmax(60px, 1fr) 48px; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: .84rem; }
 .minutes-list li:last-child { border-bottom: 0; }
@@ -200,7 +190,6 @@
 .minutes-bar { height: 8px; border-radius: 4px; background: #EEF1F6; overflow: hidden; }
 .minutes-bar i { display: block; height: 100%; border-radius: 4px; background: #1d4ed8; }
 .minutes-list strong { text-align: right; color: var(--vfn-navy); font-variant-numeric: tabular-nums; }
-@media (max-width: 960px) { .minutes-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) { .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 64px 42px; gap: 8px; } }
 .minutes-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
 .hub-grid .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 54px 42px; gap: 8px; }
@@ -409,7 +398,6 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 /* Mapa dos estádios (v16): filtro por divisão/distrito */
 .mapa-filtros { margin: 0 0 10px; }
 
-
 /* Plantel (v17): estatísticas no card e o próprio jogador destacado (área do jogador) */
 .player-card-stats { display: flex; justify-content: center; gap: 8px; margin-top: 2px; font-size: .72rem; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .player-card.eu { border: 2px solid #FFD700; box-shadow: 0 0 0 3px rgba(255, 215, 0, .25); }
@@ -420,7 +408,6 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 .comp-tipo-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: var(--surface-2); color: var(--heading); font-size: .8rem; font-weight: 800; }
 .comp-tipo-badge.gr { background: rgba(255, 215, 0, .22); }
 .cmpx-metrica small { font-size: .8em; opacity: .7; }
-
 
 /* Dashboard (v18): coluna ao lado do 11 mais utilizado (minutos + próximos jogos) */
 .hub-coluna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
@@ -444,7 +431,6 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 :where(html.tema-escuro) .player-readonly h4 { color: var(--heading); }
 :where(html.tema-escuro) .info-grid div { background: color-mix(in srgb, #F7F8FA 14%, var(--surface)); }
 :where(html.tema-escuro) .info-grid dd { color: var(--heading); }
-:where(html.tema-escuro) .coach-notes { background: color-mix(in srgb, #FFFBEA 14%, var(--surface)); }
 :where(html.tema-escuro) .top-card li strong { color: var(--heading); }
 :where(html.tema-escuro) .sort-btn:hover { color: var(--heading); }
 :where(html.tema-escuro) .match-item { background: var(--surface); }

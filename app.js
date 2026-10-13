@@ -394,11 +394,6 @@ function guardarPlantel() {
   sincronizarPlantelSupabase();
 }
 
-function proximoIdPlantel() {
-  const maxId = plantel.reduce((m, p) => Math.max(m, p.id), 0);
-  return maxId + 1;
-}
-
 /* =========================================================
    PERSISTÊNCIA — RASCUNHO (localStorage + JSON exportável)
    ========================================================= */
@@ -424,10 +419,6 @@ function lerRascunhoArmazenado() {
   } catch (e) {
     return null;
   }
-}
-
-function existeRascunho() {
-  return !!lerRascunhoArmazenado();
 }
 
 function aplicarDadosEstado(dados) {
@@ -492,12 +483,6 @@ function formatarDataHora(iso) {
   } catch (e) {
     return "data desconhecida";
   }
-}
-
-function exportarRascunhoJSON() {
-  const nomeFicheiro = `rascunho_${sanitizarNomeFicheiro(state.preJogo.adversario)}_${state.preJogo.data || "sem-data"}.json`;
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  descarregarBlob(blob, nomeFicheiro);
 }
 
 function importarRascunhoJSON(file) {
@@ -1122,11 +1107,6 @@ function jogadoresEmCampo(excludeEventId) {
   const saidos = jaSairam(excludeEventId);
   const ids = new Set([...titularesIds(), ...jaEntraram(excludeEventId)]);
   return [...ids].filter(id => !saidos.has(id));
-}
-
-/** Mantido por compatibilidade com código antigo. */
-function titularesEmCampo(excludeEventId) {
-  return jogadoresEmCampo(excludeEventId);
 }
 
 /**
@@ -2310,12 +2290,6 @@ function idAdversarioRelatorio() {
   return equipa ? equipa.id : "";
 }
 
-async function carregarImagemComoArrayBuffer(url) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error("Não foi possível carregar: " + url);
-  return await resp.arrayBuffer();
-}
-
 function dataUrlParaArrayBuffer(dataUrl) {
   const base64 = dataUrl.split(",")[1];
   const binStr = atob(base64);
@@ -2336,10 +2310,6 @@ function valorAvaliacao(av) {
   if (av === "Medio") return "Médio";
   if (av === "Mau") return "Mau";
   return "Sem avaliação";
-}
-
-function descricaoEvento(ev) {
-  return nomeOuDetalheEvento(ev);
 }
 
 function validarAntesDeGerarWord() {
