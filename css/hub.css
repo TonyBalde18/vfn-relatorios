@@ -3,7 +3,6 @@
    Complementa styles.css.
    ========================================================= */
 
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .view { display: none; }
 .view.active { display: block; animation: tab-in .2s ease both; }
 /* hub.css carrega depois de styles.css: sem isto a animação ignorava prefers-reduced-motion */
