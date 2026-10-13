@@ -38,6 +38,7 @@ Aplicação web estática (GitHub Pages + Supabase) do ACD Vila Franca das Naves
 │   └── pages/       dashboard.js · equipa.js · public.js (um por página)
 ├── sql/             ver sql/README.md (schema base, migrações e seeds, pela ordem de execução)
 ├── tools/           tema-escuro.js (gera o bloco escuro: node tools/tema-escuro.js css/styles.css css/hub.css)
+│                    auditoria/ (verificação das páginas e do código antes de cada versão; ver o README lá dentro)
 └── assets/          logo, players/, opponents/ (+ kits/), stadiums/, icons/, sponsors/, kits/, staff/, external/
 ```
 
