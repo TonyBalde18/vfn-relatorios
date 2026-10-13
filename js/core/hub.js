@@ -1686,7 +1686,7 @@
     e.innerHTML = esqueleto(tipo, n);
   }
 
-  /* ---------- H2H: histórico de confrontos (tabela h2h, SQL em sql/h2h.sql) ---------- */
+  /* ---------- H2H: histórico de confrontos (tabela h2h, SQL em sql/migrations/h2h.sql) ---------- */
 
   const NOME_VFN_H2H = "VF Naves";
   const normalizarNome = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -1760,7 +1760,7 @@
   /** Grelha de cards compactos (v15): logo, nome, V/E/D e os últimos 5 resultados. Clique: data-h2h-adv. */
   function h2hCardsHTML(dados, proximo) {
     const lista = adversariosH2H(dados, proximo);
-    if (!lista.length) return vazio("Ainda não há histórico de confrontos. Corre o sql/h2h.sql no Supabase.");
+    if (!lista.length) return vazio("Ainda não há histórico de confrontos. Corre o sql/migrations/h2h.sql no Supabase.");
     return `<div class="h2h-cards">${lista.map(r => `<button type="button" class="h2h-card${r.adversario === proximo ? " proximo" : ""}" data-h2h-adv="${esc(r.adversario)}">
         ${logoEquipa(equipaDoNomeH2H(dados, r.adversario), r.adversario)}
         <strong>${esc(r.adversario)}</strong>

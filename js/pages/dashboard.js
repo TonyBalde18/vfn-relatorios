@@ -26,7 +26,7 @@ let appIniciada = false;
 /* ---------- Dados ---------- */
 
 // tabelas que podem ainda não existir (SQL por correr): sem aviso
-const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads", "h2h"]; // h2h: sql/h2h.sql
+const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads", "h2h"]; // h2h: sql/migrations/h2h.sql
 
 async function carregarDados() {
   const tabelas = Object.keys(dados);

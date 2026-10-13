@@ -28,8 +28,7 @@ async function carregarDados() {
   if (!cliente) return mostrarAviso("Supabase não configurado (config.js).");
   /*
    * v15: o mapa de calor dos golos deixou de estar na página pública (é análise interna): já não se lê a view
-   * golos_zonas. Para deixar de a expor no Supabase (opcional):
-   *   drop view if exists public.golos_zonas;
+   * golos_zonas (já apagada no Supabase: sql/migrations/v24_migracoes_em_comentarios.sql, ponto 5).
    */
   const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", squads: "squads", onze_jogos: "onze_jogos" };
   const chaves = Object.keys(pedidos);
@@ -189,7 +188,7 @@ function renderTudo() {
   const minutos = jogadores.filter(j => j.minutos > 0).map(j => ({ jogador: j, minutos: j.minutos, jogos: j.jogos }))
     .sort((a, b) => b.minutos - a.minutos || a.jogador.nome.localeCompare(b.jogador.nome, "pt"));
   // 11 mais utilizado: só de leitura, na formação mais usada (v15)
-  // v18: posição real pela view onze_jogos (sql/v18_onze_publico.sql); sem ela, a posição do perfil
+  // v18: posição real pela view onze_jogos (sql/migrations/v18_onze_publico.sql); sem ela, a posição do perfil
   $("pubOnze").innerHTML = minutos.length ? H.onzeMaisUtilizadoHTML(dados.onze_jogos, jogadorDoRelatorioPub, minutos, dados) : H.onzeCampoHTML(minutos);
   $("pubMinutos").innerHTML = H.minutosListaHTML(minutos.slice(0, 15));
   $("pubHubMarcadoresCamp").innerHTML = H.marcadoresCampeonatoHTML(dados, jogadores, LIGA, 5);

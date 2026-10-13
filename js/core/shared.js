@@ -92,7 +92,7 @@
 
   /*
    * Multas da equipa técnica (v19.2): fines.player_id é FK para players; as do treinador gravam-se em fines.staff_id
-   * (FK para staff) com player_id a NULL — sql/v19_multas_staff.sql. Na app tudo continua a usar f.player_id:
+   * (FK para staff) com player_id a NULL — sql/migrations/v19_multas_staff.sql. Na app tudo continua a usar f.player_id:
    * normalizarMultas copia staff_id para player_id ao ler; linhaMultaParaBD faz o contrário ao gravar.
    */
   function normalizarMultas(linhas) {
@@ -576,9 +576,8 @@
 
   /*
    * Sub-posições (admin e dashboard; não aparecem na página pública). A posição principal é a categoria
-   * do primeiro código de players.position (GR / Def / Meio / Ata). Colunas novas no Supabase:
-   *   ALTER TABLE players ADD COLUMN IF NOT EXISTS sub_posicao TEXT;
-   *   ALTER TABLE players ADD COLUMN IF NOT EXISTS posicoes_secundarias JSONB DEFAULT '[]';
+   * do primeiro código de players.position (GR / Def / Meio / Ata). Colunas players.sub_posicao e
+   * posicoes_secundarias: sql/migrations/v24_migracoes_em_comentarios.sql, ponto 2.
    */
   const NOME_CATEGORIA = { GR: "Guarda-Redes", Def: "Defesa", Meio: "Médio", Ata: "Avançado" };
   const SUB_POSICOES = {

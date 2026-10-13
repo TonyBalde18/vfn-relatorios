@@ -306,7 +306,7 @@ async function gravarMultaBD(linha) {
   try {
     return VFN.normalizarMultas([await dadosClube.guardar("fines", paraBD)])[0];
   } catch (e) {
-    if (/staff_id|fines_player_id_fkey|player_id.*not-null|null value in column "player_id"/i.test(e.message || "")) throw new Error("Para multar a equipa técnica corre o sql/v19_multas_staff.sql no Supabase (coluna fines.staff_id).");
+    if (/staff_id|fines_player_id_fkey|player_id.*not-null|null value in column "player_id"/i.test(e.message || "")) throw new Error("Para multar a equipa técnica corre o sql/migrations/v19_multas_staff.sql no Supabase (coluna fines.staff_id).");
     throw e;
   }
 }
@@ -564,8 +564,7 @@ function capitaoConv() {
 }
 
 /* ---- Lugares do onze no mini-campo da convocatória (v15) ----
-   Coluna nova no Supabase (correr no SQL Editor):
-     ALTER TABLE squads ADD COLUMN IF NOT EXISTS lineup_slots JSONB DEFAULT '{}';
+   Coluna squads.lineup_slots (SQL em sql/migrations/v24_migracoes_em_comentarios.sql, ponto 1).
    Formato: { "0": "<id do GR>", "1": "<id>", ... } com o índice de VFN.FORMACOES_SLOTS[formation].
    squads.lineup continua igual (ids por posição GR → Def → Med → Av); sem a coluna grava-se sem os lugares. */
 
@@ -711,7 +710,7 @@ async function guardarConvocatoria(publicar, status) {
     conv.published = !!gravada.published;
     conv.status = gravada.squad_status === "completa" ? "completa" : "lista";
     renderConvocatoria();
-    if (semSlots) el("convErro").textContent = "Guardada sem os lugares no campo: corre o SQL de squads.lineup_slots (comentário em admin.js).";
+    if (semSlots) el("convErro").textContent = "Guardada sem os lugares no campo: corre o SQL de squads.lineup_slots (sql/migrations/v24_migracoes_em_comentarios.sql, ponto 1).";
   } catch (e) {
     el("convErro").textContent = /squads/i.test(e.message || "") && /does not exist|schema cache|could not find/i.test(e.message || "") ? "Falta a tabela squads: corre a secção de 03/10/2026 do schema.sql." : mensagemErro(e);
   }
@@ -1909,7 +1908,7 @@ function linhaRelatorio() {
     // v9: "Pontos a melhorar" passou a "Tópicos para o treino"; a coluna mantém o nome.
     // A Síntese só vive em match_data.analise.sintese (sem coluna própria).
     // As Notas individuais foram removidas: a coluna individual_notes deixa de ser escrita
-    // (opcional, no Supabase: alter table public.match_reports drop column if exists individual_notes;)
+    // (opcional, apagar a coluna no Supabase: sql/migrations/v24_migracoes_em_comentarios.sql, ponto 6)
     areas_to_improve: state.analise.topicosTreino || null,
     created_by: currentUser ? currentUser.id : null,
     ...(colunaCapitao ? { captain_id: state.jogo.capitaoId ? idJogadorBD(plantel.find(p => p.id === Number(state.jogo.capitaoId)) || { id: state.jogo.capitaoId }) : null } : {}),
@@ -2323,8 +2322,7 @@ async function carregarLogoEquipa(ficheiro, teamId) {
 }
 
 /* ---- Kit do adversário (v16): teams.kit_config ----
-   Coluna nova no Supabase (correr no SQL Editor; também em sql/v16_equipas.sql):
-     ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS kit_config JSONB DEFAULT '{}';
+   Coluna teams.kit_config (SQL em sql/migrations/v16_equipas.sql).
    O kit é desenhado em SVG no browser (VFNComp.renderKitSVG); o PNG é só para quem o quiser descarregar. */
 
 function mostrarAbaEquipa(aba) {
@@ -2347,7 +2345,7 @@ async function guardarKitEquipa() {
     if (typeof renderAdversarios === "function") renderAdversarios();
     VFNComp.toast("Kit guardado ✓");
   } catch (e) {
-    el("equipaKitErro").textContent = /kit_config/i.test(e.message || "") ? "Falta a coluna teams.kit_config: corre o SQL (comentário em admin.js / sql/v16_equipas.sql)." : mensagemErro(e);
+    el("equipaKitErro").textContent = /kit_config/i.test(e.message || "") ? "Falta a coluna teams.kit_config: corre o sql/migrations/v16_equipas.sql." : mensagemErro(e);
   } finally {
     botao.disabled = false;
   }

@@ -1301,7 +1301,7 @@
    * Só se cria quando o contentor fica visível (o Leaflet precisa do tamanho). Devolve { render }.
    */
   /*
-   * v16: filtro do mapa por divisão/distrito (teams.division, teams.district — SQL em sql/v16_equipas.sql):
+   * v16: filtro do mapa por divisão/distrito (teams.division, teams.district — SQL em sql/migrations/v16_equipas.sql):
    * "2liga" = 2ª Liga da Guarda; "guarda" = distrito da Guarda; "todos" = sem filtro. O VFN aparece sempre.
    */
   const FILTROS_MAPA = [["2liga", "2ª Liga · Guarda"], ["guarda", "Distrito da Guarda"], ["todos", "Todos"]];

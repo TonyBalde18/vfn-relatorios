@@ -45,9 +45,9 @@ Os caminhos para `assets/` no JS são relativos à página (na raiz). Ao mudar u
 
 ## Configuração Supabase
 
-1. No SQL Editor, corre **todo** o `schema.sql`. É idempotente: completa as tabelas existentes, cria `profiles`, `opponents`, `sessions` e a view `players_public`, e substitui as políticas RLS destas tabelas.
+1. No SQL Editor, corre **todo** o `sql/schema.sql` e depois o resto pela ordem do [`sql/README.md`](sql/README.md). É idempotente: completa as tabelas existentes, cria `profiles`, `opponents`, `sessions` e a view `players_public`, e substitui as políticas RLS destas tabelas.
 2. No fim do ficheiro, descomenta o bloco **1. ADMIN**, põe o teu email e corre-o. **Sem isto o `index.html` deixa de conseguir gravar.**
-3. Em Authentication > Users cria as contas do treinador e dos dirigentes e atribui-lhes o papel com o bloco **2** do `schema.sql`.
+3. Em Authentication > Users cria as contas do treinador e dos dirigentes e atribui-lhes o papel com o bloco **2** do `sql/schema.sql`.
 4. Confirma que `js/config.js` tem o Project URL e a anon key (Settings > API):
 
 ```js
@@ -57,7 +57,7 @@ const SUPABASE_ANON_KEY = 'a-tua-chave-anon';
 
 ### Atualização v6 (03/10/2026)
 
-1. No SQL Editor corre a secção **"ATUALIZAÇÃO 03/10/2026 (v6)"** do `schema.sql` (depois da v5). Cria as colunas novas (convocatória em dois momentos, coordenadas dos estádios, situações dos relatórios), o **bucket privado `report-images`** e as políticas de Storage.
+1. No SQL Editor corre a secção **"ATUALIZAÇÃO 03/10/2026 (v6)"** do `sql/schema.sql` (depois da v5). Cria as colunas novas (convocatória em dois momentos, coordenadas dos estádios, situações dos relatórios), o **bucket privado `report-images`** e as políticas de Storage.
 2. Se o `insert into storage.buckets` der erro de permissões, cria o bucket à mão: Storage → New bucket → `report-images`, **sem** "Public bucket"; depois corre só as políticas.
 3. As coordenadas dos estádios são aproximadas: ajusta-as na ficha de cada equipa (admin → Adversários), em Latitude/Longitude.
 4. Bibliotecas novas por CDN: Leaflet (mapa, tiles OpenStreetMap), D3 (bracket) e a API Open-Meteo (meteorologia), todas sem chave.
@@ -84,21 +84,9 @@ As estatísticas vivem em `players.stats` (jsonb). No separador Jogo, golos, ass
 
 ### Fotografias dos jogadores
 
-No Supabase Dashboard, abre **Storage > New bucket**, cria o bucket `player-photos` e marca-o como público. A aplicação usa o bucket para uploads autenticados e guarda o URL público em `players.photo_url`.
+No Supabase Dashboard, abre **Storage > New bucket**, cria o bucket `player-photos` e marca-o como público. A aplicação usa o bucket para os uploads do admin (fotos e emblemas) e guarda o URL público em `players.photo_url`.
 
-```sql
-create policy "public read player photos"
-on storage.objects for select
-using (bucket_id = 'player-photos');
-
-create policy "authenticated upload player photos"
-on storage.objects for insert to authenticated
-with check (bucket_id = 'player-photos' and auth.uid()::text = (storage.foldername(name))[1]);
-
-create policy "authenticated update player photos"
-on storage.objects for update to authenticated
-using (bucket_id = 'player-photos' and auth.uid()::text = (storage.foldername(name))[1]);
-```
+As políticas do bucket estão em `sql/migrations/v23_player_photos_admin.sql`: só o admin carrega e substitui ficheiros; a leitura é pelo URL público (sem listagem, ver `v22_security_advisor.sql`).
 
 ## Testar localmente
 
@@ -134,4 +122,4 @@ Abre o URL do GitHub Pages no browser do dispositivo e adiciona-o ao ecrã inici
 
 ## Backup
 
-No Supabase Dashboard, usa Table Editor > Export ou `pg_dump` para exportar as tabelas (`players`, `teams`, `matches`, `standings`, `opponents`, `attendance`, `sessions`, `fines`, `match_reports`, `draft`). Mantém também o botão de exportação JSON da equipa e o exportador de rascunho da app como cópia rápida.
+No Supabase Dashboard, usa Table Editor > Export ou `pg_dump` para exportar as tabelas (`players`, `teams`, `matches`, `standings`, `opponents`, `attendance`, `sessions`, `fines`, `match_reports`, `draft`). Mantém também o botão de exportação JSON da equipa (admin → Equipa) como cópia rápida.

@@ -30,10 +30,10 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
  * v10: a área do jogador já não lê presenças (attendance).
  * v20: as multas (fines) voltam a ser do plantel todo: cada jogador vê as suas, as dos colegas e as do
  * treinador, com os totais (como no dashboard). Para a base de dados devolver todas a um jogador, correr
- * sql/v20_multas_jogadores.sql (política "Players read fines"). Sem ele, o jogador continua a ver só as suas.
+ * sql/migrations/v20_multas_jogadores.sql (política "Players read fines"). Sem ele, o jogador continua a ver só as suas.
  */
 const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h", fines: "fines" };
-const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/h2h.sql (leitura pública)
+const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/migrations/h2h.sql (leitura pública)
 
 async function carregarDados() {
   const chaves = Object.keys(TABELAS);
@@ -52,11 +52,8 @@ async function carregarDados() {
   VFN.definirTiposMulta(dados.fine_types);
   // multas do plantel e da equipa técnica (a RLS decide o que cada conta lê); pedidas com as outras tabelas
   dados.fines = VFN.normalizarMultas(dados.fines);
-  // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Para os jogadores
-  // lerem só as próprias presenças, correr no Supabase:
-  //   drop policy if exists "Players read own attendance" on public.attendance;
-  //   create policy "Players read own attendance" on public.attendance for select to authenticated
-  //     using (player_id in (select id from public.players where auth_user_id = auth.uid()));
+  // v15: presenças do próprio jogador (só as suas). Se a RLS não deixar, a ficha mostra "—". Política
+  // "Players read own attendance": sql/migrations/v24_migracoes_em_comentarios.sql, ponto 4.
   minhasPresencas = null;
   if (eu) {
     const pres = await cliente.from("attendance").select("status").eq("player_id", eu.id);
@@ -394,17 +391,8 @@ let graficoRadarEq = null;
 /*
  * Estatísticas completas do jogador com sessão (v15): presenças, minutos, golos, assistências, cartões, pé e
  * posições; GR: jogos a zero, minutos sem sofrer, golos sofridos e média; radar (o mesmo do admin).
- * As posições secundárias vêm de players_equipa, que ainda não as tem. Para as mostrar, correr no Supabase
- * (acrescenta as duas colunas no fim da view; o resto fica igual ao schema.sql):
- *   create or replace view public.players_equipa as
- *   select id, name, display_name, full_name, position, number, photo_url, date_of_birth, availability,
- *     jsonb_build_object('jogos', coalesce(stats->'jogos', '0'::jsonb), 'golos', coalesce(stats->'golos', '0'::jsonb),
- *       'assistencias', coalesce(stats->'assistencias', '0'::jsonb), 'cartoesA', coalesce(stats->'cartoesA', '0'::jsonb),
- *       'cartoesV', coalesce(stats->'cartoesV', '0'::jsonb), 'minutos', coalesce(stats->'minutos', '0'::jsonb),
- *       'pePreferencial', coalesce(stats->'pePreferencial', '""'::jsonb)) as stats,
- *     coalesce(auth_user_id = auth.uid(), false) as e_eu,
- *     sub_posicao, posicoes_secundarias
- *   from public.players where public.vfn_is_player() or public.vfn_is_staff();
+ * As posições secundárias vêm de players_equipa, que só as tem com a versão da view em
+ * sql/migrations/v24_migracoes_em_comentarios.sql, ponto 3 (sem ela fica só a posição principal).
  */
 function renderFichaCompleta() {
   if (graficoRadarEq) { graficoRadarEq.destroy(); graficoRadarEq = null; }

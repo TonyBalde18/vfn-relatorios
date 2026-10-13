@@ -1,6 +1,6 @@
 -- =========================================================
 -- H2H (2.ª parte): mais 216 jogos históricos e cópia automática dos jogos da época.
--- Correr no SQL Editor do Supabase DEPOIS do sql/h2h.sql (a tabela h2h já tem de existir).
+-- Correr no SQL Editor do Supabase DEPOIS do sql/migrations/h2h.sql (a tabela h2h já tem de existir).
 -- Adversários: AD São Romão, Aguiar da Beira, CD Gouveia, Fornos de Algodres, Ginásio Figueirense (C.Rodrigo), Manteigas, Os Vilanovenses, Pinhelenses, SC Celoricense, SC Sabugal, Sp. Mêda, Trancoso, Vila Cortez, Vilar Formoso.
 -- Desempates por penáltis: resultado dos 90' (empate) e a nota em "jornada".
 -- 30/05/2021 VF Naves × CD Gouveia (zerozero "DA"): registado 0-3 como derrota administrativa.

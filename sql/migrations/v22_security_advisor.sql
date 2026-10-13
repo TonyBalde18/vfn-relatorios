@@ -29,7 +29,7 @@ revoke execute on function public.vfn_player_id() from public, anon;
 grant execute on function public.vfn_role(), public.vfn_is_admin(), public.vfn_is_staff(),
   public.vfn_is_player(), public.vfn_player_id() to authenticated;
 
--- 2) vfn_h2h_do_jogo é a função do trigger dos jogos (sql/h2h_2.sql): ninguém a chama por rpc.
+-- 2) vfn_h2h_do_jogo é a função do trigger dos jogos (sql/migrations/h2h_2.sql): ninguém a chama por rpc.
 --    O trigger continua a disparar (o privilégio só conta quando o trigger é criado).
 revoke execute on function public.vfn_h2h_do_jogo() from public, anon, authenticated;
 
@@ -57,7 +57,7 @@ where schemaname = 'storage' and tablename = 'objects' and (qual like '%player-p
 -- =========================================================
 -- Fica de propósito (não corrigir):
 -- * security_definer_view (players_public, sessions_public, onze_jogos, players_equipa): as views
---   escondem colunas; com security_invoker deixavam de funcionar (ver sql/v21_views_grants.sql).
+--   escondem colunas; com security_invoker deixavam de funcionar (ver sql/migrations/v21_views_grants.sql).
 -- * 0029 authenticated: vfn_is_* / vfn_role / vfn_player_id (RLS), vfn_ligar_minha_conta (Área do
 --   Jogador) e vfn_ligar_jogador (verifica que quem chama é admin) — a app precisa delas.
 -- * Leaked password protection: não é SQL — Authentication → Sign In / Providers → Email →
