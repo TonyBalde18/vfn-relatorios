@@ -750,6 +750,11 @@ details.guia ul { margin: 8px 0 0; padding-left: 20px; font-size: 0.85rem; color
 .attendance-table .total-F { color: #b91c1c; }
 .attendance-table .total-A { color: #c2410c; }
 .attendance-table .total-J { color: #475569; }
+/* V1.0: totais legíveis no escuro (o fundo da coluna escurece no bloco gerado) */
+html.tema-escuro .attendance-table .total-P { color: #4ADE80; }
+html.tema-escuro .attendance-table .total-F { color: #F87171; }
+html.tema-escuro .attendance-table .total-A { color: #FB923C; }
+html.tema-escuro .attendance-table .total-J { color: #CBD5E1; }
 .attendance-table tfoot td { position: sticky; bottom: 0; background: #EEF1F6; font-weight: 700; padding: 6px 4px; }
 .attendance-table tfoot .col-player { z-index: 2; background: #EEF1F6; }
 .att-cell { display: block; width: 100%; min-width: 52px; height: 36px; border: 0; background: #fff; color: #fff; font-family: inherit; font-size: .85rem; font-weight: 800; cursor: pointer; transition: filter .15s ease; }
@@ -1449,6 +1454,10 @@ input[readonly] { background: rgba(10,22,40,.04); color: var(--text-muted); }
 .dividas-total span { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #991b1b; font-weight: 700; }
 .dividas-total strong { font-size: 1.9rem; color: #b91c1c; line-height: 1.1; }
 .dividas-total small { color: #7A5A00; font-weight: 600; }
+/* V1.0: no escuro o fundo fica escuro (bloco gerado), o texto passa a vermelho/âmbar claros */
+html.tema-escuro .dividas-total span { color: #FCA5A5; }
+html.tema-escuro .dividas-total strong { color: #F87171; }
+html.tema-escuro .dividas-total small { color: #FCD34D; }
 .dividas-lista { list-style: none; margin: 0; padding: 0; }
 .dividas-lista li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
 .dividas-lista li:last-child { border-bottom: 0; }
@@ -2375,6 +2384,18 @@ body.mj-aberto { overflow: hidden; }
 
 /* banner Jogo da Semana no admin (sem hub.css): título com o mesmo tamanho do dashboard */
 #jogoSemanaAdmin .jds-cab .hub-card-title { margin: 0; font-size: 1rem; font-weight: 800; }
+
+/* V1.0: ajustes do tema escuro onde o bloco gerado muda só o texto ou só o fundo (auditoria de contraste) */
+html.tema-escuro .comp-tag.comp-amigavel { color: var(--vfn-navy); }
+html.tema-escuro .status-jogado.result-V, html.tema-escuro .summary-tile.tile-pago strong { color: #4ADE80; }
+html.tema-escuro .status-jogado.result-D, html.tema-escuro .summary-tile.tile-pendente strong { color: #F87171; }
+html.tema-escuro .dj-placar .status-badge.result-V { color: #DCFCE7; }
+html.tema-escuro .dj-placar .status-badge.result-D { color: #FEE2E2; }
+html.tema-escuro .draft-banner .btn-ghost { color: var(--coffee-bean); border-color: currentColor; }
+html.tema-escuro details.guia summary { color: #93C5FD; }
+html.tema-escuro .conv-fase { background: var(--surface-2); color: var(--fg); }
+html.tema-escuro .conv-fase.fase2 { background: #FFD700; color: var(--vfn-navy); }
+html.tema-escuro .pitch-chip b { color: var(--heading); }
 
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
