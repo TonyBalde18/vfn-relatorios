@@ -716,6 +716,16 @@ details.guia ul { margin: 8px 0 0; padding-left: 20px; font-size: 0.85rem; color
 .summary-tile strong { display: block; margin-top: 4px; color: var(--vfn-navy); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .summary-tile.tile-pendente strong { color: #b91c1c; }
 .summary-tile.tile-pago strong { color: #15803d; }
+/* v1.1: contribuições voluntárias (somam ao arrecadado; não são multas) — azul-céu para não confundir com pago/pendente */
+.summary-tile .tile-nota { display: block; margin-top: 2px; color: var(--text-muted); font-size: .72rem; font-weight: 600; }
+.contrib-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: #E0F2FE; color: #075985; font-size: .75rem; font-weight: 800; }
+.contrib-badge .ic { flex: 0 0 auto; }
+.status-badge.contrib-recebida { background: #E0F2FE; color: #075985; }
+.valor-contrib { color: #0369A1; font-weight: 800; white-space: nowrap; }
+.vfn-avatar.avatar-contrib { display: inline-flex; align-items: center; justify-content: center; background: #E0F2FE; color: #075985; }
+.fin-table tfoot .fin-contrib th { font-weight: 600; font-size: .78rem; color: var(--text-muted); border-top: 0; white-space: normal; }
+html.tema-escuro .contrib-badge, html.tema-escuro .status-badge.contrib-recebida, html.tema-escuro .vfn-avatar.avatar-contrib { background: rgba(56, 189, 248, .16); color: #7DD3FC; }
+html.tema-escuro .valor-contrib { color: #7DD3FC; }
 
 /* ---------- Multas ---------- */
 .fines-table td { white-space: nowrap; }
@@ -1214,6 +1224,7 @@ html.tema-escuro .hm-F { background: var(--falta); } html.tema-escuro .hm-J { ba
 
 /* ---------- Resumo financeiro (multas) ---------- */
 .fin-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
+.fin-grid > * { min-width: 0; } /* v1.1: a tabela do resumo não alarga o cartão para fora do ecrã (scroll no .table-wrap) */
 .fin-table th[scope="row"] { text-align: left; white-space: nowrap; }
 .fin-table tfoot th, .fin-table tfoot td { font-weight: 800; border-top: 2px solid var(--border-color); }
 .txt-ok { color: #15803d; }
@@ -1224,6 +1235,10 @@ html.tema-escuro .hm-F { background: var(--falta); } html.tema-escuro .hm-J { ba
 }
 .comp-table tbody th[scope="row"], .fin-table tbody th[scope="row"], .fin-table tfoot th { background: transparent; color: var(--vfn-navy); text-transform: none; letter-spacing: 0; padding-right: 14px; }
 .fin-table th, .fin-table td, .comp-table th, .comp-table td { padding-left: 8px; padding-right: 8px; }
+/* v1.1: o hub.css tira o padding aos th das .stats-table (botões de ordenar); o resumo financeiro não os tem */
+.stats-table.fin-table th { padding: 8px; }
+.stats-table.fin-table thead th { white-space: nowrap; }
+@media (max-width: 480px) { .stats-table.fin-table td, .stats-table.fin-table th { font-size: .74rem; } .stats-table.fin-table thead th { font-size: .62rem; } .stats-table.fin-table thead th:last-child, .stats-table.fin-table tbody th[scope="row"] { white-space: normal; } .stats-table.fin-table .barra-pct { display: none; } .stats-table.fin-table th, .stats-table.fin-table td { padding-left: 5px; padding-right: 5px; } }
 
 /* ---------- v4: valor da multa, eventos sem equipa ---------- */
 .check-inline { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; }
@@ -2396,6 +2411,8 @@ html.tema-escuro details.guia summary { color: #93C5FD; }
 html.tema-escuro .conv-fase { background: var(--surface-2); color: var(--fg); }
 html.tema-escuro .conv-fase.fase2 { background: #FFD700; color: var(--vfn-navy); }
 html.tema-escuro .pitch-chip b { color: var(--heading); }
+html.tema-escuro .txt-ok { color: #4ADE80; }
+html.tema-escuro .txt-mau, html.tema-escuro .dividas-lista strong { color: #F87171; }
 
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }

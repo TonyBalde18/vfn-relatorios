@@ -490,13 +490,14 @@ function renderResumoFinanceiro() {
   const euro = v => VFN.formatoEuro.format(v);
   const porMes = VFN.mesesDaEpoca(new Date()).map(m => {
     const doMes = dados.fines.filter(f => String(f.match_date || "").startsWith(m.valor));
-    const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
-    return { ...m, n: doMes.length, total: soma(doMes), pago: soma(doMes.filter(f => f.paid)), pendente: soma(doMes.filter(f => !f.paid)) };
-  }).filter(m => m.n);
+    // v1.1: as contribuições somam ao total e ao pago (arrecadado), mas não contam como multas
+    const r = VFN.resumoMultas(doMes);
+    return { ...m, n: r.nMultas, linhas: doMes.length, contribuicoes: r.contribuicoes, total: r.arrecadado + r.pendente, pago: r.arrecadado, pendente: r.pendente };
+  }).filter(m => m.linhas);
   const maximo = Math.max(1, ...porMes.map(m => m.total));
   $("dbFinanceiroMeses").innerHTML = porMes.length ? `<table class="stats-table fin-table"><thead><tr><th scope="col">Mês</th><th scope="col">Multas</th><th scope="col">Total</th><th scope="col">Pago</th><th scope="col">Por pagar</th></tr></thead>
     <tbody>${porMes.map(m => `<tr><th scope="row">${esc(m.rotulo)}</th><td>${m.n}</td><td><span class="barra-pct barra-euro"><i style="width:${Math.round(m.total / maximo * 100)}%"></i></span>${euro(m.total)}</td><td class="txt-ok">${euro(m.pago)}</td><td class="txt-mau">${euro(m.pendente)}</td></tr>`).join("")}</tbody>
-    <tfoot><tr><th scope="row">Época</th><td>${porMes.reduce((s, m) => s + m.n, 0)}</td><td>${euro(porMes.reduce((s, m) => s + m.total, 0))}</td><td class="txt-ok">${euro(porMes.reduce((s, m) => s + m.pago, 0))}</td><td class="txt-mau">${euro(porMes.reduce((s, m) => s + m.pendente, 0))}</td></tr></tfoot></table>` : H.vazio("Ainda não há multas registadas.");
+    <tfoot><tr><th scope="row">Época</th><td>${porMes.reduce((s, m) => s + m.n, 0)}</td><td>${euro(porMes.reduce((s, m) => s + m.total, 0))}</td><td class="txt-ok">${euro(porMes.reduce((s, m) => s + m.pago, 0))}</td><td class="txt-mau">${euro(porMes.reduce((s, m) => s + m.pendente, 0))}</td></tr>${porMes.some(m => m.contribuicoes) ? `<tr class="fin-contrib"><th scope="row" colspan="5">Inclui ${euro(porMes.reduce((s, m) => s + m.contribuicoes, 0))} de contribuições voluntárias (no total e no pago)</th></tr>` : ""}</tfoot></table>` : H.vazio("Ainda não há multas registadas.");
   $("dbDividasTipo").innerHTML = VFNComp.opcoesTipoDividaHTML(dados.fines, $("dbDividasTipo").value);
   $("dbFinanceiroAbertos").innerHTML = VFNComp.renderDebtReport(dados.fines, { pessoa: jogadorPorIdDash, tipo: $("dbDividasTipo").value });
 }
@@ -547,18 +548,13 @@ function multasFiltradasDash() {
 }
 
 function renderTabelaMultasDash(lista) {
-  const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  $("dbMultasResumo").innerHTML = `
-    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${VFN.formatoEuro.format(pendente)}</strong></div>
-    <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${VFN.formatoEuro.format(pago)}</strong></div>
-    <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
+  $("dbMultasResumo").innerHTML = VFN.resumoMultasHTML(lista); // v1.1: as contribuições somam ao arrecadado
   $("dbMultasBody").innerHTML = lista.length ? lista.map(f => `
     <tr>
-      <td data-v="${esc((jogadorPorIdDash(f.player_id) || {}).nome || "")}">${celulaJogadorDash(f.player_id)}</td>
-      <td class="fine-infraction">${esc(VFN.rotuloMulta(f.infraction_type))}${f.description ? `<span class="fine-desc">${esc(f.description)}</span>` : ""}</td>
+      <td data-v="${esc(VFN.nomeNaMulta(f, jogadorPorIdDash))}">${!jogadorPorIdDash(f.player_id) && VFN.eContribuicao(f) && f.contributor_name ? VFN.celulaContribuidorHTML(f.contributor_name) : celulaJogadorDash(f.player_id)}</td>
+      <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
-      <td><span class="status-badge ${f.paid ? "status-jogado result-V" : "status-jogado result-D"}">${f.paid ? "Pago" : "Pendente"}</span>${f.paid && f.paid_date ? `<span class="fine-desc">em ${esc(VFN.dataDDMMAAAA(f.paid_date))}</span>` : ""}</td>
+      <td>${VFN.estadoMultaHTML(f)}${f.paid && f.paid_date && !VFN.eContribuicao(f) ? `<span class="fine-desc">em ${esc(VFN.dataDDMMAAAA(f.paid_date))}</span>` : ""}</td>
       <td data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td>
     </tr>`).join("") : `<tr><td colspan="5" class="empty-state">Sem multas com estes filtros.</td></tr>`;
 }

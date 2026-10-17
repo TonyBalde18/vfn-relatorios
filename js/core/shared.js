@@ -101,7 +101,10 @@
   function linhaMultaParaBD(linha, eStaff) {
     const l = { ...linha };
     if (eStaff) { l.staff_id = String(linha.player_id); l.player_id = null; }
-    else if ("staff_id" in l) l.staff_id = null; // a coluna existe (veio da BD): limpa-a
+    else {
+      if (!l.player_id) l.player_id = null; // contribuição de alguém de fora (v26): sem pessoa
+      if ("staff_id" in l) l.staff_id = null; // a coluna existe (veio da BD): limpa-a
+    }
     return l;
   }
 
@@ -137,9 +140,61 @@
     return tipo === "falta_treino" ? "Falta ao treino injustificada" : tipo;
   }
 
-  /** Valor da multa para mostrar (sempre um valor fixo em euros). */
+  /** Valor da multa para mostrar (sempre um valor fixo em euros); as contribuições com "+". */
   function valorMultaHTML(f) {
-    return formatoEuro.format(Number(f.amount) || 0);
+    const v = formatoEuro.format(Number(f.amount) || 0);
+    return eContribuicao(f) ? `<span class="valor-contrib">+ ${v}</span>` : v;
+  }
+
+  /*
+   * Contribuições voluntárias (v1.1, sql/migrations/v26_contribuicoes.sql): linhas de fines com kind = "contribuicao",
+   * já recebidas (ex.: um dirigente dá 5 € por cada vitória). Somam ao total arrecadado mas não são multas: ficam
+   * fora das dívidas e do nº de multas. São de um jogador, da equipa técnica ou de alguém de fora (contributor_name).
+   */
+  const TIPO_CONTRIBUICAO = "Contribuição";
+  const eContribuicao = f => !!f && f.kind === "contribuicao";
+
+  /** Totais de linhas de fines: { pendente, pagoMultas, contribuicoes, arrecadado, nMultas, nContribuicoes }. */
+  function resumoMultas(linhas) {
+    const r = { pendente: 0, pagoMultas: 0, contribuicoes: 0, arrecadado: 0, nMultas: 0, nContribuicoes: 0 };
+    (linhas || []).forEach(f => {
+      const v = Number(f.amount) || 0;
+      if (eContribuicao(f)) { r.contribuicoes += v; r.nContribuicoes++; }
+      else { r.nMultas++; if (f.paid) r.pagoMultas += v; else r.pendente += v; }
+    });
+    r.arrecadado = r.pagoMultas + r.contribuicoes;
+    return r;
+  }
+
+  /** Os 3 cartões de resumo das multas (admin, dashboard e Área do Jogador): pendente, arrecadado e nº de multas. */
+  function resumoMultasHTML(linhas) {
+    const r = resumoMultas(linhas);
+    return `<div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(r.pendente)}</strong></div>
+      <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${formatoEuro.format(r.arrecadado)}</strong>${r.contribuicoes ? `<small class="tile-nota">inclui ${formatoEuro.format(r.contribuicoes)} de contribuições</small>` : ""}</div>
+      <div class="summary-tile"><span>Nº de multas</span><strong>${r.nMultas}</strong>${r.nContribuicoes ? `<small class="tile-nota">+ ${r.nContribuicoes} contribuiç${r.nContribuicoes === 1 ? "ão" : "ões"}</small>` : ""}</div>`;
+  }
+
+  /** Nome de quem paga ou contribui: a pessoa (jogador ou equipa técnica) ou, numa contribuição de fora, o nome escrito. */
+  function nomeNaMulta(f, pessoa) {
+    const p = pessoa(f.player_id);
+    return p ? p.nome : (eContribuicao(f) && f.contributor_name) || "";
+  }
+
+  /** Célula de quem contribuiu sem ser do plantel nem da equipa técnica (sem foto: ícone). */
+  function celulaContribuidorHTML(nome) {
+    return `<span class="player-cell"><span class="vfn-avatar avatar-xs avatar-contrib" aria-hidden="true">${icone("hand-coins", 14)}</span><span>${escapeHtml(nome)}</span></span>`;
+  }
+
+  /** Coluna "Infração" das tabelas: o tipo de multa (ou o badge "Contribuição") e a descrição. */
+  function infracaoMultaHTML(f) {
+    const desc = f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : "";
+    return eContribuicao(f) ? `<span class="contrib-badge">${icone("hand-coins", 13)} Contribuição</span>${desc}` : `${escapeHtml(rotuloMulta(f.infraction_type))}${desc}`;
+  }
+
+  /** Estado: "Pago" / "Pendente" (multas) ou "Recebida" (contribuições). */
+  function estadoMultaHTML(f) {
+    if (eContribuicao(f)) return '<span class="status-badge status-jogado contrib-recebida">Recebida</span>';
+    return `<span class="status-badge status-jogado ${f.paid ? "result-V" : "result-D"}">${f.paid ? "Pago" : "Pendente"}</span>`;
   }
 
   /* Disponibilidade dos jogadores (players.availability). Suspensão ao 5.º amarelo (AF Guarda). */
@@ -1209,7 +1264,7 @@
 
   /** Folha de dívidas: Jogador | Tipo de dívida | Valor | Data | Estado | Observações (só multas por pagar). */
   function folhaDividas(multas, nomeJogador) {
-    const porPagar = multas.filter(f => !f.paid).sort((a, b) => String(nomeJogador(a.player_id) || "").localeCompare(String(nomeJogador(b.player_id) || ""), "pt") || String(a.match_date || "").localeCompare(String(b.match_date || "")));
+    const porPagar = multas.filter(f => !f.paid && !eContribuicao(f)).sort((a, b) => String(nomeJogador(a.player_id) || "").localeCompare(String(nomeJogador(b.player_id) || ""), "pt") || String(a.match_date || "").localeCompare(String(b.match_date || "")));
     const cab = ["Jogador", "Tipo", "Valor (€)", "Data", "Estado", "Observações"];
     const linhas = porPagar.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), Number(f.amount) || 0, dataDDMMAAAA(f.match_date), "Pendente", f.description || ""]);
     const total = porPagar.reduce((t, f) => t + (Number(f.amount) || 0), 0);
@@ -1220,9 +1275,12 @@
   function folhaMultas(multas, nomeJogador) {
     const cab = ["Nome", "Tipo de Multa", "Data", "Valor (€)", "Notas"];
     const ordenadas = [...multas].sort((a, b) => String(a.match_date || "").localeCompare(String(b.match_date || "")));
-    const linhas = ordenadas.map(f => [nomeJogador(f.player_id) || "Jogador removido", rotuloMulta(f.infraction_type), dataDDMMAAAA(f.match_date), Number(f.amount) || 0, [f.paid ? "Paga" : "Pendente", f.description].filter(Boolean).join(" · ")]);
+    const contrib = eContribuicao;
+    const linhas = ordenadas.map(f => [nomeJogador(f.player_id) || (contrib(f) && f.contributor_name) || "Jogador removido", contrib(f) ? TIPO_CONTRIBUICAO : rotuloMulta(f.infraction_type), dataDDMMAAAA(f.match_date), Number(f.amount) || 0, [contrib(f) ? "Recebida" : f.paid ? "Paga" : "Pendente", f.description].filter(Boolean).join(" · ")]);
     const total = ordenadas.reduce((s, f) => s + (Number(f.amount) || 0), 0);
-    return { linhas: [cab, ...linhas, [], ["Total acumulado", "", "", total, ""]], larguras: [24, 34, 12, 12, 40], euros: 3, paisagem: true };
+    const contribuicoes = ordenadas.filter(contrib).reduce((s, f) => s + (Number(f.amount) || 0), 0);
+    const rodape = contribuicoes ? [["Total acumulado", "", "", total, ""], ["das quais contribuições", "", "", contribuicoes, ""]] : [["Total acumulado", "", "", total, ""]];
+    return { linhas: [cab, ...linhas, [], ...rodape], larguras: [24, 34, 12, 12, 40], euros: 3, paisagem: true };
   }
 
   /** Gera o .xlsx (várias folhas) e descarrega-o. As folhas com paisagem: true ficam em orientação horizontal. */
@@ -1658,7 +1716,7 @@
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
     DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, TIPO_CONTRIBUICAO, eContribuicao, resumoMultas, resumoMultasHTML, nomeNaMulta, celulaContribuidorHTML, infracaoMultaHTML, estadoMultaHTML, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,

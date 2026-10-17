@@ -207,10 +207,11 @@ function linhasMultasHTML(lista, comJogador) {
     <thead><tr>${comJogador ? '<th scope="col" data-tipo="texto">Jogador</th>' : ""}<th scope="col" data-tipo="texto">Infracção</th><th scope="col" class="num" data-tipo="numero">Valor</th><th scope="col" data-tipo="texto">Estado</th><th scope="col" data-tipo="data">Data</th></tr></thead>
     <tbody>${lista.map(f => {
       const p = pessoa(f.player_id);
-      return `<tr>${comJogador ? `<td data-v="${esc((p || {}).nome || "")}">${p ? `<span class="player-cell">${VFN.avatarJogador(p, "avatar-xs")}<span>${esc(p.nome)}</span></span>` : '<span class="muted">Jogador removido</span>'}</td>` : ""}
-        <td class="fine-infraction">${esc(VFN.rotuloMulta(f.infraction_type))}${f.description ? `<span class="fine-desc">${esc(f.description)}</span>` : ""}</td>
+      const fora = !p && VFN.eContribuicao(f) && f.contributor_name; // contribuição de alguém de fora do plantel (v1.1)
+      return `<tr>${comJogador ? `<td data-v="${esc(VFN.nomeNaMulta(f, pessoa))}">${p ? `<span class="player-cell">${VFN.avatarJogador(p, "avatar-xs")}<span>${esc(p.nome)}</span></span>` : fora ? VFN.celulaContribuidorHTML(f.contributor_name) : '<span class="muted">Jogador removido</span>'}</td>` : ""}
+        <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
         <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
-        <td><span class="status-badge status-jogado ${f.paid ? "result-V" : "result-D"}">${f.paid ? "Pago" : "Pendente"}</span></td>
+        <td>${VFN.estadoMultaHTML(f)}</td>
         <td data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
@@ -229,7 +230,8 @@ const porData = (a, b) => String(b.match_date || "").localeCompare(String(a.matc
 function renderMultas() {
   const euro = v => VFN.formatoEuro.format(v);
   if (eu) {
-    const minhas = dados.fines.filter(f => String(f.player_id) === String(eu.id)).sort(porData);
+    // as minhas multas (sem as contribuições, que não são multas; essas aparecem na lista da equipa)
+    const minhas = dados.fines.filter(f => String(f.player_id) === String(eu.id) && !VFN.eContribuicao(f)).sort(porData);
     const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
     $("eqMinhasMultasResumo").innerHTML = `<div class="summary-tile tile-pendente"><span>Por pagar</span><strong>${euro(soma(minhas.filter(f => !f.paid)))}</strong></div>
       <div class="summary-tile tile-pago"><span>Pago</span><strong>${euro(soma(minhas.filter(f => f.paid)))}</strong></div>
@@ -253,10 +255,7 @@ function renderMultas() {
     .filter(f => !sel.value || String(f.player_id) === sel.value)
     .filter(f => !estado || (estado === "pago" ? f.paid : !f.paid))
     .sort(porData);
-  const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  $("eqMultasEquipaResumo").innerHTML = `<div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${euro(soma(todas.filter(f => !f.paid)))}</strong></div>
-    <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${euro(soma(todas.filter(f => f.paid)))}</strong></div>
-    <div class="summary-tile"><span>Nº de multas</span><strong>${todas.length}</strong></div>`;
+  $("eqMultasEquipaResumo").innerHTML = VFN.resumoMultasHTML(todas); // v1.1: as contribuições somam ao arrecadado
   $("eqMultasTodas").innerHTML = linhasMultasHTML(todas, true);
 }
 

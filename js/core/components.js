@@ -440,7 +440,7 @@
 
   /** Multas por pagar, opcionalmente só de um tipo (infraction_type). */
   function multasEmDivida(multas, tipo) {
-    return (multas || []).filter(f => !f.paid && (!tipo || f.infraction_type === tipo));
+    return (multas || []).filter(f => !f.paid && !VFN.eContribuicao(f) && (!tipo || f.infraction_type === tipo)); // contribuições nunca são dívida
   }
 
   /** <option>s dos tipos com dívida (para o filtro "tipo de dívida"), mantendo a escolha. */

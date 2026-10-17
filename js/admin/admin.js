@@ -135,6 +135,10 @@ function initMultas() {
   el("btnTipoMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalTipoMulta"));
   el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
   el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
+  el("btnAddContribuicao").addEventListener("click", () => abrirModalContribuicao(null));
+  el("contribQuem").addEventListener("change", () => { el("contribNomeCampo").hidden = !!el("contribQuem").value; });
+  el("btnContribCancelar").addEventListener("click", () => fecharModalAdmin("modalContribuicao"));
+  el("btnContribGuardar").addEventListener("click", guardarContribuicao);
   el("btnJoiaMes").addEventListener("click", lancarJoiaDoMes);
   // relatório de dívidas: o filtro por tipo aplica-se ao ecrã, à imagem e ao XLSX
   el("dividasTipo").addEventListener("change", renderDividasAdmin);
@@ -214,32 +218,28 @@ function renderMultas() {
   renderEstadoJoia();
   renderDividasAdmin();
   const lista = multasDoPeriodo();
-  const pendente = lista.filter(f => !f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  const pago = lista.filter(f => f.paid).reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  el("multasResumo").innerHTML = `
-    <div class="summary-tile tile-pendente"><span>Total pendente</span><strong>${formatoEuro.format(pendente)}</strong></div>
-    <div class="summary-tile tile-pago"><span>Total arrecadado</span><strong>${formatoEuro.format(pago)}</strong></div>
-    <div class="summary-tile"><span>Nº de multas</span><strong>${lista.length}</strong></div>`;
+  el("multasResumo").innerHTML = VFN.resumoMultasHTML(lista); // v1.1: as contribuições somam ao arrecadado
 
   const tbody = el("multasBody");
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Sem multas neste período.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Sem multas nem contribuições neste período.</td></tr>`;
     return;
   }
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}">
-      <td data-v="${escapeHtml((pessoaPorId(f.player_id) || {}).nome || "")}">${celulaJogadorHTML(f.player_id)}</td>
-      <td class="fine-infraction">${escapeHtml(rotuloInfraccao(f.infraction_type))}${f.description ? `<span class="fine-desc">${escapeHtml(f.description)}</span>` : ""}</td>
+      <td data-v="${escapeHtml(VFN.nomeNaMulta(f, pessoaPorId))}">${!pessoaPorId(f.player_id) && VFN.eContribuicao(f) && f.contributor_name ? VFN.celulaContribuidorHTML(f.contributor_name) : celulaJogadorHTML(f.player_id)}</td>
+      <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
-      <td><label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}</td>
+      <td>${VFN.eContribuicao(f) ? VFN.estadoMultaHTML(f) : `<label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}`}</td>
       <td data-v="${escapeHtml(f.match_date || "")}">${dataPt(f.match_date)}</td>
-      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar multa" aria-label="Editar multa">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar multa" aria-label="Eliminar multa">${VFN.icone("trash-2", 16)}</button></div></td>
+      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar" aria-label="Editar">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar" aria-label="Eliminar">${VFN.icone("trash-2", 16)}</button></div></td>
     </tr>`).join("");
 
   tbody.querySelectorAll("tr[data-id]").forEach(tr => {
     const multa = cacheAdmin.fines.find(f => String(f.id) === tr.dataset.id);
-    tr.querySelector("[data-acao=pago]").addEventListener("change", e => alternarPagamento(multa, e.target.checked));
-    tr.querySelector("[data-acao=editar]").addEventListener("click", () => abrirModalMulta(multa));
+    const pago = tr.querySelector("[data-acao=pago]");
+    if (pago) pago.addEventListener("change", e => alternarPagamento(multa, e.target.checked));
+    tr.querySelector("[data-acao=editar]").addEventListener("click", () => VFN.eContribuicao(multa) ? abrirModalContribuicao(multa) : abrirModalMulta(multa));
     tr.querySelector("[data-acao=apagar]").addEventListener("click", () => apagarMulta(multa));
   });
 }
@@ -306,6 +306,7 @@ async function gravarMultaBD(linha) {
   try {
     return VFN.normalizarMultas([await dadosClube.guardar("fines", paraBD)])[0];
   } catch (e) {
+    if (linha.kind === "contribuicao" && /kind|contributor_name|fines_jogador_ou_staff|schema cache|could not find|null value in column "player_id"/i.test(e.message || "")) throw new Error("Para gravar contribuições corre o sql/migrations/v26_contribuicoes.sql no Supabase (colunas fines.kind e contributor_name).");
     if (/staff_id|fines_player_id_fkey|player_id.*not-null|null value in column "player_id"/i.test(e.message || "")) throw new Error("Para multar a equipa técnica corre o sql/migrations/v19_multas_staff.sql no Supabase (coluna fines.staff_id).");
     throw e;
   }
@@ -352,6 +353,62 @@ async function guardarMulta() {
     renderMultas();
   } catch (e) {
     el("multaErro").textContent = mensagemErro(e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+/* ---------- Contribuições voluntárias (v1.1, sql/migrations/v26_contribuicoes.sql) ---------- */
+
+let contribuicaoEmEdicao = null;
+
+async function abrirModalContribuicao(c) {
+  await carregarTiposMulta(); // também carrega a equipa técnica
+  contribuicaoEmEdicao = c;
+  el("modalContribuicaoTitulo").textContent = c ? "Editar Contribuição" : "Adicionar Contribuição";
+  const staff = staffAdmin().map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)} (${escapeHtml(p.posicao)})</option>`).join("");
+  const plantelOpcoes = opcoesPlantelHTML("").replace('<option value="">— Selecionar jogador —</option>', "");
+  el("contribQuem").innerHTML = '<option value="">Outra pessoa (escrever o nome)</option>' + plantelOpcoes + staff;
+  el("contribQuem").value = c && c.player_id && pessoaPorId(c.player_id) ? String(c.player_id) : "";
+  el("contribNome").value = c ? c.contributor_name || "" : "";
+  el("contribNomeCampo").hidden = !!el("contribQuem").value;
+  el("contribValor").value = c ? c.amount : "";
+  el("contribData").value = c ? c.match_date || "" : hojeIso();
+  el("contribDescricao").value = c ? c.description || "" : "";
+  el("contribErro").textContent = "";
+  abrirModalAdmin("modalContribuicao");
+}
+
+async function guardarContribuicao() {
+  const valor = Number(String(el("contribValor").value).replace(",", "."));
+  const quem = el("contribQuem").value, nome = el("contribNome").value.trim();
+  const erro = !quem && !nome ? "Escolhe quem contribui ou escreve o nome." : !(valor > 0) ? "Indica um valor em euros maior que zero." : !el("contribData").value ? "Indica a data." : "";
+  el("contribErro").textContent = erro;
+  if (erro) return;
+  const linha = {
+    ...(contribuicaoEmEdicao || {}),
+    kind: "contribuicao",
+    player_id: quem || null,
+    contributor_name: quem ? null : nome,
+    infraction_type: VFN.TIPO_CONTRIBUICAO,
+    fine_type_id: null,
+    amount: Math.round(valor * 100) / 100,
+    description: el("contribDescricao").value.trim() || null,
+    match_date: el("contribData").value,
+    paid: true, // já recebida: soma logo ao total arrecadado
+    paid_date: el("contribData").value
+  };
+  const botao = el("btnContribGuardar");
+  botao.disabled = true;
+  try {
+    const gravada = await guardarLinhaMulta(linha);
+    cacheAdmin.fines = cacheAdmin.fines.filter(f => String(f.id) !== String(gravada.id)).concat(gravada);
+    fecharModalAdmin("modalContribuicao");
+    const mes = String(gravada.match_date || "").slice(0, 7);
+    if (el("multasMes").value !== "epoca" && [...el("multasMes").options].some(o => o.value === mes)) el("multasMes").value = mes;
+    renderMultas();
+  } catch (e) {
+    el("contribErro").textContent = mensagemErro(e);
   } finally {
     botao.disabled = false;
   }
@@ -440,7 +497,8 @@ async function alternarPagamento(multa, pago) {
 }
 
 async function apagarMulta(multa) {
-  if (!confirm(`Eliminar a multa "${rotuloInfraccao(multa.infraction_type)}" de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
+  const oQue = VFN.eContribuicao(multa) ? `a contribuição de ${VFN.nomeNaMulta(multa, pessoaPorId) || "—"}` : `a multa "${rotuloInfraccao(multa.infraction_type)}"`;
+  if (!confirm(`Eliminar ${oQue} de ${formatoEuro.format(Number(multa.amount) || 0)}?`)) return;
   try {
     await dadosClube.remover("fines", multa.id);
     cacheAdmin.fines = cacheAdmin.fines.filter(f => f !== multa);
