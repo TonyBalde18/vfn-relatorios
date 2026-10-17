@@ -2103,7 +2103,7 @@ function renderRelatoriosAdmin() {
     return `<tr>
       <td data-v="${escapeHtml(d.data || "")}">${escapeHtml(VFN.dataDDMMAAAA(d.data) || "—")}</td>
       <td>${escapeHtml(d.adversario)}</td>
-      <td>${VFN.nomeCompeticaoHTML(d.competicao, true)}</td>
+      <td data-v="${escapeHtml(VFN.nomeCurtoCompeticao(d.competicao) || "")}"><span class="comp-dica" tabindex="0" title="${escapeHtml(d.competicao || "")}" aria-label="${escapeHtml(d.competicao || "Competição")}">${VFN.nomeCompeticaoHTML(d.competicao, true)}</span></td>
       <td class="num">${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN}</td>
       <td><span class="estado-relatorio ${pub ? "publicado" : "rascunho"}">${pub ? "Publicado" : "Rascunho"}</span></td>
       <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}">${VFN.icone("file-pen", 16)} Abrir</button>` : '<span class="muted">sem jogo associado</span>'}</td>
