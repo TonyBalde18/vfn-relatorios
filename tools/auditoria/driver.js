@@ -119,7 +119,7 @@ function fecharEdge(edge) {
     const s = await cmd("Page.addScriptToEvaluateOnNewDocument", { source: `try{localStorage.setItem("vfnTema","${c.tema}");localStorage.setItem("vfnFakeRole","${c.papel}");localStorage.setItem("vfnFakeFixtures",${JSON.stringify(FIXTURES)});sessionStorage.setItem("vfnSplash","1");}catch(e){}
       document.addEventListener("DOMContentLoaded",()=>{const st=document.createElement("style");st.textContent="[data-aos]{opacity:1!important;transform:none!important}*{transition:none!important;animation-duration:0s!important}";document.head.appendChild(st);});` });
     scriptId = s.result.identifier;
-    await cmd("Emulation.setDeviceMetricsOverride", { width: c.largura, height: 900, deviceScaleFactor: 1, mobile: c.largura < 800 });
+    await cmd("Emulation.setDeviceMetricsOverride", { width: c.largura, height: Number(process.env.ALTURA) || 900, deviceScaleFactor: 1, mobile: c.largura < 800 });
     eventos = [];
     await cmd("Page.navigate", { url: `http://localhost:${PORTA}/${c.pagina}` });
     await espera(6000);
