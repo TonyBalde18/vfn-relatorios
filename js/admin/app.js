@@ -225,11 +225,14 @@ function renderSeasonStats(stats) {
 
 async function guardarRelatorioSupabase() {
   if (!supabaseClient || !currentUser) return;
-  // relatório sem jogo associado: fica publicado logo ao gerar o Word (como antes da v3)
-  const linha = { user_id: currentUser.id, match_data: { ...state, _status: "published" }, updated_at: new Date().toISOString() };
-  let { error } = await supabaseClient.from("match_reports").insert({ ...linha, status: "published" });
-  if (error && /does not exist|schema cache|could not find/i.test(error.message || "")) ({ error } = await supabaseClient.from("match_reports").insert(linha));
+  // relatório sem jogo associado: fica publicado logo ao gerar o Word (como antes da v3).
+  // v1.1: gerar o Word outra vez atualiza a mesma linha (id guardado no estado) em vez de criar outra
+  const id = state.relatorioId || VFN.novoId();
+  const linha = { id, user_id: currentUser.id, match_data: { ...state, relatorioId: id, _status: "published" }, updated_at: new Date().toISOString() };
+  let { error } = await supabaseClient.from("match_reports").upsert({ ...linha, status: "published" });
+  if (error && /does not exist|schema cache|could not find/i.test(error.message || "")) ({ error } = await supabaseClient.from("match_reports").upsert(linha));
   if (error) console.warn("Não foi possível guardar o relatório:", error.message);
+  else state.relatorioId = id;
 }
 
 async function sincronizarPlantelSupabase() {
@@ -758,22 +761,33 @@ function renderOpcoesPreJogo() {
 function escolherAdversario(teamId) {
   const equipa = equipaPorId(teamId);
   if (!equipa) return;
+  const antes = { adversario: state.preJogo.adversario, adversarioId: state.preJogo.adversarioId };
   state.preJogo.adversario = equipa.name;
   state.preJogo.adversarioId = equipa.id;
   const contra = jogosSelecionaveis().filter(j => String(j.opponent_team_id) === String(equipa.id));
   const limite = Date.now() - 2 * 3600 * 1000;
   const jogo = contra.find(j => VFN.paraData(j.date) && VFN.paraData(j.date).getTime() >= limite) || contra[contra.length - 1];
-  if (jogo && jogo.id !== state.preJogo.matchId) { usarJogoNoRelatorio(jogo); return; }
+  if (jogo && jogo.id !== state.preJogo.matchId) {
+    if (usarJogoNoRelatorio(jogo) === false) { Object.assign(state.preJogo, antes); renderPreJogo(); } // cancelou: fica como estava
+    return;
+  }
   if (!jogo) state.preJogo.matchId = "";
   renderPreJogo();
   guardarRascunho();
 }
 
+/** Associa o jogo ao relatório. Devolve false se o jogo já tinha relatório e o utilizador não o quis abrir. */
 function usarJogoNoRelatorio(jogo) {
   if (jogo.id !== state.preJogo.matchId) {
-    // outro jogo: se já tem relatório, abre-o; senão começa um rascunho novo
+    // outro jogo: se já tem relatório, abre-o; senão começa um rascunho novo.
+    // v1.1: cada jogo tem um só relatório — cancelar já não cria um segundo rascunho do mesmo jogo
     const existente = typeof relatorioDoJogoAdmin === "function" && relatorioDoJogoAdmin(jogo.id);
-    if (existente && confirm("Este jogo já tem um relatório. Abrir esse relatório?")) { abrirRelatorioDoJogo(jogo.id); return; }
+    if (existente) {
+      const estado = VFNRelatorio.estadoRelatorio(existente) === "published" ? "publicado" : "rascunho";
+      if (confirm(`Este jogo já tem um relatório (${estado}). Abrir esse relatório?\n\nCancelar deixa o formulário como está, sem o associar a este jogo (cada jogo tem um só relatório).`)) { abrirRelatorioDoJogo(jogo.id); return true; }
+      renderPreJogo(); // repõe a escolha anterior no Pré-Jogo
+      return false;
+    }
     state.relatorioId = "";
     state.estadoRelatorio = "draft";
   }

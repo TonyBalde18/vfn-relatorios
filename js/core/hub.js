@@ -927,14 +927,28 @@
   }
 
   /**
+   * Relatórios publicados de competições oficiais, um por jogo (o mais recente, se houver repetidos do mesmo
+   * jogo — v1.1, A2). Base das estatísticas por jogo, das participações e dos minutos por posição.
+   */
+  function relatoriosOficiaisPorJogo(dados) {
+    const porJogo = new Map();
+    (dados.match_reports || []).forEach(r => {
+      if (VFN.estadoRelatorio(r) !== "published" || !(r.match_data || {}).jogo || !relatorioOficial(r, dados)) return;
+      const chave = String(r.match_id || (r.match_data.preJogo || {}).matchId || "r:" + r.id);
+      const atual = porJogo.get(chave);
+      if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
+    });
+    return [...porJogo.values()];
+  }
+
+  /**
    * Números de um jogador jogo a jogo, para os gráficos pessoais: [{ rotulo, data, minutos, golos,
    * assistencias, golosAcum, assistAcum }] por ordem da data. Só relatórios publicados de competições
    * oficiais (sem amigáveis). Não há tabelas match_players/goals: os dados vêm de match_reports.match_data
    * (onze, substituições e eventos). eDele(idLocal) liga os ids dos relatórios ao jogador.
    */
   function estatisticasPorJogo(dados, eDele) {
-    const linhas = (dados.match_reports || [])
-      .filter(r => VFN.estadoRelatorio(r) === "published" && (r.match_data || {}).jogo && relatorioOficial(r, dados))
+    const linhas = relatoriosOficiaisPorJogo(dados)
       .map(r => {
         const m = r.match_data, pre = m.preJogo || {};
         const matchId = r.match_id || pre.matchId;

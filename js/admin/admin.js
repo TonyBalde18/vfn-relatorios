@@ -1974,11 +1974,43 @@ function linhaRelatorio() {
   };
 }
 
+/**
+ * Relatório que já existe para o jogo (v1.1, A2): primeiro na lista carregada; depois na base de dados (pode ter
+ * sido criado noutro dispositivo ou depois de a lista carregar); por fim, um sem jogo com a mesma data e adversário.
+ */
+async function relatorioExistenteDoJogo(matchId) {
+  const local = relatorioDoJogoAdmin(matchId);
+  if (local) return local;
+  if (dadosClube.usaSupabase() && colunasRelatorioV3) {
+    const { data, error } = await supabaseClient.from("match_reports").select("*").eq("match_id", matchId).order("updated_at", { ascending: false }).limit(1);
+    if (!error && data && data.length) return data[0];
+  }
+  const pre = state.preJogo;
+  return relatoriosAdmin.find(r => {
+    const p = (r.match_data || {}).preJogo || {};
+    return !(r.match_id || p.matchId) && pre.data && (r.match_date || p.data) === pre.data && String(r.opponent || p.adversario || "").trim() === String(pre.adversario || "").trim();
+  }) || null;
+}
+
 /** Grava o relatório do jogo associado (rascunho ou publicado). Sem jogo associado não faz nada. */
 function guardarRelatorioDoJogo() {
   if (!state.preJogo.matchId) return Promise.resolve(null);
   gravacaoRelatorio = gravacaoRelatorio.then(async () => {
     try {
+      // v1.1 (A2): antes de criar um relatório novo para o jogo, confirma que ainda não existe um
+      if (!state.relatorioId) {
+        const existente = await relatorioExistenteDoJogo(state.preJogo.matchId);
+        if (existente) {
+          if (!relatoriosAdmin.some(r => String(r.id) === String(existente.id))) relatoriosAdmin = relatoriosAdmin.concat(existente);
+          if (confirm("Já existe um relatório deste jogo (guardado noutra sessão ou dispositivo).\n\nOK: abrir esse relatório.\nCancelar: substituí-lo pelo que está agora no formulário.")) {
+            const matchId = state.preJogo.matchId;
+            setTimeout(() => abrirRelatorioDoJogo(matchId)); // depois desta gravação (fila)
+            return null;
+          }
+          state.relatorioId = existente.id; // substitui: a mesma linha, sem criar outra
+          state.estadoRelatorio = estadoDoRelatorio(existente);
+        }
+      }
       let gravado;
       try {
         gravado = await dadosClube.guardar("match_reports", linhaRelatorio());

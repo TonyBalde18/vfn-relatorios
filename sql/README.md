@@ -19,6 +19,8 @@ Tudo corre à mão no **SQL Editor do Supabase**. A app nunca altera o schema. O
 | 11 | `migrations/v23_player_photos_admin.sql` | Bucket `player-photos`: só o admin carrega ficheiros. | aplicado |
 | 12 | `migrations/v24_migracoes_em_comentarios.sql` | **Documentação**: migrações que estavam em comentários do JS (lineup_slots, sub-posições…), com o estado de cada uma e uma consulta de verificação. | 1, 2 e 5 aplicados; 4 não necessário (coberto por "Players read attendance"); 3 passou para a v25; 6 não aplicado (opcional) |
 | 13 | `migrations/v25_players_equipa_posicoes.sql` | `players_equipa` com `sub_posicao` e `posicoes_secundarias` (posições secundárias na ficha da Área do Jogador). | aplicado (verificado 14/10/2026) |
+| 14 | `migrations/v26_contribuicoes.sql` | Contribuições voluntárias em `fines` (`kind`, `contributor_name`): somam ao total arrecadado, não são multas. | por correr |
+| 15 | `migrations/v27_relatorios_duplicados.sql` | Mostra os relatórios repetidos do mesmo jogo; apagá-los e o índice único são opcionais (comentados). | por correr (diagnóstico) |
 
 ## Convenções
 
