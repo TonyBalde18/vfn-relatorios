@@ -480,6 +480,18 @@
   }
 
   /**
+   * <link> das folhas de estilo do site para os palcos das exportações (iframe com srcdoc, que não herda a página):
+   * o mesmo endereço (absoluto, com o ?v=) que a página usa; sem ele na página (ex.: hub.css no admin), css/<nome>.
+   * v1.1: antes era "styles.css" relativo e, com o CSS em css/ (V1.0), a imagem saía sem estilos.
+   */
+  function cssDoSite(...nomes) {
+    return nomes.map(nome => {
+      const l = document.querySelector(`link[rel="stylesheet"][href*="css/${nome}"]`);
+      return `<link rel="stylesheet" href="${esc(l ? l.href : new URL("css/" + nome, document.baseURI).href)}">`;
+    }).join("");
+  }
+
+  /**
    * HTML → PNG (html2canvas, escala 2) num documento à parte com o CSS do site.
    * o: { nome, titulo, largura (px), fundo, partilhar }. No telemóvel abre a partilha (WhatsApp...);
    * no computador descarrega o ficheiro.
@@ -491,7 +503,7 @@
     palco.className = "dividas-palco";
     palco.style.width = (o.largura || 540) + "px";
     palco.setAttribute("aria-hidden", "true");
-    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"></head><body style="margin:0;background:${o.fundo || "#fff"}">${html}</body></html>`;
+    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">${cssDoSite("styles.css")}</head><body style="margin:0;background:${o.fundo || "#fff"}">${html}</body></html>`;
     document.body.appendChild(palco);
     try {
       await new Promise(r => { palco.onload = r; });
@@ -792,7 +804,7 @@
     palco.style.width = PDF_LARGURA + "px";
     palco.style.height = PDF_ALTURA + "px";
     palco.setAttribute("aria-hidden", "true");
-    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="hub.css"></head><body class="pdf-corpo">${html}</body></html>`;
+    palco.srcdoc = `<!doctype html><html lang="pt"><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">${cssDoSite("styles.css", "hub.css")}</head><body class="pdf-corpo">${html}</body></html>`;
     document.body.appendChild(palco);
     try {
       await new Promise(r => { palco.onload = r; });
