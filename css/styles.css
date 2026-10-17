@@ -688,6 +688,7 @@ details.guia ul { margin: 8px 0 0; padding-left: 20px; font-size: 0.85rem; color
 .status-jogado { background: rgba(100,116,139,.15); color: #334155; }
 .status-jogado.result-V { background: rgba(22,163,74,.14); color: #15803d; }
 .status-jogado.result-D { background: rgba(220,38,38,.12); color: #b91c1c; }
+.status-jogado.result-E { background: rgba(234,179,8,.16); color: #A16207; } /* v1.1: empates com cor própria (antes herdavam e ficavam ilegíveis no escuro) */
 .status-adiado { background: rgba(249,115,22,.15); color: #c2410c; }
 .status-cancelado { background: rgba(148,163,184,.25); color: #475569; text-decoration: line-through; }
 .comp-tag { display: inline-block; padding: 2px 8px; border-radius: 5px; background: var(--vfn-navy); color: var(--vfn-yellow); font-size: .68rem; font-weight: 700; white-space: nowrap; }
@@ -2452,6 +2453,7 @@ body.mj-aberto { overflow: hidden; }
 html.tema-escuro .comp-tag.comp-amigavel { color: var(--vfn-navy); }
 html.tema-escuro .status-jogado.result-V, html.tema-escuro .summary-tile.tile-pago strong { color: #4ADE80; }
 html.tema-escuro .status-jogado.result-D, html.tema-escuro .summary-tile.tile-pendente strong { color: #F87171; }
+html.tema-escuro .status-jogado.result-E { color: #FACC15; }
 html.tema-escuro .dj-placar .status-badge.result-V { color: #DCFCE7; }
 html.tema-escuro .dj-placar .status-badge.result-D { color: #FEE2E2; }
 html.tema-escuro .draft-banner .btn-ghost { color: var(--coffee-bean); border-color: currentColor; }
