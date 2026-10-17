@@ -21,6 +21,7 @@ const PAGINAS = [
   { pagina: "public.html", papel: "", nav: ".public-nav button[data-view]" },
   { pagina: "equipa.html", papel: "jogador", nav: ".public-nav button[data-view]" },
   { pagina: "dashboard.html", papel: "treinador", nav: "[data-view]" },
+  { pagina: "dashboard.html", papel: "admin", nav: "[data-view]" },
   { pagina: "index.html", papel: "admin", nav: "#tabNav [data-tab]" },
   { pagina: "index.html", papel: "", nav: "" },     // ecrã de login
   { pagina: "equipa.html", papel: "", nav: "" },
