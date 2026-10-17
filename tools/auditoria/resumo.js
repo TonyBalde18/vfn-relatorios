@@ -1,5 +1,5 @@
 const r = require(process.argv[2]);
-const ruido = /Datadog|getIdsFromUrl|Checking domain|Delay detection|Queue initiali|IMPORTANT: Make sure URL|continue button|Tracking Prevention|assets\/players\/\d+\.jpg|assets\/external\/\d+\.jpg/;
+const ruido = /chrome-extension:|Datadog|getIdsFromUrl|Checking domain|Delay detection|Queue initiali|IMPORTANT: Make sure URL|continue button|Tracking Prevention|assets\/players\/\d+\.jpg|assets\/external\/\d+\.jpg/;
 const agg = new Map();
 for (const c of r) for (const v of c.vistas) {
   const itens = [...v.eventos.filter(e => !ruido.test(e)).map(e => "EV " + e.replace(/http:\/\/localhost:8765\//g, "")), ...v.overflow.map(o => "OVERFLOW " + o), ...v.contraste.map(o => "CONTRASTE " + o.replace(/ cor=.*/, "") + " [" + o.split(" cor=")[1] + "]")];
