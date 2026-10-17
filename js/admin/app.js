@@ -488,11 +488,22 @@ function formatarDataHora(iso) {
   }
 }
 
+/** Descarrega o rascunho atual como .json (v1.1: o botão "Guardar Rascunho" faz isto além de guardar). */
+function exportarRascunhoJSON() {
+  const nomeFicheiro = `rascunho_${sanitizarNomeFicheiro(state.preJogo.adversario || "sem-adversario")}_${state.preJogo.data || "sem-data"}.json`;
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  descarregarBlob(blob, nomeFicheiro);
+  return nomeFicheiro;
+}
+
 function importarRascunhoJSON(file) {
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
-      const dados = JSON.parse(ev.target.result);
+      const lido = JSON.parse(ev.target.result);
+      // aceita o ficheiro descarregado (o estado) e o formato guardado no browser ({ savedAt, data })
+      const dados = lido && lido.data && lido.savedAt ? lido.data : lido;
+      if (!dados || typeof dados !== "object" || !dados.preJogo) throw new Error("formato");
       aplicarDadosEstado(dados);
       renderTudo();
       guardarRascunho();
@@ -512,7 +523,8 @@ function descarregarBlob(blob, nomeFicheiro) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // v1.1: libertar o URL só depois de o browser começar o download (no Safari e no Firefox, libertá-lo logo cancelava-o)
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 /* =========================================================
@@ -2184,7 +2196,12 @@ function initRascunho() {
   setInterval(guardarRascunho, 30000);
   window.addEventListener("beforeunload", guardarRascunho);
 
-  el("btnExportarRascunho").addEventListener("click", async () => { guardarRascunho(); await sincronizarRascunhoSupabase(); alert("Rascunho guardado."); });
+  el("btnExportarRascunho").addEventListener("click", async () => {
+    guardarRascunho();
+    const ficheiro = exportarRascunhoJSON(); // v1.1: o ficheiro vai para as transferências
+    await sincronizarRascunhoSupabase();
+    VFNComp.toast(`Rascunho guardado e descarregado (${ficheiro}). Para o retomar noutro computador, usa "Carregar Rascunho".`);
+  });
   el("importRascunhoInput").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) importarRascunhoJSON(file);
