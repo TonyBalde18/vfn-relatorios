@@ -26,6 +26,14 @@
       };
       async function executar() {
         if (q.escrita) { window.__vfnEscritas = (window.__vfnEscritas || 0) + 1; const l = Array.isArray(q.escrita) ? q.escrita : [q.escrita]; return { data: q.unico || q.talvez ? l[0] : l, error: null }; }
+        // dados de teste (FIXTURES no driver): estas tabelas vêm do ficheiro em vez da base de dados
+        const fixtures = (function () { try { return JSON.parse(localStorage.getItem("vfnFakeFixtures") || "{}"); } catch (e) { return {}; } })();
+        if (fixtures[TROCA[tabela] || tabela] || fixtures[tabela]) {
+          let d = fixtures[tabela] || fixtures[TROCA[tabela]];
+          q.filtros.forEach(fl => { const m = fl.match(/^([a-z_]+)=eq\.(.*)$/); if (m) d = d.filter(r => String(r[m[1]]) === decodeURIComponent(m[2])); });
+          if (tabela === "players_equipa") d = d.map((p, i) => ({ ...p, e_eu: PAPEL === "jogador" && i === 0 }));
+          return { data: q.unico || q.talvez ? d[0] || null : d, error: null };
+        }
         if (tabela === "profiles") {
           const d = ["admin", "treinador", "dirigente"].includes(PAPEL) ? { role: PAPEL, full_name: "Auditoria" } : null;
           return { data: q.unico || q.talvez ? d : (d ? [d] : []), error: null };

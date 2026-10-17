@@ -2,6 +2,8 @@
 // uso: node driver.js <raiz-do-repo> <saida.json> [filtroPagina] [screenshots:0|1]
 const http = require("http"), fs = require("fs"), path = require("path"), { spawn } = require("child_process");
 const RAIZ = process.argv[2], SAIDA = process.argv[3], FILTRO = process.argv[4] || "", SHOTS = process.argv[5] === "1";
+// FIXTURES=<ficheiro.json> { "tabela": [linhas] }: essas tabelas vêm do ficheiro (dados de teste), o resto da BD real
+const FIXTURES = process.env.FIXTURES ? fs.readFileSync(process.env.FIXTURES, "utf8").replace(/\s+/g, " ") : "{}";
 const DIR = path.dirname(SAIDA);
 const FAKE = fs.readFileSync(path.join(__dirname, "fake-supabase.js"));
 const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
@@ -88,7 +90,7 @@ const AUDITORIA = `(() => {
   let scriptId = null;
   for (const c of CENARIOS) {
     if (scriptId) await cmd("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId });
-    const s = await cmd("Page.addScriptToEvaluateOnNewDocument", { source: `try{localStorage.setItem("vfnTema","${c.tema}");localStorage.setItem("vfnFakeRole","${c.papel}");sessionStorage.setItem("vfnSplash","1");}catch(e){}
+    const s = await cmd("Page.addScriptToEvaluateOnNewDocument", { source: `try{localStorage.setItem("vfnTema","${c.tema}");localStorage.setItem("vfnFakeRole","${c.papel}");localStorage.setItem("vfnFakeFixtures",${JSON.stringify(FIXTURES)});sessionStorage.setItem("vfnSplash","1");}catch(e){}
       document.addEventListener("DOMContentLoaded",()=>{const st=document.createElement("style");st.textContent="[data-aos]{opacity:1!important;transform:none!important}*{transition:none!important;animation-duration:0s!important}";document.head.appendChild(st);});` });
     scriptId = s.result.identifier;
     await cmd("Emulation.setDeviceMetricsOverride", { width: c.largura, height: 900, deviceScaleFactor: 1, mobile: c.largura < 800 });
@@ -98,9 +100,13 @@ const AUDITORIA = `(() => {
     const vistas = c.nav ? (await cmd("Runtime.evaluate", { expression: `[...document.querySelectorAll(${JSON.stringify(c.nav)})].map(b => b.dataset.view || b.dataset.tab)`, returnByValue: true })).result.result.value || [] : ["(inicial)"];
     const porVista = [];
     const pedidos = (await cmd("Runtime.evaluate", { expression: "window.__vfnPedidos || []", returnByValue: true })).result.result.value || [];
-    for (const v of [...new Set(vistas)]) {
+    // VISTAS=multas,hub: só estas vistas (as outras são saltadas)
+    const SO = process.env.VISTAS ? process.env.VISTAS.split(",") : null;
+    for (const v of [...new Set(vistas)].filter(v => !SO || !c.nav || SO.includes(v))) {
       if (c.nav) { await cmd("Runtime.evaluate", { expression: `(() => { const b = [...document.querySelectorAll(${JSON.stringify(c.nav)})].find(b => (b.dataset.view || b.dataset.tab) === ${JSON.stringify(v)}); if (b) b.click(); })()` }); await espera(1800); }
       const a = (await cmd("Runtime.evaluate", { expression: AUDITORIA, returnByValue: true })).result.result.value || {};
+      // EVAL=<expressão>: mostra o resultado na consola (depuração de estilos, por exemplo)
+      if (process.env.EVAL) console.log(v, JSON.stringify((await cmd("Runtime.evaluate", { expression: process.env.EVAL, returnByValue: true })).result.result.value));
       if (SHOTS) { const sc = await cmd("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }); if (sc.result) fs.writeFileSync(path.join(DIR, `${c.pagina.replace(".html", "")}-${c.papel || "anon"}-${c.tema}-${c.largura}-${v}.png`), Buffer.from(sc.result.data, "base64")); }
       porVista.push({ vista: v, ...a, eventos: eventos.splice(0) });
     }
