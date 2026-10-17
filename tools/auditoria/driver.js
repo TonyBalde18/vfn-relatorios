@@ -7,7 +7,9 @@ const FIXTURES = process.env.FIXTURES ? fs.readFileSync(process.env.FIXTURES, "u
 const DIR = path.dirname(SAIDA);
 const FAKE = fs.readFileSync(path.join(__dirname, "fake-supabase.js"));
 const EDGE = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
-const PORTA = 8765, CDP = 9333;
+// portas: a do servidor pode vir de PORTA; a de depuração do Edge é escolhida pelo próprio Edge (porta 0) e lida do
+// ficheiro DevToolsActivePort do perfil desta corrida — assim nunca se liga a um Edge de outra corrida
+const PORTA = Number(process.env.PORTA) || 8765;
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webp": "image/webp" };
@@ -67,9 +69,26 @@ const AUDITORIA = `(() => {
   return { overflow: overflow.slice(0, 15), contraste: contraste.slice(0, 25), scrollW: document.documentElement.scrollWidth };
 })()`;
 
+// no Windows o msedge.exe lançado termina logo e deixa os processos do browser à parte: fecham-se todos os que
+// usam o perfil temporário desta corrida (único), senão ficavam vivos com a porta de depuração ocupada
+function fecharEdge(edge) {
+  try {
+    if (process.platform !== "win32") { edge.kill(); return; }
+    const nome = path.basename(global.perfilAtual || "");
+    if (!nome) return;
+    const ps = `Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -like '*${nome}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+    require("child_process").execFileSync("powershell", ["-NoProfile", "-Command", ps], { stdio: "ignore" });
+  } catch (e) { /* já terminou */ }
+}
+
 (async () => {
   const perfil = fs.mkdtempSync(path.join(require("os").tmpdir(), "vfn-audit-"));
-  const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${perfil}`, "--force-prefers-reduced-motion", "--no-first-run", "about:blank"], { stdio: "ignore" });
+  global.perfilAtual = perfil;
+  const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--force-prefers-reduced-motion", "--no-first-run", "about:blank"], { stdio: "ignore" });
+  global.edgeAtual = edge;
+  let CDP = 0;
+  for (let i = 0; i < 80 && !CDP; i++) { try { CDP = Number(fs.readFileSync(path.join(perfil, "DevToolsActivePort"), "utf8").split(/\r?\n/)[0]); } catch (e) { await espera(250); } }
+  if (!CDP) throw new Error("o Edge não abriu a porta de depuração");
   let alvos; for (let i = 0; i < 40; i++) { try { alvos = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json(); if (alvos.some(a => a.type === "page")) break; } catch (e) {} await espera(250); }
   const ws = new WebSocket(alvos.find(a => a.type === "page").webSocketDebuggerUrl);
   await new Promise(r => ws.onopen = r);
@@ -79,6 +98,7 @@ const AUDITORIA = `(() => {
   for (const d of ["Page", "Runtime", "Log", "Network"]) await cmd(d + ".enable");
   // sem cache nem service worker: cada corrida vê sempre os ficheiros atuais do disco
   await cmd("Network.setCacheDisabled", { cacheDisabled: true });
+  await cmd("Emulation.setFocusEmulationEnabled", { enabled: true }); // :focus funciona como numa página com foco
   await cmd("Network.setBypassServiceWorker", { bypass: true });
   await cmd("Fetch.enable", { patterns: [{ urlPattern: "*supabase-js*" }] });
   let eventos = [];
@@ -120,5 +140,7 @@ const AUDITORIA = `(() => {
     process.stdout.write(`${c.pagina} ${c.papel || "anon"} ${c.tema} ${c.largura}: ${porVista.length} vistas\n`);
   }
   fs.writeFileSync(SAIDA, JSON.stringify(resultados, null, 1));
-  ws.close(); edge.kill(); process.exit(0);
-})().catch(e => { console.error(e); process.exit(1); });
+  ws.close();
+  fecharEdge(edge);
+  process.exit(0);
+})().catch(e => { console.error(e); if (global.edgeAtual) fecharEdge(global.edgeAtual); process.exit(1); });
