@@ -25,7 +25,7 @@
         then(ok, ko) { return executar().then(ok, ko); }
       };
       async function executar() {
-        if (q.escrita) { window.__vfnEscritas = (window.__vfnEscritas || 0) + 1; const l = Array.isArray(q.escrita) ? q.escrita : [q.escrita]; return { data: q.unico || q.talvez ? l[0] : l, error: null }; }
+        if (q.escrita) { window.__vfnEscritas = (window.__vfnEscritas || 0) + 1; (window.__vfnGravacoes = window.__vfnGravacoes || []).push(tabela); const l = Array.isArray(q.escrita) ? q.escrita : [q.escrita]; return { data: q.unico || q.talvez ? l[0] : l, error: null }; }
         // dados de teste (FIXTURES no driver): estas tabelas vêm do ficheiro em vez da base de dados
         const fixtures = (function () { try { return JSON.parse(localStorage.getItem("vfnFakeFixtures") || "{}"); } catch (e) { return {}; } })();
         if (fixtures[TROCA[tabela] || tabela] || fixtures[tabela]) {

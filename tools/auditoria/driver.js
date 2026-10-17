@@ -76,9 +76,14 @@ const AUDITORIA = `(() => {
   ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id); } else ouvintes.forEach(f => f(m)); };
   const cmd = (method, params = {}) => new Promise(r => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   for (const d of ["Page", "Runtime", "Log", "Network"]) await cmd(d + ".enable");
+  // sem cache nem service worker: cada corrida vê sempre os ficheiros atuais do disco
+  await cmd("Network.setCacheDisabled", { cacheDisabled: true });
+  await cmd("Network.setBypassServiceWorker", { bypass: true });
   await cmd("Fetch.enable", { patterns: [{ urlPattern: "*supabase-js*" }] });
   let eventos = [];
   ouvintes.push(m => {
+    // janelas alert/confirm: DIALOGO=cancelar responde Cancelar; senão OK (a mensagem fica nos eventos)
+    if (m.method === "Page.javascriptDialogOpening") { eventos.push("DIALOGO " + m.params.message.replace(/\s+/g, " ").slice(0, 160)); cmd("Page.handleJavaScriptDialog", { accept: process.env.DIALOGO !== "cancelar" }); return; }
     if (m.method === "Fetch.requestPaused") cmd("Fetch.fulfillRequest", { requestId: m.params.requestId, responseCode: 200, responseHeaders: [{ name: "Content-Type", value: "text/javascript" }], body: FAKE.toString("base64") });
     else if (m.method === "Runtime.exceptionThrown") { const e = m.params.exceptionDetails; eventos.push("EXCEÇÃO " + ((e.exception && e.exception.description) || e.text).split("\n").slice(0, 2).join(" | ") + " @" + (e.url || "").split("/").pop() + ":" + e.lineNumber); }
     else if (m.method === "Runtime.consoleAPICalled" && ["error", "warning", "warn", "log"].includes(m.params.type)) eventos.push("console." + m.params.type + " " + m.params.args.map(a => a.value !== undefined ? String(a.value) : a.description || "").join(" ").slice(0, 200));
@@ -106,7 +111,7 @@ const AUDITORIA = `(() => {
       if (c.nav) { await cmd("Runtime.evaluate", { expression: `(() => { const b = [...document.querySelectorAll(${JSON.stringify(c.nav)})].find(b => (b.dataset.view || b.dataset.tab) === ${JSON.stringify(v)}); if (b) b.click(); })()` }); await espera(1800); }
       const a = (await cmd("Runtime.evaluate", { expression: AUDITORIA, returnByValue: true })).result.result.value || {};
       // EVAL=<expressão>: mostra o resultado na consola (depuração de estilos, por exemplo)
-      if (process.env.EVAL) console.log(v, JSON.stringify((await cmd("Runtime.evaluate", { expression: process.env.EVAL, returnByValue: true })).result.result.value));
+      if (process.env.EVAL) console.log(v, JSON.stringify((await cmd("Runtime.evaluate", { expression: process.env.EVAL, returnByValue: true, awaitPromise: true })).result.result.value));
       if (SHOTS) { const sc = await cmd("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }); if (sc.result) fs.writeFileSync(path.join(DIR, `${c.pagina.replace(".html", "")}-${c.papel || "anon"}-${c.tema}-${c.largura}-${v}.png`), Buffer.from(sc.result.data, "base64")); }
       porVista.push({ vista: v, ...a, eventos: eventos.splice(0) });
     }
