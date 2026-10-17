@@ -23,7 +23,19 @@ As páginas com login usam o `fake-supabase.js` no lugar da biblioteca do CDN:
 - as tabelas protegidas são trocadas pelas views públicas ou vêm vazias;
 - as gravações não fazem nada.
 
-Por isso, as vistas que dependem de relatórios, presenças ou multas só são testadas com os estados vazios.
+Por isso, as vistas que dependem de relatórios, presenças ou multas só são testadas com os estados vazios, a não ser que se usem dados de teste (`FIXTURES`).
+
+### Opções do driver (variáveis de ambiente)
+
+| Variável | O que faz |
+|---|---|
+| `TEMAS=escuro` · `LARGURAS=375,1280` · `ALTURA=720` | só esses temas, larguras ou altura do ecrã |
+| `VISTAS=multas,hub` | só essas vistas (as capturas de página inteira de todas demoram muito) |
+| `FIXTURES=dados.json` | `{ "tabela": [linhas] }`: essas tabelas vêm do ficheiro (dados de teste), o resto da base de dados real |
+| `EVAL="(async () => …)()"` | corre a expressão em cada vista e mostra o resultado (ex.: estilos calculados, simular um clique) |
+| `DIALOGO=cancelar` | responde Cancelar às janelas `confirm` (por omissão OK); as mensagens ficam nos eventos |
+
+As gravações ficam em `window.__vfnGravacoes` (nome das tabelas) para o `EVAL` confirmar o que seria gravado. Cada corrida usa o seu próprio Edge, sem cache nem service worker, e fecha-o no fim.
 
 ## Código — análise estática
 
