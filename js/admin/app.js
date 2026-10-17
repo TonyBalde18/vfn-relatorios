@@ -616,6 +616,9 @@ function initTabs() {
     });
   });
   VFN.initSidebar(el("appSidebar"), el("btnSidebarToggle"));
+  // v1.1: index.html#pre-jogo (atalho "Novo relatório" do dashboard) abre esse separador
+  const inicial = document.querySelector(`.tab-btn[data-tab="${CSS.escape(location.hash.slice(1))}"]`);
+  if (location.hash && inicial) inicial.click();
 }
 
 /* =========================================================

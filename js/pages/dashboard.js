@@ -808,6 +808,7 @@ async function iniciarApp(perfil) {
   $("sidebarUserName").textContent = (perfil && perfil.full_name) || meta.full_name || meta.name || utilizador.email;
   $("sidebarUserRole").textContent = { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "";
   $("linkAdmin").hidden = !(perfil && perfil.role === "admin");
+  $("atalhoNovoRelatorio").hidden = !(perfil && perfil.role === "admin"); // v1.1 (B5): o editor de relatórios é só do admin
   // Multas e Presenças: só dirigentes (e admin), sem edição
   const veMultas = !!perfil && ["dirigente", "admin"].includes(perfil.role);
   document.querySelectorAll("[data-papel=dirigente]").forEach(b => { b.hidden = !veMultas; });
