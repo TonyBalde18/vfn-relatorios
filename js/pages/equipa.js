@@ -121,6 +121,8 @@ function renderInicio() {
   }
   $("eqForma").innerHTML = H.formaHTML(dados, 5);
   $("eqProximosJogos").innerHTML = H.proximosJogosHTML(dados, 3);
+  $("eqLinhaTempo").innerHTML = H.linhaTempoEpocaHTML(dados); // v1.1 (B4)
+  requestAnimationFrame(() => H.centrarLinhaTempo($("eqLinhaTempo")));
   // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
   const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
   $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
@@ -382,9 +384,13 @@ let graficoRadarEq = null;
  * As posições secundárias vêm de players_equipa, que só as tem depois de sql/migrations/v25_players_equipa_posicoes.sql
  * (sem ela fica só a posição principal).
  */
+let graficoPosicoesEq = null;
+
 function renderFichaCompleta() {
   if (graficoRadarEq) { graficoRadarEq.destroy(); graficoRadarEq = null; }
+  if (graficoPosicoesEq) { graficoPosicoesEq.destroy(); graficoPosicoesEq = null; }
   $("eqRadarBox").hidden = !eu || !window.Chart;
+  $("eqPosicoesBox").hidden = !eu || !window.Chart;
   if (!eu) { $("eqFichaCompleta").innerHTML = ""; return; }
   const pct = percentagemMinhasPresencas();
   const minhas = VFN.calcularPresencas(null, minhasPresencas) || { presentes: 0, total: 0 };
@@ -393,9 +399,10 @@ function renderFichaCompleta() {
   const gr = statsGR(eu);
   $("eqFichaCompleta").innerHTML = `
     <div class="summary-tiles eq-ficha-tiles">
-      ${tile("Presenças (época)", pct == null ? "—" : `${pct}%`)}${tile("Minutos", eu.minutos + "'")}${tile("Golos", eu.golos)}${tile("Assistências", eu.assistencias)}${tile("Amarelos", eu.cartoesA)}${tile("Vermelhos", eu.cartoesV)}
+      ${tile("Presenças (época)", pct == null ? "—" : `${pct}%`)}${H.participacaoTilesHTML(eu, jogadores, dados)}${tile("Minutos", eu.minutos + "'")}${tile("Golos", eu.golos)}${tile("Assistências", eu.assistencias)}${tile("Amarelos", eu.cartoesA)}${tile("Vermelhos", eu.cartoesV)}
     </div>
     ${pct != null ? `<p class="muted eq-ficha-nota">${presentes} presença${presentes === 1 ? "" : "s"} em ${minhas.total} sessões registadas</p>` : ""}
+    ${H.cartoesCompeticaoHTML(H.calcularSuspensoes(eu.id, dados, { eDele: idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(eu.id); } }))}
     <dl class="info-grid eq-ficha-info">
       <div><dt>Pé preferido</dt><dd>${esc(eu.info.pe || "—")}</dd></div>
       <div><dt>Posição</dt><dd>${VFN.posicaoDetalhadaHTML(eu.posicao, eu.subPosicao, eu.posicoesSecundarias) || esc(eu.posicao || "—")}</dd></div>
@@ -403,6 +410,7 @@ function renderFichaCompleta() {
     ${gr ? `<h3 class="subsecao-titulo">🧤 Guarda-redes</h3><div class="summary-tiles eq-ficha-tiles">
       ${tile("Jogos a zero", gr.jogosZero)}${tile("Minutos sem sofrer", gr.minutosZero + "'")}${tile("Golos sofridos", gr.golosSofridos)}${tile("Média sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ","))}
     </div><p class="muted eq-ficha-nota">Jogo a zero: jogou o jogo todo (sem ser substituído) e o adversário não marcou. Minutos sem sofrer: soma dos minutos desses jogos. Golos sofridos: só com ele em campo. Jogos oficiais.</p>` : ""}`;
+  if (!$("eqPosicoesBox").hidden) requestAnimationFrame(() => { graficoPosicoesEq = H.graficoPosicoes($("eqPosicoesCanvas"), eu, jogadores, dados, graficoPosicoesEq); });
   if (!$("eqRadarBox").hidden) requestAnimationFrame(() => { graficoRadarEq = H.radarJogador($("eqRadarCanvas"), eu, jogadores, { presencas: j => j === eu ? percentagemMinhasPresencas() : null, anterior: graficoRadarEq }); });
 }
 

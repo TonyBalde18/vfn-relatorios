@@ -1180,7 +1180,7 @@ html.tema-escuro .hm-F { background: var(--falta); } html.tema-escuro .hm-J { ba
 .banner-jogo .team-logo-placeholder.banner-logo { display: inline-grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.15); font-size: .6rem; }
 .banner-quando { color: rgba(255,255,255,.75); font-size: .85rem; }
 .banner-quando strong { color: #FFD700; }
-.banner-contagem { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: #f97316; font-size: .75rem; font-weight: 800; }
+.banner-contagem { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: #C2410C; /* v1.1: laranja mais escuro — branco sobre #f97316 tinha contraste 2,8 */ font-size: .75rem; font-weight: 800; }
 .banner-seta { margin-left: auto; display: inline-flex; transition: transform .2s; }
 .banner-proximo[open] .banner-seta { transform: rotate(180deg); }
 .banner-corpo { display: flex; flex-wrap: wrap; gap: 14px 32px; padding: 4px 16px 14px; border-top: 1px solid rgba(255,255,255,.12); }
@@ -1199,6 +1199,17 @@ html.tema-escuro .hm-F { background: var(--falta); } html.tema-escuro .hm-J { ba
 .player-radar { margin: 4px 0 14px; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; }
 .player-radar h4 { margin: 0 0 6px; font-size: .9rem; color: var(--vfn-navy); }
 .radar-box { position: relative; height: 260px; max-width: 360px; margin: 0 auto; }
+/* v1.1 (B3): minutos por posição — a altura acompanha o nº de posições (definida no JS) */
+.posicoes-box { position: relative; height: 160px; max-width: 520px; margin: 0 auto; }
+.posicoes-box .posicoes-vazio { margin: 8px 0 0; font-size: .82rem; }
+/* v1.1 (B2): cartões por competição no perfil; em alerta (suspenso ou a um amarelo da suspensão) fica vermelho */
+.cartoes-comp { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 14px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-2, #F8FAFC); font-size: .86rem; }
+.cartoes-comp p { margin: 3px 0 0; }
+.cartoes-comp .ic { flex-shrink: 0; margin-top: 2px; color: var(--text-muted); }
+.cartoes-comp.alerta { background: #FEF2F2; border-color: #FECACA; }
+.cartoes-comp.alerta .ic { color: #DC2626; }
+html.tema-escuro .cartoes-comp.alerta { background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .35); }
+html.tema-escuro .cartoes-comp.alerta .ic { color: #F87171; }
 
 /* ---------- Desempenho por competição ---------- */
 .comp-table th[scope="row"] { text-align: left; white-space: nowrap; }
@@ -2506,6 +2517,8 @@ html.tema-escuro .txt-mau, html.tema-escuro .dividas-lista strong { color: #F871
 :where(html.tema-escuro) .rel-marcadores { color: var(--heading); }
 :where(html.tema-escuro) .link-btn { color: var(--heading); }
 :where(html.tema-escuro) .player-radar h4 { color: var(--heading); }
+:where(html.tema-escuro) .cartoes-comp { background: var(--surface-2, color-mix(in srgb, #F8FAFC 14%, var(--surface))); }
+:where(html.tema-escuro) .cartoes-comp.alerta { background: color-mix(in srgb, #FEF2F2 14%, var(--surface)); border-color: var(--border); }
 :where(html.tema-escuro) .disp-coluna h3 { color: var(--heading); }
 :where(html.tema-escuro) .comp-table tbody th[scope="row"],
 :where(html.tema-escuro) .fin-table tbody th[scope="row"],

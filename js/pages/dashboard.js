@@ -68,6 +68,8 @@ function renderHub() {
   $("hubForma").innerHTML = H.formaHTML(dados, 5);
   $("hubResultados").innerHTML = H.resultadosHTML(dados, 5);
   $("hubProximosJogos").innerHTML = H.proximosJogosHTML(dados, 3);
+  $("hubLinhaTempo").innerHTML = H.linhaTempoEpocaHTML(dados); // v1.1 (B4)
+  requestAnimationFrame(() => H.centrarLinhaTempo($("hubLinhaTempo")));
 
   if (!competicaoHub || !H.competicoesComClassificacao(dados).includes(competicaoHub)) competicaoHub = H.competicaoPreferida(dados);
   $("hubCompeticao").innerHTML = H.opcoesCompeticaoHTML(dados, competicaoHub);
@@ -147,7 +149,8 @@ function proximoAdversarioHTML() {
 }
 
 /** Suspensões automáticas (AF Guarda) de cada jogador: H.calcularSuspensoes com os relatórios e o calendário. */
-const suspensaoDe = j => H.calcularSuspensoes(j.id, dados, { eDele: idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); } });
+// competicao: estado nessa competição (ex.: a do próximo jogo); sem ela, todas juntas (v1.1: cartões por competição)
+const suspensaoDe = (j, competicao) => H.calcularSuspensoes(j.id, dados, { eDele: idLocal => { const x = jogadorDoRelatorio(idLocal); return !!x && String(x.id) === String(j.id); }, competicao });
 
 /** Alerta automático: suspensos e jogadores a um amarelo da suspensão (quando não há banner do próximo jogo). */
 function renderAlertasSuspensao() {
@@ -155,7 +158,7 @@ function renderAlertasSuspensao() {
   const comBanner = !!VFN.proximoJogo(dados.matches); // o banner do próximo jogo já mostra os jogadores em risco
   const lista = comBanner ? [] : jogadores.map(j => [j, suspensaoDe(j)]).filter(([, s]) => s.suspenso || H.emRiscoAmarelos(s));
   alvo.hidden = !lista.length;
-  alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Suspensões</strong><p>${lista.map(([j, s]) => `${esc(j.nome)} ${H.badgeSuspensao(s)}`).join(" · ")}</p><p class="muted">AF Guarda: 1 jogo ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2; vermelho direto: 1 jogo (ou o registado no evento). Só jogos oficiais.</p></div>` : "";
+  alvo.innerHTML = lista.length ? `${VFN.icone("triangle-alert", 20)}<div><strong>Suspensões</strong><p>${lista.map(([j, s]) => `${esc(j.nome)} ${H.badgeSuspensao(s)}`).join(" · ")}</p><p class="muted">AF Guarda, em cada competição em separado (liga e taças): 1 jogo ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2; vermelho direto: 1 jogo (ou o registado no evento), cumprido na mesma competição. Só jogos oficiais.</p></div>` : "";
 }
 
 /* ---------- Gráficos ---------- */
@@ -250,6 +253,8 @@ function renderRankingGR() {
       <span class="rgr-num"><strong>${gr.mediaSofridos.toFixed(2).replace(".", ",")}</strong><small>sofridos/jogo</small></span></li>`).join("")}</ol>`;
 }
 
+let graficoPosicoesDash = null;
+
 function abrirJogador(id) {
   const j = jogadores.find(x => String(x.id) === String(id));
   if (!j) return;
@@ -268,8 +273,13 @@ function abrirJogador(id) {
   const info = [["Nascimento", VFN.dataDDMMAAAA(j.info.nascimento)], ["Pé dominante", j.info.pe], ["Amarelos", j.cartoesA], ["Vermelhos", j.cartoesV], ["Presença", p ? `${p.pct}% (${p.presentes}/${p.total})` : "—"]].filter(([k, v]) => k !== "Pé dominante" || v);
   $("mjCorpo").innerHTML = `
     ${H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j))}
-    <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>`;
+    <dl class="info-grid">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v === "" ? "—" : v)}</dd></div>`).join("")}</dl>
+    <h4 class="perfil-subtitulo">Participação <small class="muted">época, jogos oficiais</small></h4>
+    <div class="summary-tiles eq-ficha-tiles">${H.participacaoTilesHTML(j, jogadores, dados)}</div>
+    ${H.cartoesCompeticaoHTML(suspensaoDe(j))}
+    <div class="player-radar"><h4>Minutos por posição <small class="muted">época, jogos oficiais</small></h4><div class="posicoes-box"><canvas id="mjPosicoesCanvas" role="img" aria-label="Gráfico de barras com os minutos jogados em cada posição"></canvas><p class="muted posicoes-vazio" hidden>Ainda não há relatórios publicados com o onze e as substituições.</p></div></div>`;
   $("modalJogador").hidden = false;
+  requestAnimationFrame(() => { graficoPosicoesDash = H.graficoPosicoes($("mjPosicoesCanvas"), j, jogadores, dados, graficoPosicoesDash); });
   $("btnFecharJogador").focus();
 }
 
@@ -613,7 +623,7 @@ function renderBannerProximoJogo() {
   const nome = H.nomeAdversario(dados, jogo);
   const casa = VFN.jogoEmCasa(jogo);
   const fora = jogadores.filter(j => j.disponibilidade && j.disponibilidade !== "disponivel");
-  const susp = new Map(jogadores.map(j => [j, suspensaoDe(j)]));
+  const susp = new Map(jogadores.map(j => [j, suspensaoDe(j, jogo.competition)])); // na competição do próximo jogo
   const suspensos = jogadores.filter(j => susp.get(j).suspenso && !fora.includes(j));
   fora.push(...suspensos); // suspensos (automático) contam como indisponíveis
   const risco = jogadores.filter(j => H.emRiscoAmarelos(susp.get(j)));

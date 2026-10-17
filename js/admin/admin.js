@@ -559,7 +559,7 @@ function initConvocatoria() {
     const acao = b.dataset.convAcao;
     if (acao === "convocar") conv.convocados.add(id);
     else if (acao === "fora") { conv.convocados.delete(id); conv.titulares.delete(id); }
-    else if (acao === "titular") { const p = jogadorPorIdBD(id); if (p && suspensaoAdmin(p).suspenso) return; conv.convocados.add(id); conv.titulares.add(id); }
+    else if (acao === "titular") { const p = jogadorPorIdBD(id); if (p && suspensaoAdmin(p, competicaoConv()).suspenso) return; conv.convocados.add(id); conv.titulares.add(id); }
     else if (acao === "suplente") { conv.convocados.add(id); conv.titulares.delete(id); }
     renderConvocatoria();
   });
@@ -702,7 +702,7 @@ function renderConvocatoria() {
   [el("btnConvGuardar"), el("btnConvPublicar"), el("btnConvAnuncio1"), el("btnConvAnuncio2")].forEach(b => { b.disabled = !conv.matchId; });
 
   // suspensões automáticas (AF Guarda): suspenso não entra no onze; aviso a um amarelo do limite
-  const susp = new Map(plantel.map(p => [idJogadorBD(p), suspensaoAdmin(p)]));
+  const susp = new Map(plantel.map(p => [idJogadorBD(p), suspensaoAdmin(p, competicaoConv())])); // na competição deste jogo
   // proficiência dos titulares na posição onde ficam na pré-visualização (formação escolhida)
   const slotsFormacao = VFN.FORMACOES_SLOTS[conv.formation] || VFN.FORMACOES_SLOTS["4-3-3"];
   const lugares = new Map(fase2 ? [...lugaresConv()].map(([i, id]) => [id, slotsFormacao[i]]) : []);
@@ -735,7 +735,7 @@ function renderConvocatoria() {
 async function guardarConvocatoria(publicar, status) {
   const linha = squadDoFormulario(publicar, status);
   const total = linha.player_ids.length;
-  const suspensosNoOnze = (linha.lineup || []).map(id => jogadorPorIdBD(id)).filter(p => p && suspensaoAdmin(p).suspenso);
+  const suspensosNoOnze = (linha.lineup || []).map(id => jogadorPorIdBD(id)).filter(p => p && suspensaoAdmin(p, competicaoConv()).suspenso);
   const erro = !conv.matchId ? "Escolhe o jogo."
     : suspensosNoOnze.length ? `Suspenso no onze: ${suspensosNoOnze.map(p => p.nome).join(", ")}. Tira-o dos titulares.`
     : publicar && (total < VFNComp.MIN_CONVOCADOS || total > VFNComp.MAX_CONVOCADOS) ? `Para publicar, convoca entre ${VFNComp.MIN_CONVOCADOS} e ${VFNComp.MAX_CONVOCADOS} jogadores (tens ${total}).`
@@ -911,10 +911,16 @@ async function renderFichaAdmin(jogador) {
   if (!tabelasCarregadas.has("attendance")) { await carregarTabelaAdmin("attendance", "presencasErro"); if (jogadorEmEdicao === jogador) desenhar(); }
 }
 
-/** Suspensão automática (AF Guarda) de um jogador do plantel: relatórios e calendário do admin. */
-function suspensaoAdmin(p) {
-  return VFNHub.calcularSuspensoes(p.id, { matches: jogosCalendario, match_reports: relatoriosAdmin }, { eDele: idLocal => Number(idLocal) === p.id });
+/**
+ * Suspensão automática (AF Guarda) de um jogador do plantel: relatórios e calendário do admin. Com competicao, o
+ * estado nessa competição (v1.1: os cartões contam em cada competição em separado); sem ela, todas juntas.
+ */
+function suspensaoAdmin(p, competicao) {
+  return VFNHub.calcularSuspensoes(p.id, { matches: jogosCalendario, match_reports: relatoriosAdmin }, { eDele: idLocal => Number(idLocal) === p.id, competicao });
 }
+
+/** Competição do jogo da convocatória aberta ("" sem jogo). */
+const competicaoConv = () => ((jogosCalendario.find(j => String(j.id) === String(conv.matchId)) || {}).competition) || "";
 
 /**
  * Alerta de cartões (AF Guarda): suspensos (1 jogo ao 5.º, 9.º, 12.º e 14.º amarelo e depois a cada 2;
@@ -929,7 +935,7 @@ function renderAlertaAmarelos() {
   if (alvo.hidden) { alvo.innerHTML = ""; return; }
   const nomes = l => l.map(([j, s]) => `<strong>${escapeHtml(j.nome)}</strong> ${VFNHub.badgeSuspensao(s)}`).join(" ");
   alvo.innerHTML = `${VFN.icone("triangle-alert", 20)}<div>
-    ${suspensos.length ? `<p><b>Suspensos no próximo jogo:</b> ${nomes(suspensos)}</p>` : ""}
+    ${suspensos.length ? `<p><b>Suspensos (castigo por cumprir na competição indicada):</b> ${nomes(suspensos)}</p>` : ""}
     ${aUm.length ? `<p><b>A um amarelo da suspensão:</b> ${nomes(aUm)}</p>` : ""}
   </div>`;
 }

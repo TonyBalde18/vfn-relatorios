@@ -102,6 +102,11 @@
         <div id="eqProximosJogos"></div>
       </article>
     </div>
+    <!-- v1.1 (B4): todos os jogos da época, cada um abre o detalhe (o mesmo do dashboard) -->
+    <article class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Linha de tempo da época <small class="muted">toca num jogo para ver o detalhe</small></h2>
+      <div id="eqLinhaTempo"></div>
+    </article>
     <!-- v17: as mesmas secções do dashboard (VFNHub.onzeEstaticoHTML e VFNHub.graficoGolos) -->
     <div class="public-stack two-col">
       <article class="card" data-aos="fade-up">
@@ -198,6 +203,8 @@
       <div id="eqMinhaFicha"></div>
       <!-- v15: estatísticas completas, GR e radar (VFNHub.radarJogador, o mesmo do admin) -->
       <div id="eqFichaCompleta"></div>
+      <!-- v1.1 (B3): minutos por posição na época (onze por slot e substituições dos relatórios publicados) -->
+      <div id="eqPosicoesBox" class="player-radar" hidden><h4>Minutos por posição <small class="muted">época, jogos oficiais</small></h4><div class="posicoes-box"><canvas id="eqPosicoesCanvas" role="img" aria-label="Gráfico de barras com os minutos jogados em cada posição"></canvas><p class="muted posicoes-vazio" hidden>Ainda não há relatórios publicados com o onze e as substituições.</p></div></div>
       <div id="eqRadarBox" class="player-radar" hidden><h4>Perfil da época <small class="muted">comparado com o plantel</small></h4><div class="radar-box"><canvas id="eqRadarCanvas" role="img" aria-label="Gráfico radar: golos, assistências, cartões, minutos e presenças"></canvas></div></div>
     </div>
     <div class="card" id="eqGraficosCard" data-aos="fade-up">

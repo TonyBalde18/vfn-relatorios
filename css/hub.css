@@ -356,6 +356,7 @@
 
 /* Área do jogador (v15): estatísticas completas */
 .eq-ficha-tiles { margin: 14px 0 6px; }
+@media (max-width: 480px) { .eq-ficha-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .eq-ficha-tiles .summary-tile { padding: 10px 12px; } } /* v1.1: 2 colunas no telemóvel */
 .eq-ficha-nota { margin: 0 0 10px; font-size: .76rem; }
 .eq-ficha-info { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 6px 0 14px; }
 .eq-ficha-info .pos-detalhe { margin: 0; }
@@ -420,6 +421,30 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 .hub-coluna > .card { margin: 0; }
 .hub-coluna .minutes-scroll { max-height: 380px; }
 
+/* v1.1 (B4): linha de tempo da época — um bloco por jogo, faixa com scroll horizontal fino */
+.lt-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; font-size: .85rem; }
+.lt-balanco b { font-variant-numeric: tabular-nums; }
+.lt-nV { color: #15803d; } .lt-nE { color: #A16207; } .lt-nD { color: #b91c1c; }
+.linha-tempo { display: flex; gap: 6px; margin: 0; padding: 6px 4px 10px; list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.linha-tempo li { flex: 0 0 auto; scroll-snap-align: center; }
+.lt-bloco { display: grid; justify-items: center; gap: 3px; width: 66px; padding: 7px 4px; border: 2px solid transparent; border-radius: 10px; font: inherit; color: #fff; cursor: pointer; transition: transform .15s; }
+.lt-bloco:hover, .lt-bloco:focus-visible { transform: translateY(-2px); }
+.lt-bloco:focus-visible { outline: 2px solid var(--vfn-navy); outline-offset: 2px; }
+.lt-V { background: #16A34A; } .lt-E { background: #EAB308; color: #3F2D00; } .lt-D { background: #DC2626; } .lt-pendente { background: #E2E8F0; color: #475569; }
+.lt-bloco.lt-forma { border-color: var(--vfn-yellow); box-shadow: 0 0 0 2px var(--vfn-navy); }
+.lt-bloco.lt-amigavel { border-style: dashed; border-color: rgba(10, 22, 40, .45); }
+.lt-etiqueta { font-size: .66rem; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.lt-bloco .lt-logo { width: 26px !important; height: 26px !important; font-size: .6rem; border-radius: 50%; background: #fff; padding: 2px; object-fit: contain; }
+.lt-resultado { font-size: .85rem; font-variant-numeric: tabular-nums; }
+.lt-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 4px 0 0; font-size: .72rem; }
+.lt-chave { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+html.tema-escuro .lt-pendente { background: rgba(255, 255, 255, .12); color: var(--fg); }
+html.tema-escuro .lt-bloco.lt-forma { box-shadow: 0 0 0 2px var(--bg); }
+html.tema-escuro .lt-bloco.lt-amigavel { border-color: rgba(255, 255, 255, .5); }
+html.tema-escuro .lt-nV { color: #4ADE80; } html.tema-escuro .lt-nE { color: #FACC15; } html.tema-escuro .lt-nD { color: #F87171; }
+html.tema-escuro .lt-bloco:focus-visible { outline-color: var(--vfn-yellow); }
+html.tema-escuro .lt-bloco .lt-logo { background: #fff; } /* logos sempre em fundo branco, como nas outras listas */
+
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-alt a { color: var(--heading); }
 :where(html.tema-escuro) .hub-card-title { color: var(--heading); }
@@ -447,4 +472,5 @@ html.tema-escuro .cmpx-linhas .va { color: #93b4ff; } html.tema-escuro .cmpx-lin
 :where(html.tema-escuro) .pres-pct b { color: var(--heading); }
 :where(html.tema-escuro) .h2h-tiles .h2h-e strong { color: var(--fg-muted); }
 :where(html.tema-escuro) .h2h-card-reg .e { color: var(--fg-muted); }
+:where(html.tema-escuro) .lt-bloco .lt-logo { background: var(--surface); }
 /* ===== FIM TEMA ESCURO ===== */

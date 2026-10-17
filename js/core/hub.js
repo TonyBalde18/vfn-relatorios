@@ -679,7 +679,13 @@
    * jogadorDoRelatorio(idLocal) → jogador. Devolve { formacao, lugares: [{ jogador, minutos, posicao } | null], jogos }
    * (lugares pelo índice de VFN.FORMACOES_SLOTS[formacao]) ou null sem dados.
    */
-  function calcularOnzeMaisUtilizado(relatorios, jogadorDoRelatorio, dados) {
+  /**
+   * Minutos de cada jogador por posição (slot da formação), a partir dos relatórios (um por jogo, só oficiais):
+   * o onze inicial por slot e quem entra herda o slot de quem sai. Base do 11 mais utilizado e do gráfico de
+   * minutos por posição do perfil (v1.1, B3). Devolve { acum: Map(jogador.id → { jogador, total, porPosicao }),
+   * formacoes: Map(formação → { n, data }), jogos }.
+   */
+  function minutosPorSlot(relatorios, jogadorDoRelatorio, dados) {
     const porJogo = new Map();
     (relatorios || []).forEach(r => {
       if (!r) return;
@@ -726,6 +732,11 @@
         });
       emCampo.forEach((v, i) => creditar(v.id, slots[i].label, duracao - v.inicio));
     });
+    return { acum, formacoes, jogos };
+  }
+
+  function calcularOnzeMaisUtilizado(relatorios, jogadorDoRelatorio, dados) {
+    const { acum, formacoes, jogos } = minutosPorSlot(relatorios, jogadorDoRelatorio, dados);
     if (!acum.size) return null;
     const formacao = [...formacoes.entries()].sort((a, b) => b[1].n - a[1].n || b[1].data.localeCompare(a[1].data))[0][0];
     const slots = VFN.FORMACOES_SLOTS[formacao];
@@ -1249,7 +1260,7 @@
     const jogo = VFN.proximoJogo(dados.matches);
     const ordenar = l => [...l].sort((a, b) => (ORDEM_POSICAO[VFN.categoriaPosicao(a.posicao)] ?? 9) - (ORDEM_POSICAO[VFN.categoriaPosicao(b.posicao)] ?? 9) || a.nome.localeCompare(b.nome, "pt"));
     // suspensões automáticas (AF Guarda): os suspensos passam para os indisponíveis
-    const susp = new Map(jogadores.map(j => [j, calcularSuspensoes(j.id, dados)]));
+    const susp = new Map(jogadores.map(j => [j, calcularSuspensoes(j.id, dados, { competicao: jogo && jogo.competition })])); // na competição do próximo jogo
     const risco = j => susp.get(j).suspenso;
     const convocaveis = ordenar(jogadores.filter(j => (!j.disponibilidade || j.disponibilidade === "disponivel" || j.disponibilidade === "em_duvida") && !risco(j)));
     const fora = ordenar(jogadores.filter(j => !convocaveis.includes(j)));
@@ -1839,60 +1850,220 @@
     });
   }
 
-  /* ---------- Suspensões automáticas (AF Guarda) ---------- */
+  /* ---------- Linha de tempo da época (v1.1, B4) ---------- */
 
-  // amarelos que dão 1 jogo de suspensão: 5.º, 9.º, 12.º, 14.º e depois a cada 2 (16.º, 18.º...)
-  const LIMITES_AMARELOS = [5, 9, 12, 14];
-  const eLimiteAmarelos = n => LIMITES_AMARELOS.includes(n) || (n > 14 && (n - 14) % 2 === 0);
+  /**
+   * Todos os jogos do VFN da época atual por ordem de data, um bloco por jogo: verde (vitória), amarelo (empate),
+   * vermelho (derrota) ou cinzento (por jogar ou sem resultado). Os últimos 5 jogos oficiais com resultado ficam
+   * destacados (forma recente). Cada bloco abre o detalhe do jogo (data-jogo → VFNHub.ligarDetalheJogo), com o
+   * relatório quando há. Amigáveis com contorno tracejado.
+   */
+  function linhaTempoEpocaHTML(dados) {
+    const inicio = VFN.mesesDaEpoca(new Date())[0].valor + "-01";
+    const jogos = VFN.jogosDoVFN(dados.matches || []).filter(j => VFN.estadoJogo(j) !== "cancelado" && VFN.dataIso(j.date) >= inicio)
+      .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+    if (!jogos.length) return vazio("Ainda não há jogos nesta época.");
+    const letraDe = j => (VFN.estadoJogo(j) === "jogado" && VFN.letraResultado(j)) || "";
+    const forma = new Set(jogos.filter(j => letraDe(j) && VFN.competicaoOficial(j.competition)).slice(-5).map(j => String(j.id)));
+    const nomes = { V: "Vitória", E: "Empate", D: "Derrota" };
+    const conta = { V: 0, E: 0, D: 0 };
+    const blocos = jogos.map(j => {
+      const letra = letraDe(j);
+      if (letra) conta[letra]++;
+      const g = letra ? VFN.golosJogo(j) : null;
+      const adv = nomeAdversario(dados, j);
+      const etiqueta = VFN.etiquetaJornada(j, true) || VFN.dataCurta(VFN.dataIso(j.date));
+      const oficial = VFN.competicaoOficial(j.competition);
+      const dica = [etiqueta, VFN.jogoEmCasa(j) ? `VFN vs ${adv}` : `${adv} vs VFN`, letra ? `${nomes[letra]} ${g.vfn}–${g.adv}` : "por jogar", VFN.nomeCurtoCompeticao(j.competition), VFN.dataDDMMAAAA(VFN.dataIso(j.date))].filter(Boolean).join(" · ");
+      return `<li><button type="button" class="lt-bloco lt-${letra || "pendente"}${forma.has(String(j.id)) ? " lt-forma" : ""}${oficial ? "" : " lt-amigavel"}" data-jogo="vfn:${esc(j.id)}" title="${esc(dica)}" aria-label="${esc(dica)}">
+        <span class="lt-etiqueta">${esc(etiqueta)}</span>${logoEquipa(equipa(dados, j.opponent_team_id), adv, "lt-logo")}<strong class="lt-resultado">${letra ? `${g.vfn}–${g.adv}` : "—"}</strong></button></li>`;
+    }).join("");
+    return `<div class="lt-topo"><span class="lt-balanco"><b class="lt-n lt-nV">${conta.V}</b> V · <b class="lt-n lt-nE">${conta.E}</b> E · <b class="lt-n lt-nD">${conta.D}</b> D</span>${formaHTML(dados, 5, { compacto: true })}</div>
+      <ol class="linha-tempo" aria-label="Jogos da época, do mais antigo para o mais recente">${blocos}</ol>
+      <p class="muted lt-legenda"><span class="lt-chave lt-V"></span> Vitória <span class="lt-chave lt-E"></span> Empate <span class="lt-chave lt-D"></span> Derrota <span class="lt-chave lt-pendente"></span> Por jogar · contorno amarelo: forma recente (últ. 5 oficiais) · tracejado: amigável</p>`;
+  }
+
+  /** Centra a faixa da linha de tempo no último jogo disputado (só o scroll horizontal da faixa, não o da página). */
+  function centrarLinhaTempo(contentor) {
+    const faixa = contentor && contentor.querySelector(".linha-tempo");
+    if (!faixa) return;
+    const jogados = faixa.querySelectorAll(".lt-V, .lt-E, .lt-D");
+    const alvo = jogados[jogados.length - 1];
+    if (alvo) faixa.scrollLeft = Math.max(0, alvo.offsetLeft - faixa.clientWidth / 2 + alvo.offsetWidth / 2);
+  }
+
+  /* ---------- Perfil do jogador na época (v1.1: B1 participação, B3 minutos por posição) ---------- */
+
+  /** eDele(idLocal) de um jogador do plantel (liga os ids locais dos relatórios ao jogador). */
+  const eDoJogador = (j, jogadores) => idLocal => { const x = jogadorPorIdRelatorio(jogadores, idLocal); return !!x && String(x.id) === String(j.id); };
+
+  /**
+   * Participação na época (B1): jogos como titular, como suplente utilizado e convocado sem jogar, pelos relatórios
+   * publicados de jogos oficiais (um por jogo). Devolve { titular, suplente, naoUtilizado }.
+   */
+  function participacoesJogador(dados, eDele) {
+    const r = { titular: 0, suplente: 0, naoUtilizado: 0 };
+    relatoriosOficiaisPorJogo(dados).forEach(rel => {
+      const jogo = rel.match_data.jogo;
+      const titular = (jogo.titulares || []).some(id => id && eDele(id));
+      const entrou = (jogo.eventos || []).some(e => e && e.tipo === "Substituição" && (e.equipa === "VFN" || e.equipa == null) && e.jogadorId && eDele(e.jogadorId));
+      const noBanco = (jogo.suplentes || []).some(id => id && eDele(id));
+      if (titular) r.titular++; else if (entrou) r.suplente++; else if (noBanco) r.naoUtilizado++;
+    });
+    return r;
+  }
+
+  /** Cartões (summary-tile) da participação: jogos oficiais, titular e suplente utilizado (com os jogos sem jogar). */
+  function participacaoTilesHTML(j, jogadores, dados) {
+    const p = participacoesJogador(dados, eDoJogador(j, jogadores));
+    const tile = (rotulo, valor, nota) => `<div class="summary-tile"><span>${rotulo}</span><strong>${valor}</strong>${nota ? `<small class="tile-nota">${nota}</small>` : ""}</div>`;
+    // jogos oficiais = titular + suplente utilizado (as estatísticas do plantel podem incluir amigáveis)
+    return tile("Jogos oficiais", p.titular + p.suplente) + tile("Titular", p.titular) + tile("Suplente utilizado", p.suplente, p.naoUtilizado ? `+ ${p.naoUtilizado} convocado${p.naoUtilizado === 1 ? "" : "s"} sem jogar` : "");
+  }
+
+  /** Cartões por competição e estado de suspensão (B2), para o perfil do jogador. "" sem cartões. */
+  function cartoesCompeticaoHTML(s) {
+    if (!s || !(s.porCompeticao || []).length) return "";
+    const alerta = s.suspenso || emRiscoAmarelos(s);
+    const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+    const linhas = s.porCompeticao.map(c => `<b>${esc(c.nome || c.competicao)}</b>: ${plural(c.amarelos, "amarelo", "amarelos")}${c.vermelhos ? ", " + plural(c.vermelhos, "vermelho", "vermelhos") : ""}`).join(" · ");
+    return `<div class="cartoes-comp${alerta ? " alerta" : ""}" role="status">${VFN.icone(alerta ? "triangle-alert" : "square-stack", 18)}<div><strong>Cartões por competição</strong> ${badgeSuspensao(s)}<p>${linhas}</p></div></div>`;
+  }
+
+  // posições dos slots das formações (VFN.FORMACOES_SLOTS) por extenso, pela ordem do campo
+  const NOMES_SLOT = { GR: "Guarda-redes", DD: "Defesa direito", DC: "Defesa central", DE: "Defesa esquerdo", MDEF: "Médio defensivo", MCEN: "Médio centro", MOFE: "Médio ofensivo", ED: "Extremo direito", EE: "Extremo esquerdo", PL: "Ponta de lança" };
+  const ORDEM_SLOT = Object.keys(NOMES_SLOT);
+  const COR_CATEGORIA = { GR: "#F59E0B", Def: "#3B82F6", Meio: "#16A34A", Ata: "#DC2626" };
+
+  /** Minutos de um jogador por posição na época: [{ label, nome, minutos }] (vazio sem relatórios com onze). */
+  function minutosPorPosicaoJogador(j, jogadores, dados) {
+    const a = minutosPorSlot(dados.match_reports, idLocal => jogadorPorIdRelatorio(jogadores, idLocal), dados).acum.get(j.id);
+    if (!a) return [];
+    return Object.entries(a.porPosicao).filter(([, m]) => m > 0)
+      .map(([label, minutos]) => ({ label, nome: NOMES_SLOT[String(label).toUpperCase()] || label, minutos: Math.round(minutos) }))
+      .sort((x, y) => ORDEM_SLOT.indexOf(String(x.label).toUpperCase()) - ORDEM_SLOT.indexOf(String(y.label).toUpperCase()));
+  }
+
+  /**
+   * Gráfico de barras (Chart.js) com os minutos por posição de um jogador (B3). Devolve o gráfico (para destruir
+   * ao redesenhar) ou null sem dados / sem Chart.js; nesse caso o contentor mostra uma nota.
+   */
+  function graficoPosicoes(canvas, j, jogadores, dados, anterior) {
+    if (anterior) anterior.destroy();
+    if (!canvas || !window.Chart) return null;
+    const lista = minutosPorPosicaoJogador(j, jogadores, dados);
+    const caixa = canvas.parentElement;
+    const nota = caixa && caixa.querySelector(".posicoes-vazio");
+    canvas.hidden = !lista.length;
+    if (nota) nota.hidden = !!lista.length;
+    if (!lista.length) return null;
+    if (caixa) caixa.style.height = `${Math.max(120, 34 * lista.length + 40)}px`;
+    const escuro = document.documentElement.classList.contains("tema-escuro");
+    const texto = escuro ? "#E4E9F2" : "#0A1628", grelha = escuro ? "rgba(255,255,255,.1)" : "rgba(10,22,40,.08)";
+    return new Chart(canvas, {
+      type: "bar",
+      data: { labels: lista.map(p => p.nome), datasets: [{ data: lista.map(p => p.minutos), backgroundColor: lista.map(p => COR_CATEGORIA[categoriaSlot(p.label)] || "#64748B"), borderRadius: 4, maxBarThickness: 22 }] },
+      options: {
+        indexAxis: "y", maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.parsed.x}' ` } } },
+        scales: { x: { beginAtZero: true, ticks: { color: texto, callback: v => v + "'" }, grid: { color: grelha } }, y: { ticks: { color: texto, font: { weight: "600" } }, grid: { display: false } } }
+      }
+    });
+  }
+
+  /* ---------- Suspensões automáticas (AF Guarda), por competição (v1.1, B2) ---------- */
+
+  // 1.º limiar de suspensão por amarelos (AF Guarda: 5). Os seguintes acompanham-no como na tabela da AF Guarda
+  // (5 → 9, 12, 14 e depois a cada 2). O aviso aparece um amarelo antes de cada limiar.
+  const PRIMEIRO_LIMITE_AMARELOS = 5;
+  const LIMITES_AMARELOS = [0, 4, 7, 9].map(d => PRIMEIRO_LIMITE_AMARELOS + d);
+  const ULTIMO_LIMITE = LIMITES_AMARELOS[LIMITES_AMARELOS.length - 1];
+  const eLimiteAmarelos = n => LIMITES_AMARELOS.includes(n) || (n > ULTIMO_LIMITE && (n - ULTIMO_LIMITE) % 2 === 0);
   function proximoLimiteAmarelos(n) {
     let k = (Number(n) || 0) + 1;
     while (!eLimiteAmarelos(k)) k++;
     return k;
   }
 
+  /** Competição de um jogo, normalizada (os cartões contam em cada competição em separado: liga ≠ taças). */
+  const chaveCompeticao = c => VFN.normalizarCompeticao(c) || String(c || "");
+
   /**
-   * Suspensões de um jogador na época, só em jogos oficiais (VFN.competicaoOficial: sem amigáveis):
-   * percorre os jogos por ordem; em cada jogo cumpre primeiro um jogo de castigo pendente e depois
-   * soma os cartões desse jogo (amarelos: 1 jogo ao 5.º, 9.º, 12.º, 14.º e a cada 2 depois do 14.º;
-   * vermelho: suspensao_jogos do evento, por omissão 1). O castigo é cumprido nos jogos oficiais
-   * seguintes do VFN. Fonte: relatórios gerados/publicados (um por jogo) e jogos jogados do calendário.
-   * Devolve { amarelos, vermelhos, suspenso, proximoLimite, jogosSuspensao } (jogosSuspensao = por cumprir).
-   * o.eDele(idLocal): liga os ids dos relatórios ao jogador (por omissão, o mesmo id).
+   * Suspensões de um jogador na época, só em jogos oficiais (sem amigáveis), contadas em cada competição em
+   * separado (os amarelos da liga não somam aos da taça). Em cada competição percorre os jogos por ordem: em cada
+   * jogo cumpre primeiro um jogo de castigo pendente e depois soma os cartões desse jogo (amarelos: 1 jogo em cada
+   * limiar — LIMITES_AMARELOS; vermelho: suspensao_jogos do evento, por omissão 1). O castigo cumpre-se nos jogos
+   * seguintes da mesma competição. Fonte: relatórios publicados (um por jogo) e jogos jogados do calendário.
+   * o.eDele(idLocal): liga os ids dos relatórios ao jogador. o.competicao: devolve o estado nessa competição (ex.: a
+   * do próximo jogo); sem ela, junta as competições (suspenso / em risco em alguma).
+   * Devolve { amarelos, vermelhos, suspenso, risco, proximoLimite, jogosSuspensao, competicao, porCompeticao }
+   * (porCompeticao: [{ competicao, nome, amarelos, vermelhos, suspenso, risco, proximoLimite, jogosSuspensao }]).
    */
   function calcularSuspensoes(playerId, dados, o) {
     const id = String(playerId);
     const eDele = (o && o.eDele) || (idLocal => String(idLocal) === id || id.endsWith("-" + idLocal));
     const jogos = new Map();
     VFN.jogosDoVFN((dados && dados.matches) || []).filter(j => VFN.estadoJogo(j) === "jogado" && VFN.competicaoOficial(j.competition))
-      .forEach(j => jogos.set(String(j.id), { data: j.date, relatorio: null }));
+      .forEach(j => jogos.set(String(j.id), { data: j.date, competicao: chaveCompeticao(j.competition), relatorio: null }));
     ((dados && dados.match_reports) || []).forEach(r => {
       const m = r && r.match_data;
       if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
       const chave = String(r.match_id || (m.preJogo || {}).matchId || "r:" + r.id);
-      const atual = jogos.get(chave) || { data: (m.preJogo || {}).data || r.match_date || "", relatorio: null };
+      const atual = jogos.get(chave) || { data: (m.preJogo || {}).data || r.match_date || "", competicao: chaveCompeticao(competicaoDoRelatorio(r, dados)), relatorio: null };
       if (!atual.relatorio || String(r.updated_at || "") > String(atual.relatorio.updated_at || "")) atual.relatorio = r;
       jogos.set(chave, atual);
     });
-    let amarelos = 0, vermelhos = 0, pendente = 0;
+    const porComp = new Map();
     [...jogos.values()].sort((a, b) => (VFN.paraData(a.data) || 0) - (VFN.paraData(b.data) || 0)).forEach(j => {
-      if (pendente > 0) pendente--; // cumpre um jogo de castigo neste jogo
+      const c = porComp.get(j.competicao) || { competicao: j.competicao, nome: VFN.nomeCurtoCompeticao(j.competicao), amarelos: 0, vermelhos: 0, pendente: 0 };
+      if (c.pendente > 0) c.pendente--; // cumpre um jogo de castigo neste jogo (da mesma competição)
       const eventos = j.relatorio ? (j.relatorio.match_data.jogo.eventos || []) : [];
       eventos.filter(e => e.equipa === "VFN" && eDele(e.jogadorId)).sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0)).forEach(e => {
-        if (e.tipo === "Cartão Amarelo") { amarelos++; if (eLimiteAmarelos(amarelos)) pendente++; }
-        else if (e.tipo === "Cartão Vermelho") { vermelhos++; pendente += Math.max(1, Number(e.suspensao_jogos) || 1); }
+        if (e.tipo === "Cartão Amarelo") { c.amarelos++; if (eLimiteAmarelos(c.amarelos)) c.pendente++; }
+        else if (e.tipo === "Cartão Vermelho") { c.vermelhos++; c.pendente += Math.max(1, Number(e.suspensao_jogos) || 1); }
       });
+      porComp.set(j.competicao, c);
     });
-    return { amarelos, vermelhos, suspenso: pendente > 0, proximoLimite: proximoLimiteAmarelos(amarelos), jogosSuspensao: pendente };
+    const porCompeticao = [...porComp.values()].filter(c => c.amarelos || c.vermelhos || c.pendente).map(c => {
+      const proximoLimite = proximoLimiteAmarelos(c.amarelos);
+      return { competicao: c.competicao, nome: c.nome, amarelos: c.amarelos, vermelhos: c.vermelhos, suspenso: c.pendente > 0, jogosSuspensao: c.pendente,
+        proximoLimite, risco: c.pendente === 0 && c.amarelos > 0 && c.amarelos >= proximoLimite - 1 };
+    });
+    if (o && o.competicao) {
+      const k = chaveCompeticao(o.competicao);
+      const c = porCompeticao.find(x => x.competicao === k);
+      return c ? { ...c, porCompeticao: [c] } : { competicao: k, nome: VFN.nomeCurtoCompeticao(k), amarelos: 0, vermelhos: 0, suspenso: false, risco: false, jogosSuspensao: 0, proximoLimite: LIMITES_AMARELOS[0], porCompeticao: [] };
+    }
+    const emRisco = porCompeticao.filter(c => c.risco);
+    return {
+      competicao: "", nome: "",
+      amarelos: porCompeticao.reduce((s, c) => s + c.amarelos, 0),
+      vermelhos: porCompeticao.reduce((s, c) => s + c.vermelhos, 0),
+      suspenso: porCompeticao.some(c => c.suspenso),
+      jogosSuspensao: porCompeticao.reduce((s, c) => s + c.jogosSuspensao, 0),
+      risco: emRisco.length > 0,
+      proximoLimite: emRisco.length ? emRisco[0].proximoLimite : proximoLimiteAmarelos(Math.max(0, ...porCompeticao.map(c => c.amarelos))),
+      porCompeticao
+    };
   }
 
-  /** Aviso preventivo: a um amarelo do próximo limite (e não suspenso). */
-  const emRiscoAmarelos = s => !!s && !s.suspenso && s.amarelos > 0 && s.amarelos >= s.proximoLimite - 1;
+  /** Aviso preventivo: a um amarelo do próximo limite numa competição (e não suspenso nela). */
+  const emRiscoAmarelos = s => !!s && (s.risco !== undefined ? s.risco : !s.suspenso && s.amarelos > 0 && s.amarelos >= s.proximoLimite - 1);
 
-  /** Badge "SUSPENSO" ou "⚠️ N amarelos" ("" se nenhum). */
+  /** Badge "SUSPENSO · <competição>" ou "⚠️ N amarelos · <competição>" ("" se nenhum). */
   function badgeSuspensao(s) {
     if (!s) return "";
-    if (s.suspenso) return `<span class="susp-badge suspenso" title="${s.jogosSuspensao} jogo${s.jogosSuspensao === 1 ? "" : "s"} de suspensão por cumprir">SUSPENSO${s.jogosSuspensao > 1 ? " · " + s.jogosSuspensao + " jogos" : ""}</span>`;
-    if (emRiscoAmarelos(s)) return `<span class="susp-badge risco" title="Ao ${s.proximoLimite}.º amarelo cumpre 1 jogo de suspensão">⚠️ ${s.amarelos} amarelos</span>`;
+    const comps = s.porCompeticao || [];
+    const suspensas = comps.filter(c => c.suspenso), riscos = comps.filter(c => c.risco);
+    if (s.suspenso) {
+      const n = suspensas.reduce((t, c) => t + c.jogosSuspensao, 0) || s.jogosSuspensao;
+      const onde = suspensas.map(c => c.nome).filter(Boolean).join(", ");
+      return `<span class="susp-badge suspenso" title="${n} jogo${n === 1 ? "" : "s"} de suspensão por cumprir${onde ? " (" + esc(onde) + ")" : ""}">SUSPENSO${n > 1 ? " · " + n + " jogos" : ""}${onde ? " · " + esc(onde) : ""}</span>`;
+    }
+    if (emRiscoAmarelos(s)) {
+      const c = riscos[0] || s;
+      return `<span class="susp-badge risco" title="Ao ${c.proximoLimite}.º amarelo${c.nome ? " na " + esc(c.nome) : ""} cumpre 1 jogo de suspensão">⚠️ ${c.amarelos} amarelos${c.nome ? " · " + esc(c.nome) : ""}</span>`;
+    }
     return "";
   }
 
@@ -2008,6 +2179,8 @@
   }
 
   window.VFNHub = {
+    linhaTempoEpocaHTML, centrarLinhaTempo,
+    participacoesJogador, participacaoTilesHTML, cartoesCompeticaoHTML, minutosPorSlot, minutosPorPosicaoJogador, graficoPosicoes,
     ativarVista,
     jogadorPorIdRelatorio, statsGRJogador,
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
