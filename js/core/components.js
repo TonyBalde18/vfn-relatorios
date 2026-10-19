@@ -1003,7 +1003,7 @@
     const eGR = j => !!j && VFN.categoriaPosicao(j.posicao) === "GR";
     const mesmoTipo = (x, y) => eGR(x) === eGR(y);
     const presenca = j => { const p = o.presencas ? o.presencas(j) : null; return p == null ? null : Number(p); };
-    const gr = j => (o.statsGR && o.statsGR(j)) || { jogosZero: 0, golosSofridos: 0, mediaSofridos: 0 };
+    const gr = j => (o.statsGR && o.statsGR(j)) || { jogosZero: 0, golosSofridos: 0, mediaSofridos: 0, penaltisDefendidos: 0 };
     const minutosFmt = v => v + "'";
     const METRICAS = {
       outfield: [
@@ -1013,7 +1013,7 @@
       ],
       gr: [
         { nome: "Jogos disputados", f: j => j.jogos || 0 }, { nome: "Minutos jogados", f: j => j.minutos || 0, fmt: minutosFmt },
-        { nome: "Clean sheets", f: j => gr(j).jogosZero }, { nome: "Golos sofridos", f: j => gr(j).golosSofridos, menor: true },
+        { nome: "Clean sheets", f: j => gr(j).jogosZero }, { nome: "Golos sofridos", f: j => gr(j).golosSofridos, menor: true }, { nome: "Penáltis defendidos", f: j => gr(j).penaltisDefendidos || 0 },
         { nome: "Média sofridos/jogo", f: j => gr(j).mediaSofridos, fmt: v => Number(v).toFixed(2).replace(".", ","), menor: true },
         { nome: "Cartões amarelos", f: j => j.cartoesA || 0, menor: true }
       ]

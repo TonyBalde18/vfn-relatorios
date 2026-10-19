@@ -1064,7 +1064,9 @@
    *   jogosZero        jogos completos (titular, sem ser substituído) em que o adversário marcou 0;
    *   minutosZero      soma dos minutos desses jogos;
    *   golosSofridos    golos sofridos enquanto esteve em campo; mediaSofridos = golosSofridos / jogos (2 casas);
-   *   melhorSerie      maior série de minutos em campo sem sofrer (atravessa jogos seguidos).
+   *   melhorSerie      maior série de minutos em campo sem sofrer (atravessa jogos seguidos);
+   *   penaltisDefendidos  penáltis do adversário que defendeu (v1.1: "Penalty Falhado" com defendido; o GR indicado
+   *                    no evento ou, sem ele, o que estava em campo nesse minuto).
    * playerId: id local dos relatórios, ou uma função eDele(idLocal). o.matches: jogos (para saber a competição).
    */
   function calcularStatsGR(playerId, matchReports, o) {
@@ -1079,7 +1081,7 @@
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
     });
     const data = r => (r.match_data.preJogo || {}).data || r.match_date || "";
-    let jogos = 0, minutos = 0, jogosZero = 0, minutosZero = 0, golosSofridos = 0, serie = 0, melhorSerie = 0;
+    let jogos = 0, minutos = 0, jogosZero = 0, minutosZero = 0, golosSofridos = 0, serie = 0, melhorSerie = 0, penaltisDefendidos = 0;
     [...porJogo.values()].sort((a, b) => String(data(a)).localeCompare(String(data(b)))).forEach(r => {
       const jogo = r.match_data.jogo;
       const { duracao, periodos } = periodosDoRelatorio(r.match_data);
@@ -1090,6 +1092,8 @@
       const eventos = jogo.eventos || [];
       const sofridos = eventos.filter(VFN.eGoloSofrido).map(e => Math.min(duracao, Number(e.minuto) || 0)).sort((a, b) => a - b);
       golosSofridos += sofridos.filter(m => meus.some(p => m >= p.inicio && m <= p.fim)).length;
+      const emCampo = m => meus.some(p => m >= p.inicio && m <= p.fim);
+      penaltisDefendidos += eventos.filter(VFN.ePenaltiDefendidoPeloVFN).filter(e => e.guardaRedesId ? eDele(e.guardaRedesId) : emCampo(Math.min(duracao, Number(e.minuto) || 0))).length;
       const titular = (jogo.titulares || []).some(id => id && eDele(id));
       // substituído (jogadorSaiId) ou expulso: não fez o jogo inteiro
       const saiu = eventos.some(e => e.equipa === "VFN" && ((e.tipo === "Substituição" && e.jogadorSaiId && eDele(e.jogadorSaiId)) || (e.tipo === "Cartão Vermelho" && eDele(e.jogadorId))));
@@ -1102,7 +1106,7 @@
       });
     });
     const mediaSofridos = jogos ? Math.round((golosSofridos / jogos) * 100) / 100 : 0;
-    return { jogos, minutos, jogosZero, minutosZero, golosSofridos, mediaSofridos, melhorSerie };
+    return { jogos, minutos, jogosZero, minutosZero, golosSofridos, mediaSofridos, melhorSerie, penaltisDefendidos };
   }
 
   /** Compara os k mais recentes com os k anteriores (k ≤ 3): 1 sobe, -1 desce, 0 igual; null sem dados. */
@@ -1548,7 +1552,10 @@
       if (e.tipo === "Substituição") texto = `${nome(e.jogadorSaiId) || "—"} ↘ / ${nome(e.jogadorId) || "—"} ↗`;
       else if (e.equipa === "VFN") texto = (nome(e.jogadorId) || e.detalhe || "") + (e.tipo === "Golo" && e.assistId ? ` (assist. ${nome(e.assistId)})` : "");
       else texto = e.detalhe || "";
-      return { minuto: Number(e.minuto) || 0, acrescimo: Number(e.acrescimo) || 0, tipo: e.tipo, vfn: e.equipa === "VFN", neutro: !e.equipa, texto };
+      // v1.1: penálti do adversário defendido pelo GR do VFN
+      if (VFN.ePenaltiDefendidoPeloVFN(e)) texto = [e.detalhe, `defendido por ${nome(e.guardaRedesId) || "GR do VFN"}`].filter(Boolean).join(" · ");
+      else if (e.tipo === "Penalty Falhado" && e.defendido && e.equipa === "VFN") texto += " (defendido pelo GR adversário)";
+      return { minuto: Number(e.minuto) || 0, acrescimo: Number(e.acrescimo) || 0, tipo: VFN.rotuloEvento(e), vfn: e.equipa === "VFN", neutro: !e.equipa, texto };
     }).sort((a, b) => a.minuto - b.minuto || a.acrescimo - b.acrescimo);
   }
 
@@ -1645,7 +1652,7 @@
     }).join("")}</div>` : "";
     // estatísticas do jogo (contagens dos eventos do relatório)
     const conta = (tipo, vfn) => ev.filter(e => e.tipo === tipo && (vfn ? e.equipa === "VFN" : e.equipa === "Adversário")).length;
-    const linhasStats = [["Golos", e => golos.filter(g => g.vfn === e).length], ["Cartões amarelos", e => conta("Cartão Amarelo", e)], ["Cartões vermelhos", e => conta("Cartão Vermelho", e)], ["Substituições", e => conta("Substituição", e)], ["Golos anulados", e => conta("Golo Anulado", e)], ["Penáltis falhados", e => conta("Penalty Falhado", e)]]
+    const linhasStats = [["Golos", e => golos.filter(g => g.vfn === e).length], ["Cartões amarelos", e => conta("Cartão Amarelo", e)], ["Cartões vermelhos", e => conta("Cartão Vermelho", e)], ["Substituições", e => conta("Substituição", e)], ["Golos anulados", e => conta("Golo Anulado", e)], ["Penáltis falhados", e => ev.filter(x => x.tipo === "Penalty Falhado" && !x.defendido && x.equipa === (e ? "VFN" : "Adversário")).length], ["Penáltis defendidos", e => ev.filter(x => x.tipo === "Penalty Falhado" && x.defendido && x.equipa === (e ? "Adversário" : "VFN")).length]]
       .map(([r, f]) => [r, f(true), f(false)]).filter(([r, a, b]) => r === "Golos" || a || b);
     const casa = VFN.jogoEmCasa(jogo);
     const stats = ev.length ? `<table class="rs-stats"><thead><tr><th scope="col">${casa ? "VFN" : "Adv."}</th><th scope="col"></th><th scope="col">${casa ? "Adv." : "VFN"}</th></tr></thead><tbody>${linhasStats.map(([r, a, b]) => `<tr><td>${casa ? a : b}</td><th scope="row">${esc(r)}</th><td>${casa ? b : a}</td></tr>`).join("")}</tbody></table>` : "";

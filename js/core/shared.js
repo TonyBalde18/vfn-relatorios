@@ -429,14 +429,34 @@
   const ICONES_EVENTO_FICHEIRO = {
     "Golo": "golo", "Auto-golo": "autogolo", "Golo Anulado": "golo-anulado", "Penalty Falhado": "penalti-falhado",
     "Cartão Amarelo": "cartao-amarelo", "Cartão Vermelho": "cartao-vermelho", "Lesão": "lesao", "Substituição": "substituicao",
-    "Tempo Acrescentado": "tempo-acrescentado", "Paragem para hidratação": "hidratacao", "Intervalo": "intervalo", "Nota": "nota"
+    "Tempo Acrescentado": "tempo-acrescentado", "Paragem para hidratação": "hidratacao", "Intervalo": "intervalo", "Nota": "nota",
+    "Penálti defendido": "penalti-defendido"
   };
   const ICONES_EVENTO_LUCIDE = {
     "Golo": "bola", "Auto-golo": "bola", "Golo Anulado": "circle-slash", "Penalty Falhado": "circle-x",
     "Cartão Amarelo": "square", "Cartão Vermelho": "square", "Lesão": "bandage", "Substituição": "repeat",
-    "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note"
+    "Tempo Acrescentado": "timer", "Paragem para hidratação": "droplets", "Intervalo": "pause", "Nota": "sticky-note",
+    "Penálti defendido": "hand"
   };
-  const iconesEventoEmFalta = new Set(); // ficheiros que já falharam: não volta a pedir
+  // ficheiros que já falharam: não volta a pedir. penalti-defendido ainda não existe em assets/icons/ (fica a luva
+  // Lucide sem pedir a imagem); ao acrescentar o PNG, tirar daqui.
+  const iconesEventoEmFalta = new Set(["penalti-defendido"]);
+
+  /*
+   * Penáltis (v1.1): o evento "Penalty Falhado" ganha defendido (true) e, num penálti do adversário defendido,
+   * guardaRedesId (o GR do VFN; sem ele conta para o GR que estava em campo nesse minuto). Os falhados continuam iguais.
+   * O golo de penálti continua a ser um "Golo" com tipo_lance "penalty".
+   */
+  const ePenaltiDefendidoPeloVFN = ev => !!ev && ev.tipo === "Penalty Falhado" && !!ev.defendido && ev.equipa === "Adversário";
+  /**
+   * Nome do tipo de evento para mostrar: "Penálti defendido" no penálti do adversário defendido pelo GR do VFN;
+   * senão o próprio tipo (um penálti do VFN defendido continua a ser "Penalty Falhado", com a nota no texto).
+   */
+  function rotuloEvento(ev) {
+    if (!ev) return "";
+    if (ePenaltiDefendidoPeloVFN(ev)) return "Penálti defendido";
+    return ev.tipo || "";
+  }
 
   /** Ícone de um tipo de evento: <img> de assets/icons/ (ou o ícone Lucide se a imagem não existir). */
   function iconeEvento(tipo, tamanho) {
@@ -1716,7 +1736,7 @@
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
     DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
-    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, TIPO_CONTRIBUICAO, eContribuicao, resumoMultas, resumoMultasHTML, nomeNaMulta, celulaContribuidorHTML, infracaoMultaHTML, estadoMultaHTML, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
+    TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, ePenaltiDefendidoPeloVFN, rotuloEvento, TIPO_CONTRIBUICAO, eContribuicao, resumoMultas, resumoMultasHTML, nomeNaMulta, celulaContribuidorHTML, infracaoMultaHTML, estadoMultaHTML, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,
     normalizarCompeticao, normalizarLinhas, categoriaCompeticao, competicaoOficial, nomeCurtoCompeticao, SPONSORS_COMPETICAO, logoSponsorHTML, nomeCompeticaoHTML,

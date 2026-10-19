@@ -88,7 +88,7 @@ function statsGR(j) {
 /** KPIs pessoais: golos e assistências; um GR vê jogos a zero, minutos sem sofrer e média de sofridos. */
 function kpisPessoais(j) {
   const gr = statsGR(j);
-  const tiles = gr ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Minutos sem sofrer", gr.minutosZero + "'"], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")]]
+  const tiles = gr ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Minutos sem sofrer", gr.minutosZero + "'"], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["🥅 Penáltis defendidos", gr.penaltisDefendidos]]
     : [["Golos", j.golos], ["Assistências", j.assistencias]];
   return tiles.map(([l, v]) => `<div class="summary-tile"><span>${l}</span><strong>${v}</strong></div>`).join("");
 }
@@ -408,7 +408,7 @@ function renderFichaCompleta() {
       <div><dt>Posição</dt><dd>${VFN.posicaoDetalhadaHTML(eu.posicao, eu.subPosicao, eu.posicoesSecundarias) || esc(eu.posicao || "—")}</dd></div>
     </dl>
     ${gr ? `<h3 class="subsecao-titulo">🧤 Guarda-redes</h3><div class="summary-tiles eq-ficha-tiles">
-      ${tile("Jogos a zero", gr.jogosZero)}${tile("Minutos sem sofrer", gr.minutosZero + "'")}${tile("Golos sofridos", gr.golosSofridos)}${tile("Média sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ","))}
+      ${tile("Jogos a zero", gr.jogosZero)}${tile("Minutos sem sofrer", gr.minutosZero + "'")}${tile("Golos sofridos", gr.golosSofridos)}${tile("Média sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ","))}${tile("Penáltis defendidos", gr.penaltisDefendidos)}
     </div><p class="muted eq-ficha-nota">Jogo a zero: jogou o jogo todo (sem ser substituído) e o adversário não marcou. Minutos sem sofrer: soma dos minutos desses jogos. Golos sofridos: só com ele em campo. Jogos oficiais.</p>` : ""}`;
   if (!$("eqPosicoesBox").hidden) requestAnimationFrame(() => { graficoPosicoesEq = H.graficoPosicoes($("eqPosicoesCanvas"), eu, jogadores, dados, graficoPosicoesEq); });
   if (!$("eqRadarBox").hidden) requestAnimationFrame(() => { graficoRadarEq = H.radarJogador($("eqRadarCanvas"), eu, jogadores, { presencas: j => j === eu ? percentagemMinhasPresencas() : null, anterior: graficoRadarEq }); });
@@ -438,7 +438,7 @@ function abrirJogador(id) {
   $("ejMeta").innerHTML = esc([j.posicao, j.numero !== "" ? `Nº ${j.numero}` : ""].filter(Boolean).join(" · ")) + (j.disponibilidade ? " " + VFN.badgeDisponibilidade(j.disponibilidade) : "");
   const gr = statsGR(j);
   $("ejStats").innerHTML = (gr
-    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", j.minutos]]
+    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["🥅 Pen. defendidos", gr.penaltisDefendidos], ["Minutos", j.minutos]]
     : [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]]).map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
   $("ejCorpo").innerHTML = H.fichaVisualHTML(j, jogadores, H.opcoesFicha(dados, j.id, j));
   // v17: perfil da época (o mesmo radar do admin, VFNHub.radarJogador); presenças só do próprio

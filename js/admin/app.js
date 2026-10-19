@@ -14,7 +14,7 @@ const TIPOS_EVENTO = ["Golo", "Auto-golo", "Golo Anulado", "Penalty Falhado", "C
 const TIPOS_SEM_EQUIPA = ["Paragem para hidratação", "Intervalo"];
 // emojis só para o Word e para as <option>; na interface usam-se as imagens de assets/icons/ (VFN.iconeEvento)
 const ICONES_EVENTO = {
-  "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴",
+  "Golo": "⚽", "Auto-golo": "🟥⚽", "Golo Anulado": "⚽❌", "Penalty Falhado": "🔴", "Penálti defendido": "🧤",
   "Cartão Amarelo": "🟨", "Cartão Vermelho": "🟥", "Lesão": "🤕",
   "Substituição": "🔄", "Tempo Acrescentado": "⏱️", "Paragem para hidratação": "💧", "Intervalo": "⏸️", "Nota": "📝"
 };
@@ -1114,6 +1114,18 @@ function titularesIds() {
   return state.jogo.titulares.filter(id => id).map(Number);
 }
 
+/**
+ * Guarda-redes do VFN em campo num minuto (v1.1, penáltis defendidos): o do lugar de GR do onze (titulares[0]) e,
+ * se foi substituído antes desse minuto, quem entrou para o lugar dele. "" sem onze.
+ */
+function guardaRedesEmCampo(minuto, excludeEventId) {
+  let gr = state.jogo.titulares[0] ? Number(state.jogo.titulares[0]) : "";
+  state.jogo.eventos.filter(e => e.id !== excludeEventId && e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId && (Number(e.minuto) || 0) <= (Number(minuto) || 0))
+    .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+    .forEach(e => { if (Number(e.jogadorSaiId) === gr) gr = Number(e.jogadorId); });
+  return gr;
+}
+
 function suplentesIds() {
   return state.jogo.suplentes.filter(id => id).map(Number);
 }
@@ -1187,6 +1199,9 @@ function compararEventos(a, b) {
 
 function nomeOuDetalheEvento(ev) {
   if (ev.tipo === "Substituição") return `${nomeJogador(ev.jogadorSaiId) || "—"} sai / ${nomeJogador(ev.jogadorId) || "—"} entra`;
+  // v1.1: penálti do adversário defendido pelo GR do VFN; penálti do VFN defendido pelo GR adversário
+  if (VFN.ePenaltiDefendidoPeloVFN(ev)) return `${ev.detalhe || "Adversário"} · defendido por ${nomeJogador(ev.guardaRedesId || guardaRedesEmCampo(ev.minuto, ev.id)) || "GR do VFN"}`;
+  if (ev.tipo === "Penalty Falhado" && ev.defendido && ev.equipa === "VFN") return `${nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—"} (defendido pelo GR adversário)`;
   if (ev.equipa !== "VFN") return ev.detalhe || "—";
   const nome = nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—";
   return ev.tipo === "Golo" && ev.assistId ? `${nome} (assist. ${nomeJogador(ev.assistId)})` : nome;
@@ -1234,7 +1249,7 @@ function renderTimeline() {
     });
     const marcadores = p.eventos.map(ev => {
       const lado = ev.equipa === "VFN" ? "vfn" : ev.equipa ? "adv" : "neutro";
-      return `<div class="timeline-event ${lado}" data-type="${escapeHtml(ev.tipo)}" style="left:${x(ev)}%;--faixa:${faixas.get(ev) || 0}" title="${escapeHtml(`${formatarMinuto(ev)} ${ev.tipo} — ${nomeOuDetalheEvento(ev)}`)}">${VFN.iconeEvento(ev.tipo, 22)}<span>${escapeHtml(formatarMinuto(ev))}</span></div>`;
+      return `<div class="timeline-event ${lado}" data-type="${escapeHtml(ev.tipo)}" style="left:${x(ev)}%;--faixa:${faixas.get(ev) || 0}" title="${escapeHtml(`${formatarMinuto(ev)} ${VFN.rotuloEvento(ev)} — ${nomeOuDetalheEvento(ev)}`)}">${VFN.iconeEvento(VFN.rotuloEvento(ev), 22)}<span>${escapeHtml(formatarMinuto(ev))}</span></div>`;
     }).join("");
     return `<div class="tl-parte">
       <div class="tl-rotulo">${p.nome}<small>${p.inicio}'–${p.fim}'${fim > p.fim ? "+" + (fim - p.fim) : ""}</small></div>
@@ -1512,6 +1527,29 @@ function renderEventos(ordenar) {
       input.type = ev.tipo === "Tempo Acrescentado" ? "number" : "text"; input.placeholder = ev.tipo === "Tempo Acrescentado" ? "+4" : (ev.tipo === "Nota" ? "Nota do jogo" : "Nome ou número"); input.value = ev.detalhe || "";
       input.addEventListener("input", () => { ev.detalhe = input.value; });
       tdJogador.appendChild(input);
+    }
+
+    // v1.1: penálti defendido (pelo GR do VFN, num penálti do adversário; ou pelo GR adversário, num do VFN)
+    if (ev.tipo === "Penalty Falhado" && ev.equipa) {
+      const label = document.createElement("label");
+      label.className = "assist-label pen-defendido";
+      const check = document.createElement("input");
+      check.type = "checkbox"; check.checked = !!ev.defendido;
+      check.addEventListener("change", () => {
+        ev.defendido = check.checked;
+        if (ev.defendido && ev.equipa === "Adversário" && !ev.guardaRedesId) ev.guardaRedesId = guardaRedesEmCampo(ev.minuto, ev.id) || "";
+        if (!ev.defendido) delete ev.guardaRedesId;
+        renderEventos(false);
+      });
+      label.append(check, ev.equipa === "Adversário" ? " Defendido pelo GR do VFN" : " Defendido pelo GR adversário");
+      tdJogador.appendChild(label);
+      if (ev.defendido && ev.equipa === "Adversário") {
+        const lgr = document.createElement("label");
+        lgr.className = "assist-label"; lgr.textContent = "Guarda-redes ";
+        const opcoes = [...new Set([...jogadoresEmCampo(ev.id), ...(ev.guardaRedesId ? [Number(ev.guardaRedesId)] : [])])];
+        lgr.appendChild(criarSelectJogador(ev.guardaRedesId, opcoes, "Guarda-redes", v => { ev.guardaRedesId = v; renderEventos(false); }));
+        tdJogador.appendChild(lgr);
+      }
     }
 
     // golos: zona do golo, origem e tipo de lance (modal em modo-jogo.js)
@@ -2041,7 +2079,7 @@ function renderPlayerModalHeader(jogador) {
   const gr = jogador && jogador.id != null && VFN.categoriaPosicao(jogador.posicao) === "GR"
     ? VFNHub.calcularStatsGR(idLocal => Number(idLocal) === jogador.id, relatoriosAdmin, { matches: jogosCalendario }) : null;
   const principais = gr
-    ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", stats.minutosTotais || 0]]
+    ? [["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["🥅 Pen. defendidos", gr.penaltisDefendidos], ["Minutos", stats.minutosTotais || 0]]
     : [["Golos", stats.golos || 0], ["Assistências", stats.assistencias || 0], ["Minutos", stats.minutosTotais || 0]];
   el("playerModalMainStats").innerHTML = principais.map(([label, value]) => `<div class="player-modal-stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
   if (typeof renderRadarJogador === "function") renderRadarJogador(jogador);
@@ -2521,7 +2559,7 @@ async function gerarRelatorioWord() {
       const eventos = eventosOrdenados.filter(ev => ev.equipa === equipa);
       const children = [new Paragraph({ alignment: AlignmentType.CENTER, shading: { type: ShadingType.SOLID, color: cor, fill: cor }, children: [new TextRun({ text: equipa, bold: true, color: "FFFFFF", size: 20 })] })];
       if (!eventos.length) children.push(new Paragraph({ children: [new TextRun({ text: "Sem eventos registados.", italics: true, size: 16 })] }));
-      eventos.forEach(ev => children.push(new Paragraph({ spacing: { after: 45 }, children: [new TextRun({ text: `${ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} `, bold: true, size: 16 }), new TextRun({ text: `${ev.tipo} — ${nomeOuDetalheEvento(ev)}`, size: 16 })] })));
+      eventos.forEach(ev => children.push(new Paragraph({ spacing: { after: 45 }, children: [new TextRun({ text: `${ICONES_EVENTO[VFN.rotuloEvento(ev)] || ICONES_EVENTO[ev.tipo] || "📝"} ${formatarMinuto(ev)} `, bold: true, size: 16 }), new TextRun({ text: `${VFN.rotuloEvento(ev)} — ${nomeOuDetalheEvento(ev)}`, size: 16 })] })));
       return children;
     };
     pagina2.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: SEM_BORDAS, rows: [new TableRow({ children: [

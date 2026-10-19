@@ -17,6 +17,8 @@ const MODO_JOGO_TIPOS = [
   { tipo: "Lesão", icone: "🤕", cor: "#c2410c" },
   { tipo: "Golo Anulado", icone: "❌", cor: "#4b5563" },
   { tipo: "Penalty Falhado", icone: "🥅", cor: "#6d28d9" },
+  // v1.1: atalho para um penálti do adversário defendido pelo GR do VFN (grava um "Penalty Falhado" com defendido)
+  { tipo: "Penálti Defendido", icone: "🧤", cor: "#0f766e" },
   { tipo: "Tempo Acrescentado", icone: "⏱️", cor: "#0e7490" },
   { tipo: "Paragem para hidratação", rotulo: "Paragem Hidratação", icone: "💧", cor: "#0369a1" },
   { tipo: "Intervalo", icone: "⏸️", cor: "#334155" },
@@ -94,6 +96,12 @@ function mjCriarOverlay() {
     }
   });
   caixa.addEventListener("change", e => {
+    if (e.target.id === "mjDefendido") {
+      mjLerCampos();
+      const r = modoJogo.rascunho;
+      if (r.defendido && r.equipa === "Adversário" && !r.guardaRedesId) r.guardaRedesId = guardaRedesEmCampo(r.minuto) || "";
+      mjRenderCampos();
+    }
     if (e.target.id === "mjAutogolo") { mjLerCampos(); modoJogo.rascunho.jogadorId = ""; modoJogo.rascunho.detalhe = ""; mjRenderCampos(); }
     // "Golo sofrido" = golo do adversário: troca a equipa beneficiada
     if (e.target.id === "mjSofrido") { mjLerCampos(); const r = modoJogo.rascunho; r.equipa = e.target.checked ? "Adversário" : "VFN"; r.jogadorId = ""; r.assistId = ""; r.detalhe = ""; mjRenderCampos(); }
@@ -127,7 +135,7 @@ function mjAtualizarTopo() {
   mjEl("mjPlacar").textContent = `VFN ${state.jogo.golosVFN || 0} – ${state.jogo.golosAdversario || 0} ${state.preJogo.adversario || "Adversário"}`;
   const ultimo = state.jogo.eventos.find(ev => ev.id === modoJogo.ultimoId);
   mjEl("mjUltimo").innerHTML = ultimo
-    ? `<span>Guardado: <b>${escapeHtml(formatarMinuto(ultimo))} ${escapeHtml(ultimo.tipo)}</b>${ultimo.equipa ? " · " + escapeHtml(nomeOuDetalheEvento(ultimo)) : ""}</span><button type="button" data-mj="desfazer">Desfazer</button>`
+    ? `<span>Guardado: <b>${escapeHtml(formatarMinuto(ultimo))} ${escapeHtml(VFN.rotuloEvento(ultimo))}</b>${ultimo.equipa ? " · " + escapeHtml(nomeOuDetalheEvento(ultimo)) : ""}</span><button type="button" data-mj="desfazer">Desfazer</button>`
     : "";
 }
 
@@ -137,6 +145,8 @@ function mjAbrirForm(tipo) {
   const crono = mjCronoMinuto();
   const minuto = tipo === "Intervalo" ? (crono && crono.minuto > 45 ? 90 : 45) : crono ? crono.minuto : modoJogo.ultimoMinuto;
   modoJogo.rascunho = { tipo, equipa, minuto, acrescimo: tipo !== "Intervalo" && crono && crono.acrescimo ? crono.acrescimo : "", jogadorId: "", jogadorSaiId: "", assistId: "", detalhe: "", autogolo: false };
+  // "Penálti Defendido": penálti do adversário, defendido, com o GR que está em campo (pode ser mudado)
+  if (tipo === "Penálti Defendido") Object.assign(modoJogo.rascunho, { tipo: "Penalty Falhado", equipa: "Adversário", defendido: true, guardaRedesId: guardaRedesEmCampo(minuto) || "" });
   const def = MODO_JOGO_TIPOS.find(t => t.tipo === tipo) || {};
   mjEl("mjFormTitulo").textContent = `${def.icone || ""} ${def.rotulo || tipo}`;
   mjEl("mjErro").textContent = "";
@@ -283,22 +293,41 @@ function mjCamposGolo(r) {
 
 function mjLerCamposExtra(r) {
   if (mjEl("mjSuspensao")) r.suspensao_jogos = Math.max(1, Number(mjEl("mjSuspensao").value) || 1);
+  if (mjEl("mjDefendido")) r.defendido = mjEl("mjDefendido").checked;
+  if (mjEl("mjGR")) r.guardaRedesId = mjEl("mjGR").value ? Number(mjEl("mjGR").value) : "";
   if (r.tipo !== "Golo" || !mjEl("mjCampos").querySelector(".zonas-golo")) return;
   Object.assign(r, VFNComp.lerZonasGolo(mjEl("mjCampos"), "mj"));
 }
 
 /** Vermelho do VFN: jogos de suspensão (1 automático; mais se a decisão disciplinar o fixar). */
 function mjCamposCartao(r) {
+  if (r.tipo === "Penalty Falhado") return mjCamposPenalti(r);
   if (r.tipo !== "Cartão Vermelho" || r.equipa !== "VFN") return "";
   return mjCampo("Jogos de suspensão", `<input type="number" id="mjSuspensao" inputmode="numeric" min="1" max="20" value="${Number(r.suspensao_jogos) || 1}">`, "mjSuspensao");
 }
 
+/** Penálti falhado (v1.1): "Defendido" e, num penálti do adversário defendido, o guarda-redes do VFN. */
+function mjCamposPenalti(r) {
+  const adversario = r.equipa === "Adversário";
+  let html = `<label class="mj-check"><input type="checkbox" id="mjDefendido" ${r.defendido ? "checked" : ""}> Defendido ${adversario ? "pelo guarda-redes do VFN" : "pelo guarda-redes adversário"}</label>`;
+  if (adversario && r.defendido) {
+    const ids = [...new Set([...jogadoresEmCampo(), ...(r.guardaRedesId ? [Number(r.guardaRedesId)] : [])])];
+    html += mjCampo("Guarda-redes que defendeu", mjSelect("mjGR", r.guardaRedesId || guardaRedesEmCampo(r.minuto), ids), "mjGR");
+  }
+  return html;
+}
+
 function mjValidarExtra(r) {
+  if (r.tipo === "Penalty Falhado" && r.defendido && r.equipa === "Adversário" && !r.guardaRedesId && jogadoresEmCampo().length) return "Escolhe o guarda-redes que defendeu.";
   return r.tipo === "Golo" && !r.zona_golo ? "Escolhe a zona do golo." : "";
 }
 
 function mjCompletarEvento(ev, r) {
   if (ev.tipo === "Cartão Vermelho" && ev.equipa === "VFN") ev.suspensao_jogos = Math.max(1, Number(r.suspensao_jogos) || 1);
+  if (ev.tipo === "Penalty Falhado" && r.defendido) {
+    ev.defendido = true;
+    if (ev.equipa === "Adversário" && r.guardaRedesId) ev.guardaRedesId = r.guardaRedesId;
+  }
   if (r.tipo !== "Golo") return;
   ev.zona_golo = r.zona_golo || "";
   ev.zona_origem = r.zona_origem || "";

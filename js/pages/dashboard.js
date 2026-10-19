@@ -250,7 +250,8 @@ function renderRankingGR() {
     <ol class="ranking-gr">${lista.map(({ j, gr }, i) => `<li class="${i === 0 ? "lider" : ""}">
       <span class="player-cell">${VFN.avatarJogador(j, "avatar-sm")}<span>${esc(j.nome)}</span></span>
       <span class="rgr-num"><strong>${gr.jogosZero}</strong><small>jogos a zero</small></span>
-      <span class="rgr-num"><strong>${gr.mediaSofridos.toFixed(2).replace(".", ",")}</strong><small>sofridos/jogo</small></span></li>`).join("")}</ol>`;
+      <span class="rgr-num"><strong>${gr.mediaSofridos.toFixed(2).replace(".", ",")}</strong><small>sofridos / jogo</small></span>
+      <span class="rgr-num"><strong>${gr.penaltisDefendidos}</strong><small>pen. defendidos</small></span></li>`).join("")}</ol>`;
 }
 
 let graficoPosicoesDash = null;
@@ -265,7 +266,7 @@ function abrirJogador(id) {
   $("mjPosicoes").innerHTML = VFN.posicaoDetalhadaHTML(j.posicao, j.subPosicao, j.posicoesSecundarias);
   const gr = statsGR(j);
   $("mjStatsPrincipais").innerHTML = (gr
-    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["Minutos", j.minutos]]
+    ? [["Jogos", j.jogos], ["🧤 Jogos a Zero", gr.jogosZero], ["⏱️ Min. sem sofrer", gr.minutosZero], ["📉 Sofridos/jogo", gr.mediaSofridos.toFixed(2).replace(".", ",")], ["🥅 Pen. defendidos", gr.penaltisDefendidos], ["Minutos", j.minutos]]
     : [["Jogos", j.jogos], ["Golos", j.golos], ["Assist.", j.assistencias], ["Minutos", j.minutos]])
     .map(([l, v]) => `<div class="player-modal-stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
 
