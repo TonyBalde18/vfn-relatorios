@@ -221,6 +221,21 @@
     return r.status || (r.match_data || {})._status || "published";
   }
 
+  /*
+   * Estados (v1.1): "draft" (rascunho, só no admin) → "ficha_publicada" (ficha do jogo: onze, eventos, minutos;
+   * conta para as estatísticas, sem a análise) → "published" (relatório completo, com a análise).
+   */
+  const ESTADOS_RELATORIO = { draft: "Rascunho", ficha_publicada: "Ficha publicada", published: "Publicado" };
+  /** Visível fora do admin e conta para as estatísticas (ficha publicada ou relatório completo). */
+  const relatorioVisivel = r => { const e = estadoRelatorio(r); return e === "published" || e === "ficha_publicada"; };
+  /** Tem a análise da equipa técnica (só o relatório completo). */
+  const relatorioComAnalise = r => estadoRelatorio(r) === "published";
+  /** Badge do estado: Rascunho (amarelo), Ficha publicada (azul), Publicado (verde). */
+  function badgeEstadoRelatorio(estado) {
+    const cls = { draft: "rascunho", ficha_publicada: "ficha", published: "publicado" }[estado] || "rascunho";
+    return `<span class="estado-relatorio ${cls}">${ESTADOS_RELATORIO[estado] || ESTADOS_RELATORIO.draft}</span>`;
+  }
+
   /** Jogadores a quem o último amarelo completou um ciclo de 5 e que ainda não estão suspensos. */
 
   const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -1735,7 +1750,7 @@
 
   window.VFN = {
     FORMACOES, FORMACOES_SLOTS, COMPETICOES, COMPETICOES_CLASSIFICACAO, COMPETICOES_SEM_VFN, COMPETICOES_JORNADAS, COMPETICOES_TABELA, COMPETICOES_SELETOR, semVFN,
-    DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
+    DISPONIBILIDADE, badgeDisponibilidade, estadoRelatorio, ESTADOS_RELATORIO, relatorioVisivel, relatorioComAnalise, badgeEstadoRelatorio, CAPITAES, capitaoAutomatico, badgeCapitao, COMPETICOES_ELIMINATORIAS, FASES_TACA, eliminatorias, faseDoJogo, nomeFase, numeroFase, etiquetaJornada, rotuloJornada, heatmapPresencasHTML,
     TIPOS_MULTA, ID_JOIA, ID_FALTA_TREINO, definirTiposMulta, tipoMultaPorId, STAFF_PADRAO, pessoaStaff, pessoaPorId, normalizarMultas, linhaMultaParaBD, ePenaltiDefendidoPeloVFN, rotuloEvento, TIPO_CONTRIBUICAO, eContribuicao, resumoMultas, resumoMultasHTML, nomeNaMulta, celulaContribuidorHTML, infracaoMultaHTML, estadoMultaHTML, aniversariantes, formatoEuro, tipoMulta, rotuloMulta, valorMultaHTML, MESES_CURTOS, MESES_LONGOS,
     escapeHtml, novoId, slug, icone, hidratarIcones, anim, ordenarTabela,
     ordenarPorPosicao, folhaPresencas, folhaMultas, folhaDividas, exportarXlsx,

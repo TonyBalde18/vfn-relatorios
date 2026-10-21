@@ -334,7 +334,7 @@ function renderTabelaStats() {
 /** Um relatório por jogo: o mais recente (o Word pode ter sido gerado várias vezes). */
 function relatoriosUnicos() {
   const porJogo = new Map();
-  dados.match_reports.filter(r => VFN.estadoRelatorio(r) === "published").forEach(r => {
+  dados.match_reports.filter(VFN.relatorioVisivel).forEach(r => { // ficha publicada ou relatório completo
     const m = r.match_data || {};
     const pre = m.preJogo || {};
     const chave = pre.matchId || `${pre.data || ""}|${pre.adversario || ""}|${r.id}`;
@@ -393,7 +393,7 @@ function renderRelatoriosPublicados() {
     const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
     return `<button type="button" class="relatorios-item${relatorioAberto && String(relatorioAberto.id) === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
-      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
+      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>${VFN.relatorioComAnalise(r) ? "" : " " + VFN.badgeEstadoRelatorio("ficha_publicada")}
       <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("");
@@ -402,7 +402,7 @@ function renderRelatoriosPublicados() {
 /** Abre um relatório publicado na vista Histórico. */
 function abrirRelatorio(id) {
   const r = dados.match_reports.find(x => String(x.id) === String(id));
-  if (!r || VFN.estadoRelatorio(r) !== "published") return;
+  if (!r || !VFN.relatorioVisivel(r)) return;
   relatorioAberto = relatorioCompleto(r);
   document.querySelectorAll(".modal-overlay").forEach(m => { m.hidden = true; });
   mostrarVista("relatorios");

@@ -46,7 +46,7 @@ async function carregarDados() {
   dados.matches = VFN.normalizarLinhas(dados.matches);
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
   // relatórios: só os publicados (a RLS já filtra; o admin vê todos)
-  dados.match_reports = dados.match_reports.filter(r => VFN.estadoRelatorio(r) === "published");
+  dados.match_reports = dados.match_reports.filter(VFN.relatorioVisivel); // ficha publicada ou relatório completo (v1.1)
   jogadores = dados.players.map(p => ({ ...H.jogadorDeLinha(p), eEu: !!p.e_eu }));
   eu = jogadores.find(j => j.eEu) || null;
   VFN.definirTiposMulta(dados.fine_types);
@@ -482,7 +482,7 @@ function renderRelatorios() {
     const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
     return `<button type="button" class="relatorios-item${relatorioAberto === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
       <span class="form-chip form-${v}">${v}</span>
-      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>
+      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>${VFN.relatorioComAnalise(r) ? "" : " " + VFN.badgeEstadoRelatorio("ficha_publicada")}
       <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
     </button>`;
   }).join("") : H.vazio("Ainda não há relatórios publicados.");

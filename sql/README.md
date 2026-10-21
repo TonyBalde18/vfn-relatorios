@@ -21,6 +21,7 @@ Tudo corre à mão no **SQL Editor do Supabase**. A app nunca altera o schema. O
 | 13 | `migrations/v25_players_equipa_posicoes.sql` | `players_equipa` com `sub_posicao` e `posicoes_secundarias` (posições secundárias na ficha da Área do Jogador). | aplicado (verificado 14/10/2026) |
 | 14 | `migrations/v26_contribuicoes.sql` | Contribuições voluntárias em `fines` (`kind`, `contributor_name`): somam ao total arrecadado, não são multas. | por correr |
 | 15 | `migrations/v27_relatorios_duplicados.sql` | Mostra os relatórios repetidos do mesmo jogo; apagá-los e o índice único são opcionais (comentados). | por correr (diagnóstico) |
+| 16 | `migrations/v28_ficha_publicada.sql` | Estado `ficha_publicada` nos relatórios (regra do status, leitura para staff/jogadores e view `onze_jogos`). | por correr |
 
 ## Convenções
 

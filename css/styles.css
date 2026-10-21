@@ -1101,6 +1101,9 @@ button.jj-centro:focus-visible, button.result-score:focus-visible { outline: 2px
 .estado-relatorio { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .estado-relatorio.rascunho { background: #fef3c7; color: #92400e; }
 .estado-relatorio.publicado { background: #dcfce7; color: #166534; }
+.estado-relatorio.ficha { background: #dbeafe; color: #1e40af; } /* v1.1: ficha publicada (azul) */
+html.tema-escuro .estado-relatorio.ficha { background: rgba(59, 130, 246, .2); color: #93C5FD; }
+.rs-sem-analise, .rel-sem-analise { display: flex; align-items: center; gap: 6px; margin: 10px 0; font-size: .85rem; }
 .row-actions-livre .estado-relatorio { margin-left: 2px; }
 .relatorios-grid { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 18px; align-items: start; }
 .relatorios-lista { display: flex; flex-direction: column; gap: 6px; }

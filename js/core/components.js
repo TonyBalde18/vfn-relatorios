@@ -699,7 +699,7 @@
     (dados.match_reports || []).forEach(r => {
       const m = (r && r.match_data) || {};
       const id = String(r.match_id || (m.preJogo || {}).matchId || "");
-      if (!ids.has(id) || VFN.estadoRelatorio(r) !== "published" || !m.jogo) return;
+      if (!ids.has(id) || !VFN.relatorioVisivel(r) || !m.jogo) return; // ficha publicada ou relatório completo
       const atual = porJogo.get(id);
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(id, r);
     });

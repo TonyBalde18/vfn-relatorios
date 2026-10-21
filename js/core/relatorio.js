@@ -30,7 +30,7 @@
     const casa = pre.casaFora !== "Fora";
     const seccoes = SECCOES.map(([k, t]) => ({ titulo: t, avaliacao: AVALIACAO[((an.seccoes || {})[k] || {}).avaliacao] || "", texto: ((an.seccoes || {})[k] || {}).texto || "" })).filter(s => s.avaliacao || s.texto);
     const golos = eventos.filter(e => e.tipo === "Golo" || e.tipo === "Auto-golo").map(e => ({ min: minuto(e), vfn: (e.tipo === "Golo") === (e.equipa === "VFN"), texto: e.equipa === "VFN" ? nome(e.jogadorId) + (e.assistId ? ` (assist. ${nome(e.assistId)})` : "") : (e.detalhe || "Adversário") + (e.tipo === "Auto-golo" ? " (autogolo)" : "") }));
-    return {
+    const d = {
       competicao: r.competition || pre.competicao || "",
       jornada: pre.jornada || "",
       data: r.match_date || pre.data || "",
@@ -64,6 +64,14 @@
       // momentos do jogo avaliados como Mau/Médio: a origem dos tópicos para o treino
       aTrabalhar: seccoes.filter(s => s.avaliacao === "Mau" || s.avaliacao === "Médio")
     };
+    // v1.1: ficha publicada — sem a análise (só a ficha do jogo: onze, eventos, marcadores) e com os minutos jogados
+    d.comAnalise = VFN.estadoRelatorio(r) !== "ficha_publicada";
+    if (!d.comAnalise) Object.assign(d, { sintese: "", primeiroTempo: "", segundoTempo: "", destaques: "", seccoes: [], adversarioAnalise: {}, notasPreviasAdversario: "", topicos: "", aTrabalhar: [] });
+    const H = window.VFNHub;
+    d.minutos = !d.comAnalise && H && H.minutosDoRelatorio
+      ? Object.entries(H.minutosDoRelatorio(m)).map(([id, min]) => ({ nome: nome(id), min: Math.round(min) })).filter(x => x.nome !== "—" && x.min > 0).sort((a, b) => b.min - a.min)
+      : [];
+    return d;
   }
 
   /** "VFN: Toneca 12', Marco 60' · Adversário: 45'" (vazio sem golos). */
@@ -114,14 +122,15 @@
       ${d.marcadores ? `<p class="rel-marcadores">${VFN.icone("bola", 14)} ${esc(d.marcadores)}</p>` : ""}
       ${blocoTexto("Síntese", d.sintese, "rel-sintese")}
       ${d.primeiroTempo || d.segundoTempo ? `<section class="rel-bloco"><h4>Evolução do Jogo</h4>${subTexto("1.ª parte", d.primeiroTempo)}${subTexto("2.ª parte", d.segundoTempo)}</section>` : ""}
-      ${d.destaques || situacoesDe(r).length ? `<section class="rel-bloco"><h4>Momentos e Situações</h4>${paragrafos(d.destaques).map(p => `<p>${esc(p)}</p>`).join("")}${situacoesGaleria(r)}</section>` : ""}
+      ${!d.comAnalise ? `<p class="rel-sem-analise muted">${VFN.icone("info", 16)} Análise não disponível para este jogo (ficha publicada).</p>` : ""}
+      ${d.comAnalise && (d.destaques || situacoesDe(r).length) ? `<section class="rel-bloco"><h4>Momentos e Situações</h4>${paragrafos(d.destaques).map(p => `<p>${esc(p)}</p>`).join("")}${situacoesGaleria(r)}</section>` : ""}
       ${d.seccoes.length || temAdversario(d) ? `<section class="rel-bloco"><h4>Análise Tática</h4>${d.seccoes.map(s => `<div class="rel-seccao"><h5>${esc(s.titulo)}${s.avaliacao ? ` <span class="rel-aval aval-${esc(s.avaliacao)}">${esc(s.avaliacao)}</span>` : ""}</h5>${paragrafos(s.texto).map(p => `<p>${esc(p)}</p>`).join("")}</div>`).join("")}${adversarioHTML(d)}</section>` : ""}
       ${d.topicos ? `<section class="rel-bloco"><h4>Tópicos para o Treino</h4>${d.aTrabalhar.length ? `<p class="rel-origem">A partir de: ${esc(textoATrabalhar(d.aTrabalhar))}</p>` : ""}<ol>${paragrafos(d.topicos).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : ""}
       <section class="rel-bloco"><h4>Ficha do Jogo</h4>
       <div class="rel-grelha">
         <div>
           ${d.formacao ? `<p><strong>Formação:</strong> ${esc(d.formacao)}${d.formacaoAdv ? ` · adversário ${esc(d.formacaoAdv)}` : ""}</p>` : ""}
-          ${lista("Onze inicial", d.onze)}${lista("Suplentes", d.suplentes)}
+          ${lista("Onze inicial", d.onze)}${lista("Suplentes", d.suplentes)}${lista("Minutos jogados", d.minutos.map(x => `${x.nome} ${x.min}'`))}
           ${d.substituicoes.length ? `<div class="rel-lista"><h5>Substituições</h5><ul>${d.substituicoes.map(s => `<li>${esc(s.min)} ${esc(s.sai)} ↘ ${esc(s.entra)} ↗</li>`).join("")}</ul></div>` : ""}
         </div>
         <div>
@@ -206,7 +215,7 @@
       if (d.segundoTempo) corpo.push(subtitulo("2.ª parte"), ...texto(d.segundoTempo));
     }
     // 4. Momentos e situações
-    const situacoes = await situacoesParaWord(r, ctx.cliente, null);
+    const situacoes = d.comAnalise ? await situacoesParaWord(r, ctx.cliente, null) : []; // ficha publicada: sem as situações (análise)
     if (d.destaques || situacoes.length) corpo.push(titulo("Momentos e Situações"), ...texto(d.destaques), ...situacoes);
     // 5. Análise tática: os 5 momentos e o adversário
     if (d.seccoes.length || temAdversario(d)) {
@@ -226,6 +235,7 @@
       if (d.aTrabalhar.length) corpo.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "A partir de: " + textoATrabalhar(d.aTrabalhar), italics: true, size: 18, color: CINZA })] }));
       paragrafos(d.topicos).forEach((t, i) => corpo.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: `${i + 1}. ${t}`, size: 20 })] })));
     }
+    if (!d.comAnalise) corpo.push(...texto("Análise não disponível para este jogo (ficha publicada)."));
     // anexo: ficha do jogo
     corpo.push(titulo("Ficha do Jogo"));
     if (d.formacao) corpo.push(linha("Formação", d.formacao + (d.formacaoAdv ? `  (adversário: ${d.formacaoAdv})` : "")));
@@ -235,6 +245,7 @@
     corpo.push(linha("Golos", d.golos.length ? d.golos.map(g => `${g.min} ${g.texto}${g.vfn ? "" : " [adv.]"}`).join("; ") : "—"));
     if (d.amarelos.length) corpo.push(linha("Amarelos", d.amarelos.map(c => `${c.min} ${c.nome}`).join("; ")));
     if (d.vermelhos.length) corpo.push(linha("Vermelhos", d.vermelhos.map(c => `${c.min} ${c.nome}`).join("; ")));
+    if (d.minutos.length) corpo.push(linha("Minutos jogados", d.minutos.map(x => `${x.nome} ${x.min}'`).join(", ")));
     const doc = new Document({
       styles: { default: { document: { run: { font: "Calibri", size: 20 } } } },
       sections: [{ properties: { page: { margin: { top: 900, bottom: 900, left: 1000, right: 1000 } } }, footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "ACD Vila Franca das Naves · Relatório de jogo · Época 2026/27", size: 16, color: CINZA })] })] }) }, children: corpo }]

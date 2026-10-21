@@ -1521,7 +1521,7 @@ function logoPorId(id, nome) {
 
 function botaoRelatorio(j) {
   const r = relatorioDoJogoAdmin(j.id);
-  const estado = r ? (estadoDoRelatorio(r) === "published" ? '<span class="estado-relatorio publicado">Publicado</span>' : '<span class="estado-relatorio rascunho">Rascunho</span>') : "";
+  const estado = r ? VFN.badgeEstadoRelatorio(estadoDoRelatorio(r)) : "";
   return `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(j.id)}" title="${r ? "Abrir relatório" : "Fazer relatório"}">${VFN.icone(r ? "file-pen" : "file-plus", 16)} ${r ? "Relatório" : "Fazer Relatório"}</button>${estado}`;
 }
 
@@ -2039,27 +2039,66 @@ function guardarRelatorioDoJogo() {
   return gravacaoRelatorio;
 }
 
+/*
+ * Estados do relatório (v1.1): rascunho (só no admin) → ficha publicada (onze, eventos, minutos; conta para as
+ * estatísticas, sem a análise) → publicado (relatório completo). Os dois botões do cabeçalho mostram a próxima
+ * ação e a alternativa: rascunho → [Publicar ficha] [Publicar relatório completo]; ficha → [Publicar relatório
+ * completo] [Voltar a rascunho]; publicado → [Retirar análise] [Voltar a rascunho].
+ */
+const ACOES_ESTADO = {
+  draft: [["ficha_publicada", "send", "Publicar ficha"], ["published", "file-check", "Publicar relatório completo"]],
+  ficha_publicada: [["published", "file-check", "Publicar relatório completo"], ["draft", "undo-2", "Voltar a rascunho"]],
+  published: [["ficha_publicada", "file-minus", "Retirar análise (ficha)"], ["draft", "undo-2", "Voltar a rascunho"]]
+};
+
 function renderEstadoRelatorio() {
-  const badge = el("estadoRelatorio"), botao = el("btnPublicar");
+  const badge = el("estadoRelatorio"), botoes = [el("btnPublicar"), el("btnPublicarAlt")];
   if (!badge) return;
   const ligado = !!state.preJogo.matchId;
+  const estado = ACOES_ESTADO[state.estadoRelatorio] ? state.estadoRelatorio : "draft";
   badge.hidden = !ligado;
-  botao.hidden = !ligado;
-  const publicado = state.estadoRelatorio === "published";
-  badge.className = `estado-relatorio ${publicado ? "publicado" : "rascunho"}`;
-  badge.textContent = publicado ? "Publicado" : "Rascunho";
-  botao.innerHTML = publicado ? `${VFN.icone("undo-2", 18)} Voltar a rascunho` : `${VFN.icone("send", 18)} Publicar`;
+  badge.className = `estado-relatorio ${{ draft: "rascunho", ficha_publicada: "ficha", published: "publicado" }[estado]}`;
+  badge.textContent = VFN.ESTADOS_RELATORIO[estado];
+  ACOES_ESTADO[estado].forEach(([destino, icone, texto], i) => {
+    const b = botoes[i];
+    if (!b) return;
+    b.hidden = !ligado;
+    b.dataset.estado = destino;
+    b.className = `btn ${i === 0 && destino !== "draft" ? "btn-accent" : "btn-ghost"}`;
+    b.innerHTML = `${VFN.icone(icone, 18)} ${texto}`;
+  });
   if (typeof renderResultados === "function" && el("resultadosLista")) renderResultados();
   if (el("relatoriosBody")) renderRelatoriosAdmin();
 }
 
-async function alternarPublicacao() {
-  if (!state.preJogo.matchId) return;
-  const publicar = state.estadoRelatorio !== "published";
-  if (publicar && !confirm("Publicar este relatório? Fica visível para o treinador e os dirigentes no Dashboard.")) return;
-  state.estadoRelatorio = publicar ? "published" : "draft";
+/** A ficha do jogo está preenchida (há onze inicial)? */
+const fichaPreenchida = () => state.jogo.titulares.some(Boolean);
+/** Há análise (síntese, evolução, momentos, análise tática ou tópicos para o treino)? */
+function analisePreenchida() {
+  const a = state.analise || {};
+  const textos = [a.sintese, a.primeiroTempo, a.segundoTempo, a.destaques, a.topicosTreino, ...Object.values(a.seccoes || {}).map(s => (s || {}).texto)];
+  return textos.some(t => String(t || "").trim());
+}
+
+async function mudarEstadoRelatorio(destino) {
+  if (!state.preJogo.matchId || !ACOES_ESTADO[destino]) return;
+  const anterior = state.estadoRelatorio;
+  if (destino !== "draft" && !fichaPreenchida()) { alert("Para publicar, preenche primeiro a ficha do jogo (o onze inicial no separador Jogo)."); return; }
+  if (destino === "published" && !analisePreenchida()) { alert("O relatório completo precisa da análise (separador Análise). Sem análise, publica só a ficha."); return; }
+  const perguntas = {
+    ficha_publicada: anterior === "published"
+      ? "Retirar a análise? O relatório volta a ficha publicada: o onze, os eventos e os minutos continuam visíveis e a contar."
+      : "Publicar a ficha do jogo? O onze, os eventos e os minutos ficam visíveis para a equipa técnica, os dirigentes e os jogadores e contam para as estatísticas. A análise não é publicada.",
+    published: "Publicar o relatório completo? Fica tudo visível, incluindo a análise, para a equipa técnica, os dirigentes e os jogadores.",
+    draft: "Voltar a rascunho? O relatório deixa de estar visível fora do admin e de contar nas estatísticas calculadas pelos relatórios (o resultado no calendário mantém-se)."
+  };
+  if (!confirm(perguntas[destino])) return;
+  state.estadoRelatorio = destino;
+  // publicar (ficha ou completo): jogos e minutos passam a contar no plantel, como ao gerar o Word
+  const publicar = destino !== "draft";
+  if (publicar && !state.jogo.presencasAplicadas) { state.jogo.presencasAplicadas = true; sincronizarStatsJogadores(); }
   const gravado = await guardarRelatorioDoJogo();
-  if (!gravado) { state.estadoRelatorio = publicar ? "draft" : "published"; alert("Não foi possível alterar o estado do relatório."); }
+  if (!gravado) { state.estadoRelatorio = anterior; alert("Não foi possível alterar o estado do relatório."); }
   else if (publicar) await registarResultadoNoCalendario(); // resultado e marcadores ficam no calendário (públicos)
   renderEstadoRelatorio();
 }
@@ -2105,14 +2144,15 @@ function renderRelatoriosAdmin() {
     .sort((a, b) => String(b.d.data || "").localeCompare(String(a.d.data || "")));
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Ainda não há relatórios. Abre um jogo em Resultados e clica em "Relatório".</td></tr>'; return; }
   tbody.innerHTML = lista.map(({ r, d, matchId }) => {
-    const pub = estadoDoRelatorio(r) === "published";
+    const estado = estadoDoRelatorio(r);
+    const acao = { draft: "Continuar", ficha_publicada: "Completar relatório", published: "Abrir" }[estado] || "Abrir";
     return `<tr>
       <td data-v="${escapeHtml(d.data || "")}">${escapeHtml(VFN.dataDDMMAAAA(d.data) || "—")}</td>
       <td>${escapeHtml(d.adversario)}</td>
       <td data-v="${escapeHtml(VFN.nomeCurtoCompeticao(d.competicao) || "")}"><span class="comp-dica" tabindex="0" title="${escapeHtml(d.competicao || "")}" aria-label="${escapeHtml(d.competicao || "Competição")}">${VFN.nomeCompeticaoHTML(d.competicao, true)}</span></td>
       <td class="num">${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN}</td>
-      <td><span class="estado-relatorio ${pub ? "publicado" : "rascunho"}">${pub ? "Publicado" : "Rascunho"}</span></td>
-      <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}">${VFN.icone("file-pen", 16)} Abrir</button>` : '<span class="muted">sem jogo associado</span>'}</td>
+      <td>${VFN.badgeEstadoRelatorio(estado)}</td>
+      <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}" title="${estado === "draft" ? "Continuar o rascunho" : estado === "ficha_publicada" ? "Acrescentar a análise e publicar o relatório completo" : "Abrir o relatório"}">${VFN.icone("file-pen", 16)} ${acao}</button>` : '<span class="muted">sem jogo associado</span>'}</td>
     </tr>`;
   }).join("");
 }
@@ -2213,7 +2253,7 @@ function initSituacoes() {
 }
 
 function initRelatorios() {
-  el("btnPublicar").addEventListener("click", alternarPublicacao);
+  ["btnPublicar", "btnPublicarAlt"].forEach(id => el(id).addEventListener("click", e => mudarEstadoRelatorio(e.currentTarget.dataset.estado)));
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-abrir-relatorio]");
     if (b) abrirRelatorioDoJogo(b.dataset.abrirRelatorio);

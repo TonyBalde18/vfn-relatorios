@@ -616,7 +616,7 @@
    */
   function minutosJogadosEpoca(dados, jogadorDoRelatorio) {
     const porJogo = new Map();
-    (dados.match_reports || []).filter(r => VFN.estadoRelatorio(r) === "published").forEach(r => {
+    (dados.match_reports || []).filter(VFN.relatorioVisivel).forEach(r => {
       const m = r.match_data || {}, pre = m.preJogo || {};
       const chave = r.match_id || pre.matchId || `${pre.data || ""}|${pre.adversario || ""}|${r.id}`;
       const atual = porJogo.get(chave);
@@ -690,7 +690,7 @@
     (relatorios || []).forEach(r => {
       if (!r) return;
       const jogo = r.match_data ? (r.match_data.jogo || {}) : { formacaoVFN: r.formacao, titulares: r.titulares, eventos: r.substituicoes, duracaoJogo: r.duracao };
-      if (r.match_data && VFN.estadoRelatorio(r) !== "published") return;
+      if (r.match_data && !VFN.relatorioVisivel(r)) return; // ficha publicada ou relatório completo (v1.1)
       const comp = r.match_data ? competicaoDoRelatorio(r, dados) : r.competition;
       if (!VFN.competicaoOficial(comp)) return; // como os minutos: só jogos oficiais
       const chave = String(r.match_id || ((r.match_data || {}).preJogo || {}).matchId || r.id || r.report_id);
@@ -944,7 +944,7 @@
   function relatoriosOficiaisPorJogo(dados) {
     const porJogo = new Map();
     (dados.match_reports || []).forEach(r => {
-      if (VFN.estadoRelatorio(r) !== "published" || !(r.match_data || {}).jogo || !relatorioOficial(r, dados)) return;
+      if (!VFN.relatorioVisivel(r) || !(r.match_data || {}).jogo || !relatorioOficial(r, dados)) return;
       const chave = String(r.match_id || (r.match_data.preJogo || {}).matchId || "r:" + r.id);
       const atual = porJogo.get(chave);
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
@@ -1022,7 +1022,7 @@
     const porJogo = new Map();
     (dados.match_reports || []).forEach(r => {
       const m = r && r.match_data;
-      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas)) return;
+      if (!m || !m.jogo || !(VFN.relatorioVisivel(r) || m.jogo.presencasAplicadas)) return;
       const chave = String(r.match_id || (m.preJogo || {}).matchId || r.id);
       const atual = porJogo.get(chave);
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
@@ -1075,7 +1075,7 @@
     const porJogo = new Map();
     (matchReports || []).forEach(r => {
       const m = r && r.match_data;
-      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
+      if (!m || !m.jogo || !(VFN.relatorioVisivel(r) || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
       const chave = String(r.match_id || (m.preJogo || {}).matchId || r.id);
       const atual = porJogo.get(chave);
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);
@@ -1129,7 +1129,7 @@
     const id = String(jogador.idBD || jogador.id);
     const eDele = opcoes.eDoJogador || (idLocal => String(idLocal) === id || id.endsWith("-" + idLocal) || String(jogador.id) === String(idLocal));
     const t = { golos: null, minutos: null, cartoes: null, presencas: null };
-    const relatorios = (dados.match_reports || []).filter(r => VFN.estadoRelatorio(r) === "published" && (r.match_data || {}).jogo)
+    const relatorios = (dados.match_reports || []).filter(r => VFN.relatorioVisivel(r) && (r.match_data || {}).jogo)
       .map(r => ({ r, data: (r.match_data.preJogo || {}).data || r.match_date || "" })).filter(x => x.data)
       .sort((a, b) => String(b.data).localeCompare(String(a.data)));
     if (relatorios.length >= 2) {
@@ -1541,7 +1541,7 @@
   function relatorioDoJogo(dados, matchId) {
     const lista = (dados.match_reports || []).filter(r => r.match_id === matchId || ((r.match_data || {}).preJogo || {}).matchId === matchId);
     const recente = l => [...l].sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))[0] || null;
-    return recente(lista.filter(r => VFN.estadoRelatorio(r) === "published")) || recente(lista);
+    return recente(lista.filter(VFN.relatorioComAnalise)) || recente(lista.filter(VFN.relatorioVisivel)) || recente(lista);
   }
 
   function eventosDoRelatorio(relatorio, nomeJogador) {
@@ -1618,8 +1618,9 @@
       ${tipo === "vfn" && estado === "jogado" ? resumoJogoHTML(dados, (dados.matches || []).find(m => String(m.id) === id), relatorio, o) : ""}
       <h4 class="perfil-subtitulo">Eventos</h4>
       ${eventos.length ? `<ol class="dj-timeline">${eventos.map(linhaEvento).join("")}</ol>` : vazio(estado === "jogado" ? (tipo === "vfn" ? "Sem eventos registados (ainda não há relatório deste jogo)." : "Sem marcadores registados.") : "O jogo ainda não se realizou.")}
-      ${tipo === "vfn" && relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.relatorioCompleto ? `<details class="rs-relatorio"><summary>${VFN.icone("file-text", 16)} Relatório completo <small class="muted">análise da equipa técnica</small></summary><div class="rs-relatorio-corpo" data-relatorio-completo="${esc(relatorio.id)}">${o.relatorioCompleto(relatorio)}</div></details>` : ""}
-      ${relatorio && VFN.estadoRelatorio(relatorio) === "published" && o.verRelatorio && !o.relatorioCompleto ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} Ver Relatório</button></div>` : ""}`;
+      ${tipo === "vfn" && relatorio && VFN.relatorioVisivel(relatorio) && !VFN.relatorioComAnalise(relatorio) ? `<p class="muted rs-sem-analise">${VFN.icone("info", 16)} Análise não disponível para este jogo (ficha publicada).</p>` : ""}
+      ${tipo === "vfn" && relatorio && VFN.relatorioVisivel(relatorio) && o.relatorioCompleto ? `<details class="rs-relatorio"><summary>${VFN.icone("file-text", 16)} ${VFN.relatorioComAnalise(relatorio) ? 'Relatório completo <small class="muted">análise da equipa técnica</small>' : 'Ficha do jogo <small class="muted">sem análise</small>'}</summary><div class="rs-relatorio-corpo" data-relatorio-completo="${esc(relatorio.id)}">${o.relatorioCompleto(relatorio)}</div></details>` : ""}
+      ${relatorio && VFN.relatorioVisivel(relatorio) && o.verRelatorio && !o.relatorioCompleto ? `<div class="modal-actions"><button type="button" class="btn btn-ghost" data-ver-relatorio="${esc(relatorio.id)}">${VFN.icone("file-text", 16)} ${VFN.relatorioComAnalise(relatorio) ? "Ver Relatório" : "Ver Ficha"}</button></div>` : ""}`;
   }
 
   /*
@@ -2014,7 +2015,7 @@
       .forEach(j => jogos.set(String(j.id), { data: j.date, competicao: chaveCompeticao(j.competition), relatorio: null }));
     ((dados && dados.match_reports) || []).forEach(r => {
       const m = r && r.match_data;
-      if (!m || !m.jogo || !(VFN.estadoRelatorio(r) === "published" || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
+      if (!m || !m.jogo || !(VFN.relatorioVisivel(r) || m.jogo.presencasAplicadas) || !relatorioOficial(r, dados)) return;
       const chave = String(r.match_id || (m.preJogo || {}).matchId || "r:" + r.id);
       const atual = jogos.get(chave) || { data: (m.preJogo || {}).data || r.match_date || "", competicao: chaveCompeticao(competicaoDoRelatorio(r, dados)), relatorio: null };
       if (!atual.relatorio || String(r.updated_at || "") > String(atual.relatorio.updated_at || "")) atual.relatorio = r;
@@ -2093,7 +2094,7 @@
     const porJogo = new Map();
     (matchReports || []).forEach(r => {
       if (r && r.zona_golo !== undefined && r.tipo) { golos.push(r); return; } // linha da view pública
-      if (!r || VFN.estadoRelatorio(r) !== "published" || !(r.match_data || {}).jogo) return;
+      if (!r || !VFN.relatorioVisivel(r) || !(r.match_data || {}).jogo) return;
       const chave = String(r.match_id || (r.match_data.preJogo || {}).matchId || r.id);
       const atual = porJogo.get(chave);
       if (!atual || String(r.updated_at || "") > String(atual.updated_at || "")) porJogo.set(chave, r);

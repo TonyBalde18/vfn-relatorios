@@ -798,7 +798,7 @@ function usarJogoNoRelatorio(jogo) {
     // v1.1: cada jogo tem um só relatório — cancelar já não cria um segundo rascunho do mesmo jogo
     const existente = typeof relatorioDoJogoAdmin === "function" && relatorioDoJogoAdmin(jogo.id);
     if (existente) {
-      const estado = VFNRelatorio.estadoRelatorio(existente) === "published" ? "publicado" : "rascunho";
+      const estado = VFN.ESTADOS_RELATORIO[VFNRelatorio.estadoRelatorio(existente)].toLowerCase();
       if (confirm(`Este jogo já tem um relatório (${estado}). Abrir esse relatório?\n\nCancelar deixa o formulário como está, sem o associar a este jogo (cada jogo tem um só relatório).`)) { abrirRelatorioDoJogo(jogo.id); return true; }
       renderPreJogo(); // repõe a escolha anterior no Pré-Jogo
       return false;
@@ -1383,12 +1383,12 @@ function sincronizarStatsJogadores() {
  * schema (a view players_equipa não expõe este campo aos jogadores; acrescentar lá quando houver UI).
  */
 function calcularCombinacoes() {
-  const contou = md => !!md && !!md.jogo && (md.jogo.presencasAplicadas || (md._status || md.estadoRelatorio) === "published");
+  const contou = md => !!md && !!md.jogo && (md.jogo.presencasAplicadas || ["published", "ficha_publicada"].includes(md._status || md.estadoRelatorio));
   const porJogo = new Map();
   relatoriosAdmin.forEach(r => {
     const md = r.match_data || {};
     const chave = String((md.preJogo || {}).matchId || r.match_id || "r:" + r.id);
-    if (String(r.id) !== String(state.relatorioId) && (contou(md) || VFN.estadoRelatorio(r) === "published")) porJogo.set(chave, md);
+    if (String(r.id) !== String(state.relatorioId) && (contou(md) || VFN.relatorioVisivel(r))) porJogo.set(chave, md);
   });
   // o relatório aberto substitui a versão gravada do mesmo jogo
   const chaveAtual = String(state.preJogo.matchId || "r:" + (state.relatorioId || "atual"));
