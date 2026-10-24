@@ -2123,7 +2123,7 @@ async function abrirRelatorioDoJogo(matchId) {
   }
   renderTudo();
   renderEstadoRelatorio();
-  document.querySelector('.tab-btn[data-tab="pre-jogo"]').click();
+  VFNNav.irVista("pre-jogo");
 }
 
 function abrirRelatorioPublicado(relatorioId) {
@@ -2628,7 +2628,6 @@ function initAdmin() {
   carregarJogadoresExternos().then(renderJornadasAdmin);
   initAdversarios();
 
-  document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => btn.addEventListener("click", () => abrirTabGestao(btn.dataset.tab)));
   document.querySelectorAll("[data-fechar-modal]").forEach(b => b.addEventListener("click", () => fecharModalAdmin(b.dataset.fecharModal)));
   ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });

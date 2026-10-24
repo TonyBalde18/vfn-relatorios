@@ -8,7 +8,6 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const TITULOS_VISTA = { hub: "Hub", comparar: "Comparar jogadores", convocatoria: "Convocatória", plantel: "Plantel", estatisticas: "Estatísticas", multas: "Multas", presencas: "Presenças", jornadas: "Competições", equipas: "Equipas", h2h: "Confrontos (H2H)", disponibilidade: "Disponibilidade pré-jogo", relatorios: "Relatórios", calendario: "Calendário" };
 const COR_MARCADOS = "#1d4ed8";
 
 let cliente = null;
@@ -48,10 +47,43 @@ async function carregarDados() {
 
 /* ---------- Navegação ---------- */
 
+/* V2.0: Portal · Plantel · Jogo (js/core/nav.js). Multas e Presenças só para dirigentes (e admin), sem edição;
+   o admin faz o Jogo (Modo Jogo e histórico com apagar) e a Gestão no index.html. */
+const STAFF_MULTAS = ["dirigente", "admin"];
+const NAV_DASHBOARD = {
+  subtitulo: "Dashboard 26/27",
+  inicio: "dashboard.html",
+  acoes: `<button id="btnAtualizar" class="btn btn-ghost btn-sm" type="button" title="Atualizar os dados"><i data-icon="refresh-cw" data-size="16"></i><span class="btn-rotulo">Atualizar</span></button>`,
+  seccoes: [
+    { id: "portal", rotulo: "Portal", icone: "house", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "hub" },
+      { id: "calendario", rotulo: "Calendário", vista: "calendario" },
+      { id: "relatorios", rotulo: "Relatórios", vista: "relatorios" },
+      { id: "adversarios", rotulo: "Adversários", vista: "equipas" },
+      { id: "competicoes", rotulo: "Competições", vista: "jornadas" },
+      { id: "convocatoria", rotulo: "Convocatória", vista: "convocatoria" }
+    ] },
+    { id: "plantel", rotulo: "Plantel", icone: "users", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "disponibilidade" },
+      { id: "equipa", rotulo: "Equipa", vista: "plantel" },
+      { id: "estatisticas", rotulo: "Estatísticas", vista: "estatisticas" },
+      { id: "comparar", rotulo: "Comparar", vista: "comparar" },
+      { id: "multas", rotulo: "Multas", vista: "multas", papeis: STAFF_MULTAS },
+      { id: "presencas", rotulo: "Presenças", vista: "presencas", papeis: STAFF_MULTAS }
+    ] },
+    { id: "jogo", rotulo: "Jogo", icone: "goal", href: p => p === "admin" ? "index.html#jogo/ao-vivo" : "", tabs: [
+      { id: "historico", rotulo: "Histórico", vista: "relatorios" }
+    ] },
+    { id: "gestao", rotulo: "Gestão", icone: "wrench", acao: true, papeis: ["admin"], href: "index.html#gestao" }
+  ],
+  links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe", novaJanela: true }],
+  aoMudar: vista => mostrarVista(vista)
+};
+
 function mostrarVista(vista) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
-  document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === vista));
-  $("viewTitle").textContent = TITULOS_VISTA[vista] || vista;
+  VFNNav.marcarVista(vista);
+  window.scrollTo({ top: 0 });
   VFN.anim.seccao($(`view-${vista}`)); // fade-in da secção
   if (vista === "plantel") VFN.anim.cascata($("plantelGrid").children);
   VFN.refreshAOS();
@@ -816,13 +848,9 @@ async function iniciarApp(perfil) {
   $("loginScreen").hidden = true;
   $("appShell").hidden = false;
   const meta = utilizador.user_metadata || {};
-  $("sidebarUserName").textContent = (perfil && perfil.full_name) || meta.full_name || meta.name || utilizador.email;
-  $("sidebarUserRole").textContent = { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "";
-  $("linkAdmin").hidden = !(perfil && perfil.role === "admin");
+  VFNNav.definirUtilizador((perfil && perfil.full_name) || meta.full_name || meta.name || utilizador.email, { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "");
+  VFNNav.definirPapel(perfil && perfil.role); // Multas/Presenças (dirigentes), Gestão e Jogo ao vivo (admin)
   $("atalhoNovoRelatorio").hidden = !(perfil && perfil.role === "admin"); // v1.1 (B5): o editor de relatórios é só do admin
-  // Multas e Presenças: só dirigentes (e admin), sem edição
-  const veMultas = !!perfil && ["dirigente", "admin"].includes(perfil.role);
-  document.querySelectorAll("[data-papel=dirigente]").forEach(b => { b.hidden = !veMultas; });
   if (appIniciada) return;
   appIniciada = true;
   mostrarEsqueletos();
@@ -852,7 +880,6 @@ async function entrarComSessao(sessao) {
 
 async function iniciar() {
   VFN.initAOS();
-  VFN.initSidebar($("appSidebar"), $("btnSidebarToggle"));
   initJornadas();
   initEquipas();
   initRelatoriosPublicados();
@@ -872,7 +899,6 @@ async function iniciar() {
   });
   initMultasPresencasDash();
   initConvocatoriaDash();
-  document.querySelectorAll(".sidebar-nav .nav-item").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   $("statsPosicao").addEventListener("change", renderTabelaStats);
   $("h2hConteudo").addEventListener("click", e => { const c = e.target.closest("[data-h2h-adv]"); if (c) abrirPainelH2H(c.dataset.h2hAdv); });
   $("btnExportarPDF").addEventListener("click", () => VFNComp.abrirExportarRelatorio(dados, { jogadores, jogadorDoRelatorio }));
@@ -885,6 +911,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
+  VFNNav.arrancar(); // vista do endereço (ex.: dashboard.html#plantel/estatisticas)
 
   cliente = VFN.criarClienteSupabase();
   if (!cliente) { mostrarLogin("Supabase não configurado (config.js)."); return; }
@@ -903,4 +930,5 @@ async function iniciar() {
   else mostrarLogin();
 }
 
+VFNNav.montar(NAV_DASHBOARD); // antes dos listeners do iniciar (o #btnLogout e o #btnAtualizar são da nav)
 document.addEventListener("DOMContentLoaded", iniciar);

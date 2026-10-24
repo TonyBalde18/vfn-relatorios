@@ -73,8 +73,37 @@ function pessoa(id) {
 
 /* ---------- Navegação ---------- */
 
+/* V2.0: Portal · Plantel · Jogo (js/core/nav.js) */
+const NAV_EQUIPA = {
+  subtitulo: "Área do jogador",
+  inicio: "equipa.html",
+  acoes: `<button type="button" id="eqAvatar" class="eq-avatar" title="A minha ficha" aria-label="A minha ficha" hidden></button>`,
+  seccoes: [
+    { id: "portal", rotulo: "Portal", icone: "house", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "inicio" },
+      { id: "calendario", rotulo: "Calendário", vista: "calendario" },
+      { id: "relatorios", rotulo: "Relatórios", vista: "relatorios" },
+      { id: "adversarios", rotulo: "Adversários", vista: "adversarios" },
+      { id: "competicoes", rotulo: "Competições", vista: "jornadas" },
+      { id: "convocatoria", rotulo: "Convocatória", vista: "convocatoria" },
+      { id: "multas", rotulo: "Multas", vista: "multas" }
+    ] },
+    { id: "plantel", rotulo: "Plantel", icone: "users", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "disponibilidade" },
+      { id: "estatisticas", rotulo: "Estatísticas", vista: "estatisticas" },
+      { id: "comparar", rotulo: "Comparar", vista: "comparar" }
+    ] },
+    { id: "jogo", rotulo: "Jogo", icone: "goal", tabs: [
+      { id: "historico", rotulo: "Histórico", vista: "relatorios" }
+    ] }
+  ],
+  links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe" }],
+  aoMudar: vista => mostrarVista(vista)
+};
+
 function mostrarVista(vista) {
-  H.ativarVista(vista, ".public-nav button");
+  H.ativarVista(vista);
+  VFNNav.marcarVista(vista);
   VFN.refreshAOS();
 }
 
@@ -509,7 +538,7 @@ function abrirRelatorio(id) {
 function renderCabecalho() {
   $("eqAvatar").innerHTML = eu ? VFN.avatarJogador(eu, "avatar-sm") : VFN.icone("user", 20);
   $("eqAvatar").hidden = !eu;
-  $("eqSubtitulo").textContent = eu ? `${eu.nome}${eu.numero !== "" ? " · #" + eu.numero : ""}` : { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "Equipa técnica";
+  VFNNav.definirUtilizador(eu ? `${eu.nome}${eu.numero !== "" ? " · #" + eu.numero : ""}` : (utilizador && utilizador.email), eu ? "Jogador" : { admin: "Administrador", treinador: "Treinador", dirigente: "Dirigente" }[perfil && perfil.role] || "Equipa técnica");
 }
 
 function renderTudo() {
@@ -593,7 +622,6 @@ async function sair() {
 
 async function iniciar() {
   VFN.initAOS();
-  document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
   initCompeticoes();
   $("eqAvatar").addEventListener("click", () => { if (eu) abrirJogador(eu.id); });
   document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
@@ -628,6 +656,7 @@ async function iniciar() {
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
   setInterval(H.atualizarContagens, 30000);
+  VFNNav.arrancar(); // vista do endereço (ex.: equipa.html#plantel/estatisticas)
   document.addEventListener("vfn:tema", () => { if (eu) { renderGraficosPessoais(); renderFichaCompleta(); } graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") }); }); // cores dos gráficos no tema claro/escuro
   // telemóvel: puxar para atualizar no início (resultados), calendário e competições
   VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
@@ -669,4 +698,5 @@ async function iniciar() {
   else mostrarLogin();
 }
 
+VFNNav.montar(NAV_EQUIPA); // antes dos listeners do iniciar (o #btnLogout e o #eqAvatar são da nav)
 document.addEventListener("DOMContentLoaded", iniciar);

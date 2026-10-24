@@ -2172,12 +2172,13 @@
   /* ---------- Rodapé ---------- */
 
   /**
-   * Navegação por separadores das páginas com .public-nav (Área do Jogador e página pública): mostra a secção
-   * #view-<vista>, marca o botão ativo (aria-current), volta ao topo e anima a entrada. O resto é de cada página.
+   * Navegação por separadores (Área do Jogador e página pública): mostra a secção #view-<vista>, marca o botão
+   * ativo de seletorNav (aria-current; sem seletor: a nav de topo, js/core/nav.js, marca-se sozinha), volta ao
+   * topo e anima a entrada. O resto é de cada página.
    */
   function ativarVista(vista, seletorNav) {
     document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
-    document.querySelectorAll(seletorNav).forEach(b => {
+    if (seletorNav) document.querySelectorAll(seletorNav).forEach(b => {
       const ativo = b.dataset.view === vista;
       b.classList.toggle("active", ativo);
       if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");

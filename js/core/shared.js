@@ -931,7 +931,7 @@
   }
 
   // micro-interação: botões encolhem para 0.97 ao carregar e voltam com mola (GSAP)
-  const SELETOR_PRESSAO = ".btn, .icon-btn, .filter-chip, .seg-control button, .nav-item, .public-nav button, .conv-op, .att-op, .att-cell, .eq-sair, .link-btn";
+  const SELETOR_PRESSAO = ".btn, .icon-btn, .filter-chip, .seg-control button, .nav-item, .public-nav button, .vfn-nav-item, .vfn-sub-item, .vfn-bottom-item, .conv-op, .att-op, .att-cell, .eq-sair, .link-btn";
   function ligarPressao() {
     const largar = e => { const b = e.target.closest && e.target.closest(SELETOR_PRESSAO); if (b && b.dataset.premido) { delete b.dataset.premido; window.gsap.to(b, { scale: 1, duration: 0.6, ease: "elastic.out(1, 0.4)", clearProps: "transform" }); } };
     document.addEventListener("pointerdown", e => {
@@ -1219,12 +1219,9 @@
     aplicarTema();
   }
 
-  /** Botão claro/escuro: nas barras laterais (admin, dashboard), nos cabeçalhos (pública, área do jogador) e nos logins. */
+  /** Botão claro/escuro: no cabeçalho da página pública e nos logins (a nav de topo, js/core/nav.js, tem o seu). */
   function ligarBotoesTema() {
     const botao = classe => `<button type="button" class="tema-btn ${classe}" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo">Tema escuro</span></button>`;
-    // v15: no admin e no dashboard o botão fica no header fixo (sempre visível, também no telemóvel), ao lado do título;
-    // sai do fundo do sidebar, que no telemóvel podia ficar fora do ecrã
-    document.querySelectorAll(".app-header .header-title").forEach(t => t.insertAdjacentHTML("afterend", botao("tema-cabecalho")));
     document.querySelectorAll(".public-header").forEach(h => {
       const antes = h.querySelector(".public-entrar, .eq-avatar, .eq-sair");
       if (antes) antes.insertAdjacentHTML("beforebegin", botao("tema-cabecalho")); else h.insertAdjacentHTML("beforeend", botao("tema-cabecalho"));
@@ -1718,24 +1715,6 @@
 
   /* ---------- Layout ---------- */
 
-  /** Sidebar off-canvas em ecrãs < 768px. */
-  function initSidebar(sidebar, botao) {
-    if (!sidebar || !botao) return;
-    let fundo = document.querySelector(".sidebar-backdrop");
-    if (!fundo) {
-      fundo = document.createElement("div");
-      fundo.className = "sidebar-backdrop";
-      document.body.appendChild(fundo);
-    }
-    const fechar = () => { sidebar.classList.remove("is-open"); fundo.classList.remove("is-visible"); botao.setAttribute("aria-expanded", "false"); };
-    const abrir = () => { sidebar.classList.add("is-open"); fundo.classList.add("is-visible"); botao.setAttribute("aria-expanded", "true"); };
-    botao.addEventListener("click", () => sidebar.classList.contains("is-open") ? fechar() : abrir());
-    fundo.addEventListener("click", fechar);
-    document.addEventListener("keydown", e => { if (e.key === "Escape") fechar(); });
-    sidebar.addEventListener("click", e => { if (e.target.closest(".nav-item") && window.innerWidth < 768) fechar(); });
-    return fechar;
-  }
-
   function initAOS() {
     if (window.AOS) window.AOS.init({ once: true, duration: 450, offset: 10, easing: "ease-out" });
   }
@@ -1764,6 +1743,6 @@
     generateJerseyAvatar, avatarJogador, avatarExterno, fotoCarregou, fotoFalhou, kitJogador, camisolaKitHTML, kitFalhou,
     iniciarCarregamento, terminarCarregamento,
     supabaseConfigurado, criarClienteSupabase, obterPapel, acessoDoUtilizador,
-    initSidebar, initAOS, refreshAOS, fotoEstadio, idFotoEstadio, aplicarFundoEstadio, corTema, aplicarTema, alternarTema, estilizarGraficos
+    initAOS, refreshAOS, fotoEstadio, idFotoEstadio, aplicarFundoEstadio, corTema, aplicarTema, alternarTema, estilizarGraficos
   };
 })();

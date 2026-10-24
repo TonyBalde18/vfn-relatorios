@@ -600,25 +600,51 @@ function sanitizarNomeFicheiro(str) {
    TABS
    ========================================================= */
 
+/* V2.0: nav de topo (js/core/nav.js). Portal e Plantel são do dashboard; aqui ficam o Jogo
+   (relatório e Modo Jogo) e a Gestão (botão à parte na barra). */
+const NAV_ADMIN = {
+  subtitulo: "Gestão 26/27",
+  inicio: "dashboard.html",
+  seccoes: [
+    { id: "portal", rotulo: "Portal", icone: "house", href: "dashboard.html#portal" },
+    { id: "plantel", rotulo: "Plantel", icone: "users", href: "dashboard.html#plantel" },
+    { id: "jogo", rotulo: "Jogo", icone: "goal", tabs: [
+      { id: "pre-jogo", rotulo: "Pré-Jogo", vista: "pre-jogo" },
+      { id: "ao-vivo", rotulo: "Ao Vivo", vista: "jogo", contador: "eventCountBadge" },
+      { id: "analise", rotulo: "Análise", vista: "analise" },
+      { id: "historico", rotulo: "Histórico", vista: "relatorios" }
+    ] },
+    { id: "gestao", rotulo: "Gestão", icone: "wrench", acao: true, tabs: [
+      { id: "equipa", rotulo: "Equipa", vista: "equipa" },
+      { id: "multas", rotulo: "Multas", vista: "multas" },
+      { id: "presencas", rotulo: "Presenças", vista: "presencas" },
+      { id: "convocatoria", rotulo: "Convocatória", vista: "convocatoria" },
+      { id: "calendario", rotulo: "Calendário", vista: "calendario" },
+      { id: "resultados", rotulo: "Resultados", vista: "resultados" },
+      { id: "competicoes", rotulo: "Competições", vista: "jornadas" },
+      { id: "classificacao", rotulo: "Classificação", vista: "classificacao" },
+      { id: "adversarios", rotulo: "Adversários", vista: "adversarios" }
+    ] }
+  ],
+  links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe", novaJanela: true }],
+  aoMudar: tab => mostrarSeparador(tab)
+};
+
+let separadoresProntos = false; // o arranque (separador do endereço) não grava: o rascunho ainda não foi carregado
+
+function mostrarSeparador(tab) {
+  if (separadoresProntos) guardarRascunho(); // preserva dados sempre que se muda de separador
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + tab));
+  VFN.anim.seccao(el("tab-" + tab)); // fade-in da secção
+  VFNNav.marcarVista(tab);
+  window.scrollTo({ top: 0 });
+  if (typeof abrirTabGestao === "function") abrirTabGestao(tab); // admin.js: dados de cada separador de gestão
+}
+
 function initTabs() {
-  const botoes = document.querySelectorAll(".tab-btn");
-  const titulos = { "pre-jogo": "Pré-Jogo", jogo: "Jogo", analise: "Análise", equipa: "Equipa", multas: "Multas", convocatoria: "Convocatória", presencas: "Presenças", calendario: "Calendário", resultados: "Resultados", jornadas: "Competições", relatorios: "Relatórios", classificacao: "Classificação", adversarios: "Adversários" };
-  botoes.forEach(btn => {
-    btn.addEventListener("click", () => {
-      guardarRascunho(); // preserva dados sempre que se muda de separador
-      botoes.forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      el("tab-" + btn.dataset.tab).classList.add("active");
-      VFN.anim.seccao(el("tab-" + btn.dataset.tab)); // fade-in da secção
-      el("currentSectionTitle").textContent = titulos[btn.dataset.tab] || btn.dataset.tab;
-      el("appSidebar").classList.remove("is-open");
-    });
-  });
-  VFN.initSidebar(el("appSidebar"), el("btnSidebarToggle"));
-  // v1.1: index.html#pre-jogo (atalho "Novo relatório" do dashboard) abre esse separador
-  const inicial = document.querySelector(`.tab-btn[data-tab="${CSS.escape(location.hash.slice(1))}"]`);
-  if (location.hash && inicial) inicial.click();
+  // v1.1: index.html#pre-jogo (atalho "Novo relatório" do dashboard) abre esse separador; V2.0: também #gestao/multas...
+  VFNNav.arrancar();
+  separadoresProntos = true;
 }
 
 /* =========================================================
@@ -2275,15 +2301,6 @@ function renderTudo() {
    LOGO — fallback caso não exista
    ========================================================= */
 
-function initLogo() {
-  const img = el("clubLogo");
-  const placeholder = el("logoPlaceholder");
-  img.addEventListener("error", () => {
-    img.style.display = "none";
-    placeholder.hidden = false;
-  });
-}
-
 /* =========================================================
    CÁLCULO DE MINUTOS JOGADOS (para o relatório Word)
    ========================================================= */
@@ -2736,7 +2753,6 @@ function initAplicacao() {
   if (!plantelDoSupabase) carregarPlantel();
   // primeiro login com Supabase vazio: envia o plantel local para a tabela players
   if (!plantelDoSupabase && supabaseClient && currentUser) sincronizarPlantelSupabase();
-  initLogo();
   initTabs();
   initPreJogo();
   initJogo();
@@ -2759,7 +2775,7 @@ function initAplicacao() {
 function mostrarAplicacao() {
   el("loginScreen").hidden = true;
   el("appShell").hidden = false;
-  el("sidebarUserName").textContent = currentUser ? (currentUser.user_metadata && (currentUser.user_metadata.full_name || currentUser.user_metadata.name) || currentUser.email) : "Modo local";
+  VFNNav.definirUtilizador(currentUser ? (currentUser.user_metadata && (currentUser.user_metadata.full_name || currentUser.user_metadata.name) || currentUser.email) : "Modo local", "Administrador");
 }
 
 /** O modo local (sem login, dados no localStorage) só existe no computador de desenvolvimento. */
@@ -2835,4 +2851,5 @@ function mostrarBannerRascunho(armazenado) {
   el("btnLoadDraft").onclick = () => { aplicarDadosEstado(armazenado.data); renderTudo(); el("draftBanner").hidden = true; };
 }
 
+VFNNav.montar(NAV_ADMIN); // antes dos listeners (o #btnLogout e o #eventCountBadge são da nav)
 document.addEventListener("DOMContentLoaded", iniciarAutenticacao);

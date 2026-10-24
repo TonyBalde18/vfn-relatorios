@@ -1,0 +1,163 @@
+/* =========================================================
+   V2.0 — Navegação de topo e base visual (inspirada no Football Manager)
+   Carrega depois de styles.css e hub.css, só nas páginas com a nav nova (body.vfn-app).
+   Só usa tokens do tema (--surface, --border, --fg...) ou cores próprias com variante
+   html.tema-escuro: o gerador do tema escuro não passa por este ficheiro.
+   ========================================================= */
+
+:root {
+  --nav-h: 56px;
+  --subnav-h: 44px;
+  --nav-bg: var(--vfn-navy);
+  --subnav-bg: #13294B;
+  --seccao-cor: #F5B301;
+  --linha-alt: rgba(10, 22, 40, .028);
+  --linha-hover: rgba(27, 93, 195, .07);
+}
+html.tema-escuro {
+  --nav-bg: #070D18;
+  --subnav-bg: #0F1A2E;
+  --linha-alt: rgba(255, 255, 255, .025);
+  --linha-hover: rgba(255, 255, 255, .06);
+}
+/* cor de cada secção: barra do separador ativo e header fino dos cards */
+body[data-seccao="portal"] { --seccao-cor: #F5B301; }
+body[data-seccao="plantel"] { --seccao-cor: #1B5DC3; }
+body[data-seccao="jogo"] { --seccao-cor: #16A34A; }
+body[data-seccao="gestao"] { --seccao-cor: #8C9AB0; }
+html.tema-escuro body[data-seccao="plantel"] { --seccao-cor: #5B8DEF; }
+html.tema-escuro body[data-seccao="jogo"] { --seccao-cor: #4ADE80; }
+
+/* ---------- Estrutura da página ---------- */
+body.vfn-app { background: var(--bg); font-feature-settings: "cv11", "ss01"; }
+body.vfn-app #appShell:not([hidden]), body.vfn-app #eqShell:not([hidden]) { display: block; min-height: 100vh; background: transparent; }
+body.vfn-app main, body.vfn-app .public-main { max-width: 1680px; margin: 0 auto; padding: 20px 24px 28px; }
+body.vfn-app .app-footer, body.vfn-app .public-footer { margin: 0 auto; max-width: 1680px; padding: 4px 24px 24px; color: var(--text-muted); font-size: .75rem; text-align: center; }
+body.vfn-app .app-footer p { margin: 0; }
+
+#vfnNav { position: sticky; top: 0; z-index: 40; }
+.vfn-topo { background: var(--nav-bg); color: #fff; padding-top: env(safe-area-inset-top); box-shadow: 0 2px 14px rgba(10, 22, 40, .22); }
+.vfn-topo-linha { display: flex; align-items: center; gap: 16px; height: var(--nav-h); padding: 0 24px; }
+
+.vfn-marca { display: flex; align-items: center; gap: 10px; flex-shrink: 0; color: #fff; text-decoration: none; }
+.vfn-marca img { width: 34px; height: 34px; object-fit: contain; }
+.vfn-marca strong { display: block; color: var(--vfn-yellow); font-size: .95rem; font-weight: 800; letter-spacing: .02em; line-height: 1.1; }
+.vfn-marca small { display: block; color: var(--silver); font-size: .68rem; }
+
+.vfn-titulo-seccao { display: none; }
+.vfn-nav-principal { display: flex; align-items: stretch; align-self: stretch; gap: 2px; margin-left: 12px; }
+.vfn-nav-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 18px; border: 0; background: transparent; color: var(--silver); font: inherit; font-size: .9rem; font-weight: 700; text-decoration: none; cursor: pointer; box-shadow: inset 0 -3px 0 transparent; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
+.vfn-nav-item:hover, .vfn-nav-item:focus-visible { color: #fff; background: rgba(255, 255, 255, .05); }
+.vfn-nav-item.active { color: var(--vfn-yellow); background: rgba(255, 255, 255, .06); box-shadow: inset 0 -3px 0 var(--vfn-yellow); }
+.vfn-nav-ic { display: inline-grid; place-items: center; }
+
+.vfn-topo-acoes { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.vfn-acoes-seccao { display: contents; }
+.vfn-icone-btn { position: relative; display: inline-grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(255, 255, 255, .2); border-radius: 8px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
+.vfn-icone-btn:hover, .vfn-icone-btn:focus-visible, .vfn-menu-btn[aria-expanded="true"] { background: var(--vfn-yellow); border-color: var(--vfn-yellow); color: var(--vfn-navy); }
+/* Gestão (admin): botão à parte, não faz parte da nav principal */
+.vfn-acao-seccao { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 13px; border: 1px solid rgba(255, 215, 0, .55); border-radius: 8px; background: transparent; color: var(--vfn-yellow); font: inherit; font-size: .82rem; font-weight: 800; text-decoration: none; cursor: pointer; }
+.vfn-acao-seccao:hover, .vfn-acao-seccao:focus-visible, .vfn-acao-seccao.active { background: var(--vfn-yellow); border-color: var(--vfn-yellow); color: var(--vfn-navy); }
+/* botões que as páginas põem na barra (Atualizar, a minha ficha) */
+.vfn-topo-acoes .btn-ghost { color: #fff; border-color: rgba(255, 255, 255, .35); }
+.vfn-topo-acoes .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+.vfn-topo-acoes .eq-avatar { width: 38px; height: 38px; }
+
+.vfn-menu { position: relative; }
+.vfn-menu-painel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; min-width: 230px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); box-shadow: 0 14px 34px rgba(10, 22, 40, .24); }
+.vfn-menu-painel[hidden] { display: none; }
+.vfn-menu-quem { margin-bottom: 4px; padding: 8px 10px 10px; border-bottom: 1px solid var(--border); }
+.vfn-menu-quem strong { display: block; overflow: hidden; color: var(--heading); font-size: .88rem; text-overflow: ellipsis; white-space: nowrap; }
+.vfn-menu-quem small { display: block; color: var(--text-muted); font-size: .72rem; }
+.vfn-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: .85rem; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.vfn-menu-item:hover, .vfn-menu-item:focus-visible { background: var(--surface-2); }
+
+/* ---------- Barra secundária ---------- */
+.vfn-nav-secundaria { background: var(--subnav-bg); border-top: 1px solid rgba(255, 255, 255, .05); }
+.vfn-sub-grupo { display: flex; gap: 2px; height: var(--subnav-h); padding: 0 24px; overflow-x: auto; scrollbar-width: none; }
+.vfn-sub-grupo::-webkit-scrollbar { display: none; }
+.vfn-sub-grupo[hidden] { display: none; }
+.vfn-sub-item { display: inline-flex; align-items: center; flex-shrink: 0; gap: 6px; padding: 0 14px; border: 0; background: transparent; color: rgba(255, 255, 255, .74); font: inherit; font-size: .82rem; font-weight: 600; white-space: nowrap; text-decoration: none; cursor: pointer; box-shadow: inset 0 -3px 0 transparent; transition: color .15s ease, box-shadow .15s ease; }
+.vfn-sub-item:hover, .vfn-sub-item:focus-visible { color: #fff; }
+.vfn-sub-item.active { color: #fff; box-shadow: inset 0 -3px 0 var(--seccao-cor); }
+.vfn-sub-item .tab-count { margin-left: 2px; }
+
+/* ---------- Barra inferior (telemóvel) ---------- */
+.vfn-bottom-bar { display: none; }
+
+/* ---------- Barra de ações do relatório (admin) ---------- */
+.vfn-barra-relatorio { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); }
+.vfn-barra-relatorio .btn-ghost { color: var(--fg); border-color: var(--border); }
+.vfn-barra-relatorio .btn-ghost:hover { background: var(--surface-2); }
+body.tab-gestao .vfn-barra-relatorio, body[data-seccao="gestao"] .vfn-barra-relatorio { display: none; }
+
+/* =========================================================
+   BASE VISUAL: cards, títulos e tabelas
+   ========================================================= */
+/* header fino (3px) na cor da secção; o fundo e a borda de cada card mantêm-se (os cards especiais têm os seus) */
+body.vfn-app .card { padding: 16px 18px; margin-bottom: 16px; border-radius: 10px; box-shadow: inset 0 3px 0 var(--card-cor, var(--seccao-cor)); }
+body.vfn-app .card:hover { box-shadow: inset 0 3px 0 var(--card-cor, var(--seccao-cor)), 0 6px 18px rgba(10, 22, 40, .07); }
+html.tema-escuro body.vfn-app .card:hover { box-shadow: inset 0 3px 0 var(--card-cor, var(--seccao-cor)), 0 6px 18px rgba(0, 0, 0, .3); }
+/* sem vidro (fundo desfocado): painéis sólidos com borda fina de baixo contraste */
+body.vfn-app .hub-grid > .card:not(.hub-hero):not(.jds-card),
+body.vfn-app .pre-game-layout .card:not(.live-summary) {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.vfn-app .hub-hero { background: linear-gradient(135deg, #0A1628 0%, #13294B 70%, #1b3867 100%); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* :where() = especificidade baixa: as variantes (.player-card.eu, :hover) continuam a mandar */
+:where(body.vfn-app) .summary-tile, :where(body.vfn-app) .top-card, :where(body.vfn-app) .player-card {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body.vfn-app .hub-grid { gap: 16px; }
+body.vfn-app .hub-card-title { color: var(--heading); font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+body.vfn-app .hub-card-title small { letter-spacing: 0; text-transform: none; }
+body.vfn-app .hub-hero .hub-card-title, body.vfn-app .jds-cab .hub-card-title { color: var(--vfn-yellow); }
+body.vfn-app .section-title { font-size: .85rem; letter-spacing: .05em; text-transform: uppercase; }
+
+/* tabelas: números alinhados, linhas alternadas e destaque ao passar */
+body.vfn-app table { font-variant-numeric: tabular-nums; }
+:where(body.vfn-app) :where(.stats-table, .fines-table, .data-table, .plantel-table, .standings-compact) > tbody > tr:nth-child(even) { background-color: var(--linha-alt); }
+:where(body.vfn-app) :where(.stats-table, .fines-table, .data-table, .plantel-table, .standings-compact) > tbody > tr { transition: background-color .15s ease; }
+:where(body.vfn-app) :where(.stats-table, .fines-table, .data-table, .plantel-table, .standings-compact) > tbody > tr:hover { background-color: var(--linha-hover); }
+/* tabelas de jogadores: a linha cresce um pouco ao passar */
+body.vfn-app :where(.stats-table, .plantel-table) > tbody > tr > td { transition: padding .15s ease; }
+@media (hover: hover) {
+  body.vfn-app :where(.stats-table, .plantel-table) > tbody > tr:hover > td { padding-top: 11px; padding-bottom: 11px; }
+}
+
+/* painéis com scroll interno para listas longas (PC) */
+@media (min-width: 1024px) {
+  body.vfn-app .minutes-scroll, body.vfn-app .relatorios-lista { max-height: 520px; overflow-y: auto; scrollbar-width: thin; }
+}
+
+/* =========================================================
+   TELEMÓVEL E TABLET (≤768px)
+   ========================================================= */
+@media (max-width: 768px) {
+  body.vfn-app { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .vfn-topo-linha { height: 52px; gap: 10px; padding: 0 12px; }
+  .vfn-nav-principal, .vfn-marca-texto { display: none; }
+  .vfn-marca img { width: 30px; height: 30px; }
+  .vfn-titulo-seccao { display: block; min-width: 0; overflow: hidden; color: #fff; font-size: 1.05rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+  .vfn-acao-seccao { width: 38px; padding: 0; justify-content: center; }
+  .vfn-acao-seccao .vfn-nav-rotulo { display: none; }
+  .vfn-topo-acoes { gap: 6px; }
+  .vfn-topo-acoes .btn-sm .btn-rotulo { display: none; }
+  .vfn-sub-grupo { padding: 0 8px; }
+  .vfn-sub-item { padding: 0 12px; }
+
+  .vfn-bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; padding-bottom: env(safe-area-inset-bottom); background: var(--nav-bg); border-top: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 -4px 16px rgba(10, 22, 40, .18); }
+  .vfn-bottom-item { display: grid; align-content: center; justify-items: center; gap: 3px; min-height: 58px; border: 0; background: transparent; color: var(--silver); font: inherit; font-size: .7rem; font-weight: 700; text-decoration: none; cursor: pointer; }
+  .vfn-bottom-item.active { color: var(--vfn-yellow); box-shadow: inset 0 3px 0 var(--vfn-yellow); }
+
+  body.vfn-app main, body.vfn-app .public-main { padding: 12px 12px 20px; }
+  body.vfn-app .card { padding: 14px; margin-bottom: 12px; }
+  body.vfn-app .hub-grid { gap: 12px; }
+}

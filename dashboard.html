@@ -21,8 +21,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css?v=40">
 <link rel="stylesheet" href="css/hub.css?v=40">
+<link rel="stylesheet" href="css/nav.css?v=40">
 </head>
-<body class="hub-page">
+<body class="hub-page vfn-app">
 
 <section id="loginScreen" class="login-screen" hidden>
   <div class="login-card">
@@ -40,37 +41,8 @@
 </section>
 
 <div id="appShell" class="protected-ui" hidden>
-<aside id="appSidebar" class="app-sidebar">
-  <div class="sidebar-brand"><img src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves"><div class="sidebar-brand-copy"><strong>VFN</strong><span>Dashboard 26/27</span></div></div>
-  <div class="sidebar-user"><span class="user-avatar"><i data-icon="user" data-size="16"></i></span><span><span id="sidebarUserName">Utilizador</span><small id="sidebarUserRole" class="sidebar-role"></small></span></div>
-  <nav class="sidebar-nav" aria-label="Navegação principal">
-    <button class="nav-item active" data-view="hub"><span class="nav-icon"><i data-icon="house"></i></span><span class="nav-label">Hub</span></button>
-    <button class="nav-item" data-view="plantel"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Plantel</span></button>
-    <button class="nav-item" data-view="convocatoria"><span class="nav-icon"><i data-icon="clipboard-list"></i></span><span class="nav-label">Convocatória</span></button>
-    <button class="nav-item" data-view="disponibilidade"><span class="nav-icon"><i data-icon="clipboard-check"></i></span><span class="nav-label">Disponibilidade</span></button>
-    <button class="nav-item" data-view="estatisticas"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Estatísticas</span></button>
-    <button class="nav-item" data-view="multas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
-    <button class="nav-item" data-view="presencas" data-papel="dirigente" hidden><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
-    <button class="nav-item" data-view="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
-    <button class="nav-item" data-view="equipas"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Equipas</span></button>
-    <button class="nav-item" data-view="comparar"><span class="nav-icon"><i data-icon="scale"></i></span><span class="nav-label">Comparar</span></button>
-    <button class="nav-item" data-view="h2h"><span class="nav-icon"><i data-icon="swords"></i></span><span class="nav-label">H2H</span></button>
-    <button class="nav-item" data-view="relatorios"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Relatórios</span></button>
-    <button class="nav-item" data-view="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
-  </nav>
-  <div class="sidebar-links">
-    <a id="linkAdmin" href="index.html" hidden><span class="nav-icon"><i data-icon="wrench"></i></span>Área de administração</a>
-    <a href="public.html" target="_blank" rel="noopener"><span class="nav-icon"><i data-icon="globe"></i></span>HUB VFN</a>
-  </div>
-  <button id="btnLogout" class="sidebar-logout"><span class="nav-icon"><i data-icon="log-out"></i></span><span class="nav-label">Sair</span></button>
-</aside>
-
-<div class="app-content">
-<header class="app-header">
-  <button id="btnSidebarToggle" class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><i data-icon="menu" data-size="22"></i></button>
-  <div class="header-title"><span class="header-kicker">ACD Vila Franca das Naves · 2ª Distrital da Guarda</span><h1 id="viewTitle">Hub</h1></div>
-  <div class="header-actions"><button id="btnAtualizar" class="btn btn-ghost btn-sm" type="button"><i data-icon="refresh-cw" data-size="16"></i> Atualizar</button></div>
-</header>
+<!-- V2.0: nav de topo (js/core/nav.js) -->
+<div id="vfnNav"></div>
 
 <main>
   <p id="avisoDados" class="admin-notice" role="status" hidden></p>
@@ -285,6 +257,11 @@
       <div id="mapaDash" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
       <p class="muted mapa-aviso"></p>
     </div>
+    <!-- CONFRONTOS (H2H): histórico contra cada adversário (tabela h2h) -->
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Confrontos (H2H) <small class="muted">toca num adversário para ver o histórico</small></h2></div>
+      <div id="h2hConteudo"></div>
+    </div>
   </section>
 
   <!-- COMPARAR DOIS JOGADORES (v16, VFNComp.criarComparador) -->
@@ -292,14 +269,6 @@
     <div class="card" data-aos="fade-up">
       <h2 class="hub-card-title">⚖️ Comparar jogadores <small class="muted">escolhe os dois jogadores</small></h2>
       <div id="dbComparar"></div>
-    </div>
-  </section>
-
-  <!-- CONFRONTOS (H2H): histórico contra cada adversário (tabela h2h) -->
-  <section id="view-h2h" class="view">
-    <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Confrontos (H2H) <small class="muted">toca num adversário para ver o histórico</small></h2></div>
-      <div id="h2hConteudo"></div>
     </div>
   </section>
 
@@ -333,7 +302,6 @@
 <footer class="app-footer">
   <p>ACD Vila Franca das Naves · Época 2026/27</p>
 </footer>
-</div>
 </div>
 
 <!-- MODAL: ficha da equipa (só leitura) -->
@@ -370,6 +338,7 @@
 <script src="js/core/shared.js?v=40"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="js/core/hub.js?v=40"></script>
+<script src="js/core/nav.js?v=40"></script>
 <script src="js/core/components.js?v=40"></script>
 <script src="js/core/relatorio.js?v=40"></script>
 <script src="js/pages/dashboard.js?v=40"></script>

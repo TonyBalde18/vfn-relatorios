@@ -21,8 +21,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css?v=40">
 <link rel="stylesheet" href="css/hub.css?v=40">
+<link rel="stylesheet" href="css/nav.css?v=40">
 </head>
-<body class="hub-page public-page equipa-page">
+<body class="hub-page public-page equipa-page vfn-app">
 
 <!-- LOGIN (e definição de password depois do convite) -->
 <section id="loginScreen" class="login-screen" hidden>
@@ -60,25 +61,8 @@
 </section>
 
 <div id="eqShell" hidden>
-<header class="public-header eq-header">
-  <img src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves">
-  <div class="eq-header-texto"><strong>ACD Vila Franca das Naves</strong><span id="eqSubtitulo">Área do jogador</span></div>
-  <button type="button" id="eqAvatar" class="eq-avatar" title="A minha ficha" aria-label="A minha ficha"></button>
-  <button type="button" id="btnLogout" class="eq-sair" title="Terminar sessão"><i data-icon="log-out" data-size="18"></i><span>Sair</span></button>
-</header>
-
-<nav class="public-nav" aria-label="Secções">
-  <button type="button" class="active" data-view="inicio"><span aria-hidden="true"><i data-icon="house"></i></span>Início</button>
-  <button type="button" data-view="convocatoria"><span aria-hidden="true"><i data-icon="clipboard-list"></i></span>Convocatória</button>
-  <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Calendário</button>
-  <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="trophy"></i></span>Competições</button>
-  <button type="button" data-view="multas"><span aria-hidden="true"><i data-icon="receipt-euro"></i></span>Multas</button>
-  <button type="button" data-view="estatisticas"><span aria-hidden="true"><i data-icon="chart-column"></i></span>Estatísticas</button>
-  <button type="button" data-view="disponibilidade"><span aria-hidden="true"><i data-icon="clipboard-check"></i></span>Plantel</button>
-  <button type="button" data-view="comparar"><span aria-hidden="true"><i data-icon="scale"></i></span>Comparar</button>
-  <button type="button" data-view="adversarios"><span aria-hidden="true"><i data-icon="shield"></i></span>Adversários</button>
-  <button type="button" data-view="relatorios"><span aria-hidden="true"><i data-icon="file-text"></i></span>Relatórios</button>
-</nav>
+<!-- V2.0: nav de topo (js/core/nav.js) -->
+<div id="vfnNav"></div>
 
 <main class="public-main">
   <p id="avisoDados" class="admin-notice" role="status" hidden></p>
@@ -311,6 +295,7 @@
 <script src="js/config.js?v=40"></script>
 <script src="js/core/shared.js?v=40"></script>
 <script src="js/core/hub.js?v=40"></script>
+<script src="js/core/nav.js?v=40"></script>
 <script src="js/core/components.js?v=40"></script>
 <script src="js/core/relatorio.js?v=40"></script>
 <script src="js/pages/equipa.js?v=40"></script>

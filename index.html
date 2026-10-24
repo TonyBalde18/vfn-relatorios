@@ -19,12 +19,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css?v=40">
+<link rel="stylesheet" href="css/nav.css?v=40">
 </head>
-<body>
+<body class="vfn-app">
 
 <section id="loginScreen" class="login-screen" hidden>
   <div class="login-card">
@@ -51,33 +52,12 @@
 </div>
 
 <div id="appShell" class="protected-ui" hidden>
-<aside id="appSidebar" class="app-sidebar">
-  <div class="sidebar-brand"><img id="clubLogo" src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves"><div id="logoPlaceholder" class="logo-placeholder" hidden>VFN</div><div class="sidebar-brand-copy"><strong>VFN</strong><span>Relatórios 26/27</span></div></div>
-  <div class="sidebar-user"><span class="user-avatar"><i data-icon="user" data-size="16"></i></span><span id="sidebarUserName">Utilizador</span></div>
-  <nav class="sidebar-nav" id="tabNav" aria-label="Navegação principal">
-    <button class="tab-btn nav-item active" data-tab="pre-jogo"><span class="nav-icon"><i data-icon="clipboard-list"></i></span><span class="nav-label">Pré-Jogo</span></button>
-    <button class="tab-btn nav-item" data-tab="jogo"><span class="nav-icon"><i data-icon="goal"></i></span><span class="nav-label">Jogo</span><span id="eventCountBadge" class="tab-count">0</span></button>
-    <button class="tab-btn nav-item" data-tab="analise"><span class="nav-icon"><i data-icon="chart-column"></i></span><span class="nav-label">Análise</span></button>
-    <button class="tab-btn nav-item" data-tab="equipa"><span class="nav-icon"><i data-icon="users"></i></span><span class="nav-label">Equipa</span></button>
-    <button class="tab-btn nav-item" data-tab="multas"><span class="nav-icon"><i data-icon="receipt-euro"></i></span><span class="nav-label">Multas</span></button>
-    <button class="tab-btn nav-item" data-tab="convocatoria"><span class="nav-icon"><i data-icon="clipboard-list"></i></span><span class="nav-label">Convocatória</span></button>
-    <button class="tab-btn nav-item" data-tab="presencas"><span class="nav-icon"><i data-icon="calendar-check"></i></span><span class="nav-label">Presenças</span></button>
-    <button class="tab-btn nav-item" data-tab="calendario"><span class="nav-icon"><i data-icon="calendar-days"></i></span><span class="nav-label">Calendário</span></button>
-    <button class="tab-btn nav-item" data-tab="resultados"><span class="nav-icon"><i data-icon="list-ordered"></i></span><span class="nav-label">Resultados</span></button>
-    <button class="tab-btn nav-item" data-tab="jornadas"><span class="nav-icon"><i data-icon="list-checks"></i></span><span class="nav-label">Competições</span></button>
-    <button class="tab-btn nav-item" data-tab="classificacao"><span class="nav-icon"><i data-icon="trophy"></i></span><span class="nav-label">Classificação</span></button>
-    <button class="tab-btn nav-item" data-tab="adversarios"><span class="nav-icon"><i data-icon="shield"></i></span><span class="nav-label">Adversários</span></button>
-    <button class="tab-btn nav-item" data-tab="relatorios"><span class="nav-icon"><i data-icon="folder"></i></span><span class="nav-label">Relatórios</span></button>
-  </nav>
-  <div class="sidebar-links"><a href="dashboard.html"><span class="nav-icon"><i data-icon="layout-dashboard"></i></span>Dashboard equipa técnica</a><a href="public.html" target="_blank" rel="noopener"><span class="nav-icon"><i data-icon="globe"></i></span>HUB VFN</a></div>
-  <button id="btnLogout" class="sidebar-logout"><span class="nav-icon"><i data-icon="log-out"></i></span><span class="nav-label">Sair</span></button>
-</aside>
+<!-- V2.0: nav de topo (js/core/nav.js) -->
+<div id="vfnNav"></div>
 
-<div class="app-content">
-<header class="app-header">
-  <button id="btnSidebarToggle" class="sidebar-toggle" type="button" aria-label="Abrir menu"><i data-icon="menu" data-size="22"></i></button>
-  <div class="header-title"><span class="header-kicker">ACD Vila Franca das Naves</span><h1 id="currentSectionTitle">Pré-Jogo</h1></div>
-  <div class="header-actions">
+<main>
+  <!-- V2.0: ações do relatório (estavam no cabeçalho); escondidas nos separadores de gestão (body.tab-gestao) -->
+  <div class="vfn-barra-relatorio" role="toolbar" aria-label="Relatório">
     <button id="btnExportarRascunho" class="btn btn-ghost" title="Guarda o rascunho e descarrega-o como ficheiro .json"><i data-icon="save" data-size="18"></i> Guardar Rascunho</button>
     <label for="importRascunhoInput" class="btn btn-ghost file-btn" title="Escolhe o ficheiro .json descarregado com Guardar Rascunho"><i data-icon="folder-open" data-size="18"></i> Carregar Rascunho</label>
     <input type="file" id="importRascunhoInput" accept=".json,application/json" hidden>
@@ -88,9 +68,7 @@
     <button id="btnPartilharResultado" class="btn btn-ghost" type="button" title="Imagem 1080×1080 do resultado para o Instagram">📸 Partilhar Resultado</button>
     <button id="btnGenerateDocx" class="btn btn-accent">Gerar Relatório Word</button>
   </div>
-</header>
 
-<main>
   <p id="avisoPapel" class="admin-notice" role="status" hidden></p>
 
   <!-- TAB 1: PRÉ-JOGO -->
@@ -555,7 +533,6 @@
   <p>ACD Vila Franca das Naves · Análise Tática · Época 2026/27</p>
 </footer>
 </div>
-</div>
 
 <!-- MODAL: Adicionar Jogador -->
 <div id="modalOverlay" class="modal-overlay" hidden>
@@ -807,6 +784,7 @@
 <script src="js/config.js?v=40"></script>
 <script src="js/core/shared.js?v=40"></script>
 <script src="js/core/hub.js?v=40"></script>
+<script src="js/core/nav.js?v=40"></script>
 <script src="js/core/components.js?v=40"></script>
 <script src="js/core/relatorio.js?v=40"></script>
 <script src="js/admin/app.js?v=40"></script>
