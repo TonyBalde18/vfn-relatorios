@@ -67,6 +67,14 @@
           <span class="vfn-titulo-seccao" aria-hidden="true"></span>
           <nav class="vfn-nav-principal" aria-label="Navegação principal"></nav>
           <div class="vfn-topo-acoes">
+            ${cfg.pesquisa ? `<div class="vfn-pesquisa">
+              <button type="button" class="vfn-icone-btn vfn-pesquisa-btn" aria-label="Pesquisar" aria-expanded="false">${icone("search", 18)}</button>
+              <div class="vfn-pesquisa-caixa">
+                <span class="vfn-pesquisa-ic" aria-hidden="true">${icone("search", 16)}</span>
+                <input type="search" class="vfn-pesquisa-input" placeholder="Jogador, jogo ou evento…" aria-label="Pesquisar jogador, jogo (adversário e data) ou evento" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="vfnPesquisaResultados" aria-autocomplete="list">
+                <div id="vfnPesquisaResultados" class="vfn-pesquisa-resultados" role="listbox" hidden></div>
+              </div>
+            </div>` : ""}
             ${cfg.acoes || ""}
             <span class="vfn-acoes-seccao"></span>
             <button type="button" class="tema-btn vfn-icone-btn" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo sr-only">Tema escuro</span></button>
@@ -98,6 +106,7 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape") fecharMenu(); });
     painel.addEventListener("click", e => { if (e.target.closest(".vfn-menu-item")) fecharMenu(); });
     window.addEventListener("hashchange", () => { const r = rotaDoEndereco(); if (r && (r.seccao !== atual.seccao || r.tab !== atual.tab)) ir(r.seccao, r.tab); });
+    if (cfg.pesquisa) ligarPesquisa();
     if (VFN.aplicarTema) VFN.aplicarTema(); // o botão do tema foi criado agora (o shared.js já o tinha procurado)
 
     const r = rotaDoEndereco();
@@ -107,6 +116,59 @@
   /** Quando a página está pronta (listeners e dados): mostra a vista da posição atual (a do endereço, se houver). */
   function arrancar() {
     if (cfg) ir(atual.seccao, atual.tab);
+  }
+
+  /* ---------- Pesquisa global ----------
+     cfg.pesquisa(termo) → [{ tipo, titulo, sub, icone (HTML), acao() }] (já filtrados; VFNPortal.filtrarPesquisa).
+     No PC a caixa está sempre visível; no telemóvel/tablet abre pelo ícone por cima da barra. */
+  function ligarPesquisa() {
+    const caixa = $n(".vfn-pesquisa"), input = $n(".vfn-pesquisa-input"), lista = $n(".vfn-pesquisa-resultados"), botao = $n(".vfn-pesquisa-btn");
+    let itens = [], ativo = -1;
+    const fechar = () => { lista.hidden = true; input.setAttribute("aria-expanded", "false"); ativo = -1; };
+    const fecharTudo = () => { fechar(); caixa.classList.remove("aberta"); botao.setAttribute("aria-expanded", "false"); };
+    const marcarAtivo = () => lista.querySelectorAll("[data-i]").forEach(b => {
+      const sim = Number(b.dataset.i) === ativo;
+      b.classList.toggle("ativo", sim);
+      b.setAttribute("aria-selected", String(sim));
+      if (sim) b.scrollIntoView({ block: "nearest" });
+    });
+    // itens = []: o click que vem a seguir ao mousedown já não repete a ação
+    const escolher = i => { const item = itens[i]; if (!item) return; itens = []; input.value = ""; fecharTudo(); input.blur(); item.acao(); };
+    const procurar = () => {
+      const termo = input.value.trim();
+      itens = termo ? cfg.pesquisa(termo) : [];
+      ativo = itens.length ? 0 : -1;
+      if (!termo) return fechar();
+      let tipo = "";
+      lista.innerHTML = itens.length ? itens.map((it, i) => {
+        const cab = it.tipo !== tipo ? `<p class="vfn-pesquisa-grupo">${esc(it.tipo)}</p>` : "";
+        tipo = it.tipo;
+        return `${cab}<button type="button" class="vfn-pesquisa-item" role="option" data-i="${i}" aria-selected="false">${it.icone ? `<span class="vfn-pesquisa-item-ic">${it.icone}</span>` : ""}<span class="vfn-pesquisa-item-txt"><strong>${esc(it.titulo)}</strong>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</span></button>`;
+      }).join("") : `<p class="vfn-pesquisa-vazio">Sem resultados para «${esc(termo)}».</p>`;
+      lista.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      marcarAtivo();
+    };
+    input.addEventListener("input", procurar);
+    input.addEventListener("focus", () => { if (input.value.trim()) procurar(); });
+    input.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (itens.length) { ativo = (ativo + (e.key === "ArrowDown" ? 1 : -1) + itens.length) % itens.length; marcarAtivo(); } }
+      else if (e.key === "Enter") { e.preventDefault(); escolher(ativo); }
+      else if (e.key === "Escape") { input.value = ""; fecharTudo(); }
+    });
+    // mousedown: escolhe antes do blur do input fechar a lista
+    lista.addEventListener("mousedown", e => { const b = e.target.closest("[data-i]"); if (b) { e.preventDefault(); escolher(Number(b.dataset.i)); } });
+    lista.addEventListener("click", e => { const b = e.target.closest("[data-i]"); if (b) escolher(Number(b.dataset.i)); });
+    botao.addEventListener("click", () => {
+      const abrir = !caixa.classList.contains("aberta");
+      caixa.classList.toggle("aberta", abrir);
+      botao.setAttribute("aria-expanded", String(abrir));
+      if (abrir) input.focus(); else fecharTudo();
+    });
+    document.addEventListener("click", e => { if (!e.target.closest(".vfn-pesquisa")) fecharTudo(); });
+    document.addEventListener("keydown", e => {
+      if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) { e.preventDefault(); caixa.classList.add("aberta"); input.focus(); }
+    });
   }
 
   /** "#portal/calendario", ou o nome de um separador/vista antigo ("#pre-jogo"). Ignora os links de autenticação (#...=...). */

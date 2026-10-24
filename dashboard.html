@@ -57,32 +57,11 @@
       <span class="area-jogador-texto"><strong>Novo relatório</strong><small>Abre o admin no Pré-Jogo para preparar o relatório do próximo jogo.</small></span>
       <span class="area-jogador-seta" aria-hidden="true">Abrir →</span>
     </a>
+    <!-- V2.0: Portal → Visão Geral (VFNPortal.criarVisaoGeral): linha de tempo, último/próximo jogo, classificação, agenda e 2 semanas -->
+    <div id="portalVisao"></div>
+    <h2 class="portal-subtitulo">A época</h2>
     <div id="hubInicio" data-aos="fade-up"></div>
     <div class="hub-grid">
-      <article id="cardProximoJogo" class="card jds-card span-2" data-aos="fade-up"></article>
-      <!-- v18: ao lado do Jogo da Semana: últimos resultados + próximos jogos -->
-      <div class="hub-coluna">
-        <article class="card" data-aos="fade-up">
-          <h2 class="hub-card-title">Últimos resultados</h2>
-          <div id="hubForma" class="hub-forma"></div>
-          <div id="hubResultados"></div>
-        </article>
-        <article class="card" data-aos="fade-up">
-          <h2 class="hub-card-title">Próximos jogos</h2>
-          <div id="hubProximosJogos"></div>
-        </article>
-      </div>
-
-      <!-- v1.1 (B4): todos os jogos da época, cada um abre o detalhe -->
-      <article class="card span-2" data-aos="fade-up">
-        <h2 class="hub-card-title">Linha de tempo da época <small class="muted">toca num jogo para ver o detalhe</small></h2>
-        <div id="hubLinhaTempo"></div>
-      </article>
-
-      <article class="card span-2 card-classificacao" data-aos="fade-up">
-        <div class="hub-card-head"><h2 class="hub-card-title">Classificação</h2><label class="sr-only" for="hubCompeticao">Competição</label><select id="hubCompeticao" class="compact-select"></select></div>
-        <div id="hubClassificacao"></div>
-      </article>
       <article class="card span-2" data-aos="fade-up">
         <h2 class="hub-card-title">11 mais utilizados <small class="muted">por minutos jogados</small></h2>
         <div id="onzeCampo"></div>
@@ -251,16 +230,11 @@
 <!-- EQUIPAS -->
   <section id="view-equipas" class="view">
     <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Equipas</h2><label class="sr-only" for="dbEquipasPesquisa">Pesquisar equipa</label><input type="search" id="dbEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
-      <div id="dbEquipasGrid" class="teams-grid"></div>
+      <div class="hub-card-head"><h2 class="hub-card-title">Adversários <small class="muted">toca num adversário para ver a ficha e os confrontos (H2H)</small></h2><label class="sr-only" for="dbEquipasPesquisa">Pesquisar equipa</label><input type="search" id="dbEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="dbEquipasGrid"></div>
       <h3 class="subsecao-titulo">Mapa dos estádios</h3>
       <div id="mapaDash" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div>
       <p class="muted mapa-aviso"></p>
-    </div>
-    <!-- CONFRONTOS (H2H): histórico contra cada adversário (tabela h2h) -->
-    <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Confrontos (H2H) <small class="muted">toca num adversário para ver o histórico</small></h2></div>
-      <div id="h2hConteudo"></div>
     </div>
   </section>
 
@@ -276,7 +250,7 @@
   <section id="view-relatorios" class="view">
     <div class="relatorios-grid">
       <div class="card" data-aos="fade-up">
-        <div class="hub-card-head"><h2 class="hub-card-title">Relatórios publicados</h2><span id="relatoriosInfo" class="muted"></span></div>
+        <div class="hub-card-head"><h2 class="hub-card-title">Relatórios</h2><span id="relatoriosInfo" class="muted"></span></div>
         <div id="relatoriosLista" class="relatorios-lista"></div>
       </div>
       <div class="card relatorios-detalhe" data-aos="fade-up">
@@ -339,6 +313,7 @@
 <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.min.js"></script>
 <script src="js/core/hub.js?v=41"></script>
 <script src="js/core/nav.js?v=41"></script>
+<script src="js/core/portal.js?v=41"></script>
 <script src="js/core/components.js?v=41"></script>
 <script src="js/core/relatorio.js?v=41"></script>
 <script src="js/pages/dashboard.js?v=41"></script>

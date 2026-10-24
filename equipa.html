@@ -69,28 +69,12 @@
 
   <!-- INÍCIO -->
   <section id="view-inicio" class="view active">
-    <!-- v17: o mesmo banner "Jogo da Semana" do dashboard (VFNComp.renderJogoDaSemana): escudos, kit, contagem, competição, local, hora e meteorologia -->
-    <article id="eqJogoSemana" class="card jds-card" data-aos="fade-up"></article>
     <article id="eqBoasVindas" class="card eq-boas-vindas" data-aos="fade-up"></article>
     <article id="eqConvResumo" class="card eq-conv-resumo" data-aos="fade-up" hidden></article>
+    <!-- V2.0: Portal → Visão Geral (VFNPortal.criarVisaoGeral, a mesma do dashboard) -->
+    <div id="portalVisao"></div>
+    <h2 class="portal-subtitulo">A época</h2>
     <div id="eqHubInicio" data-aos="fade-up"></div>
-    <!-- v19: últimos resultados | próximos jogos (VFNHub.proximosJogosHTML, o mesmo do dashboard) -->
-    <div class="public-stack two-col">
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Últimos resultados</h2>
-        <div id="eqForma" class="hub-forma"></div>
-        <div id="eqResultados"></div>
-      </article>
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Próximos jogos</h2>
-        <div id="eqProximosJogos"></div>
-      </article>
-    </div>
-    <!-- v1.1 (B4): todos os jogos da época, cada um abre o detalhe (o mesmo do dashboard) -->
-    <article class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Linha de tempo da época <small class="muted">toca num jogo para ver o detalhe</small></h2>
-      <div id="eqLinhaTempo"></div>
-    </article>
     <!-- v17: as mesmas secções do dashboard (VFNHub.onzeEstaticoHTML e VFNHub.graficoGolos) -->
     <div class="public-stack two-col">
       <article class="card" data-aos="fade-up">
@@ -150,8 +134,13 @@
 
   <!-- CALENDÁRIO -->
   <section id="view-calendario" class="view">
-    <h2 class="public-section-title">Calendário</h2>
+    <!-- V2.0: mês (blocos de cor por tipo) ou lista; no telemóvel abre na lista -->
+    <div class="cal-modos" id="eqCalModos" role="group" aria-label="Vista do calendário"><button type="button" class="filter-chip" data-modo="mes">Mês</button><button type="button" class="filter-chip" data-modo="lista">Lista</button></div>
     <div id="eqCalMes" class="card cal-mensal"></div>
+    <div id="eqCalLista" class="card">
+      <div id="eqCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
+      <div id="eqCalendarioLista" class="calendar-list"></div>
+    </div>
   </section>
 
   <!-- MULTAS (só leitura) -->
@@ -235,8 +224,8 @@
   <!-- ADVERSÁRIOS (v15): equipas e H2H do clube (tabela h2h) -->
   <section id="view-adversarios" class="view">
     <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Adversários <small class="muted">toca num emblema para ver a ficha e o H2H</small></h2><label class="sr-only" for="eqEquipasPesquisa">Pesquisar equipa</label><input type="search" id="eqEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
-      <div id="eqEquipasGrid" class="teams-grid"></div>
+      <div class="hub-card-head"><h2 class="hub-card-title">Adversários <small class="muted">toca num adversário para ver a ficha e o H2H</small></h2><label class="sr-only" for="eqEquipasPesquisa">Pesquisar equipa</label><input type="search" id="eqEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="eqEquipasGrid"></div>
     </div>
     <!-- v18: o mapa dos estádios passou do Calendário para aqui (ver o adversário e onde se joga) -->
     <div class="card mapa-card" data-aos="fade-up"><h2 class="hub-card-title">Mapa dos estádios <small class="muted">onde jogam os adversários · toca num emblema</small></h2><div id="mapaEquipa" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div><p class="muted mapa-aviso"></p></div>
@@ -296,6 +285,7 @@
 <script src="js/core/shared.js?v=41"></script>
 <script src="js/core/hub.js?v=41"></script>
 <script src="js/core/nav.js?v=41"></script>
+<script src="js/core/portal.js?v=41"></script>
 <script src="js/core/components.js?v=41"></script>
 <script src="js/core/relatorio.js?v=41"></script>
 <script src="js/pages/equipa.js?v=41"></script>

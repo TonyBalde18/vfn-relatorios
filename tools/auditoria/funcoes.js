@@ -1,7 +1,7 @@
 // Funções: mesmo nome em vários ficheiros, corpos quase iguais (tokens normalizados) e funções longas (>50 linhas).
 const fs = require("fs"), path = require("path");
 const R = process.argv[2];
-const ficheiros = ["js/core/shared.js","js/core/hub.js","js/core/components.js","js/core/relatorio.js","js/core/nav.js","js/admin/app.js","js/admin/admin.js","js/admin/modo-jogo.js","js/pages/dashboard.js","js/pages/equipa.js","js/pages/public.js"];
+const ficheiros = ["js/core/shared.js","js/core/hub.js","js/core/components.js","js/core/relatorio.js","js/core/nav.js","js/core/portal.js","js/admin/app.js","js/admin/admin.js","js/admin/modo-jogo.js","js/pages/dashboard.js","js/pages/equipa.js","js/pages/public.js"];
 const funcs = [];
 for (const f of ficheiros) {
   const linhas = fs.readFileSync(path.join(R, f), "utf8").split("\n");

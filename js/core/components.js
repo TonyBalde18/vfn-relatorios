@@ -238,7 +238,7 @@
     const o = opcoes || {};
     const dia = iso(data);
     const jogo = eventos.jogos[0];
-    const classes = ["cal-dia", o.hoje ? "hoje" : "", o.selecionado ? "selecionado" : "", jogo ? "com-jogo" : "", eventos.treinos.length ? "com-treino" : "", eventos.aniversarios.length ? "com-aniversario" : "",
+    const classes = ["cal-dia", o.hoje ? "hoje" : "", o.selecionado ? "selecionado" : "", jogo ? "com-jogo " + tipoJogo(jogo) : "", eventos.treinos.length ? "com-treino" : "", eventos.aniversarios.length ? "com-aniversario" : "",
       jogo && VFN.estadoJogo(jogo) === "jogado" && VFN.golosJogo(jogo) ? "res-" + VFN.letraResultado(jogo) : ""].filter(Boolean).join(" ");
     const partes = [];
     if (jogo) {
@@ -257,13 +257,16 @@
     </button>`;
   }
 
+  /** V2.0: tipo do jogo para as cores do calendário (oficial = amarelo VFN, amigável = cinzento). */
+  const tipoJogo = j => VFN.competicaoOficial(j.competition) ? "oficial" : "amigavel";
+
   /** Etiquetas de texto (só em ecrãs largos, como no Google Calendar): jogo, treino e aniversários. */
   function rotulosDiaHTML(eventos, dados) {
     const r = [];
     eventos.jogos.forEach(j => {
       const hora = VFN.horaIso(j.date);
       const g = VFN.estadoJogo(j) === "jogado" && VFN.golosJogo(j);
-      r.push(`<span class="cal-rotulo jogo">${g ? `${g.vfn}–${g.adv}` : hora && hora !== "00:00" ? esc(hora) : ""} ${VFN.jogoEmCasa(j) ? "vs" : "@"} ${esc(H().nomeAdversario(dados, j))}</span>`);
+      r.push(`<span class="cal-rotulo jogo ${tipoJogo(j)}">${g ? `${g.vfn}–${g.adv}` : hora && hora !== "00:00" ? esc(hora) : ""} ${VFN.jogoEmCasa(j) ? "vs" : "@"} ${esc(H().nomeAdversario(dados, j))}</span>`);
     });
     eventos.treinos.forEach(t => r.push(`<span class="cal-rotulo treino">Treino${t.start_time ? " " + esc(String(t.start_time).slice(0, 5)) : ""}</span>`));
     eventos.aniversarios.forEach(a => r.push(`<span class="cal-rotulo aniv">🎂 ${esc(a.jogador.nome)}</span>`));
@@ -292,7 +295,7 @@
         ${DIAS_SEMANA.map(d => `<span class="cal-semana" aria-hidden="true">${d}</span>`).join("")}
         ${celulas.join("")}
       </div>
-      <div class="cal-legenda"><span>${VFN.icone("traffic-cone", 12)} Treino</span>${(dados.aniversariantes || []).length ? '<span><span aria-hidden="true">🎂</span> Aniversário</span>' : ""}<span>${VFN.icone("house", 12)} Casa</span><span>${VFN.icone("bus", 12)} Fora</span><span><i class="leg-res res-V"></i>V <i class="leg-res res-E"></i>E <i class="leg-res res-D"></i>D</span></div>`;
+      <div class="cal-legenda"><span><i class="leg-tipo oficial"></i>Jogo oficial</span><span><i class="leg-tipo amigavel"></i>Amigável</span><span><i class="leg-tipo treino"></i>${VFN.icone("traffic-cone", 12)} Treino</span>${(dados.aniversariantes || []).length ? '<span><span aria-hidden="true">🎂</span> Aniversário</span>' : ""}<span>${VFN.icone("house", 12)} Casa</span><span>${VFN.icone("bus", 12)} Fora</span><span><i class="leg-res res-V"></i>V <i class="leg-res res-E"></i>E <i class="leg-res res-D"></i>D</span></div>`;
   }
 
   /* ---------- Detalhe do dia (drawer) ---------- */
@@ -376,6 +379,45 @@
     return blocos.join("");
   }
 
+  /** Drawer com o detalhe de um dia (jogos, treinos, aniversários; no admin, adicionar treino/jogo). */
+  function abrirDia(dia, opcoes, aoFechar) {
+    const corpo = abrirDrawer({ titulo: VFN.dataLonga(dia + "T12:00:00"), corpo: detalheDiaHTML(opcoes.obterDados(), dia, opcoes), aoFechar });
+    corpo.querySelectorAll("[data-cal-acao]").forEach(b => b.addEventListener("click", () => {
+      fecharDrawer();
+      if (b.dataset.calAcao === "treino" && opcoes.novoTreino) opcoes.novoTreino(b.dataset.dia);
+      if (b.dataset.calAcao === "jogo" && opcoes.novoJogo) opcoes.novoJogo(b.dataset.dia);
+    }));
+  }
+
+  /**
+   * V2.0 (Portal → Visão Geral): as próximas 2 semanas (a começar na segunda desta semana), com as mesmas células
+   * do calendário mensal; tocar num dia abre o detalhe. opcoes: as do criarCalendarioMensal.
+   */
+  function criarCalendarioSemanas(contentor, opcoes) {
+    let selecionado = "";
+    const render = () => {
+      const dados = opcoes.obterDados();
+      const hoje = new Date();
+      const segunda = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (hoje.getDay() + 6) % 7);
+      const celulas = [];
+      for (let n = 0; n < 14; n++) {
+        const d = new Date(segunda.getFullYear(), segunda.getMonth(), segunda.getDate() + n);
+        celulas.push(renderCalendarDay(d, eventosDoDia(dados, iso(d)), { hoje: iso(d) === iso(hoje), selecionado: iso(d) === selecionado, dados }));
+      }
+      contentor.innerHTML = `<div class="cal-grelha cal-semanas" role="grid" aria-label="Próximas 2 semanas">${DIAS_SEMANA.map(d => `<span class="cal-semana" aria-hidden="true">${d}</span>`).join("")}${celulas.join("")}</div>
+        <div class="cal-legenda"><span><i class="leg-tipo oficial"></i>Oficial</span><span><i class="leg-tipo amigavel"></i>Amigável</span><span><i class="leg-tipo treino"></i>Treino</span></div>`;
+    };
+    contentor.addEventListener("click", e => {
+      const celula = e.target.closest("[data-dia]");
+      if (!celula) return;
+      selecionado = celula.dataset.dia;
+      render();
+      abrirDia(selecionado, opcoes, () => { selecionado = ""; render(); });
+    });
+    render();
+    return { render };
+  }
+
   /**
    * Liga um calendário mensal a um contentor.
    * opcoes: { obterDados(), perfil, nomeRelatorio, nomePresenca, novoTreino(dia), novoJogo(dia) }
@@ -401,13 +443,7 @@
       if (!celula) return;
       estado.selecionado = celula.dataset.dia;
       render();
-      const corpo = abrirDrawer({ titulo: VFN.dataLonga(estado.selecionado + "T12:00:00"), corpo: detalheDiaHTML(opcoes.obterDados(), estado.selecionado, opcoes), aoFechar: () => { estado.selecionado = ""; render(); } });
-      corpo.querySelectorAll("[data-cal-acao]").forEach(b => b.addEventListener("click", () => {
-        const dia = b.dataset.dia;
-        fecharDrawer();
-        if (b.dataset.calAcao === "treino" && opcoes.novoTreino) opcoes.novoTreino(dia);
-        if (b.dataset.calAcao === "jogo" && opcoes.novoJogo) opcoes.novoJogo(dia);
-      }));
+      abrirDia(estado.selecionado, opcoes, () => { estado.selecionado = ""; render(); });
     });
     // deslizar para mudar de mês (telemóvel)
     let inicioX = null;
@@ -1424,8 +1460,9 @@
 
   /** Alternância "Mês | Lista" (guarda a escolha neste dispositivo). */
   function ligarAlternanciaCalendario(botoes, vistaMes, vistaLista, chave) {
-    let modo = "mes";
-    try { modo = localStorage.getItem(chave) || "mes"; } catch (e) { /* ignora */ }
+    // V2.0: no telemóvel abre na lista (a grelha fica no botão Mês); a escolha feita fica guardada
+    let modo = window.innerWidth <= 768 ? "lista" : "mes";
+    try { modo = localStorage.getItem(chave) || modo; } catch (e) { /* ignora */ }
     const aplicar = m => {
       modo = m;
       vistaMes.hidden = m !== "mes";
@@ -1774,6 +1811,6 @@
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
     ligarSegmentos, ligarPuxarParaAtualizar, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
-    eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, ligarAlternanciaCalendario
+    eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, criarCalendarioSemanas, ligarAlternanciaCalendario
   };
 })();

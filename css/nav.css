@@ -161,3 +161,116 @@ body.vfn-app :where(.stats-table, .plantel-table) > tbody > tr > td { transition
   body.vfn-app .card { padding: 14px; margin-bottom: 12px; }
   body.vfn-app .hub-grid { gap: 12px; }
 }
+
+/* =========================================================
+   PORTAL (V2.0, fase 2) — js/core/portal.js
+   ========================================================= */
+.portal-subtitulo { margin: 8px 0 12px; color: var(--text-muted); font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+
+/* Visão Geral: linha de tempo · último | próximo · classificação | agenda + 2 semanas */
+.portal-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: start; }
+.portal-grid > .card, .portal-coluna > .card { margin: 0; min-width: 0; }
+.portal-linha { grid-column: 1 / -1; }
+.portal-ultimo { grid-column: span 4; align-self: stretch; display: flex; flex-direction: column; }
+.portal-proximo { grid-column: span 8; }
+.portal-classificacao { grid-column: span 7; }
+.portal-coluna { grid-column: span 5; display: grid; gap: 16px; min-width: 0; }
+.portal-ultimo .hero-teams { flex: 1; align-content: center; }
+.portal-ultimo-acoes { display: flex; justify-content: center; margin-top: 14px; }
+.portal-ultimo-acoes .btn-ghost { color: #fff; border-color: rgba(255, 255, 255, .4); }
+.portal-ultimo-acoes .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+.portal-agenda .proximos-jogos { margin: 0; }
+.portal-semanas .cal-grelha { --cal-altura: 450px; }
+.portal-semanas .cal-dia, .portal-semanas .cal-vazio { min-height: 56px; }
+@media (max-width: 1100px) {
+  .portal-ultimo, .portal-proximo { grid-column: 1 / -1; }
+  .portal-classificacao, .portal-coluna { grid-column: 1 / -1; }
+}
+
+/* Calendário: blocos de cor por tipo (oficial = amarelo VFN, amigável = cinzento, treino = azul VFN) */
+:root { --cal-oficial: #F5B301; --cal-oficial-fg: #0A1628; --cal-oficial-fundo: #FFF6DB; --cal-amigavel: #CBD5E1; --cal-amigavel-fg: #0A1628; --cal-amigavel-fundo: #F1F5F9; --cal-treino: #0B1F3A; --cal-treino-fg: #FFFFFF; }
+html.tema-escuro { --cal-oficial-fundo: rgba(245, 179, 1, .14); --cal-amigavel: #64748B; --cal-amigavel-fg: #FFFFFF; --cal-amigavel-fundo: rgba(148, 163, 184, .12); --cal-treino: #3B6FD1; --cal-treino-fg: #FFFFFF; }
+body.vfn-app .cal-dia.com-jogo.oficial { background: var(--cal-oficial-fundo); box-shadow: inset 0 3px 0 var(--cal-oficial); }
+body.vfn-app .cal-dia.com-jogo.amigavel { background: var(--cal-amigavel-fundo); box-shadow: inset 0 3px 0 var(--cal-amigavel); }
+body.vfn-app .cal-dia.selecionado { box-shadow: 0 0 0 2px #FFD700 inset; }
+body.vfn-app .cal-treino { color: var(--cal-treino); }
+html.tema-escuro body.vfn-app .cal-treino { color: #8FB0F0; }
+body.vfn-app .cal-rotulo.jogo.oficial { background: var(--cal-oficial); color: var(--cal-oficial-fg); }
+body.vfn-app .cal-rotulo.jogo.amigavel { background: var(--cal-amigavel); color: var(--cal-amigavel-fg); }
+body.vfn-app .cal-rotulo.treino { background: var(--cal-treino); color: var(--cal-treino-fg); }
+.leg-tipo { display: inline-block; width: 12px; height: 8px; margin-right: 4px; border-radius: 2px; vertical-align: middle; }
+.leg-tipo.oficial { background: var(--cal-oficial); }
+.leg-tipo.amigavel { background: var(--cal-amigavel); }
+.leg-tipo.treino { background: var(--cal-treino); }
+
+/* Relatórios: cards com header fino na cor da competição */
+:root { --comp-liga: #F5B301; --comp-taca: #1E3A8A; --comp-amigavel: #94A3B8; }
+html.tema-escuro { --comp-taca: #60A5FA; }
+.rel-cards { display: grid; gap: 8px; }
+.rel-card { --comp-cor: var(--comp-liga); display: grid; gap: 8px; width: 100%; padding: 12px 14px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer; box-shadow: inset 0 4px 0 var(--comp-cor); transition: border-color .15s ease, background-color .15s ease; }
+.rel-card.comp-taca { --comp-cor: var(--comp-taca); }
+.rel-card.comp-amigavel { --comp-cor: var(--comp-amigavel); }
+.rel-card:hover, .rel-card:focus-visible { border-color: var(--comp-cor); background: var(--linha-hover); }
+.rel-card.active { border-color: var(--comp-cor); background: var(--surface-2); box-shadow: inset 0 4px 0 var(--comp-cor), 0 0 0 1px var(--comp-cor); }
+.rel-card-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.rel-card-comp { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.rel-card-comp-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-card-jogo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rel-card-jogo strong { overflow: hidden; color: var(--heading); font-size: .92rem; text-overflow: ellipsis; white-space: nowrap; }
+.rel-card-jogo .form-chip { flex-shrink: 0; width: 22px; height: 22px; font-size: .68rem; }
+.rel-card-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.rel-card-ev { display: inline-flex; gap: 10px; color: var(--fg); font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rel-card-estado { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.rel-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; font-size: .68rem; font-weight: 800; }
+.rel-tag.ficha { background: #DBEAFE; color: #1E40AF; }
+.rel-tag.analise { background: #DCFCE7; color: #166534; }
+.rel-tag.sem { background: var(--surface-2); color: var(--text-muted); }
+html.tema-escuro .rel-tag.ficha { background: rgba(96, 165, 250, .18); color: #BFDBFE; }
+html.tema-escuro .rel-tag.analise { background: rgba(74, 222, 128, .16); color: #BBF7D0; }
+@media (max-width: 768px) {
+  /* competição só com o logo (o nome fica na dica); sem logo, o nome mantém-se */
+  .rel-card-comp:has(.comp-logo) .rel-card-comp-nome { display: none; }
+}
+
+/* Adversários: logo, nome e confrontos */
+.adv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.adv-card { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "logo nome" "logo h2h"; align-items: center; gap: 4px 12px; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.adv-card:hover, .adv-card:focus-visible { border-color: var(--seccao-cor); background: var(--linha-hover); }
+.adv-card.proximo { box-shadow: inset 0 3px 0 var(--seccao-cor); }
+.adv-card .adv-logo { grid-area: logo; width: 44px !important; height: 44px !important; object-fit: contain; }
+.adv-nome { grid-area: nome; min-width: 0; padding-right: 4px; }
+.adv-nome strong { display: block; overflow: hidden; color: var(--heading); font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+.adv-nome small { display: block; overflow: hidden; color: var(--text-muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.adv-h2h { grid-area: h2h; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .74rem; font-variant-numeric: tabular-nums; }
+.adv-h2h-reg .v { color: #15803D; } .adv-h2h-reg .e { color: #64748B; } .adv-h2h-reg .d { color: #B91C1C; }
+html.tema-escuro .adv-h2h-reg .v { color: #4ADE80; } html.tema-escuro .adv-h2h-reg .e { color: var(--fg-muted); } html.tema-escuro .adv-h2h-reg .d { color: #F87171; }
+.adv-tag { padding: 1px 7px; border-radius: 999px; background: var(--seccao-cor); color: #0A1628; font-size: .62rem; font-weight: 800; }
+
+/* Pesquisa global */
+.vfn-pesquisa { position: relative; }
+.vfn-pesquisa-btn { display: none; }
+.vfn-pesquisa-caixa { position: relative; width: clamp(220px, 22vw, 320px); }
+.vfn-pesquisa-ic { position: absolute; z-index: 1; left: 10px; top: 50%; display: inline-grid; color: var(--silver); transform: translateY(-50%); pointer-events: none; }
+#vfnNav .vfn-pesquisa-input { width: 100%; height: 38px; padding: 0 12px 0 34px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 8px; background: rgba(255, 255, 255, .08); color: #fff; font: inherit; font-size: .85rem; }
+#vfnNav .vfn-pesquisa-input::placeholder { color: rgba(255, 255, 255, .62); }
+#vfnNav .vfn-pesquisa-input:focus { outline: none; border-color: var(--vfn-yellow); background: rgba(255, 255, 255, .12); }
+.vfn-pesquisa-resultados { position: absolute; top: calc(100% + 8px); right: 0; z-index: 55; width: min(420px, calc(100vw - 24px)); max-height: min(70vh, 480px); padding: 6px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); box-shadow: 0 14px 34px rgba(10, 22, 40, .26); }
+.vfn-pesquisa-resultados[hidden] { display: none; }
+.vfn-pesquisa-grupo { margin: 6px 8px 4px; color: var(--text-muted); font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.vfn-pesquisa-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.vfn-pesquisa-item:hover, .vfn-pesquisa-item.ativo { background: var(--surface-2); }
+.vfn-pesquisa-item-ic { display: inline-grid; flex-shrink: 0; place-items: center; width: 30px; height: 30px; }
+.vfn-pesquisa-item-ic .team-logo, .vfn-pesquisa-item-ic .team-logo-placeholder { width: 26px; height: 26px; }
+.vfn-pesquisa-item-txt { min-width: 0; }
+.vfn-pesquisa-item-txt strong { display: block; overflow: hidden; font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
+.vfn-pesquisa-item-txt small { display: block; color: var(--text-muted); font-size: .72rem; }
+.vfn-pesquisa-vazio { margin: 8px; color: var(--text-muted); font-size: .85rem; }
+@media (max-width: 1023px) {
+  .vfn-pesquisa-btn { display: inline-grid; }
+  .vfn-pesquisa-caixa { display: none; }
+  /* aberta: a caixa ocupa a barra de cima, por cima do logo e dos botões */
+  .vfn-pesquisa.aberta .vfn-pesquisa-caixa { position: fixed; top: calc(env(safe-area-inset-top) + 7px); left: 12px; right: 60px; z-index: 56; display: block; width: auto; }
+  #vfnNav .vfn-pesquisa.aberta .vfn-pesquisa-input { background: var(--nav-bg); }
+  .vfn-pesquisa.aberta .vfn-pesquisa-btn { position: relative; z-index: 57; }
+  .vfn-pesquisa-resultados { left: 0; right: 0; width: auto; }
+}

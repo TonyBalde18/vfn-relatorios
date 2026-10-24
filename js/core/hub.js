@@ -110,20 +110,6 @@
     return `<div class="forma-pontos${opcoes.compacto ? " compacto" : ""}">${rotulo}<span class="forma-pontos-linha" aria-label="Forma nos últimos ${jogos.length} jogos oficiais, do mais antigo para o mais recente">${pontos}</span></div>`;
   }
 
-  function resultadosHTML(dados, n) {
-    const jogos = VFN.ultimosJogos(dados.matches, n || 5);
-    if (!jogos.length) return vazio("Ainda não há jogos disputados.");
-    return `<ul class="result-list">${jogos.map(j => {
-      const g = VFN.golosJogo(j);
-      const nome = nomeAdversario(dados, j);
-      return `<li>
-        ${VFN.chipForma(VFN.letraResultado(j))}
-        <span class="result-teams">${logoEquipa(equipa(dados, j.opponent_team_id), nome)}<span><strong>${esc(nome)}</strong><small>${esc(VFN.dataCurta(j.date))} · ${VFN.jogoEmCasa(j) ? "Casa" : "Fora"} · ${esc(VFN.nomeCurtoCompeticao(j.competition))}</small></span></span>
-        <button type="button" class="result-score" data-jogo="vfn:${esc(j.id)}" title="Ver detalhe do jogo">${g.vfn}–${g.adv}</button>
-      </li>`;
-    }).join("")}</ul>`;
-  }
-
   function ultimoResultadoHTML(dados) {
     const j = VFN.ultimosJogos(dados.matches, 1)[0];
     if (!j) return `<h2 class="hub-card-title">Último resultado</h2>${vazio("Ainda não há jogos disputados.")}`;
@@ -1471,21 +1457,6 @@
     return primaria ? `<span class="cor-equipa-dot" style="background:${primaria};border-color:${secundaria || "#fff"}" aria-hidden="true"></span>` : "";
   }
 
-  /** Cards de todas as equipas (exceto o VFN) com logo, nome, cidade e forma recente. */
-  function cardsEquipasHTML(dados, termo) {
-    const t = String(termo || "").toLocaleLowerCase("pt-PT");
-    const lista = [...(dados.teams || [])].filter(x => !VFN.eVFN(x.name))
-      .filter(x => !t || [x.name, x.full_name, x.city].some(v => String(v || "").toLocaleLowerCase("pt-PT").includes(t)))
-      .sort((a, b) => a.name.localeCompare(b.name, "pt"));
-    if (!lista.length) return vazio("Sem equipas.");
-    return lista.map(x => `<button type="button" class="team-card${VFN.coresEquipa(x).primaria ? " com-cor" : ""}" data-equipa="${esc(x.id)}"${VFN.estiloCorEquipa(x)}>
-      ${logoEquipa(x, x.name)}
-      <strong>${esc(x.name)}</strong>
-      ${x.city ? `<small>${esc(x.city)}</small>` : ""}
-      ${chipsForma(dados, x.id, 5)}
-    </button>`).join("");
-  }
-
   /**
    * Ficha da equipa: forma, confrontos com o VFN (V/E/D, golos), todos os jogos contra
    * o VFN (passados e futuros) e jogadores conhecidos (external_players).
@@ -1684,17 +1655,26 @@
       });
       document.addEventListener("keydown", e => { if (e.key === "Escape") modal.hidden = true; });
     }
-    document.addEventListener("click", e => {
-      const alvo = e.target.closest("[data-jogo]");
-      if (!alvo || e.target.closest("input, select, [data-equipa], [data-jogador], .row-actions") || alvo.closest("#modalDetalheJogo")) return;
-      document.getElementById("detalheJogoCorpo").innerHTML = detalheJogoHTML(obterDados(), alvo.dataset.jogo, o);
-      modal.querySelector(".resumo-jogo").classList.toggle("rs-vfn", alvo.dataset.jogo.startsWith("vfn:"));
-      document.getElementById("resumoJogoTitulo").textContent = alvo.dataset.jogo.startsWith("vfn:") ? "Resumo do Jogo" : "Detalhe do jogo";
+    abrirDetalhe = chave => {
+      document.getElementById("detalheJogoCorpo").innerHTML = detalheJogoHTML(obterDados(), chave, o);
+      modal.querySelector(".resumo-jogo").classList.toggle("rs-vfn", chave.startsWith("vfn:"));
+      document.getElementById("resumoJogoTitulo").textContent = chave.startsWith("vfn:") ? "Resumo do Jogo" : "Detalhe do jogo";
       if (o.aposAbrir) o.aposAbrir(document.getElementById("detalheJogoCorpo"));
       modal.hidden = false;
       modal.querySelector(".resumo-jogo").scrollTop = 0;
       modal.querySelector("[data-fechar-detalhe]").focus();
+    };
+    document.addEventListener("click", e => {
+      const alvo = e.target.closest("[data-jogo]");
+      if (!alvo || e.target.closest("input, select, [data-equipa], [data-jogador], .row-actions") || alvo.closest("#modalDetalheJogo")) return;
+      abrirDetalhe(alvo.dataset.jogo);
     });
+  }
+
+  let abrirDetalhe = null;
+  /** Abre o detalhe de um jogo sem clique (V2.0: pesquisa global). chave: "vfn:<id>" ou "liga:<id>". */
+  function abrirDetalheJogo(chave) {
+    if (abrirDetalhe) abrirDetalhe(chave);
   }
 
   /* ---------- Esqueletos enquanto os dados carregam ---------- */
@@ -1788,39 +1768,6 @@
         <strong class="h2h-res">${esc(resultadoH2H(j))}</strong>
         <small class="h2h-comp">${esc(j.competicao || "")}${j.jornada ? " · " + esc(j.jornada) : ""} · ${j.local === "casa" ? "Casa" : j.local === "fora" ? "Fora" : "Neutro"}</small>
       </li>`).join("")}</ol>`;
-  }
-
-  /** Equipa (teams) que corresponde a um nome da tabela h2h (para o logo); null se não houver. */
-  function equipaDoNomeH2H(dados, nome) {
-    return (dados.teams || []).find(t => !VFN.eVFN(t.name) && mesmoAdversario(nome, [t.name, t.full_name])) || null;
-  }
-
-  /** Adversários com histórico (nomes da tabela h2h), o do próximo jogo primeiro e depois por nº de jogos. */
-  function adversariosH2H(dados, proximo) {
-    const nomes = [...new Set((dados.h2h || []).flatMap(l => l.equipa_casa === NOME_VFN_H2H ? [l.equipa_fora] : l.equipa_fora === NOME_VFN_H2H ? [l.equipa_casa] : []))];
-    return nomes.map(n => resumoH2H(n, dados.h2h)).filter(Boolean)
-      .sort((a, b) => (b.adversario === proximo) - (a.adversario === proximo) || b.jogos.length - a.jogos.length || a.adversario.localeCompare(b.adversario, "pt"));
-  }
-
-  /** Grelha de cards compactos (v15): logo, nome, V/E/D e os últimos 5 resultados. Clique: data-h2h-adv. */
-  function h2hCardsHTML(dados, proximo) {
-    const lista = adversariosH2H(dados, proximo);
-    if (!lista.length) return vazio("Ainda não há histórico de confrontos. Corre o sql/migrations/h2h.sql no Supabase.");
-    return `<div class="h2h-cards">${lista.map(r => `<button type="button" class="h2h-card${r.adversario === proximo ? " proximo" : ""}" data-h2h-adv="${esc(r.adversario)}">
-        ${logoEquipa(equipaDoNomeH2H(dados, r.adversario), r.adversario)}
-        <strong>${esc(r.adversario)}</strong>
-        <span class="h2h-card-reg"><b class="v">${r.V}V</b> <b class="e">${r.E}E</b> <b class="d">${r.D}D</b></span>
-        <span class="form-row form-row-sm">${r.jogos.slice(0, 5).map(j => VFN.chipForma(j.letra)).join("")}</span>
-        ${r.adversario === proximo ? `<span class="h2h-card-tag">Próximo jogo</span>` : ""}
-      </button>`).join("")}</div>`;
-  }
-
-  /** Conteúdo do painel de detalhe: logo e nome grandes, registo (V/E/D, golos, % vitórias) e os jogos. */
-  function h2hPainelHTML(dados, adversario) {
-    const r = resumoH2H(adversario, dados.h2h);
-    if (!r) return vazio("Sem jogos registados contra este adversário.");
-    return `<div class="h2h-painel-cab">${logoEquipa(equipaDoNomeH2H(dados, r.adversario), r.adversario, "h2h-painel-logo")}<div><h3>${esc(r.adversario)}</h3><p class="muted">${r.jogos.length} jogo${r.jogos.length === 1 ? "" : "s"} contra o VFN</p></div></div>
-      ${h2hHTML(r)}`;
   }
 
   /**
@@ -2193,10 +2140,10 @@
     ativarVista,
     jogadorPorIdRelatorio, statsGRJogador,
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
-    proximosJogosHTML, atualizarContagens, formaHTML, resultadosHTML, ultimoResultadoHTML,
+    proximosJogosHTML, atualizarContagens, formaHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
-    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, resumoH2H, h2hMiniHTML, h2hHTML, h2hCardsHTML, h2hPainelHTML, equipaDoNomeH2H, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, cardsEquipasHTML, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, resumoH2H, h2hMiniHTML, h2hHTML, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
+    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, abrirDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

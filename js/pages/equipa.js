@@ -98,8 +98,16 @@ const NAV_EQUIPA = {
     ] }
   ],
   links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe" }],
+  pesquisa: termo => VFNPortal.filtrarPesquisa(indicePesquisa(), termo),
   aoMudar: vista => mostrarVista(vista)
 };
+
+/** Índice da pesquisa global (jogadores, jogos, eventos dos relatórios); refeito quando os dados mudam (renderTudo). */
+let indiceCache = null;
+function indicePesquisa() {
+  if (!indiceCache) indiceCache = VFNPortal.indicePesquisa({ dados, jogadores, relatorios: relatoriosPublicados(), abrirJogador, abrirRelatorio });
+  return indiceCache;
+}
 
 function mostrarVista(vista) {
   H.ativarVista(vista);
@@ -140,23 +148,21 @@ function renderInicio() {
     $("eqBoasVindas").innerHTML = `<div class="eq-ola"><div><span class="muted">Olá,</span><h2>${esc((perfil && perfil.full_name) || utilizador.email)}</h2><p class="muted">Entraste como equipa técnica: vês os dados do plantel, sem as secções pessoais.</p></div></div>`;
   }
   $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores, { semIdadeMedia: true });
-  // v17: o mesmo banner do dashboard (só redesenha quando o próximo jogo muda: a contagem e a meteorologia continuam)
-  const jogo = VFN.proximoJogo(dados.matches);
-  const chave = jogo ? `${jogo.id}|${jogo.date}|${jogo.opponent_team_id}` : "";
-  if ($("eqJogoSemana").dataset.chave !== chave || !$("eqJogoSemana").innerHTML) {
-    $("eqJogoSemana").dataset.chave = chave;
-    $("eqJogoSemana").innerHTML = VFNComp.renderJogoDaSemana(dados);
-    VFNComp.ligarJogoDaSemana($("eqJogoSemana"), dados);
-  }
-  $("eqForma").innerHTML = H.formaHTML(dados, 5);
-  $("eqProximosJogos").innerHTML = H.proximosJogosHTML(dados, 3);
-  $("eqLinhaTempo").innerHTML = H.linhaTempoEpocaHTML(dados); // v1.1 (B4)
-  requestAnimationFrame(() => H.centrarLinhaTempo($("eqLinhaTempo")));
+  visaoGeral().render(); // V2.0: linha de tempo, último/próximo jogo, classificação, agenda e 2 semanas
   // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
   const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
   $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
   graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") });
-  $("eqResultados").innerHTML = H.resultadosHTML(dados, 5);
+}
+
+/* V2.0: Portal → Visão Geral e calendário (js/core/portal.js) */
+let visaoGeralEq = null;
+const obterDadosCalendario = () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) });
+// detalhe do dia com eventos e escalação (só leitura; sem presenças)
+const OPCOES_CALENDARIO = { perfil: "staff", semPresencas: true, nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome };
+function visaoGeral() {
+  if (!visaoGeralEq) visaoGeralEq = VFNPortal.criarVisaoGeral($("portalVisao"), { obterDados: obterDadosCalendario, calendario: OPCOES_CALENDARIO });
+  return visaoGeralEq;
 }
 
 /* ---------- Convocatória ---------- */
@@ -220,14 +226,17 @@ function initCompeticoes() {
 let calendario = null;
 let mapaEquipa = null;
 
+let filtroCalendarioEq = "todos";
+
 function renderCalendario() {
-  if (calendario) { calendario.render(); return; }
-  calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), {
-    obterDados: () => ({ ...dados, aniversariantes: VFN.aniversariantes(jogadores, dados.staff) }),
-    perfil: "staff", // detalhe com eventos e escalação (só leitura; sem presenças)
-    semPresencas: true,
-    nomeRelatorio: id => (jogadorDoRelatorio(id) || {}).nome
-  });
+  if (calendario) calendario.render();
+  else {
+    calendario = VFNComp.criarCalendarioMensal($("eqCalMes"), { obterDados: obterDadosCalendario, ...OPCOES_CALENDARIO });
+    VFNComp.ligarAlternanciaCalendario($("eqCalModos"), $("eqCalMes"), $("eqCalLista"), "vfnCalModoEquipa");
+  }
+  // V2.0: vista de lista (a mesma do dashboard)
+  $("eqCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendarioEq);
+  $("eqCalendarioLista").innerHTML = H.calendarioHTML(dados, filtroCalendarioEq);
 }
 
 /* ---------- Multas ---------- */
@@ -380,7 +389,7 @@ function renderAdversarios() {
   // mapa dos estádios (v18: na secção dos adversários)
   if (!mapaEquipa) mapaEquipa = VFNComp.criarMapaEstadios($("mapaEquipa"), () => dados.teams);
   else mapaEquipa.render();
-  $("eqEquipasGrid").innerHTML = H.cardsEquipasHTML(dados, $("eqEquipasPesquisa").value);
+  $("eqEquipasGrid").innerHTML = VFNPortal.adversariosHTML(dados, $("eqEquipasPesquisa").value); // V2.0: logo, nome e H2H
 }
 
 /** Ficha do adversário; o H2H (tabela h2h) abre com o botão "Ver H2H". */
@@ -507,14 +516,7 @@ let relatorioAberto = "";
 function renderRelatorios() {
   const lista = relatoriosPublicados();
   $("eqRelatoriosInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
-  $("eqRelatoriosLista").innerHTML = lista.length ? lista.map(({ r, d }) => {
-    const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
-    return `<button type="button" class="relatorios-item${relatorioAberto === String(r.id) ? " active" : ""}" data-relatorio="${esc(r.id)}">
-      <span class="form-chip form-${v}">${v}</span>
-      <span class="relatorios-texto"><strong>${d.casa ? "VFN" : esc(d.adversario)} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? esc(d.adversario) : "VFN"}</strong>${VFN.relatorioComAnalise(r) ? "" : " " + VFN.badgeEstadoRelatorio("ficha_publicada")}
-      <small>${esc(VFN.dataDDMMAAAA(d.data) || "")}${d.competicao ? (d.data ? " · " : "") + VFN.nomeCompeticaoHTML(d.competicao, true) : ""}</small></span>
-    </button>`;
-  }).join("") : H.vazio("Ainda não há relatórios publicados.");
+  $("eqRelatoriosLista").innerHTML = lista.length ? VFNPortal.relatoriosCardsHTML(lista, { ativo: relatorioAberto }) : H.vazio("Ainda não há relatórios publicados."); // V2.0: cards
 }
 
 function abrirRelatorio(id) {
@@ -542,6 +544,7 @@ function renderCabecalho() {
 }
 
 function renderTudo() {
+  indiceCache = null;
   renderCabecalho();
   renderInicio();
   renderConvocatoria();
@@ -561,8 +564,7 @@ function renderTudo() {
 function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqBoasVindas", "linhas", 2);
   H.mostrarEsqueleto("eqHubInicio", "linhas", 2);
-  H.mostrarEsqueleto("eqJogoSemana", "hero");
-  H.mostrarEsqueleto("eqResultados", "resultados", 5);
+  visaoGeral().esqueleto();
   H.mostrarEsqueleto("eqConvocatoria", "linhas", 5);
   H.mostrarEsqueleto("eqJornTabela", "tabela", 8);
   H.mostrarEsqueleto("eqJornLista", "resultados", 6);
@@ -636,6 +638,11 @@ async function iniciar() {
   $("eqPlantelGrid").addEventListener("click", e => { const c = e.target.closest(".player-card"); if (c) abrirJogador(c.dataset.id); });
   $("eqHeatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmapEquipa = b.dataset.filtro; renderHeatmapsEquipa(); } });
   $("eqEquipasPesquisa").addEventListener("input", renderAdversarios);
+  $("eqCalendarioFiltros").addEventListener("click", e => {
+    if (e.target.closest("[data-ordem-calendario]")) { H.alternarOrdemCalendario(); renderCalendario(); return; }
+    const b = e.target.closest(".filter-chip[data-filtro]");
+    if (b) { filtroCalendarioEq = b.dataset.filtro; renderCalendario(); }
+  });
   // emblema de uma equipa (cards dos adversários, jornadas...) abre a ficha com o H2H
   document.addEventListener("click", e => { const alvo = e.target.closest("[data-equipa]"); if (alvo && !e.target.closest(".modal-overlay")) abrirEquipa(alvo.dataset.equipa); });
   $("btnEqVerH2H").addEventListener("click", () => { const h = $("eqEquipaH2H"); h.hidden = !h.hidden; $("btnEqVerH2H").hidden = !h.hidden; });
