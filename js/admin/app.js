@@ -2770,6 +2770,16 @@ function initAplicacao() {
   setInterval(renderProximoJogoPreJogo, 60000); // atualiza a contagem decrescente
 
   el("btnGenerateDocx").addEventListener("click", gerarRelatorioWord);
+  abrirJogadorDoEndereco();
+}
+
+/** V2.0: index.html?editar=<id>#gestao/equipa (botão de editar em Plantel → Equipa) abre a ficha desse jogador. */
+function abrirJogadorDoEndereco() {
+  const id = new URLSearchParams(location.search).get("editar");
+  if (!id) return;
+  history.replaceState(null, "", location.pathname + location.hash); // não volta a abrir ao recarregar
+  const j = jogadorPorIdBD(id);
+  if (j) abrirModalExistente(j);
 }
 
 function mostrarAplicacao() {

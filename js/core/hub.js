@@ -1242,29 +1242,6 @@
     </table></div>`;
   }
 
-  /* ---------- Disponibilidade pré-jogo ---------- */
-
-  const ORDEM_POSICAO = { GR: 0, Def: 1, Meio: 2, Ata: 3 };
-
-  function disponibilidadeHTML(dados, jogadores) {
-    const jogo = VFN.proximoJogo(dados.matches);
-    const ordenar = l => [...l].sort((a, b) => (ORDEM_POSICAO[VFN.categoriaPosicao(a.posicao)] ?? 9) - (ORDEM_POSICAO[VFN.categoriaPosicao(b.posicao)] ?? 9) || a.nome.localeCompare(b.nome, "pt"));
-    // suspensões automáticas (AF Guarda): os suspensos passam para os indisponíveis
-    const susp = new Map(jogadores.map(j => [j, calcularSuspensoes(j.id, dados, { competicao: jogo && jogo.competition })])); // na competição do próximo jogo
-    const risco = j => susp.get(j).suspenso;
-    const convocaveis = ordenar(jogadores.filter(j => (!j.disponibilidade || j.disponibilidade === "disponivel" || j.disponibilidade === "em_duvida") && !risco(j)));
-    const fora = ordenar(jogadores.filter(j => !convocaveis.includes(j)));
-    const linha = (j, extra) => `<li data-jogador="${esc(j.id)}">${VFN.avatarJogador(j, "avatar-xs")}<span class="disp-nome">${esc(j.nome)}<small class="muted">${esc(j.posicao)}</small></span>${extra || ""}</li>`;
-    const porCategoria = lista => ["GR", "Def", "Meio", "Ata"].map(c => [c, lista.filter(j => VFN.categoriaPosicao(j.posicao) === c).length]).filter(([, n]) => n).map(([c, n]) => `<span>${{ GR: "GR", Def: "Defesas", Meio: "Médios", Ata: "Avançados" }[c]} <b>${n}</b></span>`).join("");
-    return `${jogo ? `<p class="disp-jogo">${VFN.icone("calendar-days", 16)} ${esc(VFN.jogoEmCasa(jogo) ? "VFN vs " + nomeAdversario(dados, jogo) : nomeAdversario(dados, jogo) + " vs VFN")} · ${esc(VFN.dataLonga(jogo.date, true))}</p>` : ""}
-      <div class="disp-colunas">
-        <section class="disp-coluna ok"><h3>${VFN.icone("circle-check", 18)} Convocáveis <b>${convocaveis.length}</b></h3><div class="disp-resumo">${porCategoria(convocaveis)}</div>
-          <ul>${convocaveis.map(j => linha(j, (j.disponibilidade === "em_duvida" ? VFN.badgeDisponibilidade("em_duvida") : "") + badgeSuspensao(susp.get(j)))).join("") || "<li class=\"muted\">Nenhum jogador.</li>"}</ul></section>
-        <section class="disp-coluna nao"><h3>${VFN.icone("circle-off", 18)} Indisponíveis <b>${fora.length}</b></h3>
-          <ul>${fora.map(j => linha(j, risco(j) ? badgeSuspensao(susp.get(j)) : VFN.badgeDisponibilidade(j.disponibilidade))).join("") || "<li class=\"muted\">Todo o plantel disponível.</li>"}</ul></section>
-      </div>`;
-  }
-
   /* ---------- Posição do VFN por jornada ---------- */
 
   /** Posição do VFN na classificação no fim de cada jornada com resultados. */
@@ -2137,13 +2114,13 @@
   window.VFNHub = {
     linhaTempoEpocaHTML, centrarLinhaTempo,
     participacoesJogador, participacaoTilesHTML, cartoesCompeticaoHTML, minutosPorSlot, minutosPorPosicaoJogador, graficoPosicoes,
-    ativarVista,
+    ativarVista, idade,
     jogadorPorIdRelatorio, statsGRJogador,
     jogadorDeLinha, equipa, nomeAdversario, logoEquipa, logoVFN, corEquipaDot, tagCompeticao, vazio,
     proximosJogosHTML, atualizarContagens, formaHTML, ultimoResultadoHTML,
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, resumoH2H, h2hMiniHTML, h2hHTML, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, abrirDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, disponibilidadeHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, abrirDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

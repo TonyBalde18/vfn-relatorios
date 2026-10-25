@@ -274,3 +274,66 @@ html.tema-escuro .adv-h2h-reg .v { color: #4ADE80; } html.tema-escuro .adv-h2h-r
   .vfn-pesquisa.aberta .vfn-pesquisa-btn { position: relative; z-index: 57; }
   .vfn-pesquisa-resultados { left: 0; right: 0; width: auto; }
 }
+
+/* =========================================================
+   PLANTEL (V2.0, fase 3) — js/core/plantel.js
+   ========================================================= */
+/* Visão Geral: lista | disponibilidade + disciplina · 11 mais utilizado | marcadores + minutos */
+.plantel-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.plantel-grid > .card, .plantel-coluna > .card { margin: 0; min-width: 0; }
+.plantel-lista { grid-column: span 8; }
+.plantel-coluna { grid-column: span 4; display: grid; gap: 16px; min-width: 0; }
+.plantel-onze { grid-column: span 7; }
+.plantel-coluna-2 { grid-column: span 5; }
+@media (min-width: 1101px) {
+  /* a lista do plantel acompanha a altura da coluna ao lado; o resto faz scroll dentro do card */
+  .plantel-lista .table-wrap { max-height: 640px; overflow-y: auto; scrollbar-width: thin; }
+  .plantel-lista thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
+}
+@media (max-width: 1100px) {
+  .plantel-lista, .plantel-coluna, .plantel-onze, .plantel-coluna-2 { grid-column: 1 / -1; }
+  .plantel-coluna { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+
+/* tabelas do plantel: jogador com foto, números alinhados, linha clicável */
+.plantel-tabela, .equipa-tabela { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.plantel-tabela th, .equipa-tabela th { padding: 8px 6px; color: var(--text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-align: left; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.plantel-tabela td, .equipa-tabela td { padding: 7px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.plantel-tabela .num, .equipa-tabela .num { text-align: right; font-variant-numeric: tabular-nums; }
+.plantel-tabela tbody tr, .equipa-tabela tbody tr { cursor: pointer; }
+.plantel-tabela tbody tr:focus-visible, .equipa-tabela tbody tr:focus-visible { outline: 2px solid var(--seccao-cor); outline-offset: -2px; }
+.pl-jogador { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pl-jogador strong { display: block; color: var(--heading); font-weight: 700; white-space: nowrap; }
+.pl-jogador small, .pl-secundarias { display: block; color: var(--text-muted); font-size: .7rem; }
+.equipa-tabela tr.pl-eu > td { background: rgba(245, 179, 1, .12); }
+.equipa-tabela tr.pl-eu > td:first-child { box-shadow: inset 3px 0 0 #F5B301; }
+.pl-acoes { width: 1%; text-align: right; }
+.pl-acoes .icon-btn { display: inline-grid; place-items: center; }
+
+/* Disciplina */
+.disc-titulo { margin: 4px 0 6px; color: var(--text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.disc-lista { display: grid; gap: 2px; margin: 0 0 10px; padding: 0; list-style: none; }
+.disc-lista li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 6px; cursor: pointer; }
+.disc-lista li:hover { background: var(--linha-hover); }
+.disc-nome { flex: 1; min-width: 0; font-size: .84rem; font-weight: 700; }
+.disc-nome small { display: block; font-weight: 500; }
+.disc-cartoes { display: inline-flex; gap: 8px; font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.disc-nota { margin: 0; font-size: .72rem; }
+
+@media (max-width: 768px) {
+  /* telemóvel: só as colunas essenciais (nº, jogador, posição, jogos, minutos, estado) */
+  .plantel-tabela .col-sec, .equipa-tabela .col-sec { display: none; }
+  .plantel-tabela, .equipa-tabela { font-size: .8rem; }
+  .pl-jogador .vfn-avatar { display: none; }
+}
+
+/* disponibilidade no card estreito ao lado da lista: convocáveis e indisponíveis um por baixo do outro */
+.plantel-coluna .disp-colunas { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.plantel-coluna .disp-coluna { min-width: 0; }
+.disp-totais { display: flex; gap: 8px; margin-bottom: 8px; }
+.disp-total { flex: 1; padding: 8px 10px; border-radius: 8px; font-size: .78rem; font-weight: 600; }
+.disp-total b { display: block; font-size: 1.35rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.disp-total.ok { background: rgba(22, 163, 74, .1); color: #166534; }
+.disp-total.nao { background: rgba(220, 38, 38, .08); color: #991B1B; }
+html.tema-escuro .disp-total.ok { background: rgba(74, 222, 128, .12); color: #BBF7D0; }
+html.tema-escuro .disp-total.nao { background: rgba(248, 113, 113, .12); color: #FECACA; }

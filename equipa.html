@@ -75,12 +75,8 @@
     <div id="portalVisao"></div>
     <h2 class="portal-subtitulo">A época</h2>
     <div id="eqHubInicio" data-aos="fade-up"></div>
-    <!-- v17: as mesmas secções do dashboard (VFNHub.onzeEstaticoHTML e VFNHub.graficoGolos) -->
-    <div class="public-stack two-col">
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">11 mais utilizado <small class="muted">por minutos jogados</small></h2>
-        <div id="eqOnze"></div>
-      </article>
+    <!-- V2.0: o 11 mais utilizado passou para Plantel → Visão Geral -->
+    <div class="public-stack">
       <article class="card" data-aos="fade-up">
         <h2 class="hub-card-title">Golos marcados vs sofridos <small class="muted">últimos 10 jogos</small></h2>
         <div class="chart-box"><canvas id="eqChartGolosEquipa" role="img" aria-label="Gráfico de linhas com golos marcados e sofridos nos últimos 10 jogos"></canvas></div>
@@ -205,11 +201,16 @@
   </section>
 
   <!-- PLANTEL (v17): a mesma grelha de cards do dashboard; a disponibilidade só aparece no próprio jogador -->
-  <section id="view-disponibilidade" class="view">
+  <!-- V2.0: Plantel → Visão Geral (VFNPlantel.criarVisaoGeral, a mesma do dashboard) -->
+  <section id="view-plantel-visao" class="view">
+    <div id="plantelVisao"></div>
+  </section>
+
+  <!-- PLANTEL → EQUIPA: lista detalhada (só leitura) -->
+  <section id="view-plantel" class="view">
     <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Plantel <small class="muted" id="eqPlantelTotal"></small></h2></div>
-      <div id="eqPlantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div>
-      <div id="eqPlantelGrid" class="players-grid"></div>
+      <div class="hub-card-head"><h2 class="hub-card-title">Equipa <small class="muted" id="eqPlantelTotal"></small></h2><div id="eqPlantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div></div>
+      <div id="eqPlantelGrid"></div>
     </div>
   </section>
 
@@ -286,6 +287,7 @@
 <script src="js/core/hub.js?v=42"></script>
 <script src="js/core/nav.js?v=42"></script>
 <script src="js/core/portal.js?v=42"></script>
+<script src="js/core/plantel.js?v=42"></script>
 <script src="js/core/components.js?v=42"></script>
 <script src="js/core/relatorio.js?v=42"></script>
 <script src="js/pages/equipa.js?v=42"></script>

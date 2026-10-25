@@ -62,22 +62,6 @@
     <h2 class="portal-subtitulo">A época</h2>
     <div id="hubInicio" data-aos="fade-up"></div>
     <div class="hub-grid">
-      <article class="card span-2" data-aos="fade-up">
-        <h2 class="hub-card-title">11 mais utilizados <small class="muted">por minutos jogados</small></h2>
-        <div id="onzeCampo"></div>
-      </article>
-      <!-- v18: coluna ao lado do 11: marcadores + minutos — a linha fica completa, sem espaço vazio -->
-      <div class="hub-coluna">
-        <article class="card" data-aos="fade-up">
-          <h2 class="hub-card-title">Top marcadores</h2>
-          <div id="hubMarcadores"></div>
-        </article>
-        <article class="card" data-aos="fade-up">
-          <h2 class="hub-card-title">Top jogadores por minutos <small id="minutosInfo" class="muted"></small></h2>
-          <div id="minutosLista" class="minutes-scroll"></div>
-        </article>
-      </div>
-
       <article class="card span-3" data-aos="fade-up">
         <h2 class="hub-card-title">Presenças <small class="muted">época · % de sessões com presença</small></h2>
         <div id="hubPresencas"></div>
@@ -98,12 +82,17 @@
     </div>
   </section>
 
-  <!-- PLANTEL -->
+  <!-- V2.0: Plantel → Visão Geral (VFNPlantel.criarVisaoGeral): lista, disponibilidade, disciplina, 11 mais utilizado, marcadores e minutos -->
+  <section id="view-plantel-visao" class="view">
+    <div id="plantelVisao"></div>
+  </section>
+
+  <!-- PLANTEL → EQUIPA: lista detalhada (VFNPlantel.equipaHTML); o admin tem o botão de editar -->
   <section id="view-plantel" class="view">
     <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Plantel <small id="plantelTotal" class="muted"></small></h2></div>
+      <div class="hub-card-head"><h2 class="hub-card-title">Equipa <small id="plantelTotal" class="muted"></small></h2></div>
       <div class="toolbar"><div id="plantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div><label class="sr-only" for="plantelEstado">Disponibilidade</label><select id="plantelEstado" class="compact-select"><option value="">Todos os estados</option><option value="disponivel">Disponível</option><option value="em_duvida">Em dúvida</option><option value="lesionado">Lesionado</option><option value="suspenso">Suspenso</option><option value="indisponivel">Indisponível</option></select></div>
-      <div id="plantelGrid" class="players-grid"></div>
+      <div id="plantelGrid"></div>
     </div>
   </section>
 
@@ -113,14 +102,6 @@
       <div class="hub-card-head"><h2 class="hub-card-title">Convocatória</h2><label class="sr-only" for="dbConvJogo">Jogo</label><select id="dbConvJogo" class="compact-select"></select></div>
       <div id="dbConvocatoria"></div>
       <div class="conv-acoes" id="dbConvAcoes" hidden><button type="button" class="btn btn-ghost btn-sm" data-anuncio="1x1"><i data-icon="image" data-size="16"></i> Exportar 1:1</button><button type="button" class="btn btn-ghost btn-sm" data-anuncio="9x16"><i data-icon="smartphone" data-size="16"></i> Exportar 9:16</button></div>
-    </div>
-  </section>
-
-  <!-- DISPONIBILIDADE -->
-  <section id="view-disponibilidade" class="view">
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Disponibilidade pré-jogo <small class="muted">convocáveis vs indisponíveis</small></h2>
-      <div id="dbDisponibilidade"></div>
     </div>
   </section>
 
@@ -314,6 +295,7 @@
 <script src="js/core/hub.js?v=42"></script>
 <script src="js/core/nav.js?v=42"></script>
 <script src="js/core/portal.js?v=42"></script>
+<script src="js/core/plantel.js?v=42"></script>
 <script src="js/core/components.js?v=42"></script>
 <script src="js/core/relatorio.js?v=42"></script>
 <script src="js/pages/dashboard.js?v=42"></script>

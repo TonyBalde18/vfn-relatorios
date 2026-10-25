@@ -89,7 +89,8 @@ const NAV_EQUIPA = {
       { id: "multas", rotulo: "Multas", vista: "multas" }
     ] },
     { id: "plantel", rotulo: "Plantel", icone: "users", tabs: [
-      { id: "visao", rotulo: "Visão Geral", vista: "disponibilidade" },
+      { id: "visao", rotulo: "Visão Geral", vista: "plantel-visao" },
+      { id: "equipa", rotulo: "Equipa", vista: "plantel" },
       { id: "estatisticas", rotulo: "Estatísticas", vista: "estatisticas" },
       { id: "comparar", rotulo: "Comparar", vista: "comparar" }
     ] },
@@ -150,8 +151,6 @@ function renderInicio() {
   $("eqHubInicio").innerHTML = H.estatisticasIniciaisHTML(dados, jogadores, { semIdadeMedia: true });
   visaoGeral().render(); // V2.0: linha de tempo, último/próximo jogo, classificação, agenda e 2 semanas
   // v17: 11 mais utilizado (minutos dos relatórios oficiais, formação mais usada) e golos marcados vs sofridos — os mesmos do dashboard
-  const { lista: minutosEpoca } = H.minutosJogadosEpoca(dados, jogadorDoRelatorio);
-  $("eqOnze").innerHTML = minutosEpoca.length ? H.onzeMaisUtilizadoHTML(dados.match_reports, jogadorDoRelatorio, minutosEpoca, dados) : H.vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
   graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") });
 }
 
@@ -379,9 +378,17 @@ function renderComparar() {
 
 let filtroPosicaoEq = "";
 
+/* V2.0: Plantel → Visão Geral e Equipa (js/core/plantel.js); só leitura */
+let plantelVisao = null;
+function visaoPlantel() {
+  if (!plantelVisao) plantelVisao = VFNPlantel.criarVisaoGeral($("plantelVisao"), { obterDados: () => dados, jogadores: () => jogadores, jogadorDoRelatorio });
+  return plantelVisao;
+}
+
 function renderPlantelEq() {
+  visaoPlantel().render();
   $("eqPlantelFiltros").innerHTML = H.filtrosPosicaoHTML(filtroPosicaoEq);
-  $("eqPlantelGrid").innerHTML = H.plantelHTML(jogadores, filtroPosicaoEq, { disponibilidade: eu ? "eu" : true, eu: eu ? eu.id : null, stats: true });
+  $("eqPlantelGrid").innerHTML = VFNPlantel.equipaHTML(jogadores, { dados, posicao: filtroPosicaoEq, jogadorDoRelatorio, eu: eu ? eu.id : null });
   $("eqPlantelTotal").textContent = `· ${jogadores.length} jogadores`;
 }
 
@@ -572,7 +579,8 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqMinhasMultas", "linhas", 4);
   H.mostrarEsqueleto("eqTabelaMultas", "linhas", 5);
   H.mostrarEsqueleto("eqMinhaFicha", "cards", 1);
-  H.mostrarEsqueleto("eqPlantelGrid", "jogadores", 8);
+  H.mostrarEsqueleto("eqPlantelGrid", "linhas", 10);
+  visaoPlantel().esqueleto();
   H.mostrarEsqueleto("eqRelatoriosLista", "linhas", 4);
 }
 
@@ -635,7 +643,6 @@ async function iniciar() {
   $("eqMultasJogador").addEventListener("change", renderMultas);
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
   $("eqPlantelFiltros").addEventListener("click", e => { const b = e.target.closest("[data-posicao]"); if (b) { filtroPosicaoEq = b.dataset.posicao; renderPlantelEq(); } });
-  $("eqPlantelGrid").addEventListener("click", e => { const c = e.target.closest(".player-card"); if (c) abrirJogador(c.dataset.id); });
   $("eqHeatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmapEquipa = b.dataset.filtro; renderHeatmapsEquipa(); } });
   $("eqEquipasPesquisa").addEventListener("input", renderAdversarios);
   $("eqCalendarioFiltros").addEventListener("click", e => {
