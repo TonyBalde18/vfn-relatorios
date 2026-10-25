@@ -11,7 +11,7 @@
 const H = VFNHub;
 const $ = id => document.getElementById(id);
 
-let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [] };
+let dados = { teams: [], matches: [], league_results: [], external_players: [], players: [], h2h: [] };
 let jogadores = [];
 let filtroPosicao = "";
 let filtroCalendario = "todos";
@@ -29,7 +29,7 @@ async function carregarDados() {
    * v15: o mapa de calor dos golos deixou de estar na página pública (é análise interna): já não se lê a view
    * golos_zonas (já apagada no Supabase: sql/migrations/v24_migracoes_em_comentarios.sql, ponto 5).
    */
-  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", squads: "squads", onze_jogos: "onze_jogos" };
+  const pedidos = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_public", sessions: "sessions_public", squads: "squads", onze_jogos: "onze_jogos", h2h: "h2h" };
   const chaves = Object.keys(pedidos);
   // do plantel só as colunas públicas da view (nunca a tabela players)
   // squads: só a formação (para o 11 mais utilizado); sem leitura pública (RLS) o 11 usa a posição do perfil
@@ -37,7 +37,7 @@ async function carregarDados() {
   const respostas = await Promise.all(chaves.map(k => cliente.from(pedidos[k]).select(colunas[k] || "*")));
   let falhou = false;
   // tabelas novas (ainda por criar no Supabase) não disparam o aviso
-  const opcionais = ["external_players", "sessions", "squads", "onze_jogos"];
+  const opcionais = ["external_players", "sessions", "squads", "onze_jogos", "h2h"]; // h2h: leitura pública (sql/migrations/h2h.sql)
   respostas.forEach((r, i) => { if (r.error && !opcionais.includes(chaves[i])) falhou = true; dados[chaves[i]] = r.error ? [] : r.data || []; });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
   dados.league_results = VFN.normalizarLinhas(dados.league_results);
@@ -50,11 +50,49 @@ function mostrarAviso(texto) {
   $("avisoDados").hidden = false;
 }
 
+/* V2.0: nav de topo (js/core/nav.js) com as secções públicas; sem conta (botão Entrar) e sem a secção Jogo */
+const NAV_PUBLICO = {
+  subtitulo: "Época 2026/27",
+  inicio: "public.html",
+  conta: false,
+  acoes: `<a class="btn btn-accent btn-sm vfn-entrar" href="equipa.html" title="Entrar (jogadores e equipa técnica)">${VFN.icone("lock", 16)}<span class="btn-rotulo">Entrar</span></a>`,
+  seccoes: [
+    { id: "portal", rotulo: "Portal", icone: "house", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "hub" },
+      { id: "calendario", rotulo: "Calendário", vista: "calendario" },
+      { id: "classificacao", rotulo: "Classificação", vista: "classificacao" },
+      { id: "jornadas", rotulo: "Jornadas", vista: "jornadas" },
+      { id: "adversarios", rotulo: "Adversários", vista: "adversarios" }
+    ] },
+    { id: "plantel", rotulo: "Plantel", icone: "users", tabs: [
+      { id: "visao", rotulo: "Visão Geral", vista: "plantel" }
+    ] }
+  ],
+  // pesquisa: jogadores e jogos (os relatórios não são públicos)
+  pesquisa: termo => VFNPortal.filtrarPesquisa(indicePesquisa(), termo),
+  aoMudar: vista => mostrarVista(vista)
+};
+
+let indiceCache = null;
+function indicePesquisa() {
+  if (!indiceCache) indiceCache = VFNPortal.indicePesquisa({ dados, jogadores, relatorios: [], abrirJogador, abrirRelatorio: () => {} });
+  return indiceCache;
+}
+
+/* V2.0: Portal → Visão Geral; na página pública o calendário não mostra treinos */
+let visaoGeral = null;
+const dadosSemTreinos = () => ({ ...dados, sessions: (dados.sessions || []).filter(x => x.session_type !== "treino") });
+function visao() {
+  if (!visaoGeral) visaoGeral = VFNPortal.criarVisaoGeral($("portalVisao"), { obterDados: dadosSemTreinos, calendario: { perfil: "publico" } });
+  return visaoGeral;
+}
+
 // atalhos "Ver todos" no hub
 document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
 
 function mostrarVista(vista) {
-  H.ativarVista(vista, ".public-nav button");
+  H.ativarVista(vista);
+  VFNNav.marcarVista(vista);
   if (vista === "plantel") VFN.anim.cascata($("pubPlantel").children);
   if (vista === "classificacao") VFN.anim.linhas($("pubClassificacao").querySelectorAll("tbody tr"));
   if (vista === "jornadas" && graficoPosicaoPub) graficoPosicaoPub.resize();
@@ -90,12 +128,17 @@ function fecharJogador() {
 let calendarioMensal = null;
 let mapaPub = null;
 
-function renderCalendario() {
+/** Adversários (sem fichas: a página pública não abre a ficha das equipas) e o mapa dos estádios. */
+function renderAdversarios() {
+  $("pubAdversarios").innerHTML = VFNPortal.adversariosHTML(dados, $("pubEquipasPesquisa").value, { semFicha: true });
   if (!mapaPub) mapaPub = VFNComp.criarMapaEstadios($("mapaPub"), () => dados.teams);
   else mapaPub.render();
+}
+
+function renderCalendario() {
   if (!calendarioMensal) {
     // v18: na página pública o calendário só mostra jogos (sem os treinos de sessions)
-    calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: () => ({ ...dados, sessions: (dados.sessions || []).filter(x => x.session_type !== "treino") }), perfil: "publico" });
+    calendarioMensal = VFNComp.criarCalendarioMensal($("pubCalMes"), { obterDados: dadosSemTreinos, perfil: "publico" });
     VFNComp.ligarAlternanciaCalendario($("pubCalModos"), $("pubCalMes"), $("pubCalLista"), "vfnCalModoPublico");
   } else calendarioMensal.render();
   $("pubCalendarioFiltros").innerHTML = H.filtrosCalendarioHTML(filtroCalendario);
@@ -105,9 +148,7 @@ function renderCalendario() {
 }
 
 function mostrarEsqueletos() {
-  $("pubProximoJogo").innerHTML = H.esqueleto("hero");
-  $("pubUltimoResultado").innerHTML = H.esqueleto("hero");
-  $("pubForma").innerHTML = H.esqueleto("linhas");
+  visao().esqueleto();
   $("pubPlantel").innerHTML = H.esqueleto("jogadores", 8);
   $("pubClassificacao").innerHTML = H.esqueleto("tabela", 8);
   $("pubCalendario").innerHTML = H.esqueleto("resultados", 5);
@@ -162,16 +203,8 @@ function initJornadas() {
 
 
 function renderTudo() {
-  // v18: banner completo (escudos, kits, contagem, competição, jornada, estádio, meteorologia); só redesenha quando o jogo muda
-  const proximo = VFN.proximoJogo(dados.matches);
-  const chave = proximo ? `${proximo.id}|${proximo.date}|${proximo.opponent_team_id}` : "";
-  if ($("pubProximoJogo").dataset.chave !== chave || !$("pubProximoJogo").querySelector("[data-jogo-semana], .jds-vazio")) {
-    $("pubProximoJogo").dataset.chave = chave;
-    $("pubProximoJogo").innerHTML = VFNComp.renderJogoDaSemana(dados);
-    VFNComp.ligarJogoDaSemana($("pubProximoJogo"), dados);
-  }
-  $("pubUltimoResultado").innerHTML = H.ultimoResultadoHTML(dados);
-  $("pubForma").innerHTML = H.formaHTML(dados, 5, { rotulo: false }) || H.vazio("Ainda não há jogos disputados.");
+  indiceCache = null;
+  visao().render(); // linha de tempo, último resultado, Jogo da Semana, classificação, agenda e 2 semanas
 
   renderClassificacaoPub();
 
@@ -187,6 +220,7 @@ function renderTudo() {
   renderPlantel();
   renderJornadas();
   renderCalendario();
+  renderAdversarios();
 
   VFN.refreshAOS();
 }
@@ -201,7 +235,7 @@ async function iniciar() {
     if (!avatar || e.target.closest(".modal-overlay, .player-card")) return;
     if (jogadores.some(j => String(j.id) === avatar.dataset.jogador)) abrirJogador(avatar.dataset.jogador);
   });
-  document.querySelectorAll(".public-nav button").forEach(b => b.addEventListener("click", () => mostrarVista(b.dataset.view)));
+  $("pubEquipasPesquisa").addEventListener("input", renderAdversarios);
   $("btnFecharJogador").addEventListener("click", fecharJogador);
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") fecharJogador(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") fecharJogador(); });
@@ -213,4 +247,5 @@ async function iniciar() {
   setInterval(H.atualizarContagens, 30000);
 }
 
-document.addEventListener("DOMContentLoaded", iniciar);
+VFNNav.montar(NAV_PUBLICO);
+document.addEventListener("DOMContentLoaded", () => { VFNNav.arrancar(); iniciar(); });

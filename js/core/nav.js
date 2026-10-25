@@ -51,7 +51,7 @@
     $n(".vfn-bottom-bar").innerHTML = principais.map(s => itemSeccao(s, "vfn-bottom-item")).join("");
     $n(".vfn-acoes-seccao").innerHTML = lista.filter(s => s.acao).map(s => itemSeccao(s, "vfn-acao-seccao")).join("");
     $n(".vfn-nav-secundaria").innerHTML = lista.filter(s => !hrefDe(s) && s.tabs.length).map(separadores).join("");
-    $n(".vfn-menu-links").innerHTML = (cfg.links || []).filter(visivel).map(l =>
+    if ($n(".vfn-menu-links")) $n(".vfn-menu-links").innerHTML = (cfg.links || []).filter(visivel).map(l =>
       `<a class="vfn-menu-item" href="${esc(l.href)}"${l.novaJanela ? ' target="_blank" rel="noopener"' : ""}>${icone(l.icone, 16)}<span>${esc(l.rotulo)}</span></a>`).join("");
     VFN.hidratarIcones(document.getElementById("vfnNav"));
   }
@@ -78,14 +78,14 @@
             ${cfg.acoes || ""}
             <span class="vfn-acoes-seccao"></span>
             <button type="button" class="tema-btn vfn-icone-btn" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo sr-only">Tema escuro</span></button>
-            <div class="vfn-menu">
+            ${cfg.conta === false ? "" : `<div class="vfn-menu">
               <button type="button" class="vfn-icone-btn vfn-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Conta e opções">${icone("circle-user", 20)}</button>
               <div class="vfn-menu-painel" hidden>
                 <div class="vfn-menu-quem"><strong id="navUserName">Utilizador</strong><small id="navUserRole"></small></div>
                 <div class="vfn-menu-links"></div>
                 <button type="button" id="btnLogout" class="vfn-menu-item">${icone("log-out", 16)}<span>Sair</span></button>
               </div>
-            </div>
+            </div>`}
           </div>
         </div>
         <nav class="vfn-nav-secundaria" aria-label="Separadores da secção"></nav>
@@ -99,12 +99,7 @@
       const sec = e.target.closest("button[data-seccao]");
       if (sec) return ir(sec.dataset.seccao, ultimoTab[sec.dataset.seccao] || "");
     });
-    const menuBtn = $n(".vfn-menu-btn"), painel = $n(".vfn-menu-painel");
-    const fecharMenu = () => { painel.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); };
-    menuBtn.addEventListener("click", () => { painel.hidden = !painel.hidden; menuBtn.setAttribute("aria-expanded", String(!painel.hidden)); });
-    document.addEventListener("click", e => { if (!e.target.closest(".vfn-menu")) fecharMenu(); });
-    document.addEventListener("keydown", e => { if (e.key === "Escape") fecharMenu(); });
-    painel.addEventListener("click", e => { if (e.target.closest(".vfn-menu-item")) fecharMenu(); });
+    if (cfg.conta !== false) ligarMenuConta(); // a página pública não tem conta (cfg.conta === false: botão Entrar nas ações)
     window.addEventListener("hashchange", () => { const r = rotaDoEndereco(); if (r && (r.seccao !== atual.seccao || r.tab !== atual.tab)) ir(r.seccao, r.tab); });
     if (cfg.pesquisa) ligarPesquisa();
     ligarDeslizar();
@@ -118,6 +113,16 @@
   /** Quando a página está pronta (listeners e dados): mostra a vista da posição atual (a do endereço, se houver). */
   function arrancar() {
     if (cfg) ir(atual.seccao, atual.tab);
+  }
+
+  /** Menu da conta: nome, papel, links e Sair. */
+  function ligarMenuConta() {
+    const menuBtn = $n(".vfn-menu-btn"), painel = $n(".vfn-menu-painel");
+    const fecharMenu = () => { painel.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); };
+    menuBtn.addEventListener("click", () => { painel.hidden = !painel.hidden; menuBtn.setAttribute("aria-expanded", String(!painel.hidden)); });
+    document.addEventListener("click", e => { if (!e.target.closest(".vfn-menu")) fecharMenu(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") fecharMenu(); });
+    painel.addEventListener("click", e => { if (e.target.closest(".vfn-menu-item")) fecharMenu(); });
   }
 
   /* ---------- Pesquisa global ----------

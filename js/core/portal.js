@@ -184,8 +184,12 @@
 
   /* ---------- Adversários ---------- */
 
-  /** Grelha dos adversários: logo, nome, cidade e confrontos (H2H); o do próximo jogo primeiro. data-equipa abre a ficha. */
-  function adversariosHTML(dados, termo) {
+  /**
+   * Grelha dos adversários: logo, nome, cidade e confrontos (H2H); o do próximo jogo primeiro. data-equipa abre a ficha.
+   * o: { semFicha: cards sem clique (página pública, que não tem fichas das equipas) }
+   */
+  function adversariosHTML(dados, termo, o) {
+    const semFicha = !!(o && o.semFicha);
     const t = String(termo || "").toLocaleLowerCase("pt-PT");
     const proximo = VFN.proximoJogo(dados.matches);
     const lista = (dados.teams || []).filter(x => !VFN.eVFN(x.name))
@@ -193,11 +197,12 @@
       .map(x => ({ x, r: H().resumoH2H([x.name, x.full_name].filter(Boolean), dados.h2h), eProximo: !!proximo && String(proximo.opponent_team_id) === String(x.id) }))
       .sort((a, b) => b.eProximo - a.eProximo || ((b.r ? b.r.jogos.length : 0) - (a.r ? a.r.jogos.length : 0)) || a.x.name.localeCompare(b.x.name, "pt"));
     if (!lista.length) return H().vazio("Sem equipas.");
-    return `<div class="adv-grid">${lista.map(({ x, r, eProximo }) => `<button type="button" class="adv-card${eProximo ? " proximo" : ""}" data-equipa="${esc(x.id)}">
+    const tag = semFicha ? "div" : "button";
+    return `<div class="adv-grid">${lista.map(({ x, r, eProximo }) => `<${tag} ${semFicha ? "" : 'type="button" '}class="adv-card${eProximo ? " proximo" : ""}${semFicha ? " sem-ficha" : ""}"${semFicha ? "" : ` data-equipa="${esc(x.id)}"`}>
         ${H().logoEquipa(x, x.name, "adv-logo")}
         <span class="adv-nome"><strong>${esc(x.name)}</strong><small>${esc([x.city, x.division].filter(Boolean).join(" · ") || "—")}</small></span>
         <span class="adv-h2h">${eProximo ? '<span class="adv-tag">Próximo jogo</span>' : ""}${r ? `<span class="adv-h2h-n"><b>${r.jogos.length}</b> jogo${r.jogos.length === 1 ? "" : "s"}</span><span class="adv-h2h-reg"><b class="v">${r.V}V</b> <b class="e">${r.E}E</b> <b class="d">${r.D}D</b></span><span class="form-row form-row-sm">${r.jogos.slice(0, 5).map(j => VFN.chipForma(j.letra)).join("")}</span>` : '<span class="muted">Sem confrontos</span>'}</span>
-      </button>`).join("")}</div>`;
+      </${tag}>`).join("")}</div>`;
   }
 
   /* ---------- Pesquisa global (fonte para o VFNNav) ---------- */

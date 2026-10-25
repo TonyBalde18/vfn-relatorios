@@ -22,22 +22,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="css/styles.css?v=45">
 <link rel="stylesheet" href="css/hub.css?v=45">
+<link rel="stylesheet" href="css/nav.css?v=45">
 </head>
-<body class="hub-page public-page">
+<body class="hub-page public-page vfn-app">
 
-<header class="public-header">
-  <img src="assets/logo.png" alt="Logótipo ACD Vila Franca das Naves">
-  <div class="public-header-texto"><strong>ACD Vila Franca das Naves</strong><span>2ª Distrital da Guarda · Época 2026/27</span></div>
-  <a class="btn public-entrar" href="equipa.html" title="Entrar (jogadores e equipa técnica)"><svg class="ic-cadeado" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.3"/></svg><span>Entrar</span></a>
-</header>
-
-<nav class="public-nav" aria-label="Secções">
-  <button type="button" class="active" data-view="hub"><span aria-hidden="true"><i data-icon="house"></i></span>Hub</button>
-  <button type="button" data-view="plantel"><span aria-hidden="true"><i data-icon="users"></i></span>Plantel</button>
-  <button type="button" data-view="classificacao"><span aria-hidden="true"><i data-icon="trophy"></i></span>Tabela</button>
-  <button type="button" data-view="jornadas"><span aria-hidden="true"><i data-icon="list-checks"></i></span>Jornadas</button>
-  <button type="button" data-view="calendario"><span aria-hidden="true"><i data-icon="calendar-days"></i></span>Jogos</button>
-</nav>
+<!-- V2.0: nav de topo (js/core/nav.js): só as secções públicas (Portal e Plantel), sem conta; botão Entrar -->
+<div id="vfnNav"></div>
 
 <main class="public-main">
   <p id="avisoDados" class="admin-notice" role="status" hidden></p>
@@ -48,43 +38,36 @@
       <span class="area-jogador-texto"><strong>Entrar</strong><small>Jogadores: convocatórias, multas e as tuas estatísticas. Equipa técnica: dashboard e gestão. Entra com o email do convite do clube.</small></span>
       <span class="area-jogador-seta" aria-hidden="true">Entrar →</span>
     </a>
+    <!-- V2.0: Portal → Visão Geral (VFNPortal.criarVisaoGeral, a mesma do dashboard; sem treinos) -->
+    <div id="portalVisao"></div>
+    <h2 class="portal-subtitulo">Marcadores</h2>
     <div class="public-stack two-col">
-      <!-- v18: o mesmo banner "Jogo da Semana" do dashboard e da área do jogador (VFNComp.renderJogoDaSemana) -->
-      <article id="pubProximoJogo" class="card jds-card" data-aos="fade-up"></article>
-      <div class="public-stack">
-        <article id="pubUltimoResultado" class="card hub-hero" data-aos="fade-up"></article>
-        <article class="card" data-aos="fade-up">
-          <h2 class="hub-card-title">Forma <small class="muted">últ. 5 jogos oficiais</small></h2>
-          <div id="pubForma"></div>
-        </article>
-      </div>
-    </div>
-    <div class="public-stack two-col">
-      <article class="card" data-aos="fade-up">
+      <article class="card" data-aos="fade-up" data-colapsavel>
         <div class="hub-card-head"><h2 class="hub-card-title">Top 5 marcadores do VFN</h2></div>
         <div id="pubHubMarcadores"></div>
       </article>
-      <article class="card" data-aos="fade-up">
+      <article class="card" data-aos="fade-up" data-colapsavel>
         <div class="hub-card-head"><h2 class="hub-card-title">Top 5 do campeonato</h2><button type="button" class="link-btn" data-ir-vista="jornadas">Ver todos</button></div>
         <div id="pubHubMarcadoresCamp"></div>
-      </article>
-    </div>
-    <div class="public-stack two-col">
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">11 mais utilizado <small class="muted">por minutos jogados</small></h2>
-        <div id="pubOnze"></div>
-      </article>
-      <article class="card" data-aos="fade-up">
-        <h2 class="hub-card-title">Mais minutos</h2>
-        <div id="pubMinutos" class="minutes-scroll"></div>
       </article>
     </div>
   </section>
 
   <section id="view-plantel" class="view">
-    <h2 class="public-section-title">Plantel</h2>
-    <div id="pubPlantelFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar por posição"></div>
-    <div id="pubPlantel" class="players-grid"></div>
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Plantel</h2><div id="pubPlantelFiltros" class="filter-chips" role="group" aria-label="Filtrar por posição"></div></div>
+      <div id="pubPlantel" class="players-grid"></div>
+    </div>
+    <div class="public-stack two-col">
+      <article class="card" data-aos="fade-up" data-colapsavel>
+        <h2 class="hub-card-title">11 mais utilizado <small class="muted">por minutos jogados</small></h2>
+        <div id="pubOnze"></div>
+      </article>
+      <article class="card" data-aos="fade-up" data-colapsavel>
+        <h2 class="hub-card-title">Mais minutos</h2>
+        <div id="pubMinutos" class="minutes-scroll"></div>
+      </article>
+    </div>
   </section>
 
   <section id="view-classificacao" class="view">
@@ -123,12 +106,19 @@
   </section>
 
   <section id="view-calendario" class="view">
-    <h2 class="public-section-title">Calendário</h2>
     <div class="cal-modos" id="pubCalModos" role="group" aria-label="Vista do calendário"><button type="button" class="filter-chip" data-modo="mes">Mês</button><button type="button" class="filter-chip" data-modo="lista">Lista</button></div>
     <div id="pubCalMes" class="card cal-mensal"></div>
-    <div id="pubCalLista">
+    <div id="pubCalLista" class="card">
       <div id="pubCalendarioFiltros" class="filter-chips toolbar" role="group" aria-label="Filtrar competições"></div>
       <div id="pubCalendario" class="calendar-list"></div>
+    </div>
+  </section>
+
+  <!-- V2.0: Portal → Adversários (VFNPortal.adversariosHTML, sem fichas) e o mapa dos estádios -->
+  <section id="view-adversarios" class="view">
+    <div class="card" data-aos="fade-up">
+      <div class="hub-card-head"><h2 class="hub-card-title">Adversários <small class="muted">confrontos com o VFN</small></h2><label class="sr-only" for="pubEquipasPesquisa">Pesquisar equipa</label><input type="search" id="pubEquipasPesquisa" class="compact-select" placeholder="Pesquisar equipa ou cidade..."></div>
+      <div id="pubAdversarios"></div>
     </div>
     <div class="card mapa-card" data-aos="fade-up"><h2 class="hub-card-title">Mapa dos estádios <small class="muted">toca num emblema</small></h2><div id="mapaPub" class="mapa-estadios" role="region" aria-label="Mapa dos estádios das equipas"></div><p class="muted mapa-aviso"></p></div>
   </section>
@@ -163,6 +153,8 @@
 <script src="js/config.js?v=45"></script>
 <script src="js/core/shared.js?v=45"></script>
 <script src="js/core/hub.js?v=45"></script>
+<script src="js/core/nav.js?v=45"></script>
+<script src="js/core/portal.js?v=45"></script>
 <script src="js/core/components.js?v=45"></script>
 <script src="js/pages/public.js?v=45"></script>
 <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>

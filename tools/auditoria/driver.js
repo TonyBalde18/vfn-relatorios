@@ -23,7 +23,7 @@ const CENARIOS = [];
 const NAV_TOPO = "#vfnNav .vfn-sub-item[data-tab]";
 const CHAVE = "(b => b.dataset.view || (b.dataset.seccao ? b.dataset.seccao + '/' + b.dataset.tab : b.dataset.tab))";
 const PAGINAS = [
-  { pagina: "public.html", papel: "", nav: ".public-nav button[data-view]" },
+  { pagina: "public.html", papel: "", nav: NAV_TOPO },
   { pagina: "equipa.html", papel: "jogador", nav: NAV_TOPO },
   { pagina: "dashboard.html", papel: "treinador", nav: NAV_TOPO },
   { pagina: "dashboard.html", papel: "dirigente", nav: NAV_TOPO },

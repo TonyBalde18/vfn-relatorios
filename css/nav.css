@@ -386,3 +386,6 @@ html.tema-escuro .historico-tabela .icon-btn.danger { color: #F87171; }
   .card[data-colapsavel].fechado { padding-top: 12px; padding-bottom: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .card-chevron { transition: none; } }
+
+/* Página pública: botão Entrar na barra de cima */
+.vfn-entrar { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
