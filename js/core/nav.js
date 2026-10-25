@@ -107,6 +107,8 @@
     painel.addEventListener("click", e => { if (e.target.closest(".vfn-menu-item")) fecharMenu(); });
     window.addEventListener("hashchange", () => { const r = rotaDoEndereco(); if (r && (r.seccao !== atual.seccao || r.tab !== atual.tab)) ir(r.seccao, r.tab); });
     if (cfg.pesquisa) ligarPesquisa();
+    ligarDeslizar();
+    ligarColapsaveis(document); // cards fixos do HTML (os das vistas novas ligam-se ao serem criados)
     if (VFN.aplicarTema) VFN.aplicarTema(); // o botão do tema foi criado agora (o shared.js já o tinha procurado)
 
     const r = rotaDoEndereco();
@@ -168,6 +170,62 @@
     document.addEventListener("click", e => { if (!e.target.closest(".vfn-pesquisa")) fecharTudo(); });
     document.addEventListener("keydown", e => {
       if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) { e.preventDefault(); caixa.classList.add("aberta"); input.focus(); }
+    });
+  }
+
+  /* ---------- Telemóvel: deslizar entre separadores ----------
+     Um gesto horizontal claro (≥ 70px, mais horizontal do que vertical, < 600ms) passa para o separador seguinte
+     ou anterior da secção. Não conta quando começa numa zona que já desliza sozinha (tabelas largas, linha de
+     tempo, calendário mensal, mapas, campos de texto, modais) ou num elemento com scroll horizontal. */
+  const MOVEL = () => window.matchMedia ? matchMedia("(max-width: 768px)").matches : window.innerWidth <= 768;
+  const ZONAS_SEM_DESLIZAR = "input, textarea, select, .modal-overlay, .vfn-drawer, .mj-overlay, .mapa-estadios, .leaflet-container, .cal-mensal, .cal-semanas, .linha-tempo, .bracket-scroll, [data-sem-deslizar], #vfnNav";
+
+  function temScrollHorizontal(el) {
+    for (let a = el; a && a !== document.body; a = a.parentElement) {
+      if (a.scrollWidth > a.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(a).overflowX)) return true;
+    }
+    return false;
+  }
+
+  function ligarDeslizar() {
+    let inicio = null;
+    document.addEventListener("touchstart", e => {
+      inicio = null;
+      if (!MOVEL() || e.touches.length !== 1 || e.target.closest(ZONAS_SEM_DESLIZAR) || temScrollHorizontal(e.target)) return;
+      inicio = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+    }, { passive: true });
+    document.addEventListener("touchend", e => {
+      if (!inicio) return;
+      const dx = e.changedTouches[0].clientX - inicio.x, dy = e.changedTouches[0].clientY - inicio.y, dt = Date.now() - inicio.t;
+      inicio = null;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || dt > 600) return;
+      const s = locais().find(x => x.id === atual.seccao);
+      if (!s) return;
+      const i = s.tabs.findIndex(t => t.id === atual.tab) + (dx < 0 ? 1 : -1);
+      if (i < 0 || i >= s.tabs.length) return;
+      ir(s.id, s.tabs[i].id);
+    }, { passive: true });
+  }
+
+  /* ---------- Telemóvel: cards colapsáveis ----------
+     <article class="card" data-colapsavel> com um .hub-card-title e (opcional) um .card-resumo: no telemóvel o
+     card abre fechado, com o resumo; tocar no título abre/fecha. No PC fica sempre aberto. */
+  function ligarColapsaveis(raiz) {
+    (raiz || document).querySelectorAll(".card[data-colapsavel]:not([data-colapsavel-ligado])").forEach(card => {
+      card.setAttribute("data-colapsavel-ligado", "");
+      const titulo = card.querySelector(".hub-card-title");
+      if (!titulo) return;
+      titulo.classList.add("card-toggle");
+      titulo.insertAdjacentHTML("beforeend", `<span class="card-chevron" aria-hidden="true">${VFN.icone("chevron-down", 18)}</span>`);
+      const aplicar = fechado => {
+        card.classList.toggle("fechado", fechado);
+        if (MOVEL()) { titulo.setAttribute("role", "button"); titulo.tabIndex = 0; titulo.setAttribute("aria-expanded", String(!fechado)); }
+        else { titulo.removeAttribute("role"); titulo.removeAttribute("tabindex"); titulo.removeAttribute("aria-expanded"); }
+      };
+      aplicar(MOVEL());
+      const alternar = e => { if (!MOVEL() || e.target.closest("a, button, select, input")) return; aplicar(!card.classList.contains("fechado")); };
+      titulo.addEventListener("click", alternar);
+      titulo.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternar(e); } });
     });
   }
 
@@ -260,5 +318,5 @@
     if (p) p.textContent = rotuloPapel || "";
   }
 
-  window.VFNNav = { montar, arrancar, ir, irVista, marcarVista, definirPapel, definirUtilizador, atual: () => Object.assign({}, atual) };
+  window.VFNNav = { montar, arrancar, ligarColapsaveis, ir, irVista, marcarVista, definirPapel, definirUtilizador, atual: () => Object.assign({}, atual) };
 })();

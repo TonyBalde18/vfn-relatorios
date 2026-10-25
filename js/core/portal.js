@@ -20,23 +20,26 @@
     let competicao = "";
     let semanas = null;
     contentor.innerHTML = `<div class="portal-grid">
-        <article class="card portal-linha" data-aos="fade-up">
+        <article class="card portal-linha" data-aos="fade-up" data-colapsavel>
           <h2 class="hub-card-title">Linha de tempo da época <small class="muted">toca num jogo para ver o detalhe</small></h2>
+          <p class="card-resumo" data-parte="resumo-linha"></p>
           <div data-parte="linha"></div>
         </article>
         <article class="card hub-hero portal-ultimo" data-aos="fade-up" data-parte="ultimo"></article>
         <article class="card jds-card portal-proximo" data-aos="fade-up" data-parte="proximo"></article>
-        <article class="card card-classificacao portal-classificacao" data-aos="fade-up">
+        <article class="card card-classificacao portal-classificacao" data-aos="fade-up" data-colapsavel>
           <div class="hub-card-head"><h2 class="hub-card-title">Classificação</h2><label class="sr-only" for="portalCompeticao">Competição</label><select id="portalCompeticao" class="compact-select"></select></div>
+          <p class="card-resumo" data-parte="resumo-classificacao"></p>
           <div data-parte="classificacao"></div>
         </article>
         <div class="portal-coluna">
-          <article class="card portal-agenda" data-aos="fade-up"><h2 class="hub-card-title">Agenda <small class="muted">próximos 5 jogos</small></h2><div data-parte="agenda"></div></article>
-          <article class="card portal-semanas" data-aos="fade-up"><h2 class="hub-card-title">Próximas 2 semanas <small class="muted">toca num dia</small></h2><div data-parte="semanas"></div></article>
+          <article class="card portal-agenda" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Agenda <small class="muted">próximos 5 jogos</small></h2><p class="card-resumo" data-parte="resumo-agenda"></p><div data-parte="agenda"></div></article>
+          <article class="card portal-semanas" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Próximas 2 semanas <small class="muted">toca num dia</small></h2><p class="card-resumo" data-parte="resumo-semanas"></p><div data-parte="semanas"></div></article>
         </div>
       </div>`;
     const parte = nome => contentor.querySelector(`[data-parte="${nome}"]`);
     const seletor = contentor.querySelector("#portalCompeticao");
+    if (window.VFNNav) VFNNav.ligarColapsaveis(contentor); // telemóvel: fechados, com o resumo
 
     const renderClassificacao = dados => {
       parte("classificacao").innerHTML = H().classificacaoHTML(dados, competicao);
@@ -69,8 +72,29 @@
       renderClassificacao(dados);
 
       parte("agenda").innerHTML = H().proximosJogosHTML(dados, 5);
+      resumos(dados);
       if (!semanas) semanas = VFNComp.criarCalendarioSemanas(parte("semanas"), Object.assign({ obterDados: o.obterDados }, o.calendario || {}));
       else semanas.render();
+    }
+
+    /** Uma linha por card fechado (telemóvel): balanço, posição do VFN, próximo jogo e o que há nas 2 semanas. */
+    function resumos(dados) {
+      const jogados = VFN.ultimosJogos(dados.matches, 999);
+      const conta = l => jogados.filter(j => VFN.letraResultado(j) === l).length;
+      parte("resumo-linha").textContent = jogados.length ? `${conta("V")} V · ${conta("E")} E · ${conta("D")} D em ${jogados.length} jogo${jogados.length === 1 ? "" : "s"}` : "Ainda sem jogos disputados.";
+      const linhaVFN = parte("classificacao").querySelector("tr.is-vfn-row");
+      const tabela = linhaVFN && linhaVFN.closest("table");
+      const pos = linhaVFN && tabela ? [...tabela.tBodies[0].rows].indexOf(linhaVFN) + 1 : 0;
+      const iPts = tabela && tabela.tHead ? [...tabela.tHead.rows[0].cells].findIndex(th => /^p(ts|ontos)$/i.test(th.textContent.replace(/[^a-zA-Z]/g, ""))) : -1;
+      const pts = linhaVFN && iPts >= 0 ? (linhaVFN.cells[iPts] || {}).textContent : "";
+      parte("resumo-classificacao").textContent = pos ? `VFN em ${pos}.º${pts ? " · " + String(pts).trim() + " pts" : ""} · ${VFN.nomeCurtoCompeticao(competicao)}` : VFN.nomeCurtoCompeticao(competicao) || "";
+      const proximo = VFN.proximoJogo(dados.matches);
+      parte("resumo-agenda").textContent = proximo ? `Próximo: ${VFN.dataCurta(proximo.date)} · ${VFN.jogoEmCasa(proximo) ? "vs" : "@"} ${H().nomeAdversario(dados, proximo)}` : "Sem jogos agendados.";
+      const hoje = new Date(), fim = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 14);
+      const dentro = d => { const x = VFN.paraData(d); return x && x >= new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()) && x < fim; };
+      const nJogos = VFN.jogosDoVFN(dados.matches || []).filter(j => VFN.estadoJogo(j) !== "cancelado" && dentro(j.date)).length;
+      const nTreinos = (dados.sessions || []).filter(t => t.session_type === "treino" && dentro(t.session_date + "T12:00:00")).length;
+      parte("resumo-semanas").textContent = `${nJogos} jogo${nJogos === 1 ? "" : "s"} · ${nTreinos} treino${nTreinos === 1 ? "" : "s"}`;
     }
 
     function esqueleto() {

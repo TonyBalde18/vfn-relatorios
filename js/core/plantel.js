@@ -85,13 +85,13 @@
           <div data-parte="lista"></div>
         </article>
         <div class="plantel-coluna">
-          <article class="card" data-aos="fade-up"><h2 class="hub-card-title">Disponibilidade <small class="muted">próximo jogo</small></h2><div data-parte="disponibilidade"></div></article>
-          <article class="card" data-aos="fade-up"><h2 class="hub-card-title">Disciplina</h2><div data-parte="disciplina"></div></article>
+          <article class="card" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Disponibilidade <small class="muted">próximo jogo</small></h2><p class="card-resumo" data-parte="resumo-disponibilidade"></p><div data-parte="disponibilidade"></div></article>
+          <article class="card" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Disciplina</h2><p class="card-resumo" data-parte="resumo-disciplina"></p><div data-parte="disciplina"></div></article>
         </div>
-        <article class="card plantel-onze" data-aos="fade-up"><h2 class="hub-card-title">11 mais utilizado <small class="muted">por minutos jogados</small></h2><div data-parte="onze"></div></article>
+        <article class="card plantel-onze" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">11 mais utilizado <small class="muted">por minutos jogados</small></h2><p class="card-resumo" data-parte="resumo-onze"></p><div data-parte="onze"></div></article>
         <div class="plantel-coluna plantel-coluna-2">
-          <article class="card" data-aos="fade-up"><h2 class="hub-card-title">Top marcadores</h2><div data-parte="marcadores"></div></article>
-          <article class="card" data-aos="fade-up"><h2 class="hub-card-title">Mais minutos <small class="muted" data-parte="minutosInfo"></small></h2><div data-parte="minutos" class="minutes-scroll"></div></article>
+          <article class="card" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Top marcadores</h2><p class="card-resumo" data-parte="resumo-marcadores"></p><div data-parte="marcadores"></div></article>
+          <article class="card" data-aos="fade-up" data-colapsavel><h2 class="hub-card-title">Mais minutos <small class="muted" data-parte="minutosInfo"></small></h2><p class="card-resumo" data-parte="resumo-minutos"></p><div data-parte="minutos" class="minutes-scroll"></div></article>
         </div>
       </div>`;
     const parte = nome => contentor.querySelector(`[data-parte="${nome}"]`);
@@ -99,6 +99,7 @@
       parte("filtros").innerHTML = H().filtrosPosicaoHTML(posicao);
       parte("lista").innerHTML = listaPlantelHTML(o.jogadores(), { posicao });
     };
+    if (window.VFNNav) VFNNav.ligarColapsaveis(contentor); // telemóvel: fechados, com o resumo
     parte("filtros").addEventListener("click", e => { const b = e.target.closest("[data-posicao]"); if (b) { posicao = b.dataset.posicao; renderLista(); } });
 
     function render() {
@@ -112,6 +113,16 @@
       parte("minutosInfo").textContent = relatorios ? `${relatorios} jogo${relatorios === 1 ? "" : "s"} oficia${relatorios === 1 ? "l" : "is"}` : "";
       parte("minutos").innerHTML = H().minutosListaHTML(lista);
       // 11 mais utilizado: posição real (onze por slot + substituições); sem relatórios por slot, a do perfil
+      // resumos dos cards fechados (telemóvel)
+      const fora = parte("disponibilidade").querySelectorAll(".disc-lista li").length;
+      const conv = (parte("disponibilidade").querySelector(".disp-total.ok b") || {}).textContent || "0";
+      parte("resumo-disponibilidade").textContent = `${conv} convocáveis · ${parte("disponibilidade").querySelector(".disp-total.nao b") ? parte("disponibilidade").querySelector(".disp-total.nao b").textContent : fora} indisponíveis`;
+      const alertas = parte("disciplina").querySelectorAll(".susp-badge").length;
+      parte("resumo-disciplina").textContent = alertas ? `${alertas} suspenso${alertas === 1 ? "" : "s"} ou em risco` : "Sem suspensões nem jogadores em risco.";
+      const top = [...jogadores].sort((a, b) => b.golos - a.golos)[0];
+      parte("resumo-marcadores").textContent = top && top.golos ? `${top.nome} · ${top.golos} golo${top.golos === 1 ? "" : "s"}` : "Ainda sem golos.";
+      parte("resumo-minutos").textContent = lista.length ? `${lista[0].jogador ? lista[0].jogador.nome : lista[0].nome || ""} · ${lista[0].minutos}'` : "Ainda sem minutos registados.";
+      parte("resumo-onze").textContent = lista.length ? `Formação mais usada: ${H().formacaoMaisUsada ? (H().formacaoMaisUsada(dados) || "4-3-3") : "4-3-3"}` : "Ainda sem relatórios.";
       parte("onze").innerHTML = lista.length ? H().onzeMaisUtilizadoHTML(dados.match_reports, o.jogadorDoRelatorio, lista, dados) : H().vazio("Ainda não há relatórios de jogo com o onze e as substituições registados.");
     }
 
