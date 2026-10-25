@@ -2068,7 +2068,7 @@ function renderEstadoRelatorio() {
     b.innerHTML = `${VFN.icone(icone, 18)} ${texto}`;
   });
   if (typeof renderResultados === "function" && el("resultadosLista")) renderResultados();
-  if (el("relatoriosBody")) renderRelatoriosAdmin();
+  if (el("relatoriosHistorico")) renderRelatoriosAdmin();
 }
 
 /** A ficha do jogo está preenchida (há onze inicial)? */
@@ -2133,8 +2133,8 @@ function abrirRelatorioPublicado(relatorioId) {
 }
 
 function renderRelatoriosAdmin() {
-  const tbody = el("relatoriosBody");
-  if (!tbody) return;
+  const caixa = el("relatoriosHistorico");
+  if (!caixa) return;
   const lista = [...relatoriosAdmin].map(r => {
     const matchId = r.match_id || ((r.match_data || {}).preJogo || {}).matchId;
     const jogo = jogosCalendario.find(j => String(j.id) === String(matchId));
@@ -2142,19 +2142,36 @@ function renderRelatoriosAdmin() {
     return { r, d: VFNRelatorio.extrair(completo, id => nomeJogador(id)), matchId };
   })
     .sort((a, b) => String(b.d.data || "").localeCompare(String(a.d.data || "")));
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Ainda não há relatórios. Abre um jogo em Resultados e clica em "Relatório".</td></tr>'; return; }
-  tbody.innerHTML = lista.map(({ r, d, matchId }) => {
-    const estado = estadoDoRelatorio(r);
-    const acao = { draft: "Continuar", ficha_publicada: "Completar relatório", published: "Abrir" }[estado] || "Abrir";
-    return `<tr>
-      <td data-v="${escapeHtml(d.data || "")}">${escapeHtml(VFN.dataDDMMAAAA(d.data) || "—")}</td>
-      <td>${escapeHtml(d.adversario)}</td>
-      <td data-v="${escapeHtml(VFN.nomeCurtoCompeticao(d.competicao) || "")}"><span class="comp-dica" tabindex="0" title="${escapeHtml(d.competicao || "")}" aria-label="${escapeHtml(d.competicao || "Competição")}">${VFN.nomeCompeticaoHTML(d.competicao, true)}</span></td>
-      <td class="num">${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN}</td>
-      <td>${VFN.badgeEstadoRelatorio(estado)}</td>
-      <td>${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${escapeHtml(matchId)}" title="${estado === "draft" ? "Continuar o rascunho" : estado === "ficha_publicada" ? "Acrescentar a análise e publicar o relatório completo" : "Abrir o relatório"}">${VFN.icone("file-pen", 16)} ${acao}</button>` : '<span class="muted">sem jogo associado</span>'}</td>
-    </tr>`;
-  }).join("");
+  caixa.innerHTML = VFNPortal.historicoHTML(lista, { admin: true, vazio: 'Ainda não há relatórios. Abre um jogo em Resultados e clica em "Relatório".' });
+}
+
+/**
+ * V2.0: apaga um relatório (rascunho, ficha ou completo) depois de confirmar, com as imagens das situações.
+ * O resultado no calendário (matches) e as estatísticas já somadas ao plantel mantêm-se.
+ */
+async function apagarRelatorio(relatorioId) {
+  const r = relatoriosAdmin.find(x => String(x.id) === String(relatorioId));
+  if (!r) return;
+  const matchId = r.match_id || ((r.match_data || {}).preJogo || {}).matchId;
+  const doCalendario = jogosCalendario.find(j => String(j.id) === String(matchId));
+  const d = VFNRelatorio.extrair(doCalendario ? VFNRelatorio.comJogo(r, doCalendario, nomeAdversarioJogo(doCalendario)) : r, id => nomeJogador(id));
+  const jogo = `${d.casa ? "VFN" : d.adversario} ${d.casa ? d.golosVFN : d.golosAdv}–${d.casa ? d.golosAdv : d.golosVFN} ${d.casa ? d.adversario : "VFN"}${d.data ? " (" + VFN.dataDDMMAAAA(d.data) + ")" : ""}`;
+  if (!confirm(`Apagar o relatório ${jogo}?\n\nApaga a ficha, a análise e as imagens das situações deste jogo. O resultado no calendário mantém-se.\n\nEsta ação não pode ser desfeita.`)) return;
+  if (dadosClube.usaSupabase()) {
+    const { error } = await supabaseClient.from("match_reports").delete().eq("id", r.id);
+    if (error) { alert("Não foi possível apagar o relatório: " + mensagemErro(error)); return; }
+    const imagens = (((r.match_data || {}).analise || {}).situacoes || []).map(x => x && x.path).filter(Boolean);
+    if (imagens.length) supabaseClient.storage.from(VFNRelatorio.BUCKET_SITUACOES).remove(imagens).catch(() => {});
+  }
+  relatoriosAdmin = relatoriosAdmin.filter(x => String(x.id) !== String(r.id));
+  // o relatório aberto no formulário era este: limpa-o, senão o rascunho automático voltava a criá-lo
+  if (String(state.relatorioId) === String(r.id)) {
+    state = estadoInicial();
+    limparRascunhoStorage();
+    renderTudo();
+  }
+  renderRelatoriosAdmin();
+  renderEstadoRelatorio();
 }
 
 /* ---- Situações de jogo (imagens no bucket privado report-images) ---- */
@@ -2257,6 +2274,8 @@ function initRelatorios() {
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-abrir-relatorio]");
     if (b) abrirRelatorioDoJogo(b.dataset.abrirRelatorio);
+    const apagar = e.target.closest("[data-apagar-relatorio]");
+    if (apagar) apagarRelatorio(apagar.dataset.apagarRelatorio);
   });
   renderEstadoRelatorio();
 }

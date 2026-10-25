@@ -95,7 +95,7 @@ const NAV_EQUIPA = {
       { id: "comparar", rotulo: "Comparar", vista: "comparar" }
     ] },
     { id: "jogo", rotulo: "Jogo", icone: "goal", tabs: [
-      { id: "historico", rotulo: "Histórico", vista: "relatorios" }
+      { id: "historico", rotulo: "Histórico", vista: "historico" }
     ] }
   ],
   links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe" }],
@@ -524,6 +524,9 @@ function renderRelatorios() {
   const lista = relatoriosPublicados();
   $("eqRelatoriosInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
   $("eqRelatoriosLista").innerHTML = lista.length ? VFNPortal.relatoriosCardsHTML(lista, { ativo: relatorioAberto }) : H.vazio("Ainda não há relatórios publicados."); // V2.0: cards
+  // V2.0: Jogo → Histórico, a mesma lista numa tabela
+  $("eqHistoricoListaInfo").textContent = $("eqRelatoriosInfo").textContent;
+  $("eqHistoricoLista").innerHTML = VFNPortal.historicoHTML(lista, { vazio: "Ainda não há relatórios publicados." });
 }
 
 function abrirRelatorio(id) {
@@ -657,7 +660,7 @@ async function iniciar() {
   $("modalEquipaPerfil").addEventListener("click", e => { if (e.target.id === "modalEquipaPerfil") $("modalEquipaPerfil").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalEquipaPerfil").hidden = true; });
   $("eqMultasEstado").addEventListener("change", renderMultas);
-  $("eqRelatoriosLista").addEventListener("click", e => { const b = e.target.closest("[data-relatorio]"); if (b) abrirRelatorio(b.dataset.relatorio); });
+  ["eqRelatoriosLista", "eqHistoricoLista"].forEach(id => $(id).addEventListener("click", e => { const b = e.target.closest("[data-relatorio]"); if (b) abrirRelatorio(b.dataset.relatorio); }));
   // relatório completo no resumo só para a equipa técnica (perfil); os jogadores mantêm o botão "Ver Relatório"
   H.ligarDetalheJogo(() => dados, { nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome, jogador: id => jogadorDoRelatorio(id), verRelatorio: id => abrirRelatorio(id), get relatorioCompleto() { return !eu && perfil ? r => VFNRelatorio.html(r, { nomeJogador: x => (jogadorDoRelatorio(x) || {}).nome }) : null; } });
   // qualquer foto de jogador abre a ficha

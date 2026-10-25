@@ -71,7 +71,7 @@ const NAV_DASHBOARD = {
       { id: "presencas", rotulo: "Presenças", vista: "presencas", papeis: STAFF_MULTAS }
     ] },
     { id: "jogo", rotulo: "Jogo", icone: "goal", href: p => p === "admin" ? "index.html#jogo/ao-vivo" : "", tabs: [
-      { id: "historico", rotulo: "Histórico", vista: "relatorios" }
+      { id: "historico", rotulo: "Histórico", vista: "historico" }
     ] },
     { id: "gestao", rotulo: "Gestão", icone: "wrench", acao: true, papeis: ["admin"], href: "index.html#gestao" }
   ],
@@ -404,6 +404,7 @@ function ctxRelatorio() {
 function renderRelatoriosPublicados() {
   const lista = relatoriosPublicados();
   $("relatoriosInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
+  renderHistorico(lista);
   if (!lista.length) {
     $("relatoriosLista").innerHTML = H.vazio("Ainda não há relatórios publicados.");
     return;
@@ -411,7 +412,13 @@ function renderRelatoriosPublicados() {
   $("relatoriosLista").innerHTML = VFNPortal.relatoriosCardsHTML(lista, { ativo: relatorioAberto && relatorioAberto.id }); // V2.0: cards
 }
 
-/** Abre um relatório publicado na vista Histórico. */
+/** V2.0: Jogo → Histórico, a mesma lista numa tabela (mais recente primeiro). */
+function renderHistorico(lista) {
+  $("historicoListaInfo").textContent = lista.length ? `${lista.length} relatório${lista.length === 1 ? "" : "s"}` : "";
+  $("historicoLista").innerHTML = VFNPortal.historicoHTML(lista, { vazio: "Ainda não há relatórios publicados." });
+}
+
+/** Abre um relatório publicado (Portal → Relatórios). */
 function abrirRelatorio(id) {
   const r = dados.match_reports.find(x => String(x.id) === String(id));
   if (!r || !VFN.relatorioVisivel(r)) return;
@@ -447,10 +454,10 @@ async function exportarWordRelatorio() {
 }
 
 function initRelatoriosPublicados() {
-  $("relatoriosLista").addEventListener("click", e => {
+  ["relatoriosLista", "historicoLista"].forEach(id => $(id).addEventListener("click", e => {
     const b = e.target.closest("[data-relatorio]");
     if (b) abrirRelatorio(b.dataset.relatorio);
-  });
+  }));
   $("btnExportarWord").addEventListener("click", exportarWordRelatorio);
   // imagem do resultado (Instagram) do relatório aberto
   $("btnPartilharRelatorio").addEventListener("click", () => {

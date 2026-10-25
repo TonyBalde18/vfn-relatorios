@@ -122,6 +122,42 @@
     }).join("")}</div>`;
   }
 
+  /* ---------- Jogo → Histórico ---------- */
+
+  const ACAO_ADMIN = { draft: ["Continuar", "Continuar o rascunho"], ficha_publicada: ["Completar", "Acrescentar a análise e publicar o relatório completo"], published: ["Abrir", "Abrir o relatório"] };
+
+  /**
+   * Histórico dos relatórios numa tabela (mais recente primeiro): data, competição (só o logo no telemóvel), jogo,
+   * eventos e estado da ficha/análise. itens: [{ r, d, matchId }]. o: { admin: botões Abrir/Continuar e Apagar
+   * (data-abrir-relatorio / data-apagar-relatorio); sem admin, a linha abre o relatório (data-relatorio), vazio }
+   */
+  /** dd/mm/aaaa; o ano fica num span (escondido no telemóvel). */
+  const histData = data => { const t = VFN.dataDDMMAAAA(data) || ""; return t ? `${esc(t.slice(0, 5))}<span class="hist-ano">${esc(t.slice(5))}</span>` : "—"; };
+
+  function historicoHTML(itens, o) {
+    const opcoes = o || {};
+    if (!itens.length) return H().vazio(opcoes.vazio || "Ainda não há relatórios.");
+    return `<div class="table-wrap"><table class="stats-table historico-tabela" data-ordenar="historico${opcoes.admin ? "-admin" : ""}">
+      <thead><tr><th scope="col" data-tipo="data">Data</th><th scope="col" class="col-comp" data-tipo="texto">Comp.</th><th scope="col" data-tipo="texto">Jogo</th><th scope="col" class="col-sec">Eventos</th><th scope="col" data-tipo="texto">Relatório</th>${opcoes.admin ? '<th scope="col"><span class="sr-only">Ações</span></th>' : ""}</tr></thead>
+      <tbody>${itens.map(({ r, d, matchId }) => {
+        const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
+        const comp = d.competicao || "";
+        const nomeComp = VFN.nomeCurtoCompeticao(comp) || "—";
+        const titulo = d.casa ? `VFN ${d.golosVFN}–${d.golosAdv} ${d.adversario}` : `${d.adversario} ${d.golosAdv}–${d.golosVFN} VFN`;
+        const estado = VFN.estadoRelatorio(r);
+        const [acao, dica] = ACAO_ADMIN[estado] || ACAO_ADMIN.published;
+        const acoes = opcoes.admin ? `<td class="hist-acoes">${matchId ? `<button type="button" class="btn btn-ghost btn-sm" data-abrir-relatorio="${esc(matchId)}" title="${esc(dica)}">${VFN.icone("file-pen", 16)}<span class="btn-rotulo"> ${acao}</span></button>` : '<span class="muted">sem jogo associado</span>'}<button type="button" class="icon-btn danger" data-apagar-relatorio="${esc(r.id)}" title="Apagar relatório" aria-label="Apagar o relatório ${esc(titulo)}">${VFN.icone("trash-2", 16)}</button></td>` : "";
+        return `<tr class="comp-${VFN.categoriaCompeticao(comp)}"${opcoes.admin ? "" : ` data-relatorio="${esc(r.id)}" tabindex="0"`}>
+          <td data-v="${esc(d.data || "")}">${histData(d.data)}</td>
+          <td class="col-comp" data-v="${esc(nomeComp)}"><span class="hist-comp" title="${esc(comp || nomeComp)}">${comp ? VFN.logoSponsorHTML(comp) : ""}<span class="hist-comp-nome">${esc(nomeComp)}</span></span></td>
+          <td><span class="hist-jogo"><span class="form-chip form-${v}">${v}</span><strong>${esc(titulo)}</strong></span></td>
+          <td class="col-sec">${resumoEventosHTML(d)}</td>
+          <td data-v="${esc(estado)}">${estadoHTML(r)}</td>${acoes}
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>`;
+  }
+
   /* ---------- Adversários ---------- */
 
   /** Grelha dos adversários: logo, nome, cidade e confrontos (H2H); o do próximo jogo primeiro. data-equipa abre a ficha. */
@@ -191,5 +227,5 @@
     return itens.filter(i => palavras.every(p => i.texto.includes(p))).filter(i => { porTipo[i.tipo] = (porTipo[i.tipo] || 0) + 1; return porTipo[i.tipo] <= (n || 5); });
   }
 
-  window.VFNPortal = { criarVisaoGeral, relatoriosCardsHTML, adversariosHTML, indicePesquisa, filtrarPesquisa, normalizar };
+  window.VFNPortal = { criarVisaoGeral, relatoriosCardsHTML, historicoHTML, adversariosHTML, indicePesquisa, filtrarPesquisa, normalizar };
 })();

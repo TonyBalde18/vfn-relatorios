@@ -337,3 +337,34 @@ html.tema-escuro .adv-h2h-reg .v { color: #4ADE80; } html.tema-escuro .adv-h2h-r
 .disp-total.nao { background: rgba(220, 38, 38, .08); color: #991B1B; }
 html.tema-escuro .disp-total.ok { background: rgba(74, 222, 128, .12); color: #BBF7D0; }
 html.tema-escuro .disp-total.nao { background: rgba(248, 113, 113, .12); color: #FECACA; }
+
+/* =========================================================
+   JOGO → HISTÓRICO (V2.0, fase 4) — VFNPortal.historicoHTML
+   ========================================================= */
+.historico-tabela { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.historico-tabela th { padding: 8px 8px; color: var(--text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .04em; text-align: left; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.historico-tabela td { padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+/* barra fina na cor da competição (como os cards dos relatórios) */
+.historico-tabela tr > td:first-child { box-shadow: inset 4px 0 0 var(--comp-liga); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.historico-tabela tr.comp-taca > td:first-child { box-shadow: inset 4px 0 0 var(--comp-taca); }
+.historico-tabela tr.comp-amigavel > td:first-child { box-shadow: inset 4px 0 0 var(--comp-amigavel); }
+.historico-tabela tbody tr[data-relatorio] { cursor: pointer; }
+.historico-tabela tbody tr[data-relatorio]:focus-visible { outline: 2px solid var(--seccao-cor); outline-offset: -2px; }
+.hist-comp { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hist-jogo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hist-jogo strong { color: var(--heading); font-weight: 700; }
+.hist-jogo .form-chip { flex-shrink: 0; width: 22px; height: 22px; font-size: .68rem; }
+.hist-acoes { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+.hist-acoes .btn-ghost { color: var(--fg); border-color: var(--border); }
+.historico-tabela .icon-btn.danger { color: #B91C1C; }
+html.tema-escuro .historico-tabela .icon-btn.danger { color: #F87171; }
+@media (max-width: 768px) {
+  .historico-tabela .col-sec { display: none; }
+  /* telemóvel: a competição fica só na barra de cor da data; as ações só com o ícone */
+  .historico-tabela .col-comp { display: none; }
+  .hist-acoes .btn-rotulo { display: none; }
+  .hist-acoes .btn-sm { padding: 6px 7px; }
+  .hist-acoes { flex-direction: column; gap: 4px; }
+  .hist-ano { display: none; }
+  .historico-tabela td, .historico-tabela th { padding-left: 6px; padding-right: 6px; }
+}

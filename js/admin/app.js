@@ -906,7 +906,7 @@ let calendarioCarregado = false;
 async function carregarCalendario() {
   if (!calendarioCarregado && window.VFNHub) {
     // skeletons até chegarem os jogos, resultados e relatórios
-    [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["relatoriosBody", "", 5]]
+    [["calendarioBody", "", 6], ["resultadosLista", "resultados", 5], ["jornadasTabela", "tabela", 8], ["jornadasLista", "resultados", 6], ["classificacaoTabela", "tabela", 8], ["relatoriosHistorico", "linhas", 5]]
       .forEach(([id, tipo, n]) => VFNHub.mostrarEsqueleto(id, tipo, n));
   }
   // V1.0: os 4 pedidos em paralelo (antes: jogos+equipas, depois resultados, depois relatórios)
