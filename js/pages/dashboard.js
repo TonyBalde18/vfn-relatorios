@@ -8,7 +8,6 @@ const H = VFNHub;
 const esc = VFN.escapeHtml;
 const $ = id => document.getElementById(id);
 
-const COR_MARCADOS = "#1d4ed8";
 
 let cliente = null;
 let utilizador = null;
@@ -187,46 +186,12 @@ function estiloGraficos() {
   return true;
 }
 
-function eixoY(extra) {
-  return Object.assign({ beginAtZero: true, border: { display: false }, grid: { color: Chart.defaults.borderColor }, ticks: { precision: 0 } }, extra || {});
-}
-
 function renderGraficos() {
   if (!estiloGraficos()) return;
 
   // Golos: últimos 10 jogos (VFNHub.graficoGolos, partilhado com a área do jogador)
   graficos.golos = H.graficoGolos($("chartGolos"), dados, { anterior: graficos.golos, vazio: $("chartGolosVazio") });
 
-  // Presença mensal: (P + A) / registos do mês
-  const porMes = {};
-  dados.attendance.forEach(a => {
-    if (!a.status || !a.session_date) return;
-    const mes = String(a.session_date).slice(0, 7);
-    const m = porMes[mes] || (porMes[mes] = { presentes: 0, total: 0 });
-    m.total++;
-    if (a.status === "P" || a.status === "A") m.presentes++;
-  });
-  const meses = VFN.mesesDaEpoca(new Date()).filter(m => porMes[m.valor]);
-  $("chartPresencasVazio").hidden = meses.length > 0;
-  $("chartPresencas").parentElement.hidden = !meses.length;
-  if (graficos.presencas) graficos.presencas.destroy();
-  if (meses.length) {
-    graficos.presencas = new Chart($("chartPresencas"), {
-      type: "bar",
-      data: {
-        labels: meses.map(m => VFN.MESES_CURTOS[Number(m.valor.slice(5)) - 1]),
-        datasets: [{ label: "% presentes", data: meses.map(m => Math.round(porMes[m.valor].presentes / porMes[m.valor].total * 100)), backgroundColor: COR_MARCADOS, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: "bottom", maxBarThickness: 36 }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { title: items => meses[items[0].dataIndex].rotulo, label: item => { const m = porMes[meses[item.dataIndex].valor]; return `${item.raw}% · ${m.presentes} de ${m.total} registos`; } } }
-        },
-        scales: { x: { grid: { display: false }, border: { color: "rgba(10,22,40,.2)" } }, y: eixoY({ max: 100, ticks: { stepSize: 25, callback: v => v + "%" } }) }
-      }
-    });
-  }
 }
 
 /* ---------- Plantel ---------- */
