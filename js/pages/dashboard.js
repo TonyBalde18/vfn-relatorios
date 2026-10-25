@@ -25,12 +25,28 @@ let appIniciada = false;
 // tabelas que podem ainda não existir (SQL por correr): sem aviso
 const TABELAS_OPCIONAIS = ["external_players", "fine_types", "staff", "squads", "h2h"]; // h2h: sql/migrations/h2h.sql
 
-async function carregarDados() {
+/** Erro de sessão/permissão: o pedido chegou sem token válido e a base de dados tratou-o como anónimo. */
+const erroDeSessao = e => !!e && (/^(42501|PGRST30\d)$/.test(String(e.code || "")) || /jwt|permission denied/i.test(String(e.message || "")));
+
+/**
+ * Lê as tabelas. Devolve false se a sessão se perdeu (token expirado e sem renovação): nesse caso volta ao login.
+ * Sem sessão, o cliente do Supabase usa a chave anónima: players dá "permission denied" e o resto vem vazio
+ * (a página parecia aberta, mas sem plantel, presenças, convocatórias nem relatórios).
+ */
+async function carregarDados(repetir) {
+  const { data: atual } = await cliente.auth.getSession();
+  if (!atual.session) { sessaoPerdida(); return false; }
   const tabelas = Object.keys(dados);
   const respostas = await Promise.all(tabelas.map(t => cliente.from(t).select("*")));
+  // token expirado/recusado: renova a sessão e tenta outra vez (uma só vez)
+  if (!repetir && respostas.some(r => erroDeSessao(r.error))) {
+    const { data, error } = await cliente.auth.refreshSession();
+    if (error || !data.session) { sessaoPerdida(); return false; }
+    return carregarDados(true);
+  }
   const falhas = [];
   respostas.forEach((r, i) => {
-    if (r.error) { if (!TABELAS_OPCIONAIS.includes(tabelas[i])) falhas.push(tabelas[i]); dados[tabelas[i]] = []; }
+    if (r.error) { if (!TABELAS_OPCIONAIS.includes(tabelas[i])) falhas.push(`${tabelas[i]} (${r.error.message || r.error.code || "erro"})`); dados[tabelas[i]] = []; }
     else dados[tabelas[i]] = r.data || [];
   });
   dados.matches = VFN.normalizarLinhas(dados.matches); // nomes antigos da competição → nome oficial
@@ -40,7 +56,14 @@ async function carregarDados() {
   VFN.definirTiposMulta(dados.fine_types);
   const aviso = $("avisoDados");
   aviso.hidden = !falhas.length;
-  if (falhas.length) aviso.textContent = `Não foi possível ler: ${falhas.join(", ")}. Confirma que o schema.sql foi executado e que o teu utilizador tem papel atribuído.`;
+  if (falhas.length) aviso.textContent = `Não foi possível ler: ${falhas.join(", ")}. Carrega em Atualizar; se continuar, sai e volta a entrar.`;
+  return true;
+}
+
+/** A sessão terminou (expirou ou saiu noutra janela): volta ao ecrã de entrada em vez de mostrar dados vazios. */
+function sessaoPerdida() {
+  appIniciada = false;
+  mostrarLogin("A tua sessão expirou. Entra de novo para veres os dados.");
 }
 
 /* ---------- Navegação ---------- */
@@ -784,8 +807,7 @@ async function iniciarApp(perfil) {
   if (appIniciada) return;
   appIniciada = true;
   mostrarEsqueletos();
-  await carregarDados();
-  renderTudo();
+  if (await carregarDados()) renderTudo();
 }
 
 function mostrarLogin(mensagem) {
@@ -832,9 +854,9 @@ async function iniciar() {
   $("statsPosicao").addEventListener("change", renderTabelaStats);
   $("btnExportarPDF").addEventListener("click", () => VFNComp.abrirExportarRelatorio(dados, { jogadores, jogadorDoRelatorio }));
   $("heatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmap = b.dataset.filtro; renderHeatmap(); } });
-  $("btnAtualizar").addEventListener("click", async () => { await carregarDados(); renderTudo(); });
+  $("btnAtualizar").addEventListener("click", async () => { if (await carregarDados()) renderTudo(); });
   // telemóvel: puxar para atualizar nos resultados (hub), calendário e jornadas
-  VFNComp.ligarPuxarParaAtualizar([$("view-hub"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
+  VFNComp.ligarPuxarParaAtualizar([$("view-hub"), $("view-calendario"), $("view-jornadas")], async () => { if (await carregarDados()) renderTudo(); });
   $("btnFecharJogador").addEventListener("click", () => { $("modalJogador").hidden = true; });
   $("modalJogador").addEventListener("click", e => { if (e.target.id === "modalJogador") $("modalJogador").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("modalJogador").hidden = true; });
@@ -852,6 +874,8 @@ async function iniciar() {
     await entrarComSessao(data.session);
   });
   $("btnLogout").addEventListener("click", async () => { await cliente.auth.signOut(); appIniciada = false; mostrarLogin("Sessão terminada."); });
+  // a sessão acabou com a página aberta (expirou sem renovação, ou saiu noutra janela/na app instalada)
+  cliente.auth.onAuthStateChange(evento => { if (evento === "SIGNED_OUT" && appIniciada) sessaoPerdida(); });
 
   const { data } = await cliente.auth.getSession();
   if (data.session) await entrarComSessao(data.session);

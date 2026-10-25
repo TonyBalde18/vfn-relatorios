@@ -60,6 +60,7 @@
       auth: {
         getSession: async () => ({ data: { session: sessao }, error: null }),
         getUser: async () => ({ data: { user: sessao && sessao.user }, error: null }),
+        refreshSession: async () => ({ data: { session: sessao }, error: null }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
         signInWithPassword: async () => ({ data: { session: sessao }, error: null }),
         signOut: async () => ({ error: null }), resetPasswordForEmail: async () => ({ error: null }), updateUser: async () => ({ error: null })
