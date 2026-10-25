@@ -22,6 +22,7 @@ Tudo corre à mão no **SQL Editor do Supabase**. A app nunca altera o schema. O
 | 14 | `migrations/v26_contribuicoes.sql` | Contribuições voluntárias em `fines` (`kind`, `contributor_name`): somam ao total arrecadado, não são multas. | por correr |
 | 15 | `migrations/v27_relatorios_duplicados.sql` | Mostra os relatórios repetidos do mesmo jogo; apagá-los e o índice único são opcionais (comentados). | por correr (diagnóstico) |
 | 16 | `migrations/v28_ficha_publicada.sql` | Estado `ficha_publicada` nos relatórios (regra do status, leitura para staff/jogadores e view `onze_jogos`). | por correr |
+| 17 | `migrations/v29_diagnostico_dirigente.sql` | **Só leitura**: papéis em `profiles`, a `vfn_is_staff()` e as políticas que estão no Supabase, e simulação da sessão do dirigente (com `rollback`). | por correr (diagnóstico) |
 
 ## Convenções
 
