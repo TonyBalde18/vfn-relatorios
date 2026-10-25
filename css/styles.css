@@ -109,41 +109,11 @@ h1, h2, h3 { margin: 0; }
 .login-card input[type=email], .login-card input[type=password] { min-height: 52px; padding: 14px 15px; font-size: 1rem; }
 
 /* ---------- Header ---------- */
-.app-header {
-  background: var(--dark-khaki);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  flex-wrap: wrap;
-}
-.logo-placeholder {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--old-gold);
-  color: var(--coffee-bean);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-}
-.logo-placeholder[hidden] { display: none; }
-.header-title { flex: 1 1 240px; }
-.header-title h1 { font-size: 1.25rem; color: #fff; }
-.header-title p { margin: 2px 0 0; font-size: 0.85rem; color: var(--old-gold); }
-.header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- Dashboard shell ---------- */
 #appShell:not([hidden]) { display: flex; min-height: 100vh; background: var(--bg-page); }
-.app-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 20; width: 220px; display: flex; flex-direction: column; padding: 22px 12px 16px; background: var(--coffee-bean); color: var(--silver); transition: width .3s ease, transform .3s ease; }
-.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 9px 24px; color: #fff; }.sidebar-brand img, .sidebar-brand .logo-placeholder { width: 42px; height: 42px; flex: 0 0 42px; }.sidebar-brand-copy { display: flex; flex-direction: column; gap: 1px; }.sidebar-brand-copy strong { color: var(--old-gold); font-size: 1.1rem; }.sidebar-brand-copy span { font-size: .68rem; color: var(--silver); }
-.sidebar-user { display: flex; align-items: center; gap: 9px; margin: 0 6px 18px; padding: 10px; border-top: 1px solid rgba(199,199,196,.15); border-bottom: 1px solid rgba(199,199,196,.15); font-size: .8rem; overflow: hidden; white-space: nowrap; }.user-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--dark-khaki); }
-.sidebar-nav { display: grid; gap: 5px; }.nav-item, .sidebar-logout { width: 100%; display: flex; align-items: center; gap: 11px; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--silver); font: 600 .86rem inherit; text-align: left; cursor: pointer; transition: background .2s ease, color .2s ease; }.nav-item:hover, .sidebar-logout:hover { background: var(--dark-khaki); color: #fff; }.nav-item.active { background: var(--old-gold); color: var(--coffee-bean); }.nav-icon { width: 20px; flex: 0 0 20px; text-align: center; font-size: 1.05rem; }.nav-label { overflow: hidden; }.sidebar-logout { margin-top: auto; }
-.app-content { flex: 1; min-width: 0; margin-left: 220px; }.app-content .app-header { position: sticky; top: 0; z-index: 10; min-height: 78px; padding: 14px 28px; background: var(--coffee-bean); color: #fff; border-bottom: 1px solid var(--dark-khaki); box-shadow: 0 2px 12px rgba(31,22,23,.18); }.app-content .header-title { min-width: 180px; }.header-kicker { display: block; color: var(--silver); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }.app-content .header-title h1 { color: var(--old-gold); font-size: 1.35rem; }.app-content .header-actions { margin-left: auto; }.app-content .app-header .btn-ghost { color: #fff; border-color: rgba(255,255,255,.55); }.app-content .app-header .btn-ghost:hover { background: var(--dark-khaki); }.sidebar-toggle { display: none; border: 0; background: transparent; color: var(--old-gold); font-size: 1.35rem; cursor: pointer; }
-.tabs { display: none; }.app-content main { max-width: none; padding: 28px; }.app-footer { margin: 0 28px; }
+
+.app-footer { margin: 0 28px; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -169,7 +139,7 @@ h1, h2, h3 { margin: 0; }
   border: 1px solid currentColor;
   opacity: 0.9;
 }
-.app-header .btn-ghost { color: #fff; border-color: rgba(255,255,255,0.6); }
+
 .btn-ghost:hover { opacity: 1; background: rgba(255,255,255,0.08); }
 .btn-danger {
   background: transparent;
@@ -182,30 +152,7 @@ h1, h2, h3 { margin: 0; }
 .button-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- Tabs ---------- */
-.tabs {
-  display: flex;
-  background: var(--coffee-bean);
-  overflow-x: auto;
-}
-.tab-btn {
-  flex: 1 1 auto;
-  background: transparent;
-  color: var(--silver);
-  border: none;
-  padding: 14px 10px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  white-space: nowrap;
-}
-.tab-btn:hover { color: #fff; }
-.tab-btn.active {
-  color: var(--old-gold);
-  border-bottom-color: var(--old-gold);
-  background: rgba(255,215,0,0.08);
-}
+
 .tab-count {
   display: inline-flex;
   align-items: center;
@@ -628,32 +575,15 @@ details.guia ul { margin: 8px 0 0; padding-left: 20px; font-size: 0.85rem; color
 }
 @media (max-width: 520px) {
   .grid-3 { grid-template-columns: 1fr; }
-  .app-header { flex-direction: row; }
-  .header-actions { width: 100%; justify-content: stretch; }
-  .header-actions .btn { flex: 1; }
+
   .analysis-summary { grid-template-columns: repeat(2, 1fr); }
   .events-table { min-width: 760px; }
-  .app-content .app-header { padding: 12px 16px; }.app-content .header-actions { width: 100%; margin-left: 0; }.app-content .header-actions .btn, .app-content .header-actions .file-btn { flex: 1; }.app-content main { padding: 16px; }.app-footer { margin: 0 16px; }.team-toolbar { grid-template-columns: 1fr; }.scoreboard { grid-template-columns: 1fr; }.scoreboard-score { grid-column: 1; }.scoreboard-half { grid-column: 1; }.login-card { padding: 28px 22px; }
-}
-@media (max-width: 767px) {
-  .app-sidebar { width: 250px; transform: translateX(-100%); box-shadow: none; overflow-y: auto; height: 100vh; height: 100dvh; padding-bottom: calc(16px + env(safe-area-inset-bottom)); } /* v15: dvh — o fundo do menu não fica escondido atrás das barras do browser */
-  .app-sidebar.is-open { transform: translateX(0); box-shadow: 8px 0 30px rgba(10,22,40,.35); }
-  .app-content { margin-left: 0; }
-  .sidebar-toggle { display: block; }
-  .app-content .header-actions { width: 100%; margin-left: 0; }
+  .app-footer { margin: 0 16px; }.team-toolbar { grid-template-columns: 1fr; }.scoreboard { grid-template-columns: 1fr; }.scoreboard-score { grid-column: 1; }.scoreboard-half { grid-column: 1; }.login-card { padding: 28px 22px; }
 }
 
 /* =========================================================
    COMPONENTES PARTILHADOS (index, dashboard, public)
    ========================================================= */
-
-.sidebar-backdrop { position: fixed; inset: 0; z-index: 19; background: rgba(10,22,40,.5); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
-.sidebar-backdrop.is-visible { opacity: 1; pointer-events: auto; }
-@media (min-width: 768px) { .sidebar-backdrop { display: none; } }
-.sidebar-links { display: grid; gap: 4px; margin: 14px 0 10px; padding-top: 12px; border-top: 1px solid rgba(199,199,196,.15); }
-.sidebar-links a { display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 7px; color: var(--silver); font-size: .78rem; text-decoration: none; }
-.sidebar-links a:hover { background: var(--dark-khaki); color: #fff; }
-.app-sidebar { overflow-y: auto; }
 
 /* ---------- Spinner VFN ---------- */
 .vfn-spinner { position: fixed; right: 18px; bottom: 18px; z-index: 2000; display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 999px; background: var(--vfn-navy); color: #fff; font-size: .8rem; font-weight: 600; box-shadow: 0 8px 24px rgba(10,22,40,.35); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
@@ -819,14 +749,14 @@ html.tema-escuro .attendance-table .total-J { color: #CBD5E1; }
 .player-modal-photo { background: #13294B; }
 .player-modal-photo .jersey-avatar { width: 112px; height: 126px; }
 .plantel-table td:first-child { width: 56px; }
-body.tab-gestao .app-content .header-actions { display: none; }
+
 .admin-notice { margin-bottom: 18px; padding: 12px 16px; border-radius: 8px; background: #FFF7D1; border: 1px solid #F0D65A; color: var(--vfn-navy); font-size: .88rem; }
 .admin-notice[hidden] { display: none; }
 .toolbar-label { font-size: .8rem; font-weight: 600; color: var(--charcoal); }
 .attendance-table tbody th { text-transform: none; letter-spacing: 0; font-size: .82rem; color: var(--vfn-navy); }
 .btn-ghost { color: var(--vfn-navy); }
 @media (max-width: 520px) { .attendance-table .col-player { min-width: 140px; max-width: 160px; } .attendance-table .col-player .vfn-avatar { display: none; } }
-.sidebar-links a[hidden] { display: none; }
+
 .modal-box .player-modal-profile h3 { color: #fff; }
 .select-with-logo { display: flex; align-items: center; gap: 8px; }
 .select-with-logo select { flex: 1; min-width: 0; }
@@ -866,16 +796,11 @@ body.tab-gestao .app-content .header-actions { display: none; }
 .skeleton-hero { height: 220px; border-radius: 10px; }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
 .position-point.secondary { background: rgba(255,215,0,.45); }
-.app-sidebar > * { flex-shrink: 0; }
-.sidebar-nav .nav-item { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
 
 /* ---------- Ícones Lucide ---------- */
 .ic { display: inline-block; flex-shrink: 0; vertical-align: -0.2em; }
 table .ic, .data-table .ic, .icon-btn .ic { width: 16px; height: 16px; }
-.nav-icon { display: inline-grid; place-items: center; }
-.nav-icon .ic { width: 20px; height: 20px; }
-.sidebar-toggle .ic { width: 24px; height: 24px; vertical-align: middle; }
-.user-avatar { color: var(--vfn-yellow); }
+
 .btn .ic { vertical-align: -0.2em; margin-right: 2px; }
 .remove-btn { display: inline-grid; place-items: center; }
 .timeline-event .ic { display: block; margin: 0 auto; }
@@ -933,7 +858,6 @@ body {
 .hub-hero { background: linear-gradient(135deg, rgba(10, 22, 40, .9), rgba(19, 41, 75, .84)); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid rgba(255, 255, 255, .12); }
 
 /* Sidebar: vidro escuro subtil */
-.app-sidebar { background: rgba(10, 22, 40, .9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-right: 1px solid rgba(255, 255, 255, .06); }
 
 /* Sem backdrop-filter: superfícies sólidas */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -1140,7 +1064,7 @@ html.tema-escuro .estado-relatorio.ficha { background: rgba(59, 130, 246, .2); c
 .section-hint { margin: -4px 0 10px; font-size: .82rem; }
 .topicos-origem { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; font-size: .82rem; }
 .topicos-origem:empty { display: none; }
-.header-actions .estado-relatorio, .estado-relatorio[role=status] { align-self: center; }
+.estado-relatorio[role=status] { align-self: center; }
 @media (max-width: 900px) {
   .relatorios-grid, .rel-grelha { grid-template-columns: 1fr; }
   .rel-resultado { font-size: 1.7rem; }
@@ -2259,9 +2183,7 @@ body.mj-aberto { overflow: hidden; }
 /* botão tema claro/escuro (VFN.aplicarTema) */
 .tema-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tema-ic { display: inline-grid; place-items: center; width: 18px; }
-.tema-cabecalho { flex-shrink: 0; justify-content: center; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; color: #fff; }
-.tema-cabecalho .tema-rotulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.tema-cabecalho:hover, .tema-cabecalho:focus-visible { background: var(--vfn-yellow); border-color: var(--vfn-yellow); color: var(--vfn-navy); }
+
 .tema-login { justify-content: center; width: 100%; margin-top: 10px; padding: 6px; color: var(--fg-muted); font-size: .8rem; }
 .tema-login:hover { color: var(--heading); }
 /* tema escuro: componentes com fundo "quase branco" feitos à mão */
@@ -2427,30 +2349,11 @@ body.mj-aberto { overflow: hidden; }
 /* v1.1 (grupo C): barra lateral fixa sem scroll nos portáteis (admin e dashboard) — itens mais compactos e, nos
    ecrãs baixos, ainda mais. Se mesmo assim não couber (ecrãs muito baixos), fica um scroll fino com as cores da
    barra em vez do scroll do browser. No telemóvel a barra desliza por cima e mantém o scroll. */
-.app-sidebar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .22) transparent; }
-.app-sidebar::-webkit-scrollbar { width: 6px; }
-.app-sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 999px; }
-.app-sidebar::-webkit-scrollbar-track { background: transparent; }
-@media (min-width: 768px) {
-  .app-sidebar { padding-top: 14px; padding-bottom: 10px; }
-  .sidebar-brand { padding-bottom: 12px; }
-  .sidebar-user { margin-bottom: 8px; padding: 7px 10px; }
-  .sidebar-nav { gap: 2px; }
-  .sidebar-nav .nav-item, .app-sidebar .sidebar-logout { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
-  .sidebar-links { margin: 8px 0 6px; padding-top: 8px; gap: 1px; }
-  .sidebar-links a { padding-top: 5px; padding-bottom: 5px; }
-}
+
 /* scroll fino e discreto nos contentores com scroll interno (tabelas largas, linha de tempo, listas, modais) */
 .table-wrap, .linha-tempo, .minutes-scroll, .modal-box, .pitch-jogadores, .attendance-wrap { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
 .table-wrap::-webkit-scrollbar, .linha-tempo::-webkit-scrollbar, .minutes-scroll::-webkit-scrollbar, .modal-box::-webkit-scrollbar, .pitch-jogadores::-webkit-scrollbar { width: 6px; height: 6px; }
 .table-wrap::-webkit-scrollbar-thumb, .linha-tempo::-webkit-scrollbar-thumb, .minutes-scroll::-webkit-scrollbar-thumb, .modal-box::-webkit-scrollbar-thumb, .pitch-jogadores::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 999px; }
-@media (min-width: 768px) and (max-height: 760px) {
-  .sidebar-brand img, .sidebar-brand .logo-placeholder { width: 34px; height: 34px; flex-basis: 34px; }
-  .sidebar-brand { padding-bottom: 8px; }
-  .sidebar-user { padding: 4px 10px; }
-  .sidebar-nav .nav-item, .app-sidebar .sidebar-logout { min-height: 30px; padding-top: 4px; padding-bottom: 4px; font-size: .82rem; }
-  .sidebar-links a { padding-top: 3px; padding-bottom: 3px; }
-}
 
 /* V1.0: ajustes do tema escuro onde o bloco gerado muda só o texto ou só o fundo (auditoria de contraste) */
 html.tema-escuro .comp-tag.comp-amigavel { color: var(--vfn-navy); }
@@ -2474,8 +2377,6 @@ html.tema-escuro .txt-mau, html.tema-escuro .dividas-lista strong { color: #F871
 /* ===== TEMA ESCURO (gerado a partir das regras acima; não editar à mão) ===== */
 :where(html.tema-escuro) .login-card { background: var(--surface); }
 :where(html.tema-escuro) .login-card h1 { color: var(--heading); }
-:where(html.tema-escuro) .app-content .app-header .btn-ghost { border-color: var(--border); }
-:where(html.tema-escuro) .app-header .btn-ghost { border-color: var(--border); }
 :where(html.tema-escuro) .live-summary { background: color-mix(in srgb, #fffdf0 14%, var(--surface)); }
 :where(html.tema-escuro) .live-summary-row strong { color: var(--heading); }
 :where(html.tema-escuro) .section-title { color: var(--heading); }

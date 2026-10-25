@@ -11,7 +11,6 @@
 .login-alt a { color: var(--vfn-navy); font-weight: 600; }
 .login-card .btn { width: 100%; margin-top: 8px; }
 .login-card form { display: grid; gap: 12px; }
-.sidebar-role { display: block; color: var(--vfn-yellow); font-size: .68rem; }
 
 /* ---------- Grelha do hub ---------- */
 .hub-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
@@ -144,14 +143,7 @@
    PÁGINA PÚBLICA (mobile-first)
    ========================================================= */
 .public-page { padding-bottom: 76px; }
-.public-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--vfn-navy); color: #fff; box-shadow: 0 2px 12px rgba(10,22,40,.25); }
-.public-header img { width: 40px; height: 40px; object-fit: contain; }
-.public-header strong { display: block; color: var(--vfn-yellow); font-size: 1rem; line-height: 1.1; }
-.public-header span { color: var(--silver); font-size: .72rem; }
-.public-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(62px, 1fr); overflow-x: auto; scrollbar-width: none; background: var(--vfn-navy); border-top: 1px solid rgba(255,255,255,.08); padding-bottom: env(safe-area-inset-bottom); }
-.public-nav button { display: grid; justify-items: center; gap: 2px; min-height: 58px; padding: 8px 2px; border: 0; background: transparent; color: var(--silver); font-family: inherit; font-size: .66rem; font-weight: 600; cursor: pointer; }
-.public-nav button span { font-size: 1.15rem; line-height: 1; }
-.public-nav button.active { color: var(--vfn-yellow); box-shadow: inset 0 3px 0 var(--vfn-yellow); }
+
 .public-main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .public-main .card { padding: 16px; }
 .public-stack { display: grid; gap: 16px; }
@@ -161,10 +153,7 @@
 
 @media (min-width: 768px) {
   .public-page { padding-bottom: 0; }
-  .public-nav { position: sticky; top: 64px; bottom: auto; display: flex; justify-content: center; gap: 4px; padding: 0 16px; background: #13294B; }
-  .public-nav button { grid-auto-flow: column; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; font-size: .85rem; }
-  .public-nav button span { font-size: 1rem; }
-  .public-nav button.active { box-shadow: inset 0 -3px 0 var(--vfn-yellow); }
+
   .public-main { padding: 24px; }
   .public-stack.two-col { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; }
 }
@@ -193,22 +182,18 @@
 .minutes-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
 .hub-grid .minutes-list li { grid-template-columns: 20px minmax(0, 1fr) 54px 42px; gap: 8px; }
 .hub-grid .mini-pitch { max-width: 380px; }
-.sidebar-nav .nav-item[hidden] { display: none; }
+
 .attendance-table.leitura .att-cell { display: grid; place-items: center; cursor: default; }
 .attendance-table.leitura .att-cell:hover { filter: none; }
 #view-hub > .public-stack + .public-stack { margin-top: 16px; }
 
 /* ---------- v5: área do jogador (equipa.html) ---------- */
-.eq-header { gap: 10px; }
-.eq-header-texto { flex: 1; min-width: 0; }
-.eq-header-texto span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .eq-avatar { display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 2px solid var(--vfn-yellow); border-radius: 50%; background: #fff; overflow: hidden; cursor: pointer; }
 .eq-avatar .vfn-avatar { width: 100%; height: 100%; }
 .eq-avatar .vfn-avatar.has-photo img { width: 100%; height: 100%; object-fit: cover; }
 /* sempre visível: o .icon-btn tem fundo branco e o ícone branco desaparecia (só aparecia no hover) */
-.eq-sair { display: inline-flex; align-items: center; gap: 6px; width: auto; height: 36px; padding: 0 12px; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: .8rem; font-weight: 700; }
-.eq-sair:hover, .eq-sair:focus-visible { background: var(--vfn-yellow); border-color: var(--vfn-yellow); color: var(--vfn-navy); }
-@media (max-width: 420px) { .eq-sair span { display: none; } .eq-sair { padding: 0 9px; } }
+
 .eq-ola { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .eq-ola h2 { margin: 0; color: var(--vfn-navy); font-size: 1.35rem; }
 .eq-ola p { margin: 2px 0 0; font-size: .85rem; color: var(--text-muted); }
@@ -219,15 +204,10 @@
 .equipa-page .login-card form { display: grid; gap: 12px; }
 
 /* ---------- v5: página pública ---------- */
-.public-header-texto { flex: 1; min-width: 0; }
 /* Área do Jogador: botão claro (cadeado + texto), também no telemóvel */
-.public-entrar { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 0; border-radius: 999px; background: var(--vfn-yellow); color: var(--vfn-navy); font-size: .85rem; font-weight: 800; white-space: nowrap; box-shadow: 0 2px 10px rgba(255,215,0,.3); }
-.public-entrar:hover, .public-entrar:focus-visible { background: #fff; color: var(--vfn-navy); }
+
 /* o texto do botão herda o navy (a regra .public-header span, do subtítulo, deixava-o cinzento claro e pequeno sobre o amarelo); navy #0A1628 sobre #FFD700 = 13,6:1 */
-.public-header .public-entrar, .public-header .public-entrar span { color: var(--vfn-navy); font-size: inherit; text-decoration: none; }
-.public-header .public-entrar span { font-size: .85rem; }
-@media (max-width: 420px) { .public-header .public-entrar span { font-size: .78rem; } }
-@media (max-width: 420px) { .public-entrar { padding: 7px 11px; font-size: .78rem; gap: 5px; } .public-header-texto span { display: none; } }
+
 .area-jogador-cta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 16px; padding: 14px 18px; border: 2px solid var(--vfn-yellow); background: linear-gradient(135deg, var(--vfn-navy), #13284a); color: #fff; text-decoration: none; }
 .area-jogador-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(10,22,40,.2); }
 .area-jogador-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--vfn-yellow); color: var(--vfn-navy); }

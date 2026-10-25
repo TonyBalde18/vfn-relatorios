@@ -931,7 +931,7 @@
   }
 
   // micro-interação: botões encolhem para 0.97 ao carregar e voltam com mola (GSAP)
-  const SELETOR_PRESSAO = ".btn, .icon-btn, .filter-chip, .seg-control button, .nav-item, .public-nav button, .vfn-nav-item, .vfn-sub-item, .vfn-bottom-item, .conv-op, .att-op, .att-cell, .eq-sair, .link-btn";
+  const SELETOR_PRESSAO = ".btn, .icon-btn, .filter-chip, .seg-control button, .vfn-nav-item, .vfn-sub-item, .vfn-bottom-item, .conv-op, .att-op, .att-cell, .link-btn";
   function ligarPressao() {
     const largar = e => { const b = e.target.closest && e.target.closest(SELETOR_PRESSAO); if (b && b.dataset.premido) { delete b.dataset.premido; window.gsap.to(b, { scale: 1, duration: 0.6, ease: "elastic.out(1, 0.4)", clearProps: "transform" }); } };
     document.addEventListener("pointerdown", e => {
@@ -1219,13 +1219,9 @@
     aplicarTema();
   }
 
-  /** Botão claro/escuro: no cabeçalho da página pública e nos logins (a nav de topo, js/core/nav.js, tem o seu). */
+  /** Botão claro/escuro nos ecrãs de login (nas páginas, o botão está na nav de topo: js/core/nav.js). */
   function ligarBotoesTema() {
     const botao = classe => `<button type="button" class="tema-btn ${classe}" data-tema-btn aria-pressed="false"><span class="tema-ic" aria-hidden="true"></span><span class="tema-rotulo">Tema escuro</span></button>`;
-    document.querySelectorAll(".public-header").forEach(h => {
-      const antes = h.querySelector(".public-entrar, .eq-avatar, .eq-sair");
-      if (antes) antes.insertAdjacentHTML("beforebegin", botao("tema-cabecalho")); else h.insertAdjacentHTML("beforeend", botao("tema-cabecalho"));
-    });
     document.querySelectorAll(".login-card").forEach(c => c.insertAdjacentHTML("beforeend", botao("tema-login")));
     document.addEventListener("click", e => { if (e.target.closest("[data-tema-btn]")) alternarTema(); });
     if (window.matchMedia) {

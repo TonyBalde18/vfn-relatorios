@@ -2096,17 +2096,11 @@
   /* ---------- Rodapé ---------- */
 
   /**
-   * Navegação por separadores (Área do Jogador e página pública): mostra a secção #view-<vista>, marca o botão
-   * ativo de seletorNav (aria-current; sem seletor: a nav de topo, js/core/nav.js, marca-se sozinha), volta ao
-   * topo e anima a entrada. O resto é de cada página.
+   * Mostra a secção #view-<vista> (Área do Jogador e página pública), volta ao topo e anima a entrada.
+   * O separador ativo é marcado pela nav de topo (js/core/nav.js); o resto é de cada página.
    */
-  function ativarVista(vista, seletorNav) {
+  function ativarVista(vista) {
     document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === `view-${vista}`));
-    if (seletorNav) document.querySelectorAll(seletorNav).forEach(b => {
-      const ativo = b.dataset.view === vista;
-      b.classList.toggle("active", ativo);
-      if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-    });
     window.scrollTo({ top: 0 });
     VFN.anim.seccao(document.getElementById(`view-${vista}`)); // fade-in da secção
   }
