@@ -2360,6 +2360,10 @@ html.tema-escuro .comp-tag.comp-amigavel { color: var(--vfn-navy); }
 html.tema-escuro .status-jogado.result-V, html.tema-escuro .summary-tile.tile-pago strong { color: #4ADE80; }
 html.tema-escuro .status-jogado.result-D, html.tema-escuro .summary-tile.tile-pendente strong { color: #F87171; }
 html.tema-escuro .status-jogado.result-E { color: #FACC15; }
+/* V2.0: aviso de suspensões (dashboard sem próximo jogo): o fundo rosa claro ficava com o texto claro do escuro (2,2:1) */
+html.tema-escuro .alerta-suspensao { background: rgba(220, 38, 38, .12); border-color: rgba(248, 113, 113, .35); color: #FECACA; }
+html.tema-escuro .alerta-suspensao .muted { color: #E5B4B4; }
+html.tema-escuro .alerta-suspensao .ic { color: #F87171; }
 /* V2.0: forma do adversário (card "Próximo adversário"): o verde/vermelho escuros ficavam a 2,8:1 no fundo escuro */
 html.tema-escuro .resultado-equipa.res-V { color: #4ADE80; }
 html.tema-escuro .resultado-equipa.res-E { color: #CBD5E1; }
