@@ -628,6 +628,53 @@ function capitaoConv() {
 
 let colunaLineupSlots = true;
 
+/* ---- V2.0: o onze da convocatória passa para o relatório (Jogo → Onze Inicial e Suplentes) ----
+   O onze escolhe-se uma vez, na Convocatória (fase 2); o relatório copia-o e continua editável. */
+
+/** Convocatória com o onze inicial (fase 2) de um jogo; null se ainda não houver. */
+async function convocatoriaComOnze(matchId) {
+  if (!matchId) return null;
+  await carregarTabelaAdmin("squads");
+  const squad = VFNComp.convocatoriaDoJogo(cacheAdmin.squads, matchId);
+  return squad && squad.squad_status === "completa" && (squad.lineup || []).length ? squad : null;
+}
+
+/** Formação, titulares (no lugar do mini-campo da convocatória), suplentes e capitão → state.jogo (ids locais). */
+function aplicarOnzeDaConvocatoria(squad) {
+  const local = idBD => { const j = jogadorPorIdBD(idBD); return j ? j.id : null; };
+  const formacao = FORMACOES_SLOTS[squad.formation] ? squad.formation : (state.jogo.formacaoVFN || "4-3-3");
+  const lineup = (squad.lineup || []).map(String);
+  const onze = lineup.map(id => jogadorPorIdBD(id)).filter(Boolean).map(j => ({ jogador: j }));
+  const lugares = VFNHub.lugaresDoOnzeComSlots(onze, formacao, squad.lineup_slots || {});
+  const subs = (squad.subs && squad.subs.length ? squad.subs : (squad.player_ids || []).filter(id => !lineup.includes(String(id)))).map(local).filter(Boolean).slice(0, 7);
+  state.jogo.formacaoVFN = formacao;
+  state.jogo.titulares = FORMACOES_SLOTS[formacao].map((_, i) => lugares.has(i) ? local(lugares.get(i)) : null);
+  state.jogo.suplentes = [...subs, ...Array(7).fill(null)].slice(0, 7);
+  const capitao = squad.captain_id ? local(squad.captain_id) : null;
+  state.jogo.capitaoId = capitao;
+  state.jogo.capitaoManual = !!capitao;
+}
+
+/**
+ * Preenche o onze do relatório com o da convocatória do jogo associado. automatico: ao associar o jogo
+ * (sem perguntas nem avisos se ainda não houver onze na convocatória); senão é o botão do separador Jogo.
+ */
+async function preencherOnzeDaConvocatoria(automatico) {
+  const info = el("onzeConvocatoriaInfo");
+  const matchId = state.preJogo.matchId;
+  if (automatico) info.hidden = true; // outro jogo: o aviso do anterior sai
+  if (!matchId) { if (!automatico) alert("Escolhe primeiro o jogo no Pré-Jogo."); return; }
+  const squad = await convocatoriaComOnze(matchId);
+  if (!squad) { if (!automatico) alert("Este jogo ainda não tem o onze inicial na Convocatória (2 · Onze inicial)."); return; }
+  if (automatico && titularesIds().length) return; // entretanto já se escolheu o onze à mão
+  if (!automatico && titularesIds().length && !confirm("Substituir a formação, o onze, os suplentes e o capitão do relatório pelos da convocatória?")) return;
+  aplicarOnzeDaConvocatoria(squad);
+  renderJogo();
+  guardarRascunho();
+  info.textContent = `Onze copiado da convocatória${squad.published ? " publicada" : " (rascunho)"}: ${squad.formation || "4-3-3"} · ${titularesIds().length} titulares · ${suplentesIds().length} suplentes. Podes mudar à vontade.`;
+  info.hidden = false;
+}
+
 /** Lugares finais (Map índice → id): os escolhidos a arrastar + os titulares novos no lugar automático. */
 function lugaresConv() {
   const onze = ordenarIdsConv(conv.titulares).map(id => jogadorPorIdBD(id)).filter(Boolean).map(j => ({ jogador: j }));
@@ -1713,7 +1760,21 @@ function renderVencedorForm() {
   el("jornadaVencedor").disabled = !!porResultado;
 }
 
+/**
+ * Depois de fechar o modal de edição, o foco volta ao botão de editar dessa linha (sem mexer no scroll).
+ * Sem isto o foco ficava perdido (no modal já fechado) e as teclas de scroll (Home, End, setas) deixavam de
+ * funcionar até se clicar na página.
+ */
+function focarResultadoEditado(id) {
+  if (id == null) return;
+  requestAnimationFrame(() => {
+    const b = el("jornadasLista").querySelector(`[data-acao="editar"][data-id="${CSS.escape(String(id))}"]`);
+    if (b) b.focus({ preventScroll: true });
+  });
+}
+
 function limparFormJornada(manterJornada) {
+  const editado = resultadoEmEdicao && resultadoEmEdicao.id;
   resultadoEmEdicao = null;
   const jornada = manterJornada ? el("jornadaNumero").value : "";
   el("jornadaNumero").value = jornada;
@@ -1727,6 +1788,7 @@ function limparFormJornada(manterJornada) {
   el("btnCancelarResultadoLiga").hidden = true;
   mostrarErroAdmin("jornadasErro", null);
   devolverFormJornada();
+  focarResultadoEditado(editado);
 }
 
 /*
@@ -2635,6 +2697,7 @@ async function verificarPapelAdmin() {
 }
 
 function initAdmin() {
+  el("btnOnzeConvocatoria").addEventListener("click", () => preencherOnzeDaConvocatoria(false));
   initMultas();
   initConvocatoria();
   initPresencas();

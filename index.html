@@ -133,7 +133,12 @@
       <div class="grid grid-2"><div class="field"><label for="jgFormacaoVFN">Formação VFN Utilizada</label><select id="jgFormacaoVFN"></select></div><div class="field"><label for="jgFormacaoAdv">Formação Adversário</label><select id="jgFormacaoAdv"></select><input type="text" id="jgFormacaoAdvOutro" placeholder="Indica a formação (ex: 4-1-4-1)" aria-label="Outra formação do adversário" hidden></div></div>
     </div>
     <div class="card">
-      <h2 class="section-title">Onze Inicial e Suplentes</h2>
+      <div class="section-header-row">
+        <h2 class="section-title">Onze Inicial e Suplentes</h2>
+        <!-- V2.0: o onze escolhe-se na Convocatória (2 · Onze inicial) e vem para aqui; continua editável -->
+        <button type="button" id="btnOnzeConvocatoria" class="btn btn-ghost btn-sm" title="Copia a formação, os titulares, os suplentes e o capitão da convocatória deste jogo"><i data-icon="clipboard-list" data-size="16"></i> Usar o onze da convocatória</button>
+      </div>
+      <p id="onzeConvocatoriaInfo" class="muted onze-conv-info" role="status" hidden></p>
       <div class="pitch-layout">
         <div class="pitch-wrap" id="pitchArrastar">
           <!-- campo: as linhas são estáticas (atrás); #pitch por cima recebe as posições de renderPitch() -->

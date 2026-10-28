@@ -842,6 +842,8 @@ function usarJogoNoRelatorio(jogo) {
   if (jogo.venue) state.preJogo.local = jogo.venue;
   renderPreJogo();
   guardarRascunho();
+  // V2.0: o onze escolhido na Convocatória passa para o relatório (só se ainda não houver onze)
+  if (!titularesIds().length && typeof preencherOnzeDaConvocatoria === "function") preencherOnzeDaConvocatoria(true);
 }
 
 /**
