@@ -137,6 +137,12 @@ function fecharEdge(edge) {
       const a = (await cmd("Runtime.evaluate", { expression: AUDITORIA, returnByValue: true })).result.result.value || {};
       // EVAL=<expressão>: mostra o resultado na consola (depuração de estilos, por exemplo)
       if (process.env.EVAL) console.log(v, JSON.stringify((await cmd("Runtime.evaluate", { expression: process.env.EVAL, returnByValue: true, awaitPromise: true })).result.result.value));
+      // PASSOS=<ficheiro.js>: module.exports = async ({ cmd, avaliar, espera }) => resultado — passos com input real
+      // (cliques e teclas via CDP, que focam elementos como um utilizador); o resultado vai para a consola
+      if (process.env.PASSOS) {
+        const avaliar = async expr => (await cmd("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true })).result.result.value;
+        console.log(v, JSON.stringify(await require(path.resolve(process.env.PASSOS))({ cmd, avaliar, espera })));
+      }
       if (SHOTS) { const sc = await cmd("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }); if (sc.result) fs.writeFileSync(path.join(DIR, `${c.pagina.replace(".html", "")}-${c.papel || "anon"}-${c.tema}-${c.largura}-${String(v).replace(/[\\/]/g, "_")}.png`), Buffer.from(sc.result.data, "base64")); }
       porVista.push({ vista: v, ...a, eventos: eventos.splice(0) });
     }
