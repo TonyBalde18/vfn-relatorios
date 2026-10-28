@@ -35,9 +35,24 @@ const tipoLink = (/type=(invite|recovery)/.exec(location.hash) || [])[1] || "";
 const TABELAS = { teams: "teams", matches: "matches", league_results: "league_results", external_players: "external_players", players: "players_equipa", sessions: "sessions", fine_types: "fine_types", match_reports: "match_reports", staff: "staff", squads: "squads", h2h: "h2h", fines: "fines" };
 const OPCIONAIS = ["external_players", "staff", "squads", "fine_types", "h2h"]; // h2h: sql/migrations/h2h.sql (leitura pública)
 
-async function carregarDados() {
+/** Erro de sessão/permissão: o pedido chegou sem token válido e a base de dados tratou-o como anónimo. */
+const erroDeSessao = e => !!e && (/^(42501|PGRST30\d)$/.test(String(e.code || "")) || /jwt|permission denied/i.test(String(e.message || "")));
+
+/**
+ * Lê as tabelas. Devolve false se a sessão se perdeu (token expirado e sem renovação): nesse caso volta ao login.
+ * Sem sessão os pedidos saem como anónimos e o jogador via a página vazia ou "conta não ligada a nenhum jogador".
+ */
+async function carregarDados(repetir) {
+  const { data: atual } = await cliente.auth.getSession();
+  if (!atual.session) { sessaoPerdida(); return false; }
   const chaves = Object.keys(TABELAS);
   const respostas = await Promise.all(chaves.map(k => cliente.from(TABELAS[k]).select("*")));
+  // token expirado/recusado: renova a sessão e tenta outra vez (uma só vez)
+  if (!repetir && respostas.some(r => erroDeSessao(r.error))) {
+    const { data, error } = await cliente.auth.refreshSession();
+    if (error || !data.session) { sessaoPerdida(); return false; }
+    return carregarDados(true);
+  }
   const falhas = [];
   respostas.forEach((r, i) => {
     if (r.error && !OPCIONAIS.includes(chaves[i])) falhas.push(chaves[i]);
@@ -64,6 +79,13 @@ async function carregarDados() {
   if (falhas.length) aviso.textContent = falhas.includes("players")
     ? "Ainda não é possível ler o plantel. O administrador tem de correr a secção de 03/10/2026 do schema.sql."
     : `Não foi possível ler: ${falhas.join(", ")}.`;
+  return true;
+}
+
+/** A sessão terminou (expirou ou saiu noutra janela): volta ao ecrã de entrada em vez de mostrar dados vazios. */
+function sessaoPerdida() {
+  eu = null; perfil = null; utilizador = null;
+  mostrarLogin("A tua sessão expirou. Entra de novo para veres os dados.");
 }
 
 /** Jogador (ou elemento da equipa técnica, nas multas do treinador). */
@@ -615,7 +637,7 @@ async function entrarComSessao(sessao, viaFormulario) {
   if (perfil && (viaFormulario || appInstalada())) { location.replace(perfil.role === "admin" ? "index.html" : "dashboard.html"); return; }
   mostrarEcra("eqShell");
   mostrarEsqueletos();
-  await carregarDados();
+  if (!(await carregarDados())) return;
   if (!eu && !perfil) {
     $("esperaEmail").textContent = utilizador.email || "";
     mostrarEcra("esperaScreen");
@@ -676,7 +698,7 @@ async function iniciar() {
   VFNNav.arrancar(); // vista do endereço (ex.: equipa.html#plantel/estatisticas)
   document.addEventListener("vfn:tema", () => { if (eu) { renderGraficosPessoais(); renderFichaCompleta(); } graficoGolosEq = H.graficoGolos($("eqChartGolosEquipa"), dados, { anterior: graficoGolosEq, vazio: $("eqChartGolosEquipaVazio") }); }); // cores dos gráficos no tema claro/escuro
   // telemóvel: puxar para atualizar no início (resultados), calendário e competições
-  VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { await carregarDados(); renderTudo(); });
+  VFNComp.ligarPuxarParaAtualizar([$("view-inicio"), $("view-calendario"), $("view-jornadas")], async () => { if (await carregarDados()) renderTudo(); });
 
   cliente = VFN.criarClienteSupabase();
   if (!cliente) { mostrarLogin("Supabase não configurado (config.js)."); return; }
@@ -707,7 +729,10 @@ async function iniciar() {
   $("btnLogout").addEventListener("click", sair);
   $("btnSairEspera").addEventListener("click", sair);
   $("btnTentarDeNovo").addEventListener("click", async () => { const { data } = await cliente.auth.getSession(); if (data.session) await entrarComSessao(data.session); else mostrarLogin(); });
-  cliente.auth.onAuthStateChange(evento => { if (evento === "PASSWORD_RECOVERY") mostrarLogin("", true); });
+  cliente.auth.onAuthStateChange(evento => {
+    if (evento === "PASSWORD_RECOVERY") mostrarLogin("", true);
+    if (evento === "SIGNED_OUT" && utilizador) sessaoPerdida(); // a sessão acabou com a página aberta
+  });
 
   const { data } = await cliente.auth.getSession();
   if (data.session && tipoLink) mostrarLogin("", true); // convite ou recuperação: definir a password primeiro
