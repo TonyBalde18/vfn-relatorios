@@ -1497,7 +1497,7 @@
     const nome = id => (id && nomeJogador ? nomeJogador(id) : "") || "";
     return (jogo.eventos || []).filter(e => e.tipo !== "Tempo Acrescentado").map(e => {
       let texto;
-      if (e.tipo === "Substituição") texto = `${nome(e.jogadorSaiId) || "—"} ↘ / ${nome(e.jogadorId) || "—"} ↗`;
+      if (e.tipo === "Substituição" && (e.equipa === "VFN" || e.equipa == null)) texto = `${nome(e.jogadorSaiId) || "—"} ↘ / ${nome(e.jogadorId) || "—"} ↗`; // a do adversário é texto livre (detalhe)
       else if (e.equipa === "VFN") texto = (nome(e.jogadorId) || e.detalhe || "") + (e.tipo === "Golo" && e.assistId ? ` (assist. ${nome(e.assistId)})` : "");
       else texto = e.detalhe || "";
       // v1.1: penálti do adversário defendido pelo GR do VFN

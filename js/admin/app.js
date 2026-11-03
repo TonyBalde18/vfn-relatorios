@@ -1226,7 +1226,8 @@ function compararEventos(a, b) {
 }
 
 function nomeOuDetalheEvento(ev) {
-  if (ev.tipo === "Substituição") return `${nomeJogador(ev.jogadorSaiId) || "—"} sai / ${nomeJogador(ev.jogadorId) || "—"} entra`;
+  // a substituição do adversário só tem o campo de texto (detalhe): não há "sai/entra" do plantel
+  if (ev.tipo === "Substituição" && (ev.equipa === "VFN" || ev.equipa == null)) return `${nomeJogador(ev.jogadorSaiId) || "—"} sai / ${nomeJogador(ev.jogadorId) || "—"} entra`;
   // v1.1: penálti do adversário defendido pelo GR do VFN; penálti do VFN defendido pelo GR adversário
   if (VFN.ePenaltiDefendidoPeloVFN(ev)) return `${ev.detalhe || "Adversário"} · defendido por ${nomeJogador(ev.guardaRedesId || guardaRedesEmCampo(ev.minuto, ev.id)) || "GR do VFN"}`;
   if (ev.tipo === "Penalty Falhado" && ev.defendido && ev.equipa === "VFN") return `${nomeJogador(eventoJogadorId(ev)) || ev.detalhe || "—"} (defendido pelo GR adversário)`;
