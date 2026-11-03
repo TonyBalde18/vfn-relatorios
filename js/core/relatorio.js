@@ -54,7 +54,6 @@
       sintese: an.sintese || an.positivos || "",
       primeiroTempo: r.first_half_notes || an.primeiroTempo || "",
       segundoTempo: r.second_half_notes || an.segundoTempo || "",
-      destaques: r.highlights || an.destaques || "",
       seccoes,
       adversarioAnalise: an.adversario || {},
       notasPreviasAdversario: pre.notasAdversario || "",
@@ -66,7 +65,7 @@
     };
     // v1.1: ficha publicada — sem a análise (só a ficha do jogo: onze, eventos, marcadores) e com os minutos jogados
     d.comAnalise = VFN.estadoRelatorio(r) !== "ficha_publicada";
-    if (!d.comAnalise) Object.assign(d, { sintese: "", primeiroTempo: "", segundoTempo: "", destaques: "", seccoes: [], adversarioAnalise: {}, notasPreviasAdversario: "", topicos: "", aTrabalhar: [] });
+    if (!d.comAnalise) Object.assign(d, { sintese: "", primeiroTempo: "", segundoTempo: "", seccoes: [], adversarioAnalise: {}, notasPreviasAdversario: "", topicos: "", aTrabalhar: [] });
     const H = window.VFNHub;
     d.minutos = !d.comAnalise && H && H.minutosDoRelatorio
       ? Object.entries(H.minutosDoRelatorio(m)).map(([id, min]) => ({ nome: nome(id), min: Math.round(min) })).filter(x => x.nome !== "—" && x.min > 0).sort((a, b) => b.min - a.min)
@@ -123,7 +122,6 @@
       ${blocoTexto("Síntese", d.sintese, "rel-sintese")}
       ${d.primeiroTempo || d.segundoTempo ? `<section class="rel-bloco"><h4>Evolução do Jogo</h4>${subTexto("1.ª parte", d.primeiroTempo)}${subTexto("2.ª parte", d.segundoTempo)}</section>` : ""}
       ${!d.comAnalise ? `<p class="rel-sem-analise muted">${VFN.icone("info", 16)} Análise não disponível para este jogo (ficha publicada).</p>` : ""}
-      ${d.comAnalise && (d.destaques || situacoesDe(r).length) ? `<section class="rel-bloco"><h4>Momentos e Situações</h4>${paragrafos(d.destaques).map(p => `<p>${esc(p)}</p>`).join("")}${situacoesGaleria(r)}</section>` : ""}
       ${d.seccoes.length || temAdversario(d) ? `<section class="rel-bloco"><h4>Análise Tática</h4>${d.seccoes.map(s => `<div class="rel-seccao"><h5>${esc(s.titulo)}${s.avaliacao ? ` <span class="rel-aval aval-${esc(s.avaliacao)}">${esc(s.avaliacao)}</span>` : ""}</h5>${paragrafos(s.texto).map(p => `<p>${esc(p)}</p>`).join("")}</div>`).join("")}${adversarioHTML(d)}</section>` : ""}
       ${d.topicos ? `<section class="rel-bloco"><h4>Tópicos para o Treino</h4>${d.aTrabalhar.length ? `<p class="rel-origem">A partir de: ${esc(textoATrabalhar(d.aTrabalhar))}</p>` : ""}<ol>${paragrafos(d.topicos).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : ""}
       <section class="rel-bloco"><h4>Ficha do Jogo</h4>
@@ -163,7 +161,7 @@
 
   /* ---------- Word ---------- */
 
-  async function logoParaWord(urls) {
+  async function logoParaWord(urls, maximo) {
     for (const url of urls.filter(Boolean)) {
       try {
         const resp = await fetch(url);
@@ -173,7 +171,7 @@
         const dataUrl = await new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = rej; f.readAsDataURL(blob); });
         const dims = await new Promise(res => { const i = new Image(); i.onload = () => res({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = () => res(null); i.src = dataUrl; });
         if (!dims) continue;
-        const k = Math.min(1, 90 / Math.max(dims.w, dims.h));
+        const k = Math.min(1, (maximo || 90) / Math.max(dims.w, dims.h));
         const bin = atob(dataUrl.split(",")[1]);
         const bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -183,204 +181,160 @@
     return null;
   }
 
-  /** Gera e descarrega o .docx do relatório. ctx: { nomeJogador, urlsLogoAdversario: [] } */
-  async function word(r, ctx) {
+  /**
+   * Documento Word do relatório (V2.0, o mesmo para o admin e o dashboard). Folha 1 · Relatório: cabeçalho compacto
+   * (logos pequenos, resultado, competição · jornada · data, marcadores), Síntese, Evolução do Jogo, Análise Tática,
+   * Adversário e Tópicos para o Treino. Folha 2 · Ficha de Jogo: formações, onze por posição e suplentes, linha do
+   * tempo e minutos jogados. Devolve o Blob (null sem a biblioteca).
+   * ctx: { nomeJogador(id), numeroJogador(id) (opcional), urlsLogoAdversario: [] }
+   */
+  async function documentoWord(r, ctx) {
     const D = window.docx;
-    if (!D) { alert("A biblioteca do Word não carregou. Verifica a ligação à internet."); return; }
-    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle, ShadingType, Footer, HeadingLevel } = D;
+    if (!D) { alert("A biblioteca do Word não carregou. Verifica a ligação à internet."); return null; }
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle, ShadingType, Footer, PageBreak, PageNumber, VerticalAlign, TableLayoutType } = D;
     const d = extrair(r, ctx.nomeJogador);
-    const NAVY = "0A1628", AMARELO = "FFD700", CINZA = "4F4847";
-    const semBordas = { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } };
-    const [logoVFN, logoAdv] = await Promise.all([logoParaWord(["assets/logo.png", VFN.LOGO_VFN]), logoParaWord(ctx.urlsLogoAdversario || [])]);
-    const celulaLogo = (logo, nome) => new TableCell({ width: { size: 35, type: WidthType.PERCENTAGE }, borders: semBordas, shading: { type: ShadingType.SOLID, color: NAVY, fill: NAVY }, margins: { top: 200, bottom: 200 }, children: [
-      new Paragraph({ alignment: AlignmentType.CENTER, children: logo ? [new ImageRun({ data: logo.data, type: logo.type, transformation: { width: logo.width, height: logo.height } })] : [] }),
-      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80 }, children: [new TextRun({ text: nome, bold: true, color: "FFFFFF", size: 22 })] })] });
-    const placar = new TableCell({ width: { size: 30, type: WidthType.PERCENTAGE }, borders: semBordas, shading: { type: ShadingType.SOLID, color: NAVY, fill: NAVY }, children: [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300 }, children: [new TextRun({ text: `${d.casa ? d.golosVFN : d.golosAdv} – ${d.casa ? d.golosAdv : d.golosVFN}`, bold: true, size: 64, color: AMARELO })] })] });
-    const lados = d.casa ? [celulaLogo(logoVFN, "ACD Vila Franca das Naves"), placar, celulaLogo(logoAdv, d.adversario)] : [celulaLogo(logoAdv, d.adversario), placar, celulaLogo(logoVFN, "ACD Vila Franca das Naves")];
-    const titulo = t => new Paragraph({ spacing: { before: 280, after: 100 }, border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: AMARELO } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: NAVY })] });
-    const texto = t => paragrafos(t).map(p => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: p, size: 20 })] }));
-    const linha = (rotulo, valor) => new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: rotulo + ": ", bold: true, size: 20, color: CINZA }), new TextRun({ text: valor, size: 20 })] });
-    const corpo = [
-      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: "RELATÓRIO DE JOGO · ACD VILA FRANCA DAS NAVES · ÉPOCA 2026/27", bold: true, size: 18, color: CINZA })] }),
-      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [new TableRow({ children: lados })] }),
-      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 160 }, children: [new TextRun({ text: [d.competicao, d.jornada ? "Jornada " + d.jornada : "", VFN.dataDDMMAAAA(d.data), d.local].filter(Boolean).join("  ·  "), size: 20, color: CINZA })] })
-    ];
-    const subtitulo = t => new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: t, bold: true, size: 21, color: NAVY })] });
-    // 1. Resumo rápido (resultado e data já no cabeçalho)
-    if (d.marcadores) corpo.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 80 }, children: [new TextRun({ text: "Marcadores: ", bold: true, size: 20, color: CINZA }), new TextRun({ text: d.marcadores, size: 20 })] }));
-    // 2. Síntese
-    if (d.sintese) corpo.push(titulo("Síntese"), ...texto(d.sintese));
-    // 3. Evolução do jogo
+    const m = (r && r.match_data) || {}, jogo = m.jogo || {};
+    const NAVY = "0A1628", AMARELO = "F5B301", TEXTO = "1F2937", SUAVE = "6B7280", LINHA = "E5E7EB", FUNDO = "F7F8FA";
+    const COR_AVALIACAO = { Bom: "15803D", "Médio": "B45309", Mau: "B91C1C" };
+    const nada = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+    const semBordas = { top: nada, bottom: nada, left: nada, right: nada };
+    const bordasTabela = { top: nada, bottom: nada, left: nada, right: nada, insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: LINHA }, insideVertical: nada };
+    const run = (text, o) => new TextRun({ text: String(text ?? ""), size: 19, color: TEXTO, ...(o || {}) });
+    const par = (filhos, o) => new Paragraph({ spacing: { after: 60 }, ...(o || {}), children: Array.isArray(filhos) ? filhos : [filhos] });
+    const textoDe = t => paragrafos(t).map(p => par(run(p), { spacing: { after: 70, line: 264 } }));
+    // título de secção: barra amarela à esquerda, navy, em maiúsculas
+    const titulo = (t, antes) => new Paragraph({ spacing: { before: antes ?? 220, after: 90 }, indent: { left: 120 }, border: { left: { style: BorderStyle.SINGLE, size: 24, color: AMARELO, space: 8 } }, children: [run(t.toUpperCase(), { bold: true, size: 21, color: NAVY })] });
+    const celula = (filhos, o) => new TableCell({ borders: semBordas, margins: { top: 60, bottom: 60, left: 100, right: 100 }, verticalAlign: VerticalAlign.CENTER, ...(o || {}), children: Array.isArray(filhos) ? filhos : [filhos] });
+    // layout fixo: o Word respeita as larguras das colunas (sem isso estica a 1.ª coluna)
+    const tabela = (linhas, larguras, o) => new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, layout: TableLayoutType.FIXED, borders: bordasTabela, columnWidths: larguras, rows: linhas, ...(o || {}) });
+
+    // ---------- cabeçalho ----------
+    const [logoVFN, logoAdv] = await Promise.all([logoParaWord(["assets/logo.png", VFN.LOGO_VFN], 46), logoParaWord(ctx.urlsLogoAdversario || [], 46)]);
+    const imagem = logo => logo ? [par(new ImageRun({ data: logo.data, type: logo.type, transformation: { width: logo.width, height: logo.height } }), { alignment: AlignmentType.CENTER, spacing: { after: 0 } })] : [par(run(""))];
+    const casa = d.casa ? "VFN" : d.adversario, fora = d.casa ? d.adversario : "VFN";
+    const resultado = `${d.casa ? d.golosVFN : d.golosAdv} – ${d.casa ? d.golosAdv : d.golosVFN}`;
+    const v = d.golosVFN > d.golosAdv ? "V" : d.golosVFN < d.golosAdv ? "D" : "E";
+    const contexto = [d.competicao ? VFN.nomeCurtoCompeticao(d.competicao) : "", d.jornada ? "Jornada " + d.jornada : "", VFN.dataDDMMAAAA(d.data), d.casa ? "Casa" : "Fora"].filter(Boolean).join("  ·  ");
+    const fundoNavy = { type: ShadingType.SOLID, color: NAVY, fill: NAVY };
+    const cabecalho = tabela([new TableRow({ children: [
+      celula(imagem(d.casa ? logoVFN : logoAdv), { width: { size: 15, type: WidthType.PERCENTAGE }, shading: fundoNavy }),
+      celula([
+        par([run(`${casa}  `, { bold: true, size: 26, color: "FFFFFF" }), run(resultado, { bold: true, size: 40, color: AMARELO }), run(`  ${fora}`, { bold: true, size: 26, color: "FFFFFF" })], { alignment: AlignmentType.CENTER, spacing: { after: 30 } }),
+        par(run(contexto, { size: 17, color: "D1D5DB" }), { alignment: AlignmentType.CENTER, spacing: { after: 0 } })
+      ], { width: { size: 70, type: WidthType.PERCENTAGE }, shading: fundoNavy }),
+      celula(imagem(d.casa ? logoAdv : logoVFN), { width: { size: 15, type: WidthType.PERCENTAGE }, shading: fundoNavy })
+    ] })], [1400, 6600, 1400], { borders: { top: nada, bottom: nada, left: nada, right: nada, insideHorizontal: nada, insideVertical: nada } });
+    const golosVFN = d.golos.filter(g => g.vfn), golosAdv = d.golos.filter(g => !g.vfn);
+    const marcadores = [golosVFN.length ? `VFN: ${golosVFN.map(g => `${g.texto.replace(/ \(assist\..*\)$/, "")} ${g.min}`).join(", ")}` : "", golosAdv.length ? `${d.adversario}: ${golosAdv.map(g => `${g.texto === "Adversário" ? "" : g.texto + " "}${g.min}`).join(", ")}` : ""].filter(Boolean).join("   ·   ");
+
+    // ---------- folha 1 · relatório ----------
+    const folha1 = [cabecalho];
+    folha1.push(par([run(`${{ V: "Vitória", E: "Empate", D: "Derrota" }[v]}   `, { bold: true, size: 18, color: v === "V" ? "15803D" : v === "D" ? "B91C1C" : SUAVE }), run(marcadores ? "⚽ " + marcadores : "Sem golos", { size: 18, color: SUAVE })], { alignment: AlignmentType.CENTER, spacing: { before: 100, after: 40 } }));
+    if (!d.comAnalise) folha1.push(titulo("Relatório"), ...textoDe("Análise não disponível para este jogo (ficha publicada). A ficha do jogo está na folha seguinte."));
+    if (d.sintese) folha1.push(titulo("Síntese"), ...textoDe(d.sintese));
     if (d.primeiroTempo || d.segundoTempo) {
-      corpo.push(titulo("Evolução do Jogo"));
-      if (d.primeiroTempo) corpo.push(subtitulo("1.ª parte"), ...texto(d.primeiroTempo));
-      if (d.segundoTempo) corpo.push(subtitulo("2.ª parte"), ...texto(d.segundoTempo));
+      folha1.push(titulo("Evolução do Jogo"));
+      const parte = (rotulo, t) => celula([par(run(rotulo, { bold: true, size: 18, color: NAVY }), { spacing: { after: 40 } }), ...(t ? textoDe(t) : [par(run("—", { color: SUAVE }))])], { width: { size: 50, type: WidthType.PERCENTAGE }, shading: { type: ShadingType.SOLID, color: FUNDO, fill: FUNDO } });
+      folha1.push(tabela([new TableRow({ children: [parte("1.ª parte", d.primeiroTempo), parte("2.ª parte", d.segundoTempo)] })], [4700, 4700], { borders: { top: nada, bottom: nada, left: nada, right: nada, insideHorizontal: nada, insideVertical: { style: BorderStyle.SINGLE, size: 12, color: "FFFFFF" } } }));
     }
-    // 4. Momentos e situações
-    const situacoes = d.comAnalise ? await situacoesParaWord(r, ctx.cliente, null) : []; // ficha publicada: sem as situações (análise)
-    if (d.destaques || situacoes.length) corpo.push(titulo("Momentos e Situações"), ...texto(d.destaques), ...situacoes);
-    // 5. Análise tática: os 5 momentos e o adversário
-    if (d.seccoes.length || temAdversario(d)) {
-      corpo.push(titulo("Análise Tática"));
-      d.seccoes.forEach(s => { corpo.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: s.titulo, bold: true, size: 21, color: NAVY }), new TextRun({ text: s.avaliacao ? `  ·  ${s.avaliacao}` : "", bold: true, size: 20, color: s.avaliacao === "Bom" ? "15803D" : s.avaliacao === "Mau" ? "B91C1C" : "A16207" })] }), ...texto(s.texto)); });
-      if (temAdversario(d)) {
-        corpo.push(subtitulo(`Adversário — ${d.adversario}`));
-        camposAdversario(d).forEach(([t, v]) => corpo.push(linha(t, v)));
-        const chave = jogadoresChave(d);
-        if (chave.length) corpo.push(linha("Jogadores-chave", chave.map(textoJogadorChave).join("; ")));
-        if (d.notasPreviasAdversario) corpo.push(linha("Notas prévias", d.notasPreviasAdversario));
+    if (d.seccoes.length) {
+      folha1.push(titulo("Análise Tática"));
+      folha1.push(tabela(d.seccoes.map(s => new TableRow({ children: [
+        celula(par(run(s.titulo, { bold: true, size: 18, color: NAVY })), { width: { size: 24, type: WidthType.PERCENTAGE } }),
+        celula(par(run(s.avaliacao || "—", { bold: true, size: 16, color: s.avaliacao ? "FFFFFF" : SUAVE }), { alignment: AlignmentType.CENTER, spacing: { after: 0 } }), { width: { size: 11, type: WidthType.PERCENTAGE }, ...(COR_AVALIACAO[s.avaliacao] ? { shading: { type: ShadingType.SOLID, color: COR_AVALIACAO[s.avaliacao], fill: COR_AVALIACAO[s.avaliacao] } } : {}) }),
+        celula(s.texto ? textoDe(s.texto) : [par(run("—", { color: SUAVE }))], { width: { size: 65, type: WidthType.PERCENTAGE } })
+      ] })), [2250, 1050, 6100]));
+    }
+    if (temAdversario(d)) {
+      folha1.push(titulo(`Adversário — ${d.adversario}`));
+      camposAdversario(d).forEach(([t, val]) => folha1.push(par([run(t + ": ", { bold: true, color: NAVY }), run(val)])));
+      const chave = jogadoresChave(d);
+      if (chave.length) {
+        folha1.push(par(run("Jogadores-chave", { bold: true, color: NAVY }), { spacing: { before: 60, after: 30 } }));
+        chave.forEach(j => folha1.push(par([run(`${j.numero ? "#" + j.numero + " " : ""}${j.nome}`, { bold: true }), run(j.posicao ? `  (${j.posicao})` : "", { color: SUAVE }), run(j.descricao ? " — " + j.descricao : "")], { bullet: { level: 0 }, spacing: { after: 30 } })));
       }
+      if (d.notasPreviasAdversario) folha1.push(par([run("Notas prévias: ", { bold: true, color: NAVY }), run(d.notasPreviasAdversario)]));
     }
-    // 6. Tópicos para o treino (ligados aos momentos avaliados como Mau/Médio)
     if (d.topicos) {
-      corpo.push(titulo("Tópicos para o Treino"));
-      if (d.aTrabalhar.length) corpo.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "A partir de: " + textoATrabalhar(d.aTrabalhar), italics: true, size: 18, color: CINZA })] }));
-      paragrafos(d.topicos).forEach((t, i) => corpo.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: `${i + 1}. ${t}`, size: 20 })] })));
+      folha1.push(titulo("Tópicos para o Treino"));
+      if (d.aTrabalhar.length) folha1.push(par(run("A partir de: " + textoATrabalhar(d.aTrabalhar), { italics: true, size: 17, color: SUAVE })));
+      paragrafos(d.topicos).forEach((t, i) => folha1.push(par([run(`${i + 1}.  `, { bold: true, color: "B45309" }), run(t)], { spacing: { after: 50 } })));
     }
-    if (!d.comAnalise) corpo.push(...texto("Análise não disponível para este jogo (ficha publicada)."));
-    // anexo: ficha do jogo
-    corpo.push(titulo("Ficha do Jogo"));
-    if (d.formacao) corpo.push(linha("Formação", d.formacao + (d.formacaoAdv ? `  (adversário: ${d.formacaoAdv})` : "")));
-    if (d.onze.length) corpo.push(linha("Onze inicial", d.onze.join(", ")));
-    if (d.suplentes.length) corpo.push(linha("Suplentes", d.suplentes.join(", ")));
-    if (d.substituicoes.length) corpo.push(linha("Substituições", d.substituicoes.map(s => `${s.min} ${s.sai} → ${s.entra}`).join("; ")));
-    corpo.push(linha("Golos", d.golos.length ? d.golos.map(g => `${g.min} ${g.texto}${g.vfn ? "" : " [adv.]"}`).join("; ") : "—"));
-    if (d.amarelos.length) corpo.push(linha("Amarelos", d.amarelos.map(c => `${c.min} ${c.nome}`).join("; ")));
-    if (d.vermelhos.length) corpo.push(linha("Vermelhos", d.vermelhos.map(c => `${c.min} ${c.nome}`).join("; ")));
-    if (d.minutos.length) corpo.push(linha("Minutos jogados", d.minutos.map(x => `${x.nome} ${x.min}'`).join(", ")));
+
+    // ---------- folha 2 · ficha de jogo ----------
+    const folha2 = [new Paragraph({ children: [new PageBreak()] }), new Paragraph({ spacing: { after: 40 }, children: [run("FICHA DE JOGO", { bold: true, size: 26, color: NAVY })] }),
+      par(run(`${casa} ${resultado} ${fora}  ·  ${contexto}`, { size: 18, color: SUAVE }), { spacing: { after: 120 } })];
+    if (d.formacao || d.formacaoAdv) folha2.push(par([run("Formações: ", { bold: true, color: NAVY }), run(`VFN ${d.formacao || "—"}  ·  ${d.adversario} ${d.formacaoAdv || "—"}`)]));
+    // onze por posição (lugar da formação) e suplentes, lado a lado
+    const numero = id => (ctx.numeroJogador && ctx.numeroJogador(id)) || "";
+    const nomeDe = id => (id ? ctx.nomeJogador(id) : "") || "—";
+    const slots = (VFN.FORMACOES_SLOTS && VFN.FORMACOES_SLOTS[jogo.formacaoVFN]) || [];
+    const onze = (jogo.titulares || []).map((id, i) => id ? { pos: (slots[i] || {}).label || "", n: numero(id), nome: nomeDe(id) + (String(id) === String(jogo.capitaoId) ? "  (C)" : "") } : null).filter(Boolean);
+    const suplentes = (jogo.suplentes || []).filter(Boolean).map(id => ({ n: numero(id), nome: nomeDe(id) }));
+    if (onze.length || suplentes.length) {
+      const linhaJogador = (pos, n, nome) => new TableRow({ children: [celula(par(run(pos, { bold: true, size: 16, color: SUAVE }), { spacing: { after: 0 } }), { width: { size: 18, type: WidthType.PERCENTAGE } }), celula(par(run(n ? "#" + n : "", { size: 17, color: SUAVE }), { spacing: { after: 0 } }), { width: { size: 16, type: WidthType.PERCENTAGE } }), celula(par(run(nome, { size: 18 }), { spacing: { after: 0 } }))] });
+      const lista = (rotulo, itens, comPos) => celula([par(run(rotulo, { bold: true, size: 18, color: NAVY }), { spacing: { after: 40 } }),
+        itens.length ? tabela(itens.map(x => linhaJogador(comPos ? x.pos : "", x.n, x.nome)), [800, 700, 3000]) : par(run("—", { color: SUAVE }))], { width: { size: 50, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.TOP });
+      folha2.push(tabela([new TableRow({ children: [lista("Onze inicial", onze, true), lista("Suplentes", suplentes, false)] })], [4700, 4700], { borders: { top: nada, bottom: nada, left: nada, right: nada, insideHorizontal: nada, insideVertical: nada } }));
+    }
+    // linha do tempo dos eventos
+    const H = window.VFNHub;
+    const eventos = H && H.eventosDoRelatorio ? H.eventosDoRelatorio(r, ctx.nomeJogador) : [];
+    // marcas que imprimem bem (os emoji dos cartões saem cinzentos em PDF e na impressão)
+    const MARCA = { "Golo": ["⚽", TEXTO], "Auto-golo": ["⚽", TEXTO], "Cartão Amarelo": ["■", "EAB308"], "Cartão Vermelho": ["■", "DC2626"], "Substituição": ["⇄", "2563EB"], "Lesão": ["✚", "DC2626"] };
+    const marca = tipo => MARCA[String(tipo).replace(/ \(.*\)$/, "")] || ["•", SUAVE];
+    folha2.push(titulo("Linha do tempo", 200));
+    folha2.push(eventos.length ? tabela(eventos.map((e, i) => new TableRow({ children: [
+      celula(par(run(`${e.minuto}${e.acrescimo ? "+" + e.acrescimo : ""}'`, { bold: true, size: 17, color: NAVY }), { spacing: { after: 0 } }), { width: { size: 9, type: WidthType.PERCENTAGE }, ...(i % 2 ? { shading: { type: ShadingType.SOLID, color: FUNDO, fill: FUNDO } } : {}) }),
+      celula(par([run(marca(e.tipo)[0] + "  ", { size: 18, bold: true, color: marca(e.tipo)[1] }), run(e.tipo, { size: 17 })], { spacing: { after: 0 } }), { width: { size: 28, type: WidthType.PERCENTAGE }, ...(i % 2 ? { shading: { type: ShadingType.SOLID, color: FUNDO, fill: FUNDO } } : {}) }),
+      celula(par(run(e.neutro ? "" : e.vfn ? "VFN" : d.adversario, { bold: true, size: 16, color: e.vfn ? "B45309" : SUAVE }), { spacing: { after: 0 } }), { width: { size: 18, type: WidthType.PERCENTAGE }, ...(i % 2 ? { shading: { type: ShadingType.SOLID, color: FUNDO, fill: FUNDO } } : {}) }),
+      celula(par(run(e.texto || "—", { size: 17 }), { spacing: { after: 0 } }), { width: { size: 45, type: WidthType.PERCENTAGE }, ...(i % 2 ? { shading: { type: ShadingType.SOLID, color: FUNDO, fill: FUNDO } } : {}) })
+    ] })), [850, 2650, 1700, 4200]) : par(run("Sem eventos registados.", { italics: true, color: SUAVE })));
+    // minutos jogados (duas colunas: nome · minutos)
+    const minutos = H && H.minutosDoRelatorio
+      ? Object.entries(H.minutosDoRelatorio(m)).map(([id, min]) => ({ nome: nomeDe(id), min: Math.round(min) })).filter(x => x.nome !== "—" && x.min > 0).sort((a, b) => b.min - a.min)
+      : [];
+    if (minutos.length) {
+      folha2.push(titulo("Minutos jogados", 200));
+      const meio = Math.ceil(minutos.length / 2);
+      const linhas = [];
+      for (let i = 0; i < meio; i++) {
+        const a = minutos[i], b = minutos[i + meio];
+        linhas.push(new TableRow({ children: [celula(par(run(a.nome, { size: 17 }), { spacing: { after: 0 } })), celula(par(run(a.min + "'", { bold: true, size: 17 }), { alignment: AlignmentType.RIGHT, spacing: { after: 0 } })),
+          celula(par(run(b ? b.nome : "", { size: 17 }), { spacing: { after: 0 } })), celula(par(run(b ? b.min + "'" : "", { bold: true, size: 17 }), { alignment: AlignmentType.RIGHT, spacing: { after: 0 } }))] }));
+      }
+      folha2.push(tabela(linhas, [3600, 1100, 3600, 1100]));
+      folha2.push(par(run("Calculado a partir do onze inicial e das substituições registadas.", { italics: true, size: 15, color: SUAVE }), { spacing: { before: 60 } }));
+    }
+
+    const rodape = new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run("ACD Vila Franca das Naves · Relatório de jogo · Época 2026/27 · página ", { size: 15, color: SUAVE }), new TextRun({ children: [PageNumber.CURRENT], size: 15, color: SUAVE }), run(" de ", { size: 15, color: SUAVE }), new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 15, color: SUAVE })] })] });
     const doc = new Document({
-      styles: { default: { document: { run: { font: "Calibri", size: 20 } } } },
-      sections: [{ properties: { page: { margin: { top: 900, bottom: 900, left: 1000, right: 1000 } } }, footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "ACD Vila Franca das Naves · Relatório de jogo · Época 2026/27", size: 16, color: CINZA })] })] }) }, children: corpo }]
+      styles: { default: { document: { run: { font: "Calibri", size: 19, color: TEXTO } } } },
+      sections: [{ properties: { page: { margin: { top: 800, bottom: 800, left: 900, right: 900 } } }, footers: { default: rodape }, children: [...folha1, ...folha2] }]
     });
-    const blob = await Packer.toBlob(doc);
-    const nome = `Relatorio_${String(d.adversario).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9]+/g, "_")}_${d.data || "sem-data"}.docx`;
+    return Packer.toBlob(doc);
+  }
+
+  /** Nome do ficheiro: Relatorio_<Adversario>_J<jornada>_<data>.docx */
+  function nomeFicheiroWord(r, ctx) {
+    const d = extrair(r, (ctx && ctx.nomeJogador) || (() => ""));
+    const limpo = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "");
+    return `Relatorio_${limpo(d.adversario) || "Jogo"}_J${d.jornada || "0"}_${d.data || "sem-data"}.docx`;
+  }
+
+  /** Gera e descarrega o .docx do relatório (dashboard). ctx: o de documentoWord. */
+  async function word(r, ctx) {
+    const blob = await documentoWord(r, ctx);
+    if (!blob) return;
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = nome;
+    a.href = url; a.download = nomeFicheiroWord(r, ctx);
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  /* ---------- Situações de jogo (imagens no bucket privado report-images) ----------
-     Cada situação: { path (no bucket) | data (data URL, modo local), caption, order }.
-     O bucket é privado: as imagens mostram-se com URLs assinados (válidos 1 hora). */
-
+  // V2.0: "Momentos e Situações" saiu do relatório; as imagens antigas ficam no bucket até se apagar o relatório
   const BUCKET_SITUACOES = "report-images";
-  const MAX_SITUACOES = 10;
 
-  function situacoesDe(r) {
-    const lista = (r && (r.situations || ((r.match_data || {}).analise || {}).situacoes)) || [];
-    return [...lista].filter(s => s && (s.path || s.data)).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-  }
-
-  const urlsAssinados = new Map(); // path -> { url, ate }
-
-  /** URL de cada situação (pela mesma ordem): data URL, ou URL assinado do bucket privado. */
-  async function urlsSituacoes(lista, cliente) {
-    const agora = Date.now();
-    const porAssinar = [...new Set(lista.filter(s => s.path && !(urlsAssinados.get(s.path) && urlsAssinados.get(s.path).ate > agora)).map(s => s.path))];
-    if (porAssinar.length && cliente) {
-      const { data } = await cliente.storage.from(BUCKET_SITUACOES).createSignedUrls(porAssinar, 3600);
-      (data || []).forEach(x => { if (x.signedUrl) urlsAssinados.set(x.path, { url: x.signedUrl, ate: agora + 55 * 60 * 1000 }); });
-    }
-    return lista.map(s => s.data || (urlsAssinados.get(s.path) || {}).url || "");
-  }
-
-  /** Só a grelha das situações (na secção "Momentos e Situações"). */
-  function situacoesGaleria(r) {
-    const lista = situacoesDe(r);
-    if (!lista.length) return "";
-    return `<div class="rel-situacoes">${lista.map((s, i) => `
-      <figure class="rel-situacao"><button type="button" class="rel-situacao-img" data-situacao="${i}" aria-label="Ampliar situação ${i + 1}"><img alt="${esc(s.caption || "Situação " + (i + 1))}" loading="lazy"></button>
-        ${s.caption ? `<figcaption>${esc(s.caption)}</figcaption>` : ""}</figure>`).join("")}</div>`;
-  }
-
-  /** Preenche as imagens da galeria e liga a lightbox. */
-  async function carregarSituacoes(contentor, r, cliente) {
-    const lista = situacoesDe(r);
-    if (!contentor || !lista.length) return;
-    let urls = [];
-    try { urls = await urlsSituacoes(lista, cliente); } catch (e) { console.warn("Situações:", e.message || e); }
-    contentor.querySelectorAll("[data-situacao]").forEach(b => {
-      const i = Number(b.dataset.situacao);
-      const img = b.querySelector("img");
-      if (urls[i]) img.src = urls[i]; else b.classList.add("sem-imagem");
-      b.onclick = () => abrirLightbox(lista, urls, i);
-    });
-  }
-
-  /** Lightbox com setas (← →) e Esc para fechar. */
-  function abrirLightbox(lista, urls, inicio) {
-    let i = inicio;
-    let caixa = document.getElementById("vfnLightbox");
-    if (!caixa) {
-      caixa = document.createElement("div");
-      caixa.id = "vfnLightbox";
-      caixa.className = "vfn-lightbox";
-      caixa.setAttribute("role", "dialog");
-      caixa.setAttribute("aria-modal", "true");
-      caixa.innerHTML = `<button type="button" class="lb-fechar" aria-label="Fechar">×</button><button type="button" class="lb-ant" aria-label="Anterior">‹</button>
-        <figure><img alt=""><figcaption></figcaption></figure><button type="button" class="lb-seg" aria-label="Seguinte">›</button>`;
-      document.body.appendChild(caixa);
-    }
-    const mostrar = () => {
-      caixa.querySelector("img").src = urls[i] || "";
-      caixa.querySelector("img").alt = lista[i].caption || `Situação ${i + 1}`;
-      caixa.querySelector("figcaption").textContent = `${i + 1}/${lista.length}${lista[i].caption ? " · " + lista[i].caption : ""}`;
-      caixa.querySelector(".lb-ant").hidden = caixa.querySelector(".lb-seg").hidden = lista.length < 2;
-    };
-    const fechar = () => { caixa.hidden = true; document.removeEventListener("keydown", teclas); };
-    const mover = d => { i = (i + d + lista.length) % lista.length; mostrar(); };
-    const teclas = e => { if (e.key === "Escape") fechar(); else if (e.key === "ArrowLeft") mover(-1); else if (e.key === "ArrowRight") mover(1); };
-    caixa.onclick = e => {
-      if (e.target.closest(".lb-ant")) mover(-1);
-      else if (e.target.closest(".lb-seg")) mover(1);
-      else if (e.target === caixa || e.target.closest(".lb-fechar")) fechar();
-    };
-    document.addEventListener("keydown", teclas);
-    caixa.hidden = false;
-    mostrar();
-    caixa.querySelector(".lb-fechar").focus();
-  }
-
-  /** Imagem (PNG, JPG ou SVG) → PNG para o Word, reduzida a largura máxima. null se falhar. */
-  function imagemParaWord(url, larguraMax) {
-    return new Promise(resolve => {
-      if (!url) { resolve(null); return; }
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          const w0 = img.naturalWidth || 800, h0 = img.naturalHeight || 600;
-          const escala = Math.min(1, (larguraMax || 560) / w0);
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(w0 * escala * 2); canvas.height = Math.round(h0 * escala * 2); // 2x para ficar nítida
-          const ctx = canvas.getContext("2d");
-          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(b => b ? b.arrayBuffer().then(data => resolve({ data, width: Math.round(w0 * escala), height: Math.round(h0 * escala) })) : resolve(null), "image/png");
-        } catch (e) { resolve(null); }
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-  }
-
-  /** Parágrafos do Word com as situações (imagem + legenda). titulo(texto) devolve o parágrafo do título (null: sem título). */
-  async function situacoesParaWord(r, cliente, titulo) {
-    const D = window.docx;
-    const lista = situacoesDe(r);
-    if (!D || !lista.length) return [];
-    const urls = await urlsSituacoes(lista, cliente).catch(() => []);
-    const imagens = await Promise.all(urls.map(u => imagemParaWord(u, 520)));
-    const blocos = titulo ? [titulo("Situações de jogo")] : [];
-    lista.forEach((s, i) => {
-      const im = imagens[i];
-      if (im) blocos.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 160 }, children: [new D.ImageRun({ data: im.data, type: "png", transformation: { width: im.width, height: im.height } })] }));
-      blocos.push(new D.Paragraph({ alignment: D.AlignmentType.CENTER, spacing: { before: 60, after: 120 }, children: [new D.TextRun({ text: `${i + 1}. ${s.caption || "Situação"}${im ? "" : " (imagem indisponível)"}`, italics: true, size: 18, color: "4F4847" })] }));
-    });
-    return blocos;
-  }
-
-  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, BUCKET_SITUACOES, MAX_SITUACOES, situacoesDe, urlsSituacoes, situacoesGaleria, carregarSituacoes, abrirLightbox, situacoesParaWord };
+  window.VFNRelatorio = { estadoRelatorio, extrair, comJogo, html, word, documentoWord, nomeFicheiroWord, BUCKET_SITUACOES };
 })();

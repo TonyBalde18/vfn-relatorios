@@ -187,7 +187,7 @@
   </section>
 
   <!-- TAB 3: ANÁLISE — mesma ordem do relatório gerado:
-       Resumo Rápido · Síntese · Evolução do Jogo · Momentos e Situações · Análise Tática · Tópicos para o Treino -->
+       Resumo Rápido · Síntese · Evolução do Jogo · Análise Tática · Tópicos para o Treino (V2.0: sem Momentos e Situações) -->
   <section id="tab-analise" class="tab-panel">
     <!-- 1. Resumo rápido: resultado, marcadores e data (automático, a partir do jogo) -->
     <div id="analysisSummary" class="card analysis-summary"></div>
@@ -205,14 +205,6 @@
         <div class="field"><label for="primeiroTempoText">1.ª parte</label><textarea id="primeiroTempoText" rows="5"></textarea></div>
         <div class="field"><label for="segundoTempoText">2.ª parte</label><textarea id="segundoTempoText" rows="5"></textarea></div>
       </div>
-    </div>
-
-    <!-- 4. Momentos e situações (texto + imagens) -->
-    <div class="card">
-      <div class="section-header-row"><h2 class="section-title">Momentos e Situações</h2><label for="situacaoUpload" class="btn btn-accent btn-sm file-btn">+ Adicionar Situação</label><input type="file" id="situacaoUpload" accept="image/png,image/jpeg,image/svg+xml" multiple hidden></div>
-      <div class="field"><label for="destaquesText">Momentos de destaque</label><textarea id="destaquesText" rows="3" placeholder="Um por linha. Ex.: 23' — golo de canto ensaiado"></textarea></div>
-      <p id="situacoesErro" class="form-error" role="alert"></p>
-      <ol id="situacoesLista" class="situacoes-lista"></ol>
     </div>
 
     <!-- 5. Análise tática: os 5 momentos do jogo e o adversário -->

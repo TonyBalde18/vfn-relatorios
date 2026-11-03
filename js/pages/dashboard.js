@@ -415,7 +415,6 @@ function abrirRelatorio(id) {
   mostrarVista("relatorios");
   renderRelatoriosPublicados();
   $("relatoriosDetalhe").innerHTML = VFNRelatorio.html(relatorioAberto, ctxRelatorio());
-  VFNRelatorio.carregarSituacoes($("relatoriosDetalhe"), relatorioAberto, cliente); // imagens do bucket privado (URLs assinados)
   $("btnExportarWord").hidden = false;
   $("btnPartilharRelatorio").hidden = !(relatorioAberto.match_id || ((relatorioAberto.match_data || {}).preJogo || {}).matchId);
   if (window.innerWidth < 900) $("relatoriosDetalhe").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -431,6 +430,7 @@ async function exportarWordRelatorio() {
     await VFNRelatorio.word(relatorioAberto, {
       cliente,
       nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
+      numeroJogador: id => { const j = jogadorDoRelatorio(id); return j && j.numero !== "" ? j.numero : ""; },
       urlsLogoAdversario: [d.adversarioId ? `assets/opponents/${d.adversarioId}.png` : "", VFN.urlLogoEquipa(equipa, d.adversario)].filter(Boolean)
     });
   } catch (e) {
@@ -839,7 +839,6 @@ async function iniciar() {
     // dashboard = admin, treinador e dirigentes: o resumo inclui o relatório completo
     jogador: id => jogadorDoRelatorio(id),
     relatorioCompleto: r => VFNRelatorio.html(relatorioCompleto(r), ctxRelatorio()),
-    aposAbrir: corpo => corpo.querySelectorAll("[data-relatorio-completo]").forEach(c => { const r = dados.match_reports.find(x => String(x.id) === c.dataset.relatorioCompleto); if (r) VFNRelatorio.carregarSituacoes(c, r, cliente); }),
     nomeJogador: id => (jogadorDoRelatorio(id) || {}).nome,
     verRelatorio: id => abrirRelatorio(id)
   });
