@@ -567,6 +567,113 @@
     }
   }
 
+  /* ---------- Sugestões de jogadores conhecidos (external_players) ----------
+     Caixa que abre por baixo de um campo de nome: ao escrever mostra os jogadores da equipa certa, com a melhor
+     correspondência em 1.º (nome que começa pelo texto, depois uma palavra que começa, depois contém); setas e
+     Enter escolhem. Substitui os <datalist>, que não filtravam por equipa nem ordenavam pela correspondência. */
+
+  const semAcentos = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+  /** Jogadores ordenados pela correspondência com o texto (vazio: todos, por nome). */
+  function ordenarSugestoes(lista, texto) {
+    const q = semAcentos(texto);
+    const pontos = p => {
+      const nome = semAcentos(p.name);
+      if (!q) return 3;
+      if (nome.startsWith(q)) return 0;
+      if (nome.split(/\s+/).some(w => w.startsWith(q))) return 1;
+      if (nome.includes(q)) return 2;
+      if (String(p.id) === q || String(p.number || "") === q) return 2; // ID zerozero ou número
+      return -1;
+    };
+    return lista.map(p => ({ p, n: pontos(p) })).filter(x => x.n >= 0)
+      .sort((a, b) => a.n - b.n || String(a.p.name).localeCompare(String(b.p.name), "pt")).map(x => x.p);
+  }
+
+  // uma só caixa para a página; sug.o = as opções do campo que a abriu (cada lista tem a sua fonte e aoEscolher)
+  let caixaSugestoes = null;
+  const sug = { alvo: null, itens: [], ativo: -1, o: null };
+
+  function fecharSugestoes() {
+    if (caixaSugestoes) caixaSugestoes.hidden = true;
+    if (sug.alvo) sug.alvo.setAttribute("aria-expanded", "false");
+    Object.assign(sug, { alvo: null, itens: [], ativo: -1, o: null });
+  }
+
+  /** Marca a sugestão ativa e mantém-na visível (scroll só dentro da caixa, nunca da página). */
+  function marcarSugestao() {
+    caixaSugestoes.querySelectorAll("[data-i]").forEach(b => {
+      const sim = Number(b.dataset.i) === sug.ativo;
+      b.classList.toggle("ativo", sim);
+      b.setAttribute("aria-selected", String(sim));
+      if (sim) {
+        if (b.offsetTop < caixaSugestoes.scrollTop) caixaSugestoes.scrollTop = b.offsetTop;
+        else if (b.offsetTop + b.offsetHeight > caixaSugestoes.scrollTop + caixaSugestoes.clientHeight) caixaSugestoes.scrollTop = b.offsetTop + b.offsetHeight - caixaSugestoes.clientHeight;
+      }
+    });
+  }
+
+  /** A caixa fica por baixo do campo (fixed): acompanha-o quando a página faz scroll; fecha se o campo sair do ecrã. */
+  function posicionarSugestoes() {
+    if (!sug.alvo || !sug.alvo.isConnected) return fecharSugestoes();
+    const r = sug.alvo.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) return fecharSugestoes();
+    caixaSugestoes.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 300)) + "px";
+    caixaSugestoes.style.top = (r.bottom + 4) + "px";
+    caixaSugestoes.style.minWidth = Math.max(r.width, 240) + "px";
+  }
+
+  function escolherSugestao(i) {
+    const p = sug.itens[i], input = sug.alvo, o = sug.o;
+    if (!p || !input || !o) return;
+    fecharSugestoes();
+    o.aoEscolher(input, p);
+  }
+
+  function mostrarSugestoes(input, o) {
+    sug.alvo = input; sug.o = o;
+    sug.itens = ordenarSugestoes(o.fonte(input) || [], input.value).slice(0, 8);
+    if (!sug.itens.length) { caixaSugestoes.hidden = true; return; }
+    sug.ativo = input.value.trim() ? 0 : -1; // a escrever: a 1.ª sugestão fica pronta para o Enter
+    caixaSugestoes.innerHTML = sug.itens.map((p, i) => `<button type="button" class="sugestao-jogador" role="option" data-i="${i}" aria-selected="false" tabindex="-1"><strong>${esc(p.name)}</strong><small>${[p.number != null && p.number !== "" ? "#" + esc(p.number) : "", p.position ? esc(p.position) : "", p.team_name ? esc(p.team_name) : "", "ID " + esc(p.id)].filter(Boolean).join(" · ")}</small></button>`).join("");
+    posicionarSugestoes();
+    caixaSugestoes.scrollTop = 0;
+    caixaSugestoes.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    marcarSugestao();
+  }
+
+  /**
+   * Liga as sugestões aos campos de nome dentro de contentor (delegação: serve para linhas criadas depois).
+   * o: { seletor (dos campos de nome), fonte(input) → jogadores conhecidos possíveis para esse campo (ex.: só os
+   * da equipa escolhida nessa linha), aoEscolher(input, jogador) }
+   */
+  function ligarSugestoesJogador(contentor, o) {
+    if (!contentor) return;
+    if (!caixaSugestoes) {
+      caixaSugestoes = document.createElement("div");
+      caixaSugestoes.className = "sugestoes-jogador";
+      caixaSugestoes.setAttribute("role", "listbox");
+      caixaSugestoes.hidden = true;
+      document.body.appendChild(caixaSugestoes);
+      // mousedown: escolhe antes de o campo perder o foco
+      caixaSugestoes.addEventListener("mousedown", e => { const b = e.target.closest("[data-i]"); if (b) { e.preventDefault(); escolherSugestao(Number(b.dataset.i)); } });
+      // a página (ou um contentor) fez scroll: a caixa acompanha o campo
+      window.addEventListener("scroll", e => { if (!caixaSugestoes.hidden && e.target !== caixaSugestoes) posicionarSugestoes(); }, true);
+      window.addEventListener("resize", () => { if (!caixaSugestoes.hidden) posicionarSugestoes(); });
+    }
+    contentor.addEventListener("focusin", e => { const i = e.target.closest(o.seletor); if (i) { i.setAttribute("autocomplete", "off"); mostrarSugestoes(i, o); } });
+    contentor.addEventListener("input", e => { const i = e.target.closest(o.seletor); if (i) mostrarSugestoes(i, o); });
+    contentor.addEventListener("keydown", e => {
+      const i = e.target.closest(o.seletor);
+      if (!i || caixaSugestoes.hidden || sug.alvo !== i) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sug.ativo = (sug.ativo + (e.key === "ArrowDown" ? 1 : -1) + sug.itens.length) % sug.itens.length; marcarSugestao(); }
+      else if (e.key === "Enter" && sug.ativo >= 0) { e.preventDefault(); escolherSugestao(sug.ativo); }
+      else if (e.key === "Escape") fecharSugestoes();
+    });
+    contentor.addEventListener("focusout", e => { if (e.target === sug.alvo) setTimeout(() => { if (sug.alvo === e.target && document.activeElement !== e.target) fecharSugestoes(); }, 150); });
+  }
+
   /* ---------- Convocatória (tabela squads) ----------
      Dois momentos (squad_status): 'lista' — só os convocados (publicada logo, com anúncio);
      'completa' — onze inicial, suplentes, formação, capitão e concentração (até ~1h antes). */
@@ -1811,6 +1918,6 @@
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
     ligarSegmentos, ligarPuxarParaAtualizar, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
-    eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, criarCalendarioSemanas, ligarAlternanciaCalendario
+    eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, criarCalendarioSemanas, ligarAlternanciaCalendario, ligarSugestoesJogador
   };
 })();

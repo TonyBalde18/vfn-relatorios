@@ -389,3 +389,21 @@ html.tema-escuro .historico-tabela .icon-btn.danger { color: #F87171; }
 
 /* Página pública: botão Entrar na barra de cima */
 .vfn-entrar { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+
+/* =========================================================
+   JOGADORES CONHECIDOS (V2.0): sugestões ao escrever e jogadores-chave
+   ========================================================= */
+.sugestoes-jogador { position: fixed; z-index: 1200; max-width: min(360px, calc(100vw - 16px)); max-height: 280px; padding: 4px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); box-shadow: 0 12px 30px rgba(10, 22, 40, .25); }
+.sugestoes-jogador[hidden] { display: none; }
+.sugestao-jogador { display: block; width: 100%; padding: 7px 9px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sugestao-jogador strong { display: block; font-size: .86rem; }
+.sugestao-jogador small { display: block; color: var(--text-muted); font-size: .72rem; }
+.sugestao-jogador:hover, .sugestao-jogador.ativo { background: var(--surface-2); }
+/* linha: nome · nº · posição · ID zerozero · descrição */
+.dynamic-row.jogador-chave { flex-wrap: wrap; }
+.dynamic-row.jogador-chave input.nome-jc { flex: 1 1 160px; }
+.dynamic-row.jogador-chave input.numero-jc { flex: 0 0 64px; }
+.dynamic-row.jogador-chave select.posicao-jc { flex: 0 0 96px; }
+.dynamic-row.jogador-chave input.id-jc { flex: 0 0 120px; }
+.dynamic-row.jogador-chave textarea.desc-jc { flex: 1 1 100%; order: 5; }
+.dynamic-row.jogador-chave .remove-btn { order: 4; }

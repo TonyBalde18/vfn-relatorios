@@ -1660,7 +1660,13 @@ function initAnalise() {
     });
   });
 
-  el("btnAddJogadorChave").addEventListener("click", () => { state.analise.adversario.jogadoresChave.push({ nome: "", posicao: "", descricao: "" }); renderJogadoresChave(); });
+  el("btnAddJogadorChave").addEventListener("click", () => {
+    state.analise.adversario.jogadoresChave.push({ nome: "", numero: "", posicao: "", idZerozero: "", descricao: "" });
+    renderJogadoresChave();
+    const linhas = el("jogadoresChaveList").querySelectorAll(".jogador-chave");
+    if (linhas.length) linhas[linhas.length - 1].querySelector("[data-jc=nome]").focus();
+  });
+  ligarJogadoresChave();
   el("sinteseText").addEventListener("input", e => state.analise.sintese = e.target.value);
   el("topicosText").addEventListener("input", e => state.analise.topicosTreino = e.target.value);
   el("primeiroTempoText").addEventListener("input", e => state.analise.primeiroTempo = e.target.value);
@@ -1693,48 +1699,66 @@ function renderBulletList(containerId, arr) {
   });
 }
 
+/* Jogadores-chave do adversário (V2.0): Nome · Nº · Posição · ID zerozero. O ID é só a referência ao jogador
+   conhecido (external_players) e nunca aparece no relatório. Ao escrever o nome, sugere os jogadores conhecidos
+   do adversário do jogo; com nome e ID, o jogador fica (ou é atualizado) nos jogadores conhecidos. */
+const POSICOES_JOGADOR = ["GR", "DD", "DC", "DE", "MDC", "MC", "MOC", "ED", "EE", "PL"];
+
 function renderJogadoresChave() {
-  const container = el("jogadoresChaveList");
-  container.innerHTML = "";
-  state.analise.adversario.jogadoresChave.forEach((jc, idx) => {
-    const row = document.createElement("div");
-    row.className = "dynamic-row jogador-chave";
+  const opcoesPosicao = atual => '<option value="">Posição</option>' + POSICOES_JOGADOR.map(p => `<option value="${p}" ${p === atual ? "selected" : ""}>${p}</option>`).join("")
+    + (atual && !POSICOES_JOGADOR.includes(atual) ? `<option value="${escapeHtml(atual)}" selected>${escapeHtml(atual)}</option>` : ""); // relatórios antigos: texto livre
+  el("jogadoresChaveList").innerHTML = state.analise.adversario.jogadoresChave.map((jc, idx) => `
+    <div class="dynamic-row jogador-chave" data-i="${idx}">
+      <input type="text" class="nome-jc" data-jc="nome" placeholder="Nome" value="${escapeHtml(jc.nome || "")}" aria-label="Nome do jogador-chave">
+      <input type="number" class="numero-jc" data-jc="numero" min="1" max="99" placeholder="Nº" value="${escapeHtml(jc.numero ?? "")}" aria-label="Número">
+      <select class="posicao-jc" data-jc="posicao" aria-label="Posição">${opcoesPosicao(jc.posicao || "")}</select>
+      <input type="text" class="id-jc" data-jc="idZerozero" inputmode="numeric" placeholder="ID zerozero" value="${escapeHtml(jc.idZerozero || "")}" aria-label="ID zerozero (referência, não aparece no relatório)" title="Referência ao jogador conhecido — não aparece no relatório">
+      <textarea class="desc-jc" data-jc="descricao" rows="2" placeholder="Descrição / observação (o que se destaca)" aria-label="Descrição">${escapeHtml(jc.descricao || "")}</textarea>
+      <button type="button" class="remove-btn" data-remover-jc="${idx}" aria-label="Remover">${VFN.icone("x", 16)}</button>
+    </div>`).join("");
+}
 
-    const inputNome = document.createElement("input");
-    inputNome.type = "text";
-    inputNome.className = "nome-jc";
-    inputNome.placeholder = "Nome";
-    inputNome.value = jc.nome;
-    inputNome.addEventListener("input", () => { jc.nome = inputNome.value; });
+/** Jogadores conhecidos do adversário do relatório (Pré-Jogo). */
+const conhecidosDoAdversario = () => state.preJogo.adversarioId && typeof jogadoresExternos !== "undefined"
+  ? jogadoresExternos.filter(p => String(p.team_id) === String(state.preJogo.adversarioId)) : [];
 
-    const inputPosicao = document.createElement("input");
-    inputPosicao.type = "text";
-    inputPosicao.className = "posicao-jc";
-    inputPosicao.placeholder = "Posição";
-    inputPosicao.value = jc.posicao || "";
-    inputPosicao.addEventListener("input", () => { jc.posicao = inputPosicao.value; });
-
-    const textareaDesc = document.createElement("textarea");
-    textareaDesc.className = "desc-jc";
-    textareaDesc.rows = 2;
-    textareaDesc.placeholder = "Descrição / observação (o que se destaca)";
-    textareaDesc.value = jc.descricao || "";
-    textareaDesc.addEventListener("input", () => { jc.descricao = textareaDesc.value; });
-
-    const btnRemover = document.createElement("button");
-    btnRemover.className = "remove-btn";
-    btnRemover.innerHTML = VFN.icone("x", 16); btnRemover.setAttribute("aria-label", "Remover");
-    btnRemover.addEventListener("click", () => {
-      state.analise.adversario.jogadoresChave.splice(idx, 1);
-      renderJogadoresChave();
-    });
-
-    row.appendChild(inputNome);
-    row.appendChild(inputPosicao);
-    row.appendChild(textareaDesc);
-    row.appendChild(btnRemover);
-    container.appendChild(row);
+function ligarJogadoresChave() {
+  const lista = el("jogadoresChaveList");
+  const jcDe = alvo => state.analise.adversario.jogadoresChave[Number(alvo.closest(".jogador-chave").dataset.i)];
+  lista.addEventListener("input", e => {
+    const campo = e.target.dataset.jc;
+    if (campo) jcDe(e.target)[campo] = e.target.value;
   });
+  lista.addEventListener("change", e => {
+    const campo = e.target.dataset.jc;
+    if (!campo) return;
+    const jc = jcDe(e.target);
+    jc[campo] = e.target.value.trim();
+    // ID de um jogador conhecido: completa o resto
+    if (campo === "idZerozero" && jc.idZerozero && typeof jogadoresExternos !== "undefined") {
+      const p = jogadoresExternos.find(x => String(x.id) === jc.idZerozero);
+      if (p) { preencherJogadorChave(jc, p); renderJogadoresChave(); }
+    }
+    if (typeof guardarJogadorConhecido === "function") guardarJogadorConhecido(jc);
+  });
+  lista.addEventListener("click", e => {
+    const b = e.target.closest("[data-remover-jc]");
+    if (!b) return;
+    state.analise.adversario.jogadoresChave.splice(Number(b.dataset.removerJc), 1);
+    renderJogadoresChave();
+  });
+  VFNComp.ligarSugestoesJogador(lista, {
+    seletor: "[data-jc=nome]",
+    fonte: () => conhecidosDoAdversario(),
+    aoEscolher: (input, p) => { const jc = jcDe(input); preencherJogadorChave(jc, p); renderJogadoresChave(); }
+  });
+}
+
+function preencherJogadorChave(jc, p) {
+  jc.nome = p.name;
+  jc.idZerozero = String(p.id);
+  if (p.number != null && p.number !== "") jc.numero = String(p.number);
+  if (p.position) jc.posicao = p.position;
 }
 
 function renderTopicos() {

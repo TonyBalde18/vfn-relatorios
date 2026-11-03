@@ -1246,18 +1246,10 @@ function renderMarcadoresJogo() {
     </div>`).join("");
 }
 
-/** Jogadores conhecidos do adversário escolhido (sugestões do nome). */
-function renderListaJogadoresAdvJogo() {
-  const idAdv = el("jogoAdversarioEquipa").value;
-  el("listaJogadoresAdvJogo").innerHTML = jogadoresExternos.filter(p => idAdv && String(p.team_id) === String(idAdv))
-    .map(p => `<option value="${escapeHtml(p.name)}" label="ID ${escapeHtml(p.id)}"></option>`).join("");
-}
-
 function renderMarcadoresAdvJogo() {
-  renderListaJogadoresAdvJogo();
   el("jogoMarcadoresAdvLista").innerHTML = marcadoresAdvJogo.map((m, i) => `
     <div class="marcador-jogo marcador-adv" data-i="${i}">
-      <input type="text" data-campo="player_name" list="listaJogadoresAdvJogo" value="${escapeHtml(m.player_name || "")}" placeholder="Nome do jogador" aria-label="Marcador do adversário">
+      <input type="text" data-campo="player_name" value="${escapeHtml(m.player_name || "")}" placeholder="Nome do jogador" aria-label="Marcador do adversário">
       <input type="text" data-campo="player_id" inputmode="numeric" value="${escapeHtml(m.player_id || "")}" placeholder="ID Zerozero" aria-label="ID Zerozero do marcador">
       <input type="number" data-campo="minute" min="1" max="130" value="${m.minute != null ? Number(m.minute) : ""}" placeholder="Min." aria-label="Minuto">
       <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover golo" aria-label="Remover golo">${VFN.icone("x", 14)}</button>
@@ -1271,7 +1263,17 @@ function initMarcadoresJogo() {
     const linhas = el("jogoMarcadoresAdvLista").querySelectorAll(".marcador-jogo");
     linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
   });
-  el("jogoAdversarioEquipa").addEventListener("change", renderListaJogadoresAdvJogo);
+  // V2.0: sugestões do nome só com os jogadores conhecidos do adversário escolhido
+  VFNComp.ligarSugestoesJogador(el("jogoMarcadoresAdvLista"), {
+    seletor: '[data-campo="player_name"]',
+    fonte: () => conhecidosDaEquipa(equipaPorId(el("jogoAdversarioEquipa").value)),
+    aoEscolher: (input, p) => {
+      const m = marcadoresAdvJogo[Number(input.closest(".marcador-jogo").dataset.i)];
+      if (!m) return;
+      m.player_name = p.name; m.player_id = String(p.id);
+      renderMarcadoresAdvJogo();
+    }
+  });
   el("jogoMarcadoresAdvLista").addEventListener("click", e => { const b = e.target.closest("[data-remover]"); if (b) { marcadoresAdvJogo.splice(Number(b.dataset.remover), 1); renderMarcadoresAdvJogo(); } });
   el("jogoMarcadoresAdvLista").addEventListener("change", e => {
     const linha = e.target.closest(".marcador-jogo");
@@ -1923,20 +1925,55 @@ function equipaDoLado(lado) {
 
 function renderMarcadoresForm() {
   const casa = equipaDoLado("casa"), fora = equipaDoLado("fora");
-  const ids = new Set([casa && String(casa.id), fora && String(fora.id)].filter(Boolean));
-  el("listaJogadoresExternos").innerHTML = jogadoresExternos.filter(p => !ids.size || ids.has(String(p.team_id)))
-    .map(p => `<option value="${escapeHtml(p.name)}" label="${escapeHtml(p.team_name || "")} · ID ${escapeHtml(p.id)}"></option>`).join("");
   el("jornadaMarcadoresLista").innerHTML = marcadoresForm.map((m, i) => `
     <div class="marcador-linha" data-i="${i}">
       <select data-campo="lado" aria-label="Equipa do marcador"><option value="casa" ${m.lado === "casa" ? "selected" : ""}>${escapeHtml(casa ? casa.name : "Casa")}</option><option value="fora" ${m.lado === "fora" ? "selected" : ""}>${escapeHtml(fora ? fora.name : "Fora")}</option></select>
-      <input type="text" data-campo="player_name" list="listaJogadoresExternos" placeholder="Nome do jogador" value="${escapeHtml(m.player_name || "")}" aria-label="Nome do marcador">
+      <input type="text" data-campo="player_name" placeholder="Nome do jogador" value="${escapeHtml(m.player_name || "")}" aria-label="Nome do marcador">
       <input type="text" data-campo="player_id" inputmode="numeric" placeholder="ID Zerozero" value="${escapeHtml(m.player_id || "")}" aria-label="ID Zerozero do marcador">
       <input type="number" data-campo="count" min="1" value="${Number(m.count) || 1}" aria-label="Golos">
       <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover marcador" aria-label="Remover marcador">${VFN.icone("x", 14)}</button>
     </div>`).join("");
 }
 
+/**
+ * V2.0: grava (ou atualiza) um jogador-chave do relatório nos jogadores conhecidos do adversário do jogo.
+ * Só com nome, ID zerozero (algarismos) e adversário escolhido. Sem a coluna position (SQL v30) grava sem ela.
+ */
+async function guardarJogadorConhecido(jc) {
+  const id = String(jc.idZerozero || "").trim(), nome = String(jc.nome || "").trim();
+  const equipa = equipaPorId(state.preJogo.adversarioId);
+  if (!id || !nome || !/^\d+$/.test(id) || !equipa || !dadosClube.usaSupabase()) return;
+  const existente = jogadoresExternos.find(p => String(p.id) === id);
+  const linha = { ...(existente || {}), id, name: nome, team_id: equipa.id, team_name: equipa.name,
+    number: jc.numero !== "" && jc.numero != null ? Number(jc.numero) || null : (existente && existente.number) || null,
+    position: jc.posicao || (existente && existente.position) || null };
+  if (existente && ["name", "team_id", "number", "position"].every(k => String(existente[k] ?? "") === String(linha[k] ?? ""))) return;
+  try {
+    let gravado;
+    try { gravado = await dadosClube.guardar("external_players", linha); } catch (e) {
+      if (!/position/i.test(e.message || "")) throw e;
+      delete linha.position; // antes da v30
+      gravado = await dadosClube.guardar("external_players", linha);
+    }
+    jogadoresExternos = jogadoresExternos.filter(p => String(p.id) !== id).concat(gravado);
+  } catch (e) { console.warn("Jogador conhecido não gravado:", e); }
+}
+
+/** Jogadores conhecidos de uma equipa (sugestões do nome). */
+const conhecidosDaEquipa = equipa => equipa ? jogadoresExternos.filter(p => String(p.team_id) === String(equipa.id)) : [];
+
 function initMarcadoresForm() {
+  // V2.0: as sugestões do nome são só da equipa escolhida na própria linha (casa ou fora)
+  VFNComp.ligarSugestoesJogador(el("jornadaMarcadoresLista"), {
+    seletor: '[data-campo="player_name"]',
+    fonte: input => { const m = marcadoresForm[Number(input.closest(".marcador-linha").dataset.i)]; return m ? conhecidosDaEquipa(equipaDoLado(m.lado)) : []; },
+    aoEscolher: (input, p) => {
+      const m = marcadoresForm[Number(input.closest(".marcador-linha").dataset.i)];
+      if (!m) return;
+      m.player_name = p.name; m.player_id = String(p.id);
+      renderMarcadoresForm();
+    }
+  });
   el("btnAddMarcador").addEventListener("click", () => {
     marcadoresForm.push({ lado: "casa", player_id: "", player_name: "", count: 1 });
     renderMarcadoresForm();

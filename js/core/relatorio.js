@@ -148,6 +148,8 @@
     return [["Estilo de Jogo", a.estilo], ["Pontos Fortes", a.pontosFortes], ["Vulnerabilidades", a.vulnerabilidades]].filter(([, v]) => v);
   };
   const jogadoresChave = d => ((d.adversarioAnalise || {}).jogadoresChave || []).filter(j => j && j.nome);
+  /** "#9 Rui (PL) — descrição": o ID zerozero (idZerozero) fica só como referência, nunca no relatório. */
+  const textoJogadorChave = j => `${j.numero ? "#" + j.numero + " " : ""}${j.nome}${j.posicao ? ` (${j.posicao})` : ""}${j.descricao ? " — " + j.descricao : ""}`;
   const temAdversario = d => camposAdversario(d).length > 0 || jogadoresChave(d).length > 0 || !!d.notasPreviasAdversario;
 
   function adversarioHTML(d) {
@@ -155,7 +157,7 @@
     const chave = jogadoresChave(d);
     return `<div class="rel-seccao rel-adversario"><h5>Adversário — ${esc(d.adversario)}</h5>
       ${camposAdversario(d).map(([t, v]) => `<p><strong>${esc(t)}:</strong> ${esc(v)}</p>`).join("")}
-      ${chave.length ? `<p><strong>Jogadores-chave:</strong> ${chave.map(j => esc(j.nome + (j.posicao ? ` (${j.posicao})` : "") + (j.descricao ? " — " + j.descricao : ""))).join("; ")}</p>` : ""}
+      ${chave.length ? `<p><strong>Jogadores-chave:</strong> ${chave.map(j => esc(textoJogadorChave(j))).join("; ")}</p>` : ""}
       ${d.notasPreviasAdversario ? `<p><strong>Notas prévias:</strong> ${esc(d.notasPreviasAdversario)}</p>` : ""}</div>`;
   }
 
@@ -225,7 +227,7 @@
         corpo.push(subtitulo(`Adversário — ${d.adversario}`));
         camposAdversario(d).forEach(([t, v]) => corpo.push(linha(t, v)));
         const chave = jogadoresChave(d);
-        if (chave.length) corpo.push(linha("Jogadores-chave", chave.map(j => j.nome + (j.posicao ? ` (${j.posicao})` : "") + (j.descricao ? " — " + j.descricao : "")).join("; ")));
+        if (chave.length) corpo.push(linha("Jogadores-chave", chave.map(textoJogadorChave).join("; ")));
         if (d.notasPreviasAdversario) corpo.push(linha("Notas prévias", d.notasPreviasAdversario));
       }
     }

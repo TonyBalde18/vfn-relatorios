@@ -23,6 +23,7 @@ Tudo corre à mão no **SQL Editor do Supabase**. A app nunca altera o schema. O
 | 15 | `migrations/v27_relatorios_duplicados.sql` | Mostra os relatórios repetidos do mesmo jogo; apagá-los e o índice único são opcionais (comentados). | por correr (diagnóstico) |
 | 16 | `migrations/v28_ficha_publicada.sql` | Estado `ficha_publicada` nos relatórios (regra do status, leitura para staff/jogadores e view `onze_jogos`). | aplicado (políticas verificadas pela v29, 25/10/2026) |
 | 17 | `migrations/v29_diagnostico_dirigente.sql` | **Só leitura**: papéis em `profiles`, a `vfn_is_staff()` e as políticas que estão no Supabase, e simulação da sessão do dirigente (com `rollback`). | corrido 25/10/2026: permissões certas (o dirigente lê tudo); a causa era a sessão perdida no browser |
+| 18 | `migrations/v30_jogadores_conhecidos_posicao.sql` | `external_players.number` e `position`: os jogadores-chave do relatório ficam nos jogadores conhecidos com nº e posição. Sem ela a app grava sem a posição. | por correr |
 
 ## Convenções
 
