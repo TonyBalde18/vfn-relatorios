@@ -573,12 +573,21 @@ function initConvocatoria() {
   el("btnConvAnuncio2").addEventListener("click", () => exportarAnuncioAdmin("9x16"));
 }
 
-/** Jogos do VFN a partir de ontem (os próximos primeiro) e os já com convocatória. */
+/** Dias para trás em que um jogo já disputado ainda aparece para registar a convocatória depois do jogo. */
+const DIAS_CONVOCATORIA_ATRASADA = 30;
+
+/**
+ * Jogos do VFN a partir de ontem (os próximos primeiro), os já com convocatória e os dos últimos 30 dias ainda
+ * sem convocatória (para a registar depois do jogo, ex.: o Palmares da J6 a 1/11).
+ */
 function jogosParaConvocatoria() {
   const limite = Date.now() - 24 * 3600 * 1000;
+  const atrasada = Date.now() - DIAS_CONVOCATORIA_ATRASADA * 24 * 3600 * 1000;
   return VFN.jogosDoVFN(jogosCalendario)
-    .filter(j => VFN.estadoJogo(j) !== "cancelado" && ((VFN.paraData(j.date) || 0) >= limite || VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id)))
-    .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0));
+    .filter(j => VFN.estadoJogo(j) !== "cancelado" && ((VFN.paraData(j.date) || 0) >= atrasada || VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id)))
+    .sort((a, b) => (VFN.paraData(a.date) || 0) - (VFN.paraData(b.date) || 0))
+    // os próximos primeiro; os já passados (a registar depois do jogo) no fim, do mais recente para o mais antigo
+    .sort((a, b) => ((VFN.paraData(a.date) || 0) < limite) - ((VFN.paraData(b.date) || 0) < limite) || ((VFN.paraData(a.date) || 0) < limite ? (VFN.paraData(b.date) || 0) - (VFN.paraData(a.date) || 0) : 0));
 }
 
 /** Local de concentração por omissão: o estádio do jogo (o campo do jogo ou o da equipa da casa). */
@@ -720,7 +729,7 @@ function renderConvocatoria() {
     if (inicial) { carregarConvocatoria(inicial); return; }
   }
   const sel = el("convJogo");
-  sel.innerHTML = jogos.length ? jogos.map(j => `<option value="${escapeHtml(j.id)}">${escapeHtml(`${VFN.dataCurta(j.date)} · ${nomeAdversarioJogo(j)} (${VFN.jogoEmCasa(j) ? "C" : "F"}) · ${VFN.nomeCurtoCompeticao(j.competition)}`)}${VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id) ? " ✓" : ""}</option>`).join("") : '<option value="">Sem jogos agendados</option>';
+  sel.innerHTML = jogos.length ? jogos.map(j => `<option value="${escapeHtml(j.id)}">${escapeHtml(`${VFN.dataCurta(j.date)} · ${nomeAdversarioJogo(j)} (${VFN.jogoEmCasa(j) ? "C" : "F"}) · ${VFN.nomeCurtoCompeticao(j.competition)}`)}${VFNComp.convocatoriaDoJogo(cacheAdmin.squads, j.id) ? " ✓" : ""}${(VFN.paraData(j.date) || 0) < Date.now() - 24 * 3600 * 1000 ? " (já jogado)" : ""}</option>`).join("") : '<option value="">Sem jogos agendados</option>';
   sel.value = conv.matchId;
 
   const fase2 = conv.modo === "completa";
