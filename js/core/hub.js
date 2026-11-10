@@ -247,7 +247,7 @@
    */
   function golosExternos(dados, competicao) {
     const daComp = x => !competicao || x.competition === competicao;
-    const liga = (dados.league_results || []).filter(r => daComp(r) && Array.isArray(r.scorer_list)).flatMap(r => r.scorer_list);
+    const liga = (dados.league_results || []).filter(r => daComp(r) && Array.isArray(r.scorer_list)).flatMap(r => r.scorer_list.filter(s => !s.own_goal)); // autogolos não contam
     const contraVFN = VFN.jogosDoVFN(dados.matches).filter(j => daComp(j) && VFN.estadoJogo(j) !== "cancelado" && Array.isArray(j.scorer_list))
       .flatMap(j => j.scorer_list.filter(VFN.eGoloAdversario).map(s => ({ ...s, team_id: s.team_id || j.opponent_team_id || "" })));
     return [...liga, ...contraVFN];
@@ -1294,7 +1294,18 @@
     const taca = VFN.eliminatorias(competicao);
     const numero = (phase, jornada) => taca ? VFN.numeroFase(VFN.faseDoJogo(phase, jornada)) : Number(jornada) || 0;
     // marcadores separados por equipa: [{ nome, golos }] da casa e de fora
-    const doLado = (lista, teamId) => (Array.isArray(lista) ? lista : []).filter(s => String(s.team_id) === String(teamId)).map(s => ({ nome: s.player_name || "?", golos: Number(s.count) || 1 }));
+    // V2.0: um golo por entrada, com minuto e autogolo (own_goal): junta o mesmo jogador numa linha
+    const doLado = (lista, teamId) => {
+      const porJogador = new Map();
+      (Array.isArray(lista) ? lista : []).filter(s => String(s.team_id) === String(teamId)).forEach(s => {
+        const chave = `${s.player_id || s.player_name}|${s.own_goal ? "pb" : ""}`;
+        const g = porJogador.get(chave) || { nome: (s.player_name || "?") + (s.own_goal ? " (p.b.)" : ""), golos: 0, minutos: [] };
+        g.golos += Number(s.count) || 1;
+        if (s.minute != null) g.minutos.push(Number(s.minute));
+        porJogador.set(chave, g);
+      });
+      return [...porJogador.values()];
+    };
     const liga = (dados.league_results || []).filter(r => r.competition === competicao).map(r => {
       const { casa, fora } = VFN.equipasDoResultadoLiga(r, dados.teams);
       return { origem: "liga", id: r.id, jornada: numero(r.phase, r.jornada), fase: VFN.faseDoJogo(r.phase, r.jornada), vencedor: r.winner_id ? String(r.winner_id) : "", casa, fora, gc: r.score_home, gf: r.score_away, golosCasa: doLado(r.scorer_list, casa.id), golosFora: doLado(r.scorer_list, fora.id), notas: r.scorers || "", data: r.match_date || null, registo: r };
@@ -1351,7 +1362,7 @@
             <button type="button" class="jj-centro" data-jogo="${j.origem === "vfn" ? "vfn" : "liga"}:${esc(j.id)}" title="Ver detalhe do jogo"><span class="jj-resultado${temRes ? "" : " por-jogar"}">${resultado}</span>${data ? `<small class="jj-data">${data}</small>` : ""}</button>
             ${lado(j.fora, "jj-fora")}
             <span class="jj-acoes">${acoes}</span>
-            ${j.golosCasa.length || j.golosFora.length ? `<div class="jj-golos">${[j.golosCasa, j.golosFora].map((lista, i) => `<ul class="${i ? "jj-golos-fora" : "jj-golos-casa"}">${lista.map(g => `<li>${VFN.icone("bola", 12)} ${esc(g.nome)}${g.golos > 1 ? ` <b>×${g.golos}</b>` : ""}</li>`).join("")}</ul>`).join("")}</div>` : ""}
+            ${j.golosCasa.length || j.golosFora.length ? `<div class="jj-golos">${[j.golosCasa, j.golosFora].map((lista, i) => `<ul class="${i ? "jj-golos-fora" : "jj-golos-casa"}">${lista.map(g => `<li>${VFN.icone("bola", 12)} ${esc(g.nome)}${g.minutos && g.minutos.length ? ` <small>${g.minutos.sort((a, b) => a - b).map(m => m + "'").join(", ")}</small>` : ""}${g.golos > 1 && !(g.minutos && g.minutos.length === g.golos) ? ` <b>×${g.golos}</b>` : ""}</li>`).join("")}</ul>`).join("")}</div>` : ""}
             ${j.notas ? `<p class="jj-marcadores">${esc(j.notas)}</p>` : ""}
           </div>`;
         }).join("")}
@@ -1542,7 +1553,7 @@
       const est = VFN.estadioDaEquipa(equipa(dados, r.home_team_id));
       local = est.nome; relvado = est.relvado;
       estado = gc != null && gf != null ? "jogado" : "agendado";
-      eventos = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ minuto: null, tipo: "Golo", texto: `${s.player_name}${Number(s.count) > 1 ? " ×" + s.count : ""}`, lado: String(s.team_id) === String(fora.id) ? "fora" : "casa" }));
+      eventos = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ minuto: s.minute != null ? Number(s.minute) : null, tipo: "Golo", texto: `${s.player_name}${s.own_goal ? " (p.b.)" : ""}${Number(s.count) > 1 ? " ×" + s.count : ""}`, lado: String(s.team_id) === String(fora.id) ? "fora" : "casa" }));
       if (r.scorers) eventos.push({ minuto: null, tipo: "Nota", texto: r.scorers, lado: "centro" });
     }
     const temRes = gc != null && gf != null && gc !== "" && gf !== "";

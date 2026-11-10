@@ -1837,7 +1837,8 @@ function editarResultadoLiga(r) {
   el("jornadaVencedor").value = "";
   renderVencedorForm();
   el("jornadaVencedor").value = r.winner_id || el("jornadaVencedor").value;
-  marcadoresForm = (Array.isArray(r.scorer_list) ? r.scorer_list : []).map(s => ({ lado: String(s.team_id) === String(r.away_team_id) ? "fora" : "casa", player_id: s.player_id || "", player_name: s.player_name || "", count: s.count || 1 }));
+  marcadoresForm = (Array.isArray(r.scorer_list) ? r.scorer_list : []).flatMap(s => Array.from({ length: s.minute != null ? 1 : Math.max(1, Number(s.count) || 1) }, () =>
+    ({ lado: String(s.team_id) === String(r.away_team_id) ? "fora" : "casa", player_id: s.player_id || "", player_name: s.player_name || "", minute: s.minute != null ? Number(s.minute) : null, pb: !!s.own_goal })));
   renderMarcadoresForm();
   el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
   el("btnCancelarResultadoLiga").hidden = false;
@@ -1912,7 +1913,8 @@ async function apagarResultadoLiga(r) {
 /* ---- Marcadores estruturados (league_results.scorer_list + external_players) ---- */
 
 let jogadoresExternos = [];
-let marcadoresForm = []; // [{ lado: "casa"|"fora", player_id, player_name, count }]
+// um golo por linha: lado = a equipa que marcou (a coluna); pb = autogolo (o jogador é da outra equipa)
+let marcadoresForm = []; // [{ lado: "casa"|"fora", player_id, player_name, minute, pb }]
 
 async function carregarJogadoresExternos() {
   try { jogadoresExternos = await dadosClube.listar("external_players"); }
@@ -1923,19 +1925,43 @@ function equipaDoLado(lado) {
   return equipaPorId(el(lado === "fora" ? "jornadaFora" : "jornadaCasa").value);
 }
 
+/** Equipa a que pertence o jogador de uma linha: a da coluna; num autogolo, a outra. */
+const equipaDoJogadorLinha = m => equipaDoLado(m.pb ? (m.lado === "casa" ? "fora" : "casa") : m.lado);
+
 function renderMarcadoresForm() {
-  const casa = equipaDoLado("casa"), fora = equipaDoLado("fora");
-  el("jornadaMarcadoresLista").innerHTML = marcadoresForm.map((m, i) => `
-    <div class="marcador-linha" data-i="${i}">
-      <select data-campo="lado" aria-label="Equipa do marcador"><option value="casa" ${m.lado === "casa" ? "selected" : ""}>${escapeHtml(casa ? casa.name : "Casa")}</option><option value="fora" ${m.lado === "fora" ? "selected" : ""}>${escapeHtml(fora ? fora.name : "Fora")}</option></select>
-      <input type="text" data-campo="player_name" placeholder="Nome do jogador" value="${escapeHtml(m.player_name || "")}" aria-label="Nome do marcador">
-      <input type="text" data-campo="player_id" inputmode="numeric" placeholder="ID Zerozero" value="${escapeHtml(m.player_id || "")}" aria-label="ID Zerozero do marcador">
-      <input type="number" data-campo="count" min="1" value="${Number(m.count) || 1}" aria-label="Golos">
-      <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover marcador" aria-label="Remover marcador">${VFN.icone("x", 14)}</button>
-    </div>`).join("");
+  const golosEscritos = lado => el(lado === "casa" ? "jornadaGolosCasa" : "jornadaGolosFora").value;
+  el("jornadaMarcadoresLista").innerHTML = ["casa", "fora"].map(lado => {
+    const equipa = equipaDoLado(lado);
+    const linhas = marcadoresForm.map((m, i) => ({ m, i })).filter(x => x.m.lado === lado);
+    const total = golosEscritos(lado);
+    const conta = total !== "" ? `<small class="jf-golos-conta${linhas.length === Number(total) ? " ok" : ""}">${linhas.length} de ${total}</small>` : "";
+    return `<section class="jf-golos-col" data-lado="${lado}">
+      <div class="jf-golos-cab"><strong>Golos ${escapeHtml(equipa ? equipa.name : lado === "casa" ? "da casa" : "de fora")}</strong>${conta}<button type="button" class="btn btn-ghost btn-sm" data-add-golo="${lado}">+ Golo</button></div>
+      ${linhas.map(({ m, i }) => `<div class="marcador-linha" data-i="${i}">
+        <input type="text" data-campo="player_name" placeholder="${m.pb ? "Jogador (da outra equipa)" : "Nome do jogador"}" value="${escapeHtml(m.player_name || "")}" aria-label="Marcador">
+        <input type="text" data-campo="player_id" inputmode="numeric" placeholder="ID" value="${escapeHtml(m.player_id || "")}" aria-label="ID Zerozero">
+        <input type="number" data-campo="minute" min="1" max="130" placeholder="Min." value="${m.minute != null ? Number(m.minute) : ""}" aria-label="Minuto">
+        <label class="jf-pb" title="Autogolo: o jogador é da outra equipa"><input type="checkbox" data-campo="pb" ${m.pb ? "checked" : ""}> p.b.</label>
+        <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover golo" aria-label="Remover golo">${VFN.icone("x", 14)}</button>
+      </div>`).join("") || '<p class="muted jf-golos-vazio">Sem golos lançados.</p>'}
+    </section>`;
+  }).join("");
 }
 
 /**
+ * Mudou a equipa da casa ou de fora: as linhas com um jogador conhecido de outra equipa ficam vazias
+ * (ex.: Paços da Serra → Vasco Catarinha; mudar a casa para Vila Verde tira o Vasco).
+ */
+function limparMarcadoresDeOutraEquipa() {
+  marcadoresForm.forEach(m => {
+    const conhecido = m.player_id && jogadoresExternos.find(p => String(p.id) === String(m.player_id));
+    const equipa = equipaDoJogadorLinha(m);
+    if (conhecido && (!equipa || String(conhecido.team_id) !== String(equipa.id))) { m.player_id = ""; m.player_name = ""; }
+  });
+}
+
+/**
+ * V2.0: grava (ou atualiza) um jogador-chave/**
  * V2.0: grava (ou atualiza) um jogador-chave do relatório nos jogadores conhecidos do adversário do jogo.
  * Só com nome, ID zerozero (algarismos) e adversário escolhido. Sem a coluna position (SQL v30) grava sem ela.
  */
@@ -1963,66 +1989,70 @@ async function guardarJogadorConhecido(jc) {
 const conhecidosDaEquipa = equipa => equipa ? jogadoresExternos.filter(p => String(p.team_id) === String(equipa.id)) : [];
 
 function initMarcadoresForm() {
-  // V2.0: as sugestões do nome são só da equipa escolhida na própria linha (casa ou fora)
-  VFNComp.ligarSugestoesJogador(el("jornadaMarcadoresLista"), {
+  const lista = el("jornadaMarcadoresLista");
+  const linhaDe = alvo => marcadoresForm[Number(alvo.closest(".marcador-linha").dataset.i)];
+  // as sugestões do nome são só da equipa do jogador (a da coluna; num autogolo, a outra)
+  VFNComp.ligarSugestoesJogador(lista, {
     seletor: '[data-campo="player_name"]',
-    fonte: input => { const m = marcadoresForm[Number(input.closest(".marcador-linha").dataset.i)]; return m ? conhecidosDaEquipa(equipaDoLado(m.lado)) : []; },
-    aoEscolher: (input, p) => {
-      const m = marcadoresForm[Number(input.closest(".marcador-linha").dataset.i)];
-      if (!m) return;
-      m.player_name = p.name; m.player_id = String(p.id);
+    fonte: input => { const m = linhaDe(input); return m ? conhecidosDaEquipa(equipaDoJogadorLinha(m)) : []; },
+    aoEscolher: (input, p) => { const m = linhaDe(input); if (!m) return; m.player_name = p.name; m.player_id = String(p.id); renderMarcadoresForm(); }
+  });
+  lista.addEventListener("click", e => {
+    const add = e.target.closest("[data-add-golo]");
+    if (add) {
+      marcadoresForm.push({ lado: add.dataset.addGolo, player_id: "", player_name: "", minute: null, pb: false });
       renderMarcadoresForm();
+      const linhas = lista.querySelectorAll(`[data-lado="${add.dataset.addGolo}"] .marcador-linha`);
+      linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
+      return;
     }
-  });
-  el("btnAddMarcador").addEventListener("click", () => {
-    marcadoresForm.push({ lado: "casa", player_id: "", player_name: "", count: 1 });
-    renderMarcadoresForm();
-    const linhas = el("jornadaMarcadoresLista").querySelectorAll(".marcador-linha");
-    linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
-  });
-  ["jornadaCasa", "jornadaFora"].forEach(id => el(id).addEventListener("change", renderMarcadoresForm));
-  el("jornadaMarcadoresLista").addEventListener("click", e => {
     const b = e.target.closest("[data-remover]");
     if (b) { marcadoresForm.splice(Number(b.dataset.remover), 1); renderMarcadoresForm(); }
   });
-  el("jornadaMarcadoresLista").addEventListener("change", e => {
-    const linha = e.target.closest(".marcador-linha");
-    if (!linha) return;
-    const m = marcadoresForm[Number(linha.dataset.i)];
+  lista.addEventListener("change", e => {
+    if (!e.target.closest(".marcador-linha")) return;
+    const m = linhaDe(e.target);
     const campo = e.target.dataset.campo;
-    m[campo] = e.target.value.trim();
-    // nome ou ID conhecidos: completa o outro campo e a equipa
-    const conhecido = campo === "player_id" ? jogadoresExternos.find(p => String(p.id) === m.player_id)
-      : campo === "player_name" ? jogadoresExternos.find(p => p.name.toLowerCase() === m.player_name.toLowerCase()) : null;
-    if (conhecido) {
-      m.player_id = String(conhecido.id);
-      m.player_name = conhecido.name;
-      const fora = equipaDoLado("fora");
-      if (fora && String(fora.id) === String(conhecido.team_id)) m.lado = "fora";
-      else if (equipaDoLado("casa") && String(equipaDoLado("casa").id) === String(conhecido.team_id)) m.lado = "casa";
+    if (campo === "pb") {
+      m.pb = e.target.checked;
+      limparMarcadoresDeOutraEquipa(); // o jogador escolhido era da outra equipa
       renderMarcadoresForm();
+      return;
     }
+    if (campo === "minute") { m.minute = e.target.value === "" ? null : Math.min(130, Math.max(1, Number(e.target.value) || 1)); return; }
+    m[campo] = e.target.value.trim();
+    // nome ou ID de um jogador conhecido da equipa certa: completa o outro campo
+    const daEquipa = conhecidosDaEquipa(equipaDoJogadorLinha(m));
+    const conhecido = campo === "player_id" ? jogadoresExternos.find(p => String(p.id) === m.player_id)
+      : daEquipa.find(p => p.name.toLowerCase() === m.player_name.toLowerCase());
+    if (conhecido) { m.player_id = String(conhecido.id); m.player_name = conhecido.name; renderMarcadoresForm(); }
   });
+  ["jornadaCasa", "jornadaFora"].forEach(id => el(id).addEventListener("change", () => { limparMarcadoresDeOutraEquipa(); renderMarcadoresForm(); }));
+  ["jornadaGolosCasa", "jornadaGolosFora"].forEach(id => el(id).addEventListener("input", renderMarcadoresForm)); // contador "2 de 3"
 }
 
-/** Valida os marcadores, cria/atualiza external_players e devolve a scorer_list. */
+/**
+ * Valida os marcadores, cria/atualiza external_players e devolve a scorer_list (um golo por entrada, por minuto):
+ * { player_id, player_name, team_id: a equipa que marcou, count: 1, minute, own_goal (autogolo) }.
+ */
 async function gravarMarcadoresForm(casa, fora) {
   const lista = [];
   for (const m of marcadoresForm) {
     if (!m.player_name) continue;
     if (m.player_id && !/^\d+$/.test(m.player_id)) throw new Error(`O ID Zerozero de ${m.player_name} só pode ter algarismos.`);
-    const equipaM = m.lado === "fora" ? fora : casa;
+    const equipaGolo = m.lado === "fora" ? fora : casa;
+    const equipaJogador = m.pb ? (m.lado === "fora" ? casa : fora) : equipaGolo; // autogolo: o jogador é da outra equipa
     if (m.player_id) {
       const existente = jogadoresExternos.find(p => String(p.id) === m.player_id);
       // reaproveita o jogador; cria-o (ou associa-o ao clube) se for novo
-      if (!existente || existente.name !== m.player_name || String(existente.team_id) !== String(equipaM.id)) {
-        const gravado = await dadosClube.guardar("external_players", { ...(existente || {}), id: m.player_id, name: m.player_name, team_id: equipaM.id, team_name: equipaM.name });
+      if (!existente || existente.name !== m.player_name || String(existente.team_id) !== String(equipaJogador.id)) {
+        const gravado = await dadosClube.guardar("external_players", { ...(existente || {}), id: m.player_id, name: m.player_name, team_id: equipaJogador.id, team_name: equipaJogador.name });
         jogadoresExternos = jogadoresExternos.filter(p => String(p.id) !== m.player_id).concat(gravado);
       }
     }
-    lista.push({ player_id: m.player_id || null, player_name: m.player_name, team_id: String(equipaM.id), count: Math.max(1, Number(m.count) || 1) });
+    lista.push({ player_id: m.player_id || null, player_name: m.player_name, team_id: String(equipaGolo.id), count: 1, minute: m.minute != null ? Number(m.minute) : null, ...(m.pb ? { own_goal: true } : {}) });
   }
-  return lista;
+  return lista.sort((a, b) => (a.minute == null ? 999 : a.minute) - (b.minute == null ? 999 : b.minute));
 }
 
 /* =========================================================

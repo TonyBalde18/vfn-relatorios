@@ -452,9 +452,10 @@
         <div class="field jf-golos"><label for="jornadaGolosFora">Golos fora</label><input type="number" id="jornadaGolosFora" min="0" inputmode="numeric"></div>
         <div class="field jf-fora"><label for="jornadaFora">Equipa de fora</label><select id="jornadaFora"></select></div>
         <div class="field jf-marcadores"><label for="jornadaMarcadores">Notas (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: golo de penálti, expulsão aos 80'"></div>
+        <!-- V2.0: marcadores em duas colunas (golos da casa | golos de fora): um golo por linha, com minuto e p.b. -->
         <div class="jf-lista-marcadores">
-          <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><button type="button" id="btnAddMarcador" class="btn btn-ghost btn-sm">+ Marcador</button></div>
-          <div id="jornadaMarcadoresLista"></div>
+          <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><small class="muted">Um golo por linha. p.b. = autogolo (o jogador é da outra equipa).</small></div>
+          <div id="jornadaMarcadoresLista" class="jf-golos-cols"></div>
         </div>
         <div class="jf-acoes">
           <button type="button" id="btnCancelarResultadoLiga" class="btn btn-ghost btn-sm" hidden>Cancelar</button>

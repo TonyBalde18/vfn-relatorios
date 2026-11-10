@@ -415,3 +415,28 @@ html { scrollbar-gutter: stable; } /* a barra de scroll some com a janela aberta
 html.sem-scroll, html.sem-scroll body { overflow: hidden; }
 /* o scroll de dentro da janela não passa para a página quando chega ao fim */
 .modal-box, .drawer-corpo, .cmp-corpo, .mj-overlay, .vfn-menu-painel, .vfn-pesquisa-resultados, .sugestoes-jogador { overscroll-behavior: contain; }
+
+/* =========================================================
+   JORNADAS (admin): marcadores em duas colunas
+   ========================================================= */
+.jf-golos-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
+.jf-golos-col { display: grid; gap: 6px; align-content: start; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.jf-golos-cab { display: flex; align-items: center; gap: 8px; }
+.jf-golos-cab strong { flex: 1; min-width: 0; overflow: hidden; color: var(--heading); font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
+.jf-golos-conta { padding: 1px 7px; border-radius: 999px; background: rgba(234, 179, 8, .18); color: #854D0E; font-size: .7rem; font-weight: 800; }
+.jf-golos-conta.ok { background: rgba(22, 163, 74, .14); color: #166534; }
+html.tema-escuro .jf-golos-conta { color: #FDE68A; }
+html.tema-escuro .jf-golos-conta.ok { color: #BBF7D0; }
+.jf-golos-col .marcador-linha { display: grid; grid-template-columns: minmax(0, 1fr) 76px 58px auto auto; gap: 6px; align-items: center; }
+.jf-golos-col .marcador-linha input { min-width: 0; }
+.jf-pb { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; margin: 0; font-size: .78rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.jf-pb input[type=checkbox] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--vfn-yellow); }
+.jf-golos-vazio { margin: 0; font-size: .8rem; }
+@media (max-width: 900px) {
+  .jf-golos-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  /* nome numa linha; ID, minuto, p.b. e remover na seguinte */
+  .jf-golos-col .marcador-linha { grid-template-columns: minmax(0, 1fr) 58px auto auto; }
+  .jf-golos-col .marcador-linha [data-campo=player_name] { grid-column: 1 / -1; }
+}
