@@ -1,4 +1,5 @@
 // Auditoria headless (Edge + CDP): consola, pedidos falhados, overflow horizontal e contraste, por vista.
+// MOVIMENTO=1: com as animações (GSAP, AOS) ligadas, como no browser de quem usa (por omissão vão desligadas)
 // uso: node driver.js <raiz-do-repo> <saida.json> [filtroPagina] [screenshots:0|1]
 const http = require("http"), fs = require("fs"), path = require("path"), { spawn } = require("child_process");
 const RAIZ = process.argv[2], SAIDA = process.argv[3], FILTRO = process.argv[4] || "", SHOTS = process.argv[5] === "1";
@@ -88,7 +89,7 @@ function fecharEdge(edge) {
 (async () => {
   const perfil = fs.mkdtempSync(path.join(require("os").tmpdir(), "vfn-audit-"));
   global.perfilAtual = perfil;
-  const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, "--force-prefers-reduced-motion", "--no-first-run", "about:blank"], { stdio: "ignore" });
+  const edge = spawn(EDGE, ["--headless=new", "--disable-gpu", "--remote-debugging-port=0", `--user-data-dir=${perfil}`, ...(process.env.MOVIMENTO ? [] : ["--force-prefers-reduced-motion"]), "--no-first-run", "about:blank"], { stdio: "ignore" });
   global.edgeAtual = edge;
   let CDP = 0;
   for (let i = 0; i < 80 && !CDP; i++) { try { CDP = Number(fs.readFileSync(path.join(perfil, "DevToolsActivePort"), "utf8").split(/\r?\n/)[0]); } catch (e) { await espera(250); } }

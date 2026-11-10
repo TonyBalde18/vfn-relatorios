@@ -922,12 +922,26 @@
   }
 
   // Todos os modais (.modal-overlay) animam ao perder o atributo hidden
+  /*
+   * Com uma janela aberta (modal, painel lateral, comparador, Modo Jogo) a página de trás fica parada
+   * (html.sem-scroll). Antes, a roda do rato ou o dedo por cima da janela faziam scroll à página de trás e,
+   * ao fechar, ficava-se noutro sítio (muitas vezes no fundo da página: ex. depois de editar uma jornada).
+   */
+  const JANELAS = ".modal-overlay:not([hidden]), .vfn-drawer:not([hidden]), .mj-overlay:not([hidden])";
+  function atualizarBloqueioScroll() {
+    document.documentElement.classList.toggle("sem-scroll", !!document.querySelector(JANELAS));
+  }
+
   function observarModais() {
     if (!window.MutationObserver) return;
-    new MutationObserver(mudancas => mudancas.forEach(m => {
-      const el = m.target;
-      if (el.classList && el.classList.contains("modal-overlay") && !el.hidden && m.oldValue !== null) anim.modal(el.querySelector(".modal-box"));
-    })).observe(document.body, { attributes: true, attributeFilter: ["hidden"], attributeOldValue: true, subtree: true });
+    new MutationObserver(mudancas => {
+      mudancas.forEach(m => {
+        const el = m.target;
+        if (m.type === "attributes" && el.classList && el.classList.contains("modal-overlay") && !el.hidden && m.oldValue !== null) anim.modal(el.querySelector(".modal-box"));
+      });
+      atualizarBloqueioScroll();
+    }).observe(document.body, { attributes: true, attributeFilter: ["hidden"], attributeOldValue: true, subtree: true, childList: true });
+    atualizarBloqueioScroll();
   }
 
   // micro-interação: botões encolhem para 0.97 ao carregar e voltam com mola (GSAP)

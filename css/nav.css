@@ -407,3 +407,11 @@ html.tema-escuro .historico-tabela .icon-btn.danger { color: #F87171; }
 .dynamic-row.jogador-chave input.id-jc { flex: 0 0 120px; }
 .dynamic-row.jogador-chave textarea.desc-jc { flex: 1 1 100%; order: 5; }
 .dynamic-row.jogador-chave .remove-btn { order: 4; }
+
+/* =========================================================
+   JANELAS ABERTAS: a página de trás não faz scroll (shared.js, html.sem-scroll)
+   ========================================================= */
+html { scrollbar-gutter: stable; } /* a barra de scroll some com a janela aberta: sem isto a página saltava de lado */
+html.sem-scroll, html.sem-scroll body { overflow: hidden; }
+/* o scroll de dentro da janela não passa para a página quando chega ao fim */
+.modal-box, .drawer-corpo, .cmp-corpo, .mj-overlay, .vfn-menu-painel, .vfn-pesquisa-resultados, .sugestoes-jogador { overscroll-behavior: contain; }
