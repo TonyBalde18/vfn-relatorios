@@ -2325,7 +2325,7 @@ function renderTudo() {
    ========================================================= */
 
 function calcularMinutosJogadores() {
-  const duracao = Number(state.jogo.duracaoJogo) || 90;
+  const { duracao, instante } = VFNHub.tempoDoJogo(state.jogo); // V2.0: com os descontos (ex.: 96' num jogo com +2 e +4)
   const titulares = titularesIds();
   const periodos = {}; // id -> [{ inicio, fim }]
 
@@ -2334,10 +2334,10 @@ function calcularMinutosJogadores() {
   const subsOrdenadas = state.jogo.eventos
     .filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
     .slice()
-    .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0));
+    .sort((a, b) => instante(a) - instante(b));
 
   subsOrdenadas.forEach(ev => {
-    const minuto = Math.min(Number(ev.minuto) || 0, duracao);
+    const minuto = instante(ev);
     const saiId = Number(ev.jogadorSaiId);
     const entraId = Number(ev.jogadorId);
     if (periodos[saiId] && periodos[saiId].length) {

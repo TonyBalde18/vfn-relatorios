@@ -703,13 +703,13 @@
       const f = formacoes.get(jogo.formacaoVFN) || { n: 0, data: "" };
       f.n++; if (String(r.updated_at || "") > f.data) f.data = String(r.updated_at || "");
       formacoes.set(jogo.formacaoVFN, f);
-      const duracao = Number(jogo.duracaoJogo) || 90;
+      const { duracao, instante } = tempoDoJogo(jogo); // com os descontos
       const emCampo = new Map(); // índice do slot → { id, inicio }
       titulares.forEach((id, i) => { if (id && slots[i]) emCampo.set(i, { id: String(id), inicio: 0 }); });
       (jogo.eventos || []).filter(e => e && e.tipo === "Substituição" && (e.equipa === "VFN" || e.equipa == null) && e.jogadorSaiId && e.jogadorId)
-        .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+        .sort((a, b) => instante(a) - instante(b))
         .forEach(e => {
-          const minuto = Math.min(duracao, Number(e.minuto) || 0);
+          const minuto = instante(e);
           const lugar = [...emCampo.entries()].find(([, v]) => v.id === String(e.jogadorSaiId));
           if (!lugar) return;
           const [i, v] = lugar;
@@ -728,16 +728,18 @@
     const slots = VFN.FORMACOES_SLOTS[formacao];
     const lugares = slots.map(() => null);
     const usados = new Set();
-    // 1.º: cada jogador na posição onde jogou mais minutos (os pares com mais minutos escolhem primeiro)
-    const pares = [];
-    acum.forEach(a => {
-      const [label, minutos] = Object.entries(a.porPosicao).sort((x, y) => y[1] - x[1])[0];
-      pares.push({ a, label, minutos });
-    });
-    pares.sort((x, y) => y.minutos - x.minutos || y.a.total - x.a.total).forEach(({ a, label }) => {
-      const i = slots.findIndex((s, k) => !lugares[k] && s.label === label);
-      if (i < 0 || usados.has(a.jogador.id)) return;
-      lugares[i] = { jogador: a.jogador, minutos: a.total, posicao: label };
+    // 1.º (V2.0): os jogadores com mais minutos no total escolhem primeiro, cada um na posição onde jogou mais minutos
+    // (se estiver ocupada, a seguinte onde jogou; depois um lugar livre da mesma categoria). Antes escolhia primeiro
+    // quem tinha mais minutos numa só posição: um jogador com mais minutos no total mas repartidos (ex.: PL e ED)
+    // ficava de fora do lugar para outro com menos minutos todos como PL.
+    [...acum.values()].sort((x, y) => y.total - x.total).forEach(a => {
+      if (lugares.every(Boolean)) return;
+      const posicoes = Object.entries(a.porPosicao).sort((x, y) => y[1] - x[1]).map(([label]) => label);
+      let i = -1;
+      for (const label of posicoes) { i = slots.findIndex((s, k) => !lugares[k] && s.label === label); if (i >= 0) break; }
+      if (i < 0) for (const label of posicoes) { i = slots.findIndex((s, k) => !lugares[k] && categoriaSlot(s.label) === categoriaSlot(label)); if (i >= 0) break; }
+      if (i < 0) return; // as posições dele já estão ocupadas por quem tem mais minutos
+      lugares[i] = { jogador: a.jogador, minutos: a.total, posicao: slots[i].label };
       usados.add(a.jogador.id);
     });
     // 2.º: lugares vazios → quem tem mais minutos nessa posição; depois na mesma categoria; por fim quem tem mais minutos
@@ -970,23 +972,51 @@
     return linhas.map(x => ({ ...x, golosAcum: (g += x.golos), assistAcum: (a += x.assistencias) }));
   }
 
-  /** Minutos de cada jogador num relatório: titulares desde o 0', substituições pelo minuto. */
-  /** Períodos em campo de cada jogador num relatório: { duracao, periodos: { idLocal: [{ inicio, fim }] } }. */
+  /**
+   * Tempo de jogo com os descontos (V2.0): 1.ª parte = 45 + descontos da 1.ª, 2.ª parte = 45 + descontos da 2.ª.
+   * Os descontos de cada parte são o "Tempo Acrescentado" registado (detalhe = minutos; minuto ≤ 45 → 1.ª parte)
+   * ou, se for maior, o acréscimo mais alto dos eventos dessa parte (um golo aos 90+5 prova pelo menos 5).
+   * Devolve { duracao: minutos reais do jogo, instante(e): minuto real de um evento (0..duracao) }.
+   * Uma substituição aos 45' sem acréscimo conta como feita ao intervalo (no fim dos descontos da 1.ª parte).
+   */
+  function tempoDoJogo(jogo) {
+    const base = Number((jogo || {}).duracaoJogo) || 90, meio = base / 2;
+    const eventos = (jogo && jogo.eventos) || [];
+    const parte = e => (Number(e.minuto) || 0) <= meio ? 1 : 2;
+    const descontos = { 1: 0, 2: 0 };
+    eventos.forEach(e => {
+      if (!e) return;
+      const valor = e.tipo === "Tempo Acrescentado" ? Number(String(e.detalhe || "").replace(/[^\d]/g, "")) || 0 : Number(e.acrescimo) || 0;
+      descontos[parte(e)] = Math.max(descontos[parte(e)], Math.min(30, valor));
+    });
+    const duracao = base + descontos[1] + descontos[2];
+    const instante = e => {
+      const m = Math.max(0, Number(e.minuto) || 0), a = Number(e.acrescimo) || 0;
+      if (m <= meio) {
+        if (m === meio && !a && e.tipo === "Substituição") return meio + descontos[1]; // ao intervalo
+        return Math.min(meio + descontos[1], m + (m >= meio ? a : 0));
+      }
+      return Math.min(duracao, meio + descontos[1] + Math.min(m - meio, meio) + (m >= base ? a : 0));
+    };
+    return { duracao, instante, descontos };
+  }
+
+  /** Períodos em campo de cada jogador num relatório: { duracao, instante, periodos: { idLocal: [{ inicio, fim }] } } (com os descontos). */
   function periodosDoRelatorio(matchData) {
     const jogo = (matchData && matchData.jogo) || {};
-    const duracao = Number(jogo.duracaoJogo) || 90;
+    const { duracao, instante } = tempoDoJogo(jogo);
     const periodos = {};
     (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
     (jogo.eventos || []).filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
-      .sort((a, b) => (Number(a.minuto) || 0) - (Number(b.minuto) || 0))
+      .sort((a, b) => instante(a) - instante(b))
       .forEach(e => {
-        const minuto = Math.min(Number(e.minuto) || 0, duracao);
+        const minuto = instante(e);
         const aberto = (periodos[e.jogadorSaiId] || []).find(p => p.fim === null);
         if (aberto) aberto.fim = minuto;
         (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
       });
     Object.values(periodos).forEach(lista => lista.forEach(p => { if (p.fim === null) p.fim = duracao; }));
-    return { duracao, periodos };
+    return { duracao, instante, periodos };
   }
 
   function minutosDoRelatorio(matchData) {
@@ -1016,10 +1046,10 @@
     const data = r => (r.match_data.preJogo || {}).data || r.match_date || "";
     let jogosZero = 0, serie = 0, melhor = 0;
     [...porJogo.values()].sort((a, b) => String(data(a)).localeCompare(String(data(b)))).forEach(r => {
-      const { duracao, periodos } = periodosDoRelatorio(r.match_data);
+      const { instante, periodos } = periodosDoRelatorio(r.match_data);
       const meus = Object.entries(periodos).filter(([id]) => eDele(id)).flatMap(([, l]) => l).sort((a, b) => a.inicio - b.inicio);
       if (!meus.length) return;
-      const sofridos = (r.match_data.jogo.eventos || []).filter(VFN.eGoloSofrido).map(e => Math.min(duracao, Number(e.minuto) || 0)).sort((a, b) => a - b);
+      const sofridos = (r.match_data.jogo.eventos || []).filter(VFN.eGoloSofrido).map(instante).sort((a, b) => a - b);
       const jogou = meus.reduce((s, p) => s + Math.max(0, p.fim - p.inicio), 0);
       if (jogou >= 60 && !sofridos.some(m => meus.some(p => m >= p.inicio && m <= p.fim))) jogosZero++;
       meus.forEach(p => {
@@ -1070,16 +1100,16 @@
     let jogos = 0, minutos = 0, jogosZero = 0, minutosZero = 0, golosSofridos = 0, serie = 0, melhorSerie = 0, penaltisDefendidos = 0;
     [...porJogo.values()].sort((a, b) => String(data(a)).localeCompare(String(data(b)))).forEach(r => {
       const jogo = r.match_data.jogo;
-      const { duracao, periodos } = periodosDoRelatorio(r.match_data);
+      const { instante, periodos } = periodosDoRelatorio(r.match_data);
       const meus = Object.entries(periodos).filter(([id]) => eDele(id)).flatMap(([, l]) => l).sort((a, b) => a.inicio - b.inicio);
       const jogou = meus.reduce((s, p) => s + Math.max(0, p.fim - p.inicio), 0);
       if (!jogou) return;
       jogos++; minutos += jogou;
       const eventos = jogo.eventos || [];
-      const sofridos = eventos.filter(VFN.eGoloSofrido).map(e => Math.min(duracao, Number(e.minuto) || 0)).sort((a, b) => a - b);
+      const sofridos = eventos.filter(VFN.eGoloSofrido).map(instante).sort((a, b) => a - b);
       golosSofridos += sofridos.filter(m => meus.some(p => m >= p.inicio && m <= p.fim)).length;
       const emCampo = m => meus.some(p => m >= p.inicio && m <= p.fim);
-      penaltisDefendidos += eventos.filter(VFN.ePenaltiDefendidoPeloVFN).filter(e => e.guardaRedesId ? eDele(e.guardaRedesId) : emCampo(Math.min(duracao, Number(e.minuto) || 0))).length;
+      penaltisDefendidos += eventos.filter(VFN.ePenaltiDefendidoPeloVFN).filter(e => e.guardaRedesId ? eDele(e.guardaRedesId) : emCampo(instante(e))).length;
       const titular = (jogo.titulares || []).some(id => id && eDele(id));
       // substituído (jogadorSaiId) ou expulso: não fez o jogo inteiro
       const saiu = eventos.some(e => e.equipa === "VFN" && ((e.tipo === "Substituição" && e.jogadorSaiId && eDele(e.jogadorSaiId)) || (e.tipo === "Cartão Vermelho" && eDele(e.jogadorId))));
@@ -2117,7 +2147,7 @@
   }
 
   window.VFNHub = {
-    linhaTempoEpocaHTML, centrarLinhaTempo,
+    linhaTempoEpocaHTML, centrarLinhaTempo, tempoDoJogo,
     participacoesJogador, participacaoTilesHTML, cartoesCompeticaoHTML, minutosPorSlot, minutosPorPosicaoJogador, graficoPosicoes,
     ativarVista, idade,
     jogadorPorIdRelatorio, statsGRJogador,
