@@ -2331,19 +2331,15 @@ function calcularMinutosJogadores() {
 
   titulares.forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
 
-  const subsOrdenadas = state.jogo.eventos
-    .filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
-    .slice()
-    .sort((a, b) => instante(a) - instante(b));
-
-  subsOrdenadas.forEach(ev => {
-    const minuto = instante(ev);
-    const saiId = Number(ev.jogadorSaiId);
-    const entraId = Number(ev.jogadorId);
+  // substituições e expulsões (vermelho ou 2.º amarelo: os minutos do expulso param aí)
+  VFNHub.trocasDoJogo(state.jogo, instante).forEach(({ minuto, sai, entra }) => {
+    const saiId = Number(sai);
     if (periodos[saiId] && periodos[saiId].length) {
       const aberto = periodos[saiId].find(p => p.fim === null);
       if (aberto) aberto.fim = minuto;
     }
+    if (!entra) return;
+    const entraId = Number(entra);
     if (!periodos[entraId]) periodos[entraId] = [];
     periodos[entraId].push({ inicio: minuto, fim: null });
   });

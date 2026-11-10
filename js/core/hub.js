@@ -706,16 +706,14 @@
       const { duracao, instante } = tempoDoJogo(jogo); // com os descontos
       const emCampo = new Map(); // índice do slot → { id, inicio }
       titulares.forEach((id, i) => { if (id && slots[i]) emCampo.set(i, { id: String(id), inicio: 0 }); });
-      (jogo.eventos || []).filter(e => e && e.tipo === "Substituição" && (e.equipa === "VFN" || e.equipa == null) && e.jogadorSaiId && e.jogadorId)
-        .sort((a, b) => instante(a) - instante(b))
-        .forEach(e => {
-          const minuto = instante(e);
-          const lugar = [...emCampo.entries()].find(([, v]) => v.id === String(e.jogadorSaiId));
-          if (!lugar) return;
-          const [i, v] = lugar;
-          creditar(v.id, slots[i].label, minuto - v.inicio);
-          emCampo.set(i, { id: String(e.jogadorId), inicio: minuto }); // quem entra herda o lugar
-        });
+      trocasDoJogo(jogo, instante, true).forEach(({ minuto, sai, entra }) => {
+        const lugar = [...emCampo.entries()].find(([, v]) => v.id === sai);
+        if (!lugar) return;
+        const [i, v] = lugar;
+        creditar(v.id, slots[i].label, minuto - v.inicio);
+        if (entra) emCampo.set(i, { id: entra, inicio: minuto }); // quem entra herda o lugar
+        else emCampo.delete(i); // expulso: o lugar fica vazio até ao fim
+      });
       emCampo.forEach((v, i) => creditar(v.id, slots[i].label, duracao - v.inicio));
     });
     return { acum, formacoes, jogos };
@@ -1001,20 +999,42 @@
     return { duracao, instante, descontos };
   }
 
-  /** Períodos em campo de cada jogador num relatório: { duracao, instante, periodos: { idLocal: [{ inicio, fim }] } } (com os descontos). */
+  /**
+   * Entradas e saídas do VFN por ordem do minuto real: [{ minuto, sai, entra }] (ids em texto).
+   * Substituições (sai e entra) e expulsões (V2.0: só sai, sem ninguém a entrar): um "Cartão Vermelho"
+   * ou o 2.º "Cartão Amarelo" do mesmo jogador. Os minutos do expulso contam só até à expulsão.
+   * `semEquipa`: aceita substituições sem equipa (registos antigos só com as substituições do VFN).
+   */
+  function trocasDoJogo(jogo, instante, semEquipa) {
+    const doVFN = e => e && (e.equipa === "VFN" || (semEquipa && e.equipa == null));
+    const eventos = ((jogo && jogo.eventos) || []).filter(doVFN).slice().sort((a, b) => instante(a) - instante(b));
+    const amarelos = {}, expulsos = new Set(), trocas = [];
+    eventos.forEach(e => {
+      if (e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId) {
+        trocas.push({ minuto: instante(e), sai: String(e.jogadorSaiId), entra: String(e.jogadorId) });
+        return;
+      }
+      if (!e.jogadorId || (e.tipo !== "Cartão Vermelho" && e.tipo !== "Cartão Amarelo")) return;
+      const id = String(e.jogadorId);
+      if (e.tipo === "Cartão Amarelo" && (amarelos[id] = (amarelos[id] || 0) + 1) < 2) return;
+      if (expulsos.has(id)) return; // 2.º amarelo e vermelho registados os dois: conta a 1.ª expulsão
+      expulsos.add(id);
+      trocas.push({ minuto: instante(e), sai: id, entra: null });
+    });
+    return trocas;
+  }
+
+  /** Períodos em campo de cada jogador num relatório: { duracao, instante, periodos: { idLocal: [{ inicio, fim }] } } (com os descontos e as expulsões). */
   function periodosDoRelatorio(matchData) {
     const jogo = (matchData && matchData.jogo) || {};
     const { duracao, instante } = tempoDoJogo(jogo);
     const periodos = {};
-    (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[id] = [{ inicio: 0, fim: null }]; });
-    (jogo.eventos || []).filter(e => e.equipa === "VFN" && e.tipo === "Substituição" && e.jogadorSaiId && e.jogadorId)
-      .sort((a, b) => instante(a) - instante(b))
-      .forEach(e => {
-        const minuto = instante(e);
-        const aberto = (periodos[e.jogadorSaiId] || []).find(p => p.fim === null);
-        if (aberto) aberto.fim = minuto;
-        (periodos[e.jogadorId] || (periodos[e.jogadorId] = [])).push({ inicio: minuto, fim: null });
-      });
+    (jogo.titulares || []).filter(Boolean).forEach(id => { periodos[String(id)] = [{ inicio: 0, fim: null }]; });
+    trocasDoJogo(jogo, instante).forEach(({ minuto, sai, entra }) => {
+      const aberto = (periodos[sai] || []).find(p => p.fim === null);
+      if (aberto) aberto.fim = minuto;
+      if (entra) (periodos[entra] || (periodos[entra] = [])).push({ inicio: minuto, fim: null });
+    });
     Object.values(periodos).forEach(lista => lista.forEach(p => { if (p.fim === null) p.fim = duracao; }));
     return { duracao, instante, periodos };
   }
@@ -2147,7 +2167,7 @@
   }
 
   window.VFNHub = {
-    linhaTempoEpocaHTML, centrarLinhaTempo, tempoDoJogo,
+    linhaTempoEpocaHTML, centrarLinhaTempo, tempoDoJogo, trocasDoJogo,
     participacoesJogador, participacaoTilesHTML, cartoesCompeticaoHTML, minutosPorSlot, minutosPorPosicaoJogador, graficoPosicoes,
     ativarVista, idade,
     jogadorPorIdRelatorio, statsGRJogador,
