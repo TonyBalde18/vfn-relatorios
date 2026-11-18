@@ -134,7 +134,9 @@ function initMultas() {
   el("btnAddTipoMulta").addEventListener("click", () => abrirModalTipoMulta(null));
   el("btnTipoMultaCancelar").addEventListener("click", () => fecharModalAdmin("modalTipoMulta"));
   el("btnTipoMultaGuardar").addEventListener("click", guardarTipoMulta);
-  el("btnAddMulta").addEventListener("click", () => abrirModalMulta(null));
+  el("btnAddMulta").addEventListener("click", abrirModalMultaLote);
+  initMultaLote();
+  initSelecaoMultas();
   el("btnAddContribuicao").addEventListener("click", () => abrirModalContribuicao(null));
   el("contribQuem").addEventListener("change", () => { el("contribNomeCampo").hidden = !!el("contribQuem").value; });
   el("btnContribCancelar").addEventListener("click", () => fecharModalAdmin("modalContribuicao"));
@@ -222,11 +224,13 @@ function renderMultas() {
 
   const tbody = el("multasBody");
   if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Sem multas nem contribuições neste período.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Sem multas nem contribuições neste período.</td></tr>`;
+    renderSelecaoMultas();
     return;
   }
   tbody.innerHTML = lista.map(f => `
-    <tr data-id="${escapeHtml(f.id)}">
+    <tr data-id="${escapeHtml(f.id)}" class="${selecaoMultas.has(String(f.id)) ? "escolhida" : ""}">
+      <td class="col-escolha">${VFN.eContribuicao(f) ? "" : `<input type="checkbox" data-acao="escolher" aria-label="Escolher esta multa" ${selecaoMultas.has(String(f.id)) ? "checked" : ""}>`}</td>
       <td data-v="${escapeHtml(VFN.nomeNaMulta(f, pessoaPorId))}">${!pessoaPorId(f.player_id) && VFN.eContribuicao(f) && f.contributor_name ? VFN.celulaContribuidorHTML(f.contributor_name) : celulaJogadorHTML(f.player_id)}</td>
       <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
       <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
@@ -241,7 +245,74 @@ function renderMultas() {
     if (pago) pago.addEventListener("change", e => alternarPagamento(multa, e.target.checked));
     tr.querySelector("[data-acao=editar]").addEventListener("click", () => VFN.eContribuicao(multa) ? abrirModalContribuicao(multa) : abrirModalMulta(multa));
     tr.querySelector("[data-acao=apagar]").addEventListener("click", () => apagarMulta(multa));
+    const escolher = tr.querySelector("[data-acao=escolher]");
+    if (escolher) escolher.addEventListener("change", () => {
+      if (escolher.checked) selecaoMultas.add(String(multa.id)); else selecaoMultas.delete(String(multa.id));
+      tr.classList.toggle("escolhida", escolher.checked);
+      renderSelecaoMultas();
+    });
   });
+  renderSelecaoMultas();
+}
+
+/* ---------- Várias multas de uma vez (V2.0): marcar como pagas ou pendentes ---------- */
+
+const selecaoMultas = new Set(); // ids das multas escolhidas na tabela
+
+/** Multas escolhidas que estão na lista do ecrã (os filtros podem ter escondido algumas). */
+function multasEscolhidasVisiveis() {
+  return multasDoPeriodo().filter(f => !VFN.eContribuicao(f) && selecaoMultas.has(String(f.id)));
+}
+
+function renderSelecaoMultas() {
+  const visiveis = multasDoPeriodo().filter(f => !VFN.eContribuicao(f));
+  // o que saiu da lista (outro mês, outro filtro) deixa de estar escolhido
+  [...selecaoMultas].forEach(id => { if (!visiveis.some(f => String(f.id) === id)) selecaoMultas.delete(id); });
+  const n = selecaoMultas.size;
+  el("multasSelecao").hidden = !n;
+  if (n) {
+    const total = multasEscolhidasVisiveis().reduce((t, f) => t + (Number(f.amount) || 0), 0);
+    el("multasSelecaoConta").textContent = `${n} multa${n === 1 ? "" : "s"} escolhida${n === 1 ? "" : "s"} · ${formatoEuro.format(total)}`;
+  }
+  const todas = el("multasTodas");
+  todas.checked = !!visiveis.length && n === visiveis.length;
+  todas.indeterminate = n > 0 && n < visiveis.length;
+  todas.disabled = !visiveis.length;
+}
+
+function initSelecaoMultas() {
+  el("multasTodas").addEventListener("change", e => {
+    selecaoMultas.clear();
+    if (e.target.checked) multasDoPeriodo().filter(f => !VFN.eContribuicao(f)).forEach(f => selecaoMultas.add(String(f.id)));
+    renderMultas();
+  });
+  el("btnMultasLimpar").addEventListener("click", () => { selecaoMultas.clear(); renderMultas(); });
+  el("btnMultasPagas").addEventListener("click", () => marcarMultasEscolhidas(true));
+  el("btnMultasPendentes").addEventListener("click", () => marcarMultasEscolhidas(false));
+}
+
+async function marcarMultasEscolhidas(pago) {
+  const alvo = multasEscolhidasVisiveis().filter(f => !!f.paid !== pago);
+  if (!alvo.length) { selecaoMultas.clear(); renderMultas(); return; }
+  const botoes = ["btnMultasPagas", "btnMultasPendentes", "btnMultasLimpar"].map(el);
+  botoes.forEach(b => { b.disabled = true; });
+  let falhou = null;
+  for (const multa of alvo) {
+    const anterior = { paid: multa.paid, paid_date: multa.paid_date };
+    multa.paid = pago;
+    multa.paid_date = pago ? hojeIso() : null;
+    try {
+      Object.assign(multa, await gravarMultaBD(multa));
+    } catch (e) {
+      Object.assign(multa, anterior);
+      falhou = e;
+      break;
+    }
+  }
+  botoes.forEach(b => { b.disabled = false; });
+  if (!falhou) selecaoMultas.clear();
+  mostrarErroAdmin("multasErro", falhou);
+  renderMultas();
 }
 
 function renderDividasAdmin() {
@@ -358,6 +429,148 @@ async function guardarMulta() {
   }
 }
 
+/* ---------- Lançar multa a várias pessoas de uma vez (V2.0) ---------- */
+
+const multaLote = { tipo: null, escolhidos: new Set() };
+
+/** Tipos por ordem de uso (os mais lançados primeiro; a joia tem botão próprio e fica no fim). */
+function tiposPorUso() {
+  const usos = {};
+  cacheAdmin.fines.forEach(f => { usos[f.infraction_type] = (usos[f.infraction_type] || 0) + 1; });
+  const joia = t => Number(t.id) === VFN.ID_JOIA ? 1 : 0;
+  return [...VFN.TIPOS_MULTA].sort((a, b) => joia(a) - joia(b) || (usos[b.tipo] || 0) - (usos[a.tipo] || 0) || a.id - b.id);
+}
+
+/** Quem pode pagar o tipo escolhido: o plantel ou, nas multas do treinador, a equipa técnica. */
+function pessoasDoLote() {
+  if (multaLote.tipo && multaLote.tipo.pagador === "treinador") return staffAdmin().filter(p => p.posicao === "Treinador").map(p => ({ id: p.id, pessoa: p, nome: p.nome, numero: "" }));
+  return [...plantel].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => ({ id: idJogadorBD(j), pessoa: j, nome: j.nome, numero: j.numero }));
+}
+
+const semAcentos = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+function renderTiposLote() {
+  const termo = semAcentos(el("mlTipoPesquisa").value.trim());
+  const lista = tiposPorUso().filter(t => !termo || semAcentos(t.tipo).includes(termo));
+  el("mlTipos").innerHTML = lista.length ? lista.map(t => {
+    const ativo = multaLote.tipo && multaLote.tipo.id === t.id;
+    return `<button type="button" class="ml-tipo${ativo ? " ativo" : ""}" role="radio" aria-checked="${ativo}" data-tipo-id="${t.id}">
+      <span class="ml-tipo-nome">${escapeHtml(t.tipo)}${t.pagador === "treinador" ? ' <small class="ml-tag">treinador</small>' : ""}</span>
+      <strong class="ml-tipo-valor">${formatoEuro.format(t.valor)}</strong></button>`;
+  }).join("") : '<p class="muted ml-vazio">Nenhum tipo com esse nome.</p>';
+}
+
+function renderPessoasLote() {
+  const pessoas = pessoasDoLote();
+  const termo = semAcentos(el("mlPessoaPesquisa").value.trim());
+  const visiveis = pessoas.filter(p => !termo || semAcentos(p.nome).includes(termo) || String(p.numero) === termo);
+  el("mlPessoasRotulo").textContent = multaLote.tipo && multaLote.tipo.pagador === "treinador" ? "Treinador" : "Jogadores";
+  el("mlPessoas").innerHTML = visiveis.length ? visiveis.map(p => {
+    const sim = multaLote.escolhidos.has(p.id);
+    return `<label class="ml-pessoa${sim ? " ativo" : ""}"><input type="checkbox" value="${escapeHtml(p.id)}" ${sim ? "checked" : ""}>
+      ${VFN.avatarJogador(p.pessoa, "avatar-xs")}<span class="ml-pessoa-nome">${escapeHtml(p.nome)}</span>${p.numero ? `<small>#${escapeHtml(p.numero)}</small>` : ""}</label>`;
+  }).join("") : '<p class="muted ml-vazio">Ninguém com esse nome.</p>';
+  renderTodosLote();
+}
+
+/** "Selecionar todos" (sobre os que a pesquisa mostra) e o total, sem redesenhar a grelha (mantém o foco). */
+function renderTodosLote() {
+  const caixas = [...el("mlPessoas").querySelectorAll("input[type=checkbox]")];
+  const n = caixas.filter(c => c.checked).length;
+  el("mlTodos").checked = !!caixas.length && n === caixas.length;
+  el("mlTodos").indeterminate = n > 0 && n < caixas.length;
+  renderTotalLote();
+}
+
+function renderTotalLote() {
+  const n = multaLote.escolhidos.size;
+  const valor = Number(String(el("mlValor").value).replace(",", ".")) || 0;
+  el("mlTotal").innerHTML = n ? `<strong>${n}</strong> ${n === 1 ? "pessoa" : "pessoas"} × ${formatoEuro.format(valor)} = <strong>${formatoEuro.format(n * valor)}</strong>` : '<span class="muted">Escolhe quem paga.</span>';
+  el("btnMlGuardar").textContent = n > 1 ? `Lançar ${n} multas` : "Lançar multa";
+  el("btnMlGuardar").disabled = !n || !multaLote.tipo;
+}
+
+function escolherTipoLote(tipo) {
+  const mudouPagador = !multaLote.tipo || multaLote.tipo.pagador !== tipo.pagador;
+  multaLote.tipo = tipo;
+  el("mlValor").value = tipo.valor;
+  if (mudouPagador) multaLote.escolhidos.clear(); // jogadores ↔ treinador
+  renderTiposLote();
+  renderPessoasLote();
+}
+
+async function abrirModalMultaLote() {
+  await carregarTiposMulta();
+  multaLote.escolhidos.clear();
+  multaLote.tipo = null;
+  el("mlTipoPesquisa").value = "";
+  el("mlPessoaPesquisa").value = "";
+  el("mlDescricao").value = "";
+  el("mlData").value = hojeIso();
+  el("mlErro").textContent = "";
+  const primeiro = tiposPorUso()[0];
+  if (primeiro) escolherTipoLote(primeiro); else { renderTiposLote(); renderPessoasLote(); }
+  abrirModalAdmin("modalMultaLote");
+  el("mlPessoaPesquisa").focus();
+}
+
+function initMultaLote() {
+  el("mlTipoPesquisa").addEventListener("input", renderTiposLote);
+  el("mlPessoaPesquisa").addEventListener("input", renderPessoasLote);
+  el("mlTipos").addEventListener("click", e => {
+    const b = e.target.closest("[data-tipo-id]");
+    if (b) escolherTipoLote(VFN.tipoMultaPorId(b.dataset.tipoId));
+  });
+  el("mlPessoas").addEventListener("change", e => {
+    const caixa = e.target.closest("input[type=checkbox]");
+    if (!caixa) return;
+    if (caixa.checked) multaLote.escolhidos.add(caixa.value); else multaLote.escolhidos.delete(caixa.value);
+    caixa.closest(".ml-pessoa").classList.toggle("ativo", caixa.checked);
+    renderTodosLote();
+  });
+  el("mlTodos").addEventListener("change", e => {
+    const termo = semAcentos(el("mlPessoaPesquisa").value.trim());
+    pessoasDoLote().filter(p => !termo || semAcentos(p.nome).includes(termo) || String(p.numero) === termo)
+      .forEach(p => { if (e.target.checked) multaLote.escolhidos.add(p.id); else multaLote.escolhidos.delete(p.id); });
+    renderPessoasLote();
+  });
+  el("mlValor").addEventListener("input", renderTotalLote);
+  el("btnMlGuardar").addEventListener("click", guardarMultaLote);
+}
+
+async function guardarMultaLote() {
+  const tipo = multaLote.tipo;
+  const valor = Number(String(el("mlValor").value).replace(",", "."));
+  const ids = pessoasDoLote().map(p => p.id).filter(id => multaLote.escolhidos.has(id));
+  const erro = !tipo ? "Escolhe o tipo de multa." : !ids.length ? "Escolhe pelo menos uma pessoa." : !(valor > 0) ? "Indica um valor em euros maior que zero." : !el("mlData").value ? "Indica a data." : "";
+  el("mlErro").textContent = erro;
+  if (erro) return;
+  const botao = el("btnMlGuardar");
+  botao.disabled = true;
+  const gravadas = [];
+  try {
+    for (const id of ids) {
+      const gravada = await guardarLinhaMulta({
+        player_id: id, infraction_type: tipo.tipo, fine_type_id: tipo.id, amount: Math.round(valor * 100) / 100,
+        description: el("mlDescricao").value.trim() || null, match_date: el("mlData").value, paid: false, paid_date: null
+      });
+      cacheAdmin.fines.push(gravada);
+      gravadas.push(id);
+      multaLote.escolhidos.delete(id); // se uma falhar, as já gravadas não se repetem ao tentar outra vez
+    }
+    fecharModalAdmin("modalMultaLote");
+    const mes = el("mlData").value.slice(0, 7);
+    if (el("multasMes").value !== "epoca" && [...el("multasMes").options].some(o => o.value === mes)) el("multasMes").value = mes;
+  } catch (e) {
+    el("mlErro").textContent = (gravadas.length ? `${gravadas.length} gravada${gravadas.length === 1 ? "" : "s"}; as restantes falharam: ` : "") + mensagemErro(e);
+    renderPessoasLote();
+  } finally {
+    botao.disabled = false;
+    renderTotalLote();
+    renderMultas();
+  }
+}
+
 /* ---------- Contribuições voluntárias (v1.1, sql/migrations/v26_contribuicoes.sql) ---------- */
 
 let contribuicaoEmEdicao = null;
@@ -422,6 +635,7 @@ function renderTiposMulta() {
   const tbody = el("tiposMultaBody");
   if (!tbody) return;
   el("btnAddTipoMulta").disabled = !tabelaTiposMulta;
+  el("tiposMultaResumo").textContent = `Ver os ${VFN.TIPOS_MULTA.length} tipos e os valores`;
   el("tiposMultaErro").textContent = tabelaTiposMulta ? "" : "Corre a secção v4 do schema.sql no Supabase para poderes editar os tipos (até lá usam-se os valores por omissão).";
   tbody.innerHTML = VFN.TIPOS_MULTA.map(t => `<tr data-tipo-id="${t.id}">
     <td>${t.id}</td>
@@ -2691,14 +2905,14 @@ function initAdmin() {
   initAdversarios();
 
   document.querySelectorAll("[data-fechar-modal]").forEach(b => b.addEventListener("click", () => fecharModalAdmin(b.dataset.fecharModal)));
-  ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
+  ["modalMulta", "modalMultaLote", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });
   });
   // modal de edição das Jornadas: fechar (×, fora ou Esc) = cancelar a edição
   el("modalResultadoLiga").addEventListener("click", e => { if (e.target.id === "modalResultadoLiga" || e.target.closest("[data-fechar-resultado]")) limparFormJornada(); });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    ["modalMulta", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
+    ["modalMulta", "modalMultaLote", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
     if (!el("modalResultadoLiga").hidden) limparFormJornada();
   });
   verificarPapelAdmin();

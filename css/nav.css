@@ -440,3 +440,67 @@ html.tema-escuro .jf-golos-conta.ok { color: #BBF7D0; }
   .jf-golos-col .marcador-linha { grid-template-columns: minmax(0, 1fr) 58px auto auto; }
   .jf-golos-col .marcador-linha [data-campo=player_name] { grid-column: 1 / -1; }
 }
+
+/* ---------- V2.0: Lançar multa a várias pessoas (admin) ---------- */
+.modal-box.modal-multa-lote { max-width: 1080px; height: min(760px, calc(100vh - 40px)); gap: 12px; }
+.ml-corpo { display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 16px; flex: 1 1 auto; min-height: 0; }
+.ml-coluna { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.ml-passo { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--heading); font-size: .9rem; }
+.ml-passo > span:first-child { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--vfn-yellow); color: var(--vfn-navy); font-size: .75rem; font-weight: 800; }
+.ml-tipos, .ml-pessoas { flex: 1 1 auto; min-height: 120px; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+.ml-tipos { display: flex; flex-direction: column; gap: 6px; }
+.ml-tipo { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: .88rem; text-align: left; cursor: pointer; }
+.ml-tipo:hover { border-color: var(--vfn-yellow); }
+.ml-tipo:focus-visible { outline: 2px solid var(--vfn-yellow); outline-offset: 2px; }
+.ml-tipo.ativo { border-color: var(--vfn-yellow); background: rgba(255, 215, 0, .16); box-shadow: inset 4px 0 0 var(--vfn-yellow); font-weight: 700; }
+.ml-tipo-valor { flex: 0 0 auto; color: var(--heading); font-variant-numeric: tabular-nums; }
+.ml-tag { padding: 1px 6px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: .68rem; font-weight: 700; }
+.ml-pessoas-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ml-todos { margin: 0; }
+.ml-todos input { accent-color: var(--vfn-yellow); }
+.ml-pessoas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; align-content: start; }
+.ml-pessoa { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font-size: .88rem; font-weight: 600; cursor: pointer; user-select: none; }
+.ml-pessoa:hover { border-color: var(--vfn-yellow); }
+.ml-pessoa:focus-within { outline: 2px solid var(--vfn-yellow); outline-offset: 2px; }
+.ml-pessoa input { width: 18px; height: 18px; min-height: 0; margin: 0; flex: 0 0 auto; accent-color: var(--vfn-yellow); }
+.ml-pessoa.ativo { border-color: var(--vfn-yellow); background: rgba(255, 215, 0, .16); }
+.ml-pessoa-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-pessoa small { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.ml-vazio { margin: 8px 2px; font-size: .85rem; }
+.ml-detalhes { display: grid; grid-template-columns: 170px 170px minmax(0, 1fr); gap: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.ml-detalhes .field { margin: 0; }
+.ml-acoes { align-items: center; margin-top: 0; }
+.ml-total { margin-right: auto; color: var(--fg); font-size: .92rem; }
+.ml-total strong { color: var(--heading); }
+@media (max-width: 760px) {
+  .modal-overlay:has(.modal-multa-lote) { padding: 0; }
+  .modal-box.modal-multa-lote { max-width: none; height: 100%; max-height: none; border-radius: 0; padding: 16px; }
+  .ml-corpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .ml-tipos { flex: 0 0 auto; flex-direction: row; min-height: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+  .ml-tipo { flex: 0 0 auto; width: auto; max-width: 240px; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; }
+  .ml-tipo-nome { white-space: normal; font-size: .8rem; line-height: 1.2; }
+  .ml-pessoas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ml-pessoa { gap: 8px; padding: 8px; }
+  .ml-pessoa small { display: none; }
+  .ml-detalhes { grid-template-columns: 1fr 1fr; }
+  .ml-desc { grid-column: 1 / -1; }
+  .ml-acoes { flex-wrap: wrap; }
+  .ml-total { flex: 1 0 100%; }
+}
+
+/* V2.0: várias multas escolhidas na tabela do admin */
+.col-escolha { width: 34px; text-align: center; }
+.col-escolha input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--vfn-yellow); cursor: pointer; }
+.fines-table tr.escolhida td { background: rgba(255, 215, 0, .12); }
+.multas-selecao { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; padding: 10px 12px; border: 1px solid var(--vfn-yellow); border-radius: 10px; background: var(--surface); box-shadow: 0 6px 18px rgba(10, 22, 40, .12); }
+.multas-selecao[hidden] { display: none; }
+.multas-selecao strong { margin-right: auto; color: var(--heading); font-size: .9rem; }
+
+/* V2.0: blocos recolhidos (<details class="recolher">) */
+details.recolher { margin-top: 4px; }
+details.recolher > summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--heading); font-size: .88rem; font-weight: 700; cursor: pointer; list-style: none; }
+details.recolher > summary::-webkit-details-marker { display: none; }
+details.recolher > summary::after { content: ""; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s; }
+details.recolher[open] > summary { margin-bottom: 10px; }
+details.recolher[open] > summary::after { transform: rotate(-135deg); }
+details.recolher > summary:focus-visible { outline: 2px solid var(--vfn-yellow); outline-offset: 2px; }
