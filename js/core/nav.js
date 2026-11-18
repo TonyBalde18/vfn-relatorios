@@ -92,6 +92,11 @@
       </header>
       <nav class="vfn-bottom-bar" aria-label="Navegação principal"></nav>`;
     renderVariavel();
+    // V2.0: --vfn-nav-total = altura da barra do topo (as barras de filtros fixas ficam logo abaixo dela)
+    const topo = raiz.querySelector(".vfn-topo");
+    const medir = () => document.documentElement.style.setProperty("--vfn-nav-total", `${topo.offsetHeight || 0}px`);
+    if (window.ResizeObserver) new ResizeObserver(medir).observe(topo);
+    medir();
 
     raiz.addEventListener("click", e => {
       const tab = e.target.closest("button[data-tab]");

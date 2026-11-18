@@ -141,27 +141,41 @@
 
   <!-- MULTAS (só leitura) -->
   <section id="view-multas" class="view">
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">As minhas multas</h2>
-      <div id="eqMinhasMultasResumo" class="summary-tiles"></div>
-      <div id="eqMinhasMultas"></div>
+    <!-- V2.0: filtros no topo, sempre à vista ao fazer scroll; os atalhos mudam os menus -->
+    <div class="multas-filtros" role="search" aria-label="Filtrar multas">
+      <div class="mf-atalhos">
+        <button type="button" class="filter-chip" data-mf="pendentes" aria-pressed="false">Por pagar</button>
+        <button type="button" class="filter-chip" data-mf="mes" aria-pressed="false">Este mês</button>
+        <button type="button" class="filter-chip" data-mf="minhas" aria-pressed="false" hidden>Só as minhas</button>
+      </div>
+      <div class="mf-menus">
+        <label class="sr-only" for="eqMultasMes">Mês</label><select id="eqMultasMes" class="compact-select"></select>
+        <label class="sr-only" for="eqMultasEstado">Estado</label><select id="eqMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Por pagar</option><option value="pago">Pagas</option></select>
+        <label class="sr-only" for="eqMultasJogador">Jogador</label><select id="eqMultasJogador" class="compact-select"></select>
+        <button type="button" id="eqMultasLimpar" class="btn btn-ghost btn-sm" hidden>Limpar filtros</button>
+      </div>
     </div>
-    <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Valores das multas <small class="muted">quanto custa cada infração</small></h2>
-      <div id="eqTabelaMultas"></div>
+    <div class="card" id="eqMinhasMultasCard" data-aos="fade-up" hidden>
+      <div class="hub-card-head"><h2 class="hub-card-title">As minhas multas <small class="muted">época</small></h2><button type="button" id="eqVerMinhas" class="btn btn-ghost btn-sm">Ver só as minhas</button></div>
+      <div id="eqMinhasMultasResumo" class="summary-tiles"></div>
     </div>
     <!-- v20: multas de toda a equipa (jogadores e treinador), para jogadores e equipa técnica -->
     <div id="eqMultasEquipa">
     <div class="card" data-aos="fade-up">
-      <h2 class="hub-card-title">Multas da equipa <small class="muted">por pagar</small></h2>
-      <div id="eqDividas"></div>
-    </div>
-    <div class="card" data-aos="fade-up">
-      <div class="hub-card-head"><h2 class="hub-card-title">Todas as multas</h2>
-        <div class="toolbar toolbar-inline"><label class="sr-only" for="eqMultasJogador">Jogador</label><select id="eqMultasJogador" class="compact-select"></select><label class="sr-only" for="eqMultasEstado">Estado</label><select id="eqMultasEstado" class="compact-select"><option value="">Todos os estados</option><option value="pendente">Pendentes</option><option value="pago">Pagas</option></select></div></div>
+      <h2 class="hub-card-title">Multas <small id="eqMultasContexto" class="muted"></small></h2>
       <div id="eqMultasEquipaResumo" class="summary-tiles"></div>
       <div id="eqMultasTodas"></div>
     </div>
+    <div class="card" data-aos="fade-up">
+      <h2 class="hub-card-title">Multas da equipa <small class="muted">por pagar</small></h2>
+      <div id="eqDividas"></div>
+    </div>
+    </div>
+    <div class="card" data-aos="fade-up">
+      <details class="recolher">
+        <summary id="eqTabelaMultasResumo">Ver os preços das multas</summary>
+        <div id="eqTabelaMultas"></div>
+      </details>
     </div>
   </section>
 

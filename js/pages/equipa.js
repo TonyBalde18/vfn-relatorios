@@ -269,11 +269,11 @@ function linhasMultasHTML(lista, comJogador) {
     <tbody>${lista.map(f => {
       const p = pessoa(f.player_id);
       const fora = !p && VFN.eContribuicao(f) && f.contributor_name; // contribuição de alguém de fora do plantel (v1.1)
-      return `<tr>${comJogador ? `<td data-v="${esc(VFN.nomeNaMulta(f, pessoa))}">${p ? `<span class="player-cell">${VFN.avatarJogador(p, "avatar-xs")}<span>${esc(p.nome)}</span></span>` : fora ? VFN.celulaContribuidorHTML(f.contributor_name) : '<span class="muted">Jogador removido</span>'}</td>` : ""}
-        <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
-        <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
-        <td>${VFN.estadoMultaHTML(f)}</td>
-        <td data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td></tr>`;
+      return `<tr>${comJogador ? `<td class="c-jog" data-v="${esc(VFN.nomeNaMulta(f, pessoa))}">${p ? `<span class="player-cell">${VFN.avatarJogador(p, "avatar-xs")}<span>${esc(p.nome)}</span></span>` : fora ? VFN.celulaContribuidorHTML(f.contributor_name) : '<span class="muted">Jogador removido</span>'}</td>` : ""}
+        <td class="fine-infraction c-inf">${VFN.infracaoMultaHTML(f)}</td>
+        <td class="num c-val" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
+        <td class="c-est">${VFN.estadoMultaHTML(f)}</td>
+        <td class="c-data" data-v="${esc(f.match_date || "")}">${esc(VFN.dataDDMMAAAA(f.match_date) || "—")}</td></tr>`;
     }).join("")}</tbody></table></div>`;
 }
 
@@ -288,36 +288,57 @@ function tabelaValoresMultasHTML() {
 
 const porData = (a, b) => String(b.match_date || "").localeCompare(String(a.match_date || ""));
 
+/**
+ * V2.0: uma só lista de multas com filtros no topo (mês, estado, jogador) e atalhos (Por pagar, Este mês,
+ * Só as minhas). "As minhas multas" fica só com os totais da época. Os preços ficam recolhidos no fim.
+ */
 function renderMultas() {
   const euro = v => VFN.formatoEuro.format(v);
+  const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  $("eqMinhasMultasCard").hidden = !eu;
   if (eu) {
     // as minhas multas (sem as contribuições, que não são multas; essas aparecem na lista da equipa)
-    const minhas = dados.fines.filter(f => String(f.player_id) === String(eu.id) && !VFN.eContribuicao(f)).sort(porData);
-    const soma = l => l.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+    const minhas = dados.fines.filter(f => String(f.player_id) === String(eu.id) && !VFN.eContribuicao(f));
     $("eqMinhasMultasResumo").innerHTML = `<div class="summary-tile tile-pendente"><span>Por pagar</span><strong>${euro(soma(minhas.filter(f => !f.paid)))}</strong></div>
       <div class="summary-tile tile-pago"><span>Pago</span><strong>${euro(soma(minhas.filter(f => f.paid)))}</strong></div>
       <div class="summary-tile"><span>Nº de multas</span><strong>${minhas.length}</strong></div>`;
-    $("eqMinhasMultas").innerHTML = linhasMultasHTML(minhas, false);
-  } else {
-    $("eqMinhasMultasResumo").innerHTML = "";
-    $("eqMinhasMultas").innerHTML = H.vazio("Só para jogadores.");
   }
   $("eqTabelaMultas").innerHTML = tabelaValoresMultasHTML();
+  $("eqTabelaMultasResumo").textContent = `Ver os preços das multas (${VFN.TIPOS_MULTA.length} infrações)`;
   // v20: jogadores e equipa técnica veem as multas de todos (incluindo as do treinador)
   $("eqDividas").innerHTML = VFNComp.renderDebtReport(dados.fines, { pessoa });
-  const sel = $("eqMultasJogador");
-  const atual = sel.value;
+  // menus (mantêm a escolha)
+  const manter = (id, html) => { const sel = $(id), v = sel.value; sel.innerHTML = html; if ([...sel.options].some(o => o.value === v)) sel.value = v; };
+  manter("eqMultasMes", '<option value="">Época inteira</option>' + VFN.mesesDaEpoca(new Date()).map(m => `<option value="${m.valor}">${esc(m.rotulo)}</option>`).join(""));
   // quem tem multas além do plantel (o treinador) também aparece no filtro
   const extra = [...new Set(dados.fines.map(f => String(f.player_id)))].filter(id => !jogadores.some(j => String(j.id) === id)).map(pessoa).filter(Boolean);
-  sel.innerHTML = '<option value="">Todos</option>' + [...jogadores, ...extra].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => `<option value="${esc(j.id)}">${esc(j.nome)}</option>`).join("");
-  sel.value = atual;
-  const estado = $("eqMultasEstado").value;
+  manter("eqMultasJogador", '<option value="">Todos os jogadores</option>' + [...jogadores, ...extra].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map(j => `<option value="${esc(j.id)}">${esc(j.nome)}</option>`).join(""));
+  const mes = $("eqMultasMes").value, estado = $("eqMultasEstado").value, jogador = $("eqMultasJogador").value;
+  // atalhos: ligados quando o menu correspondente tem esse valor
+  const atalhos = { pendentes: estado === "pendente", mes: !!mes && mes === VFN.mesAtual(), minhas: !!eu && jogador === String(eu.id) };
+  document.querySelectorAll("#view-multas [data-mf]").forEach(b => {
+    if (b.dataset.mf === "minhas") b.hidden = !eu;
+    b.classList.toggle("active", atalhos[b.dataset.mf]);
+    b.setAttribute("aria-pressed", String(atalhos[b.dataset.mf]));
+  });
+  $("eqMultasLimpar").hidden = !mes && !estado && !jogador;
   const todas = dados.fines
-    .filter(f => !sel.value || String(f.player_id) === sel.value)
+    .filter(f => !mes || String(f.match_date || "").startsWith(mes))
+    .filter(f => !jogador || String(f.player_id) === jogador)
     .filter(f => !estado || (estado === "pago" ? f.paid : !f.paid))
     .sort(porData);
+  const partes = [mes ? $("eqMultasMes").selectedOptions[0].textContent : "época", estado ? (estado === "pago" ? "pagas" : "por pagar") : "", jogador ? $("eqMultasJogador").selectedOptions[0].textContent : ""].filter(Boolean);
+  $("eqMultasContexto").textContent = `${todas.length} · ${partes.join(" · ")}`;
   $("eqMultasEquipaResumo").innerHTML = VFN.resumoMultasHTML(todas); // v1.1: as contribuições somam ao arrecadado
-  $("eqMultasTodas").innerHTML = linhasMultasHTML(todas, true);
+  $("eqMultasTodas").innerHTML = todas.length ? linhasMultasHTML(todas, true) : H.vazio("Nenhuma multa com estes filtros.");
+}
+
+/** Atalhos dos filtros das multas: ligam/desligam o valor no menu correspondente. */
+function alternarAtalhoMultas(qual) {
+  if (qual === "pendentes") $("eqMultasEstado").value = $("eqMultasEstado").value === "pendente" ? "" : "pendente";
+  else if (qual === "mes") { const atual = VFN.mesAtual(); const sel = $("eqMultasMes"); sel.value = sel.value === atual ? "" : ([...sel.options].some(o => o.value === atual) ? atual : ""); }
+  else if (qual === "minhas" && eu) $("eqMultasJogador").value = $("eqMultasJogador").value === String(eu.id) ? "" : String(eu.id);
+  renderMultas();
 }
 
 /* ---------- Gráficos pessoais (Chart.js): só os dados do próprio jogador ---------- */
@@ -600,7 +621,7 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqJornTabela", "tabela", 8);
   H.mostrarEsqueleto("eqJornLista", "resultados", 6);
   H.mostrarEsqueleto("eqCalMes", "calendario");
-  H.mostrarEsqueleto("eqMinhasMultas", "linhas", 4);
+  H.mostrarEsqueleto("eqMultasTodas", "linhas", 4);
   H.mostrarEsqueleto("eqTabelaMultas", "linhas", 5);
   H.mostrarEsqueleto("eqMinhaFicha", "cards", 1);
   H.mostrarEsqueleto("eqPlantelGrid", "linhas", 10);
@@ -665,6 +686,10 @@ async function iniciar() {
     if (c) VFNComp.exportarAnuncioConvocatoria(dados, c.jogo, c.squad, pessoa, b.dataset.anuncio);
   });
   $("eqMultasJogador").addEventListener("change", renderMultas);
+  $("eqMultasMes").addEventListener("change", renderMultas);
+  document.querySelector("#view-multas .mf-atalhos").addEventListener("click", e => { const b = e.target.closest("[data-mf]"); if (b) alternarAtalhoMultas(b.dataset.mf); });
+  $("eqMultasLimpar").addEventListener("click", () => { ["eqMultasMes", "eqMultasEstado", "eqMultasJogador"].forEach(id => { $(id).value = ""; }); renderMultas(); });
+  $("eqVerMinhas").addEventListener("click", () => { if (!eu) return; $("eqMultasJogador").value = String(eu.id); renderMultas(); $("eqMultasTodas").closest(".card").scrollIntoView({ behavior: "smooth", block: "start" }); });
   $("eqStatsPosicao").addEventListener("change", renderEstatisticas);
   $("eqPlantelFiltros").addEventListener("click", e => { const b = e.target.closest("[data-posicao]"); if (b) { filtroPosicaoEq = b.dataset.posicao; renderPlantelEq(); } });
   $("eqHeatmapFiltro").addEventListener("click", e => { const b = e.target.closest("[data-filtro]"); if (b) { filtroHeatmapEquipa = b.dataset.filtro; renderHeatmapsEquipa(); } });
