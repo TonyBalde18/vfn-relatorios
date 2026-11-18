@@ -957,10 +957,36 @@
     ["pointerup", "pointercancel", "pointerout"].forEach(t => document.addEventListener(t, largar));
   }
 
+  /*
+   * V2.0: botão "↑ topo" nas páginas longas: aparece depois de ~1,5 ecrãs de scroll, por cima da barra inferior
+   * no telemóvel. Escondido com uma janela aberta.
+   */
+  function ligarBotaoTopo() {
+    if (document.querySelector(".vfn-topo-btn")) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vfn-topo-btn";
+    b.setAttribute("aria-label", "Voltar ao topo da página");
+    b.title = "Voltar ao topo";
+    b.innerHTML = icone("arrow-up", 20);
+    b.hidden = true;
+    document.body.appendChild(b);
+    b.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: semMovimento() ? "auto" : "smooth" });
+      const alvo = document.querySelector("#vfnNav .vfn-sub-item.active, #vfnNav .vfn-nav-item.active, main");
+      if (alvo && alvo.focus) alvo.focus({ preventScroll: true });
+    });
+    let pedido = 0;
+    const atualizar = () => { pedido = 0; b.hidden = window.scrollY < window.innerHeight * 1.5; };
+    window.addEventListener("scroll", () => { if (!pedido) pedido = requestAnimationFrame(atualizar); }, { passive: true });
+    atualizar();
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     if (temGsap()) { document.documentElement.classList.add("gsap-on"); ligarPressao(); }
     observarModais();
     observarKpis();
+    ligarBotaoTopo();
   });
 
   /* ---------- Ordenação de tabelas por coluna ----------

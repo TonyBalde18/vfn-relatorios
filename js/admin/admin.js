@@ -1899,7 +1899,8 @@ function renderClassificacaoAdmin() {
    os jogos do VFN vêm do Calendário (matches).
    ========================================================= */
 
-const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+// jornada: null = ainda por escolher (abre na jornada atual, V2.0); "" = todas
+const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: null, equipa: "", ordem: "asc" };
 let resultadoEmEdicao = null;
 
 function dadosJornadas() {
@@ -1909,7 +1910,17 @@ function dadosJornadas() {
 function initJornadas() {
   VFNComp.ligarSegmentos(el("jornadasModos"), el("jornadasPaineis"), null, "jornadas"); // no admin abre nas Jornadas (formulário)
   el("jornadasCompeticao").innerHTML = VFN.COMPETICOES_JORNADAS.map(c => `<option>${escapeHtml(c)}</option>`).join("");
-  el("jornadasCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadasAdmin(); });
+  el("jornadasCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = null; filtrosJornadas.equipa = ""; renderJornadasAdmin(); });
+  // ‹ › : jornada anterior / seguinte (de "Todas" passa para a primeira ou a última)
+  const passoJornada = delta => {
+    const lista = VFNHub.jornadasDisponiveis(dadosJornadas(), filtrosJornadas.competicao).map(String);
+    if (!lista.length) return;
+    const i = lista.indexOf(String(filtrosJornadas.jornada || ""));
+    filtrosJornadas.jornada = i < 0 ? lista[delta > 0 ? 0 : lista.length - 1] : lista[Math.min(lista.length - 1, Math.max(0, i + delta))];
+    renderJornadasAdmin();
+  };
+  el("btnJornadaAnterior").addEventListener("click", () => passoJornada(-1));
+  el("btnJornadaSeguinte").addEventListener("click", () => passoJornada(1));
   el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
   el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
   el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
@@ -1960,8 +1971,13 @@ function renderJornadasAdmin() {
   const dados = dadosJornadas();
   el("jornadasCompeticao").value = filtrosJornadas.competicao;
   const jornadas = VFNHub.jornadasDisponiveis(dados, filtrosJornadas.competicao);
+  // V2.0: abre na jornada atual (antes mostrava todas: ~12 000px de página)
+  if (filtrosJornadas.jornada == null && jornadas.length) filtrosJornadas.jornada = String(VFNHub.jornadaAtual(dados, filtrosJornadas.competicao) ?? "");
   el("jornadasFiltroJornada").innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${escapeHtml(VFN.rotuloJornada(filtrosJornadas.competicao, n))}</option>`).join("");
-  el("jornadasFiltroJornada").value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
+  el("jornadasFiltroJornada").value = jornadas.map(String).includes(String(filtrosJornadas.jornada)) ? String(filtrosJornadas.jornada) : "";
+  const iJornada = jornadas.map(String).indexOf(el("jornadasFiltroJornada").value);
+  el("btnJornadaAnterior").disabled = !jornadas.length || iJornada === 0;
+  el("btnJornadaSeguinte").disabled = !jornadas.length || iJornada === jornadas.length - 1;
   const equipas = VFNHub.equipasDasJornadas(dados, filtrosJornadas.competicao);
   el("jornadasFiltroEquipa").innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.nome)}</option>`).join("");
   el("jornadasFiltroEquipa").value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
@@ -1978,7 +1994,7 @@ function renderJornadasAdmin() {
   el("jornadasModos").querySelector(".seg-rotulo-tabela").textContent = taca ? "Bracket" : "Classificação";
   document.querySelectorAll("#tab-jornadas .seg-nome-comp").forEach(s => { s.innerHTML = VFN.nomeCompeticaoHTML(filtrosJornadas.competicao, true); });
   el("jornadasTabela").innerHTML = VFNHub.classificacaoHTML(dados, filtrosJornadas.competicao);
-  el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, editavel: true });
+  el("jornadasLista").innerHTML = VFNHub.jornadasHTML(dados, { ...filtrosJornadas, jornada: el("jornadasFiltroJornada").value, editavel: true });
   const jogadoresVFN = plantel.map(j => ({ ...j, id: idJogadorBD(j), golos: Number(j.golos) || 0 }));
   el("jornadasMarcadoresVFN").innerHTML = VFNHub.marcadoresVFNCompeticaoHTML(dados, jogadoresVFN, filtrosJornadas.competicao, 10);
   el("jornadasMarcadores").innerHTML = VFNHub.marcadoresCampeonatoHTML({ ...dados, external_players: jogadoresExternos }, jogadoresVFN, filtrosJornadas.competicao, 15);

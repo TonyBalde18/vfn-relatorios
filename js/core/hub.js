@@ -1376,6 +1376,21 @@
     return [...new Set(jogosDaJornada(dados, competicao).map(j => j.jornada))].sort((a, b) => a - b);
   }
 
+  /**
+   * V2.0: jornada "atual": a última com jogos até hoje (pela data; é a que se acabou de jogar ou se está a jogar).
+   * Sem datas: a primeira com jogos sem resultado; se estão todas jogadas, a última.
+   */
+  function jornadaAtual(dados, competicao) {
+    const jogos = jogosDaJornada(dados, competicao);
+    const hoje = VFN.dataIso(new Date());
+    const ate = jogos.filter(j => j.data && VFN.dataIso(j.data) <= hoje).map(j => j.jornada);
+    if (ate.length) return Math.max(...ate);
+    const semResultado = j => j.gc == null || j.gf == null || j.gc === "" || j.gf === "";
+    const porJogar = [...new Set(jogos.filter(semResultado).map(j => j.jornada))].sort((a, b) => a - b);
+    const todas = jornadasDisponiveis(dados, competicao);
+    return porJogar.length ? porJogar[0] : todas.length ? todas[todas.length - 1] : null;
+  }
+
   function equipasDasJornadas(dados, competicao) {
     const mapa = new Map();
     jogosDaJornada(dados, competicao).forEach(j => { mapa.set(j.casa.id, j.casa.nome); mapa.set(j.fora.id, j.fora.nome); });
@@ -2176,6 +2191,6 @@
     competicoesComClassificacao, competicaoPreferida, opcoesCompeticaoHTML, classificacaoHTML, formaNaCompeticao, ZONAS_TABELA, legendaZonasHTML,
     marcadores, marcadoresHTML, filtrosPosicaoHTML, plantelHTML,
     filtrosCalendarioHTML, calendarioHTML, calendarioDivididoHTML, alternarOrdemCalendario, esqueleto, mostrarEsqueleto, renderHeatmapGolos, golosDosRelatorios, corCalor, resumoH2H, h2hMiniHTML, h2hHTML, radarJogador, calcularSuspensoes, proximoLimiteAmarelos, emRiscoAmarelos, badgeSuspensao,
-    jogosDaJornada, jornadasDisponiveis, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, abrirDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, estatisticasIniciaisHTML, registosEpoca
+    jogosDaJornada, jornadasDisponiveis, jornadaAtual, marcadoresVFNCompeticaoHTML, equipasDasJornadas, jornadasHTML, jogosDaEquipa, formaEquipaHTML, marcadoresCampeonato, marcadoresCampeonatoHTML, chipsForma, perfilEquipaHTML, relatorioDoJogo, eventosDoRelatorio, detalheJogoHTML, ligarDetalheJogo, abrirDetalheJogo, formaAteJogo, bracketHTML, confrontosPorFase, vencedorConfronto, posicoesPorJornada, graficoPosicao, posicaoNoCampo, geometriaDaFormacao, lugaresPorOmissao, lugaresDoOnzeComSlots, capitaoAtivo, mapaPosicoesHTML, fichaVisualHTML, anelHTML, jogosDisputados, opcoesFicha, minutosListaHTML, onzeCampoHTML, formacaoMaisUsada, onzeEstaticoHTML, calcularOnzeMaisUtilizado, onzeMaisUtilizadoHTML, minutosJogadosEpoca, graficoGolos, minutosDoRelatorio, periodosDoRelatorio, estatisticasGR, calcularStatsGR, competicaoDoRelatorio, relatorioOficial, estatisticasPorJogo, tendenciasJogador, badgeTendencia, onzeMaisUtilizado, presencasPorJogador, rankingPresencasHTML, desempenhoPorCompeticaoHTML, estatisticasIniciaisHTML, registosEpoca
   };
 })();

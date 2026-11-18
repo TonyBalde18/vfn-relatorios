@@ -560,7 +560,7 @@ html.tema-escuro .jf-id-btn.tem { color: #BBF7D0; }
 
 /* V2.0: várias multas escolhidas na tabela do admin */
 .col-escolha { width: 34px; text-align: center; }
-.col-escolha input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--vfn-yellow); cursor: pointer; }
+.col-escolha input { width: 18px; min-width: 0; height: 18px; min-height: 0; margin: 0; accent-color: var(--vfn-yellow); cursor: pointer; }
 .fines-table tr.escolhida td { background: rgba(255, 215, 0, .12); }
 .multas-selecao { position: sticky; top: calc(var(--vfn-nav-total, 0px) + 8px); z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; padding: 10px 12px; border: 1px solid var(--vfn-yellow); border-radius: 10px; background: var(--surface); box-shadow: 0 6px 18px rgba(10, 22, 40, .12); }
 .multas-selecao[hidden] { display: none; }
@@ -611,6 +611,7 @@ html.tema-escuro .multas-filtros .filter-chip[aria-pressed="true"] { background:
   .summary-tile { min-width: 0; padding: 10px; }
   .summary-tile span { font-size: .62rem; letter-spacing: .02em; line-height: 1.25; }
   .summary-tile strong { font-size: 1.1rem; white-space: nowrap; }
+  .summary-tiles.eq-ficha-tiles, .summary-tiles.eq-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* 4 totais: 2 × 2 */
 }
 
 /* V2.0: painel "Mais" (área do jogador, telemóvel): sobe do fundo com todas as secções e separadores */
@@ -622,3 +623,35 @@ html.tema-escuro .multas-filtros .filter-chip[aria-pressed="true"] { background:
 .vfn-mais-item, .vfn-mais-seccao-link { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: .9rem; font-weight: 700; text-align: left; text-decoration: none; cursor: pointer; }
 .vfn-mais-item.active { border-color: var(--vfn-yellow); background: rgba(255, 215, 0, .18); color: var(--heading); }
 .vfn-mais-item:focus-visible, .vfn-mais-seccao-link:focus-visible { outline: 2px solid var(--vfn-yellow); outline-offset: 2px; }
+/* V2.0: banner do plantel para o próximo jogo (dashboard) */
+.banner-estado { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.banner-pill { padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 800; }
+.banner-pill.bom { background: rgba(34, 197, 94, .22); color: #BBF7D0; }
+.banner-pill.mau { background: #B91C1C; color: #fff; }
+.banner-pill.aviso { background: #C2410C; color: #fff; }
+
+/* V2.0: Jornadas (admin): ‹ jornada › */
+.jornada-nav { display: inline-flex; align-items: center; gap: 4px; }
+.jornada-passo { min-width: 36px; padding: 0 10px; font-size: 1.1rem; font-weight: 800; line-height: 1; }
+
+/* V2.0: botão "↑ topo" */
+.vfn-topo-btn { position: fixed; right: 18px; bottom: 22px; z-index: 35; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid rgba(255, 255, 255, .15); border-radius: 50%; background: var(--vfn-navy); color: var(--vfn-yellow); box-shadow: 0 8px 22px rgba(10, 22, 40, .3); cursor: pointer; }
+.vfn-topo-btn[hidden], html.sem-scroll .vfn-topo-btn { display: none; }
+.vfn-topo-btn:hover { transform: translateY(-2px); }
+.vfn-topo-btn:focus-visible { outline: 2px solid var(--vfn-yellow); outline-offset: 3px; }
+html.tema-escuro .vfn-topo-btn { background: var(--surface-2); }
+@media (max-width: 768px) {
+  body.vfn-app .vfn-topo-btn { right: 12px; bottom: calc(72px + env(safe-area-inset-bottom)); width: 42px; height: 42px; }
+}
+
+/* V2.0: ecrãs largos — a lista e as dívidas lado a lado (admin e área do jogador) */
+@media (min-width: 1200px) {
+  #tab-multas.tab-panel.active { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 0 18px; align-items: start; }
+  #tab-multas > .card { grid-column: 1 / -1; min-width: 0; }
+  #tab-multas > .multas-lista-card { grid-column: 1; }
+  #tab-multas > .multas-dividas-card { grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--vfn-nav-total, 0px) + 12px); max-height: calc(100vh - var(--vfn-nav-total, 0px) - 24px); overflow-y: auto; }
+  #tab-multas > .multas-dividas-card .section-header-row { flex-wrap: wrap; }
+  #eqMultasEquipa { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 0 18px; align-items: start; }
+  #eqMultasEquipa > .card { min-width: 0; }
+  #eqMultasEquipa > .card:last-child { position: sticky; top: calc(var(--vfn-nav-total, 0px) + 84px); max-height: calc(100vh - var(--vfn-nav-total, 0px) - 100px); overflow-y: auto; }
+}

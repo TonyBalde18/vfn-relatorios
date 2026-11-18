@@ -623,11 +623,11 @@ function renderBannerProximoJogo() {
   let aberto = window.innerWidth > 640;
   try { const guardado = localStorage.getItem("vfnBannerProximo"); if (guardado) aberto = guardado === "aberto"; } catch (e) { /* ignora */ }
   banner.open = aberto;
+  // V2.0: o jogo, a data e a contagem já estão no "Jogo da Semana" logo abaixo; aqui fica o plantel para esse jogo
   banner.innerHTML = `<summary>
-      <span class="banner-titulo">${VFN.icone("calendar-days", 18)} Próximo jogo</span>
-      <span class="banner-jogo">${H.logoEquipa(H.equipa(dados, jogo.opponent_team_id), nome, "banner-logo")}<strong>${casa ? "VFN vs " + esc(nome) : esc(nome) + " vs VFN"}</strong></span>
-      <span class="banner-quando">${esc(VFN.dataLonga(jogo.date, true))} · <strong data-countdown="${esc(jogo.date)}">${esc(VFN.contagemDecrescente(jogo.date))}</strong></span>
-      ${fora.length + risco.length ? `<span class="banner-contagem">${VFN.icone("triangle-alert", 16)} ${fora.length + risco.length}</span>` : ""}
+      <span class="banner-titulo">${VFN.icone("users", 18)} Plantel para o próximo jogo</span>
+      <span class="banner-jogo"><strong>${casa ? "vs " + esc(nome) : "@ " + esc(nome)}</strong></span>
+      <span class="banner-estado">${fora.length ? `<span class="banner-pill mau">${fora.length} indisponíve${fora.length === 1 ? "l" : "is"}</span>` : '<span class="banner-pill bom">Todos disponíveis</span>'}${risco.length ? `<span class="banner-pill aviso">${risco.length} em risco de suspensão</span>` : ""}</span>
       <span class="banner-seta" aria-hidden="true">${VFN.icone("chevron-down", 18)}</span>
     </summary>
     <div class="banner-corpo">

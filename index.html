@@ -287,7 +287,7 @@
 
   <!-- TAB: MULTAS -->
   <section id="tab-multas" class="tab-panel">
-    <div class="card" data-aos="fade-up">
+    <div class="card multas-lista-card" data-aos="fade-up">
       <div class="section-header-row">
         <h2 class="section-title">Multas</h2>
         <div class="joia-acoes"><span id="joiaEstado" class="joia-estado" role="status"></span><button type="button" id="btnJoiaMes" class="btn btn-ghost btn-sm">Lançar Joia do Mês</button><button type="button" id="btnAddContribuicao" class="btn btn-ghost btn-sm" title="Contribuição voluntária (ex.: 5 € por vitória): soma ao total arrecadado">+ Contribuição</button><button type="button" id="btnAddMulta" class="btn btn-accent btn-sm">+ Lançar multa</button></div>
@@ -310,7 +310,7 @@
       </div>
     </div>
 
-    <div class="card" data-aos="fade-up">
+    <div class="card multas-dividas-card" data-aos="fade-up">
       <div class="section-header-row">
         <h2 class="section-title">Relatório de dívidas</h2>
         <div class="dividas-botoes"><label class="sr-only" for="dividasTipo">Tipo de dívida</label><select id="dividasTipo" class="compact-select"></select><button type="button" id="btnDividasImagem" class="btn btn-accent btn-sm"><i data-icon="image" data-size="16"></i> Gerar Imagem</button><button type="button" id="btnDividasXlsx" class="btn btn-ghost btn-sm"><i data-icon="file-spreadsheet" data-size="16"></i> Exportar XLSX</button></div>
@@ -455,7 +455,7 @@
       <div data-seg-painel="jornadas" hidden>
       <div class="toolbar">
         <button type="button" id="btnNovoResultadoLiga" class="btn btn-accent btn-sm">+ Resultado</button>
-        <label class="toolbar-label" for="jornadasFiltroJornada">Jornada</label><select id="jornadasFiltroJornada"></select>
+        <span class="jornada-nav"><button type="button" id="btnJornadaAnterior" class="btn btn-ghost btn-sm jornada-passo" aria-label="Jornada anterior">‹</button><label class="sr-only" for="jornadasFiltroJornada">Jornada</label><select id="jornadasFiltroJornada"></select><button type="button" id="btnJornadaSeguinte" class="btn btn-ghost btn-sm jornada-passo" aria-label="Jornada seguinte">›</button></span>
         <label class="toolbar-label" for="jornadasFiltroEquipa">Equipa</label><select id="jornadasFiltroEquipa"></select>
         <button type="button" id="btnOrdemJornadas" class="btn btn-ghost btn-sm">Jornada ↑</button>
       </div>
