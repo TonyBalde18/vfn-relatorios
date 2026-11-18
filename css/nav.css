@@ -73,7 +73,13 @@ body.vfn-app .app-footer p { margin: 0; }
 .vfn-menu-item:hover, .vfn-menu-item:focus-visible { background: var(--surface-2); }
 
 /* ---------- Barra secundária ---------- */
-.vfn-nav-secundaria { background: var(--subnav-bg); border-top: 1px solid rgba(255, 255, 255, .05); }
+.vfn-nav-secundaria { position: relative; background: var(--subnav-bg); border-top: 1px solid rgba(255, 255, 255, .05); }
+/* V2.0: há mais separadores escondidos → esbatido e seta desse lado */
+.vfn-sub-seta { position: absolute; top: 0; bottom: 0; z-index: 2; display: none; place-items: center; width: 30px; padding: 0; border: 0; color: #fff; cursor: pointer; }
+.vfn-sub-seta.esq { left: 0; background: linear-gradient(to right, var(--subnav-bg) 55%, transparent); }
+.vfn-sub-seta.dir { right: 0; background: linear-gradient(to left, var(--subnav-bg) 55%, transparent); }
+.vfn-nav-secundaria[data-mais="dir"] .vfn-sub-seta.dir, .vfn-nav-secundaria[data-mais="esq"] .vfn-sub-seta.esq,
+.vfn-nav-secundaria[data-mais="ambos"] .vfn-sub-seta { display: grid; }
 .vfn-sub-grupo { display: flex; gap: 2px; height: var(--subnav-h); padding: 0 24px; overflow-x: auto; scrollbar-width: none; }
 .vfn-sub-grupo::-webkit-scrollbar { display: none; }
 .vfn-sub-grupo[hidden] { display: none; }
@@ -156,6 +162,9 @@ body.vfn-app :where(.stats-table, .plantel-table) > tbody > tr > td { transition
   .vfn-bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-auto-columns: 1fr; grid-auto-flow: column; padding-bottom: env(safe-area-inset-bottom); background: var(--nav-bg); border-top: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 -4px 16px rgba(10, 22, 40, .18); }
   .vfn-bottom-item { display: grid; align-content: center; justify-items: center; gap: 3px; min-height: 58px; border: 0; background: transparent; color: var(--silver); font: inherit; font-size: .7rem; font-weight: 700; text-decoration: none; cursor: pointer; }
   .vfn-bottom-item.active { color: var(--vfn-yellow); box-shadow: inset 0 3px 0 var(--vfn-yellow); }
+  /* V2.0: atalhos (área do jogador): 6 botões, rótulos mais pequenos */
+  .vfn-bottom-bar.com-atalhos .vfn-bottom-item { min-width: 0; padding: 0 2px; font-size: .62rem; }
+  .vfn-bottom-bar.com-atalhos .vfn-nav-rotulo { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   body.vfn-app main, body.vfn-app .public-main { padding: 12px 12px 20px; }
   body.vfn-app .card { padding: 14px; margin-bottom: 12px; }
@@ -603,3 +612,13 @@ html.tema-escuro .multas-filtros .filter-chip[aria-pressed="true"] { background:
   .summary-tile span { font-size: .62rem; letter-spacing: .02em; line-height: 1.25; }
   .summary-tile strong { font-size: 1.1rem; white-space: nowrap; }
 }
+
+/* V2.0: painel "Mais" (área do jogador, telemóvel): sobe do fundo com todas as secções e separadores */
+.vfn-mais { align-items: flex-end; padding: 0; }
+.vfn-mais-painel { max-width: 560px; max-height: min(80vh, 640px); margin: 0 auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; gap: 12px; }
+.vfn-mais-grupos { display: grid; gap: 16px; }
+.vfn-mais-grupo h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--text-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.vfn-mais-itens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.vfn-mais-item, .vfn-mais-seccao-link { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); font: inherit; font-size: .9rem; font-weight: 700; text-align: left; text-decoration: none; cursor: pointer; }
+.vfn-mais-item.active { border-color: var(--vfn-yellow); background: rgba(255, 215, 0, .18); color: var(--heading); }
+.vfn-mais-item:focus-visible, .vfn-mais-seccao-link:focus-visible { outline: 2px solid var(--vfn-yellow); outline-offset: 2px; }

@@ -121,6 +121,14 @@ const NAV_EQUIPA = {
     ] }
   ],
   links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe" }],
+  // V2.0: no telemóvel, atalhos para o que os jogadores mais usam (o resto fica no "Mais")
+  barraInferior: [
+    { rotulo: "Início", icone: "house", seccao: "portal", tab: "visao" },
+    { rotulo: "Calendário", icone: "calendar-days", seccao: "portal", tab: "calendario" },
+    { rotulo: "Convocados", icone: "clipboard-list", seccao: "portal", tab: "convocatoria" },
+    { rotulo: "Multas", icone: "wallet", seccao: "portal", tab: "multas" },
+    { rotulo: "Plantel", icone: "users", seccao: "plantel" }
+  ],
   pesquisa: termo => VFNPortal.filtrarPesquisa(indicePesquisa(), termo),
   aoMudar: vista => mostrarVista(vista)
 };

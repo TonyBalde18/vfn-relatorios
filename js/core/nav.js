@@ -6,6 +6,8 @@
    no telemóvel (≤768px) a principal passa para uma barra inferior. As vistas continuam a ser de cada
    página: a nav só chama cfg.aoMudar(vista) e a página mostra a secção #view-<vista> / #tab-<vista>.
    O endereço guarda a posição (#portal/calendario), para links entre páginas e para recarregar.
+   cfg.barraInferior (V2.0, área do jogador): a barra inferior mostra atalhos para separadores
+   ([{ rotulo, icone, seccao, tab? }]; sem tab = a secção) e um botão "Mais" com todas as secções.
    ========================================================= */
 
 (function () {
@@ -48,12 +50,59 @@
     const lista = seccoes();
     const principais = lista.filter(s => !s.acao);
     $n(".vfn-nav-principal").innerHTML = principais.map(s => itemSeccao(s, "vfn-nav-item")).join("");
-    $n(".vfn-bottom-bar").innerHTML = principais.map(s => itemSeccao(s, "vfn-bottom-item")).join("");
+    $n(".vfn-bottom-bar").innerHTML = cfg.barraInferior ? barraDeAtalhos(lista) : principais.map(s => itemSeccao(s, "vfn-bottom-item")).join("");
+    if ($n(".vfn-mais-grupos")) $n(".vfn-mais-grupos").innerHTML = gruposMais(lista);
     $n(".vfn-acoes-seccao").innerHTML = lista.filter(s => s.acao).map(s => itemSeccao(s, "vfn-acao-seccao")).join("");
-    $n(".vfn-nav-secundaria").innerHTML = lista.filter(s => !hrefDe(s) && s.tabs.length).map(separadores).join("");
+    $n(".vfn-sub-grupos").innerHTML = lista.filter(s => !hrefDe(s) && s.tabs.length).map(separadores).join("");
+    todos(".vfn-sub-grupo").forEach(g => g.addEventListener("scroll", marcarMaisSeparadores, { passive: true }));
     if ($n(".vfn-menu-links")) $n(".vfn-menu-links").innerHTML = (cfg.links || []).filter(visivel).map(l =>
       `<a class="vfn-menu-item" href="${esc(l.href)}"${l.novaJanela ? ' target="_blank" rel="noopener"' : ""}>${icone(l.icone, 16)}<span>${esc(l.rotulo)}</span></a>`).join("");
     VFN.hidratarIcones(document.getElementById("vfnNav"));
+  }
+
+  /** Atalhos da barra inferior (só os que existem para o papel) + "Mais". */
+  function barraDeAtalhos(lista) {
+    const existe = a => lista.some(s => s.id === a.seccao && (!a.tab || s.tabs.some(t => t.id === a.tab)));
+    return cfg.barraInferior.filter(existe).map(a => {
+      const conteudo = `<span class="vfn-nav-ic" aria-hidden="true">${icone(a.icone, 20)}</span><span class="vfn-nav-rotulo">${esc(a.rotulo)}</span>`;
+      return a.tab
+        ? `<button type="button" class="vfn-bottom-item" data-seccao="${esc(a.seccao)}" data-tab="${esc(a.tab)}" data-atalho>${conteudo}</button>`
+        : `<button type="button" class="vfn-bottom-item" data-seccao="${esc(a.seccao)}" data-atalho>${conteudo}</button>`;
+    }).join("") + `<button type="button" class="vfn-bottom-item vfn-mais-btn" aria-haspopup="dialog" aria-expanded="false"><span class="vfn-nav-ic" aria-hidden="true">${icone("layout-grid", 20)}</span><span class="vfn-nav-rotulo">Mais</span></button>`;
+  }
+
+  /** Painel "Mais": todas as secções e separadores (e as secções de outras páginas). */
+  function gruposMais(lista) {
+    return lista.filter(s => !s.acao).map(s => {
+      const href = hrefDe(s);
+      if (href) return `<a class="vfn-mais-seccao-link" href="${esc(href)}">${icone(s.icone, 18)}<span>${esc(s.rotulo)}</span></a>`;
+      return `<section class="vfn-mais-grupo"><h3>${icone(s.icone, 16)}<span>${esc(s.rotulo)}</span></h3><div class="vfn-mais-itens">${s.tabs.map(t => {
+        const th = typeof t.href === "function" ? t.href(papel) : t.href;
+        return th ? `<a class="vfn-mais-item" href="${esc(th)}">${esc(t.rotulo)}</a>`
+          : `<button type="button" class="vfn-mais-item" data-seccao="${esc(s.id)}" data-tab="${esc(t.id)}">${esc(t.rotulo)}</button>`;
+      }).join("")}</div></section>`;
+    }).join("");
+  }
+
+  function abrirMais(abrir) {
+    const painel = $n(".vfn-mais"), botao = $n(".vfn-mais-btn");
+    if (!painel) return;
+    painel.hidden = !abrir;
+    if (botao) botao.setAttribute("aria-expanded", String(abrir));
+    if (abrir) { const ativo = painel.querySelector(".vfn-mais-item.active") || painel.querySelector(".vfn-mais-fechar"); if (ativo) ativo.focus(); }
+    else if (botao && painel.contains(document.activeElement)) botao.focus();
+  }
+
+  /*
+   * Separadores com scroll horizontal: esbatido e seta do lado onde há mais (antes, no telemóvel, separadores
+   * como Multas ou Convocatória ficavam escondidos à direita sem nada que o indicasse).
+   */
+  function marcarMaisSeparadores() {
+    const barra = $n(".vfn-nav-secundaria");
+    const g = barra && barra.querySelector(".vfn-sub-grupo:not([hidden])");
+    if (!g) return;
+    const esq = g.scrollLeft > 4, dir = g.scrollLeft + g.clientWidth < g.scrollWidth - 4;
+    barra.dataset.mais = esq && dir ? "ambos" : esq ? "esq" : dir ? "dir" : "";
   }
 
   function montar(config) {
@@ -88,9 +137,12 @@
             </div>`}
           </div>
         </div>
-        <nav class="vfn-nav-secundaria" aria-label="Separadores da secção"></nav>
+        <nav class="vfn-nav-secundaria" aria-label="Separadores da secção"><button type="button" class="vfn-sub-seta esq" tabindex="-1" aria-hidden="true">${icone("chevron-left", 16)}</button><div class="vfn-sub-grupos"></div><button type="button" class="vfn-sub-seta dir" tabindex="-1" aria-hidden="true">${icone("chevron-right", 16)}</button></nav>
       </header>
-      <nav class="vfn-bottom-bar" aria-label="Navegação principal"></nav>`;
+      <nav class="vfn-bottom-bar${cfg.barraInferior ? " com-atalhos" : ""}" aria-label="Navegação principal"></nav>
+      ${cfg.barraInferior ? `<div class="modal-overlay vfn-mais" hidden><div class="modal-box vfn-mais-painel" role="dialog" aria-modal="true" aria-label="Todas as secções">
+        <div class="modal-cab"><h3 class="modal-title">Ir para</h3><button type="button" class="modal-x vfn-mais-fechar" aria-label="Fechar">×</button></div>
+        <div class="vfn-mais-grupos"></div></div></div>` : ""}`;
     renderVariavel();
     // V2.0: --vfn-nav-total = altura da barra do topo (as barras de filtros fixas ficam logo abaixo dela)
     const topo = raiz.querySelector(".vfn-topo");
@@ -99,11 +151,18 @@
     medir();
 
     raiz.addEventListener("click", e => {
+      if (e.target.closest(".vfn-mais-btn")) return abrirMais(true);
+      if (e.target.classList.contains("vfn-mais") || e.target.closest(".vfn-mais-fechar")) return abrirMais(false);
+      const seta = e.target.closest(".vfn-sub-seta");
+      if (seta) { const g = raiz.querySelector(".vfn-sub-grupo:not([hidden])"); if (g) g.scrollBy({ left: (seta.classList.contains("dir") ? 1 : -1) * g.clientWidth * .6, behavior: "smooth" }); return; }
+      if (e.target.closest(".vfn-mais a")) return abrirMais(false);
       const tab = e.target.closest("button[data-tab]");
-      if (tab) return ir(tab.dataset.seccao, tab.dataset.tab);
+      if (tab) { abrirMais(false); return ir(tab.dataset.seccao, tab.dataset.tab); }
       const sec = e.target.closest("button[data-seccao]");
       if (sec) return ir(sec.dataset.seccao, ultimoTab[sec.dataset.seccao] || "");
     });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && $n(".vfn-mais") && !$n(".vfn-mais").hidden) abrirMais(false); });
+    window.addEventListener("resize", marcarMaisSeparadores);
     if (cfg.conta !== false) ligarMenuConta(); // a página pública não tem conta (cfg.conta === false: botão Entrar nas ações)
     window.addEventListener("hashchange", () => { const r = rotaDoEndereco(); if (r && (r.seccao !== atual.seccao || r.tab !== atual.tab)) ir(r.seccao, r.tab); });
     if (cfg.pesquisa) ligarPesquisa();
@@ -258,7 +317,7 @@
 
   function marcar() {
     ultimoTab[atual.seccao] = atual.tab;
-    todos("[data-seccao]:not([data-tab])").forEach(b => {
+    todos("[data-seccao]:not([data-tab]):not([data-atalho])").forEach(b => {
       const ativo = b.dataset.seccao === atual.seccao;
       b.classList.toggle("active", ativo);
       if (ativo) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
@@ -268,8 +327,21 @@
       const ativo = b.dataset.seccao === atual.seccao && b.dataset.tab === atual.tab;
       b.classList.toggle("active", ativo);
       b.setAttribute("aria-selected", String(ativo));
-      if (ativo && b.scrollIntoView && b.parentElement.scrollWidth > b.parentElement.clientWidth) b.scrollIntoView({ block: "nearest", inline: "center" });
+      if (ativo && b.parentElement.scrollWidth > b.parentElement.clientWidth) {
+        const g = b.parentElement; // centra o separador ativo só na barra (scrollIntoView também mexia na página)
+        g.scrollLeft = b.offsetLeft - (g.clientWidth - b.offsetWidth) / 2;
+      }
     });
+    // barra inferior com atalhos: o atalho do separador atual (ou da secção); senão fica o "Mais"
+    let algum = false;
+    todos(".vfn-bottom-item[data-atalho]").forEach(b => {
+      const ativo = b.dataset.seccao === atual.seccao && (!b.dataset.tab || b.dataset.tab === atual.tab);
+      b.classList.toggle("active", ativo);
+      if (ativo) { algum = true; b.setAttribute("aria-current", "page"); } else b.removeAttribute("aria-current");
+    });
+    if ($n(".vfn-mais-btn")) $n(".vfn-mais-btn").classList.toggle("active", !algum);
+    todos(".vfn-mais-item").forEach(b => b.classList.toggle("active", b.dataset.seccao === atual.seccao && b.dataset.tab === atual.tab));
+    requestAnimationFrame(marcarMaisSeparadores);
     document.body.dataset.seccao = atual.seccao;
     const s = cfg.seccoes.find(x => x.id === atual.seccao);
     $n(".vfn-titulo-seccao").textContent = s ? s.rotulo : ""; // telemóvel: a barra principal está em baixo
