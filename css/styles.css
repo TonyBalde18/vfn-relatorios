@@ -481,16 +481,6 @@ td select, td input { min-width: 100px; }
 .modal-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .modal-x { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .modal-x:hover, .modal-x:focus-visible { background: rgba(10, 22, 40, .08); color: var(--vfn-navy); }
-/* Jornadas: o formulário muda-se para o modal ao editar um resultado */
-.modal-box.modal-resultado { max-width: 720px; }
-.modal-resultado .jornada-form { grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; padding: 0; border: 0; background: none; }
-.modal-resultado .jf-jornada, .modal-resultado .jf-data { grid-column: span 3; }
-.modal-resultado .jf-vencedor { grid-column: 1 / -1; }
-.modal-resultado .jf-casa { grid-column: 1 / span 2; }
-.modal-resultado .jf-golos { grid-column: span 1; }
-.modal-resultado .jf-fora { grid-column: span 2; }
-.modal-resultado .jf-acoes { padding-top: 6px; border-top: 1px solid var(--border-color); }
-@media (max-width: 560px) { .modal-resultado .jf-casa, .modal-resultado .jf-fora { grid-column: 1 / -1; } .modal-resultado .jf-golos { grid-column: span 3; } }
 
 /* ---------- Tactical sections ---------- */
 .tatical-card { border-top: 4px solid var(--dark-khaki); }
@@ -889,35 +879,12 @@ body {
 .jj-acoes { display: flex; justify-content: flex-end; }
 .jj-tag { padding: 2px 8px; border-radius: 999px; background: var(--vfn-navy); color: var(--vfn-yellow); font-size: .68rem; font-weight: 800; }
 .jj-marcadores { grid-column: 1 / -1; margin: 2px 0 0; color: var(--text-muted); font-size: .78rem; text-align: center; }
-/* Formulário de jornadas: grelha de 12 colunas (6 no tablet/telemóvel).
-   Linha 1: jornada/fase, data, vencedor · Linha 2: casa, golos, golos, fora · depois notas, marcadores e botões */
-.jornada-form { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: start; padding: 14px; margin-bottom: 8px; border-radius: 10px; background: rgba(10, 22, 40, .04); border: 1px dashed var(--border-color); }
-.jornada-form .field { min-width: 0; margin: 0; }
-.jornada-form label { display: block; white-space: normal; overflow: visible; line-height: 1.25; }
-.jornada-form input, .jornada-form select { width: 100%; min-width: 0; }
-.jf-jornada { grid-column: span 2; }
-.jf-data { grid-column: span 3; }
-.jf-vencedor { grid-column: span 7; }
-.jf-casa { grid-column: 1 / span 4; }
-.jf-golos { grid-column: span 2; }
-.jf-golos input { text-align: center; font-weight: 700; }
-.jf-fora { grid-column: span 4; }
-.jf-marcadores { grid-column: 1 / -1; }
-.jf-acoes { grid-column: 1 / -1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
 .toolbar-inline { margin: 0; }
-@media (max-width: 900px) {
-  .jornada-form { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .jf-jornada, .jf-data { grid-column: span 3; }
-  .jf-vencedor, .jf-casa, .jf-fora { grid-column: 1 / -1; }
-  .jf-golos { grid-column: span 3; }
-  .jf-acoes .btn { flex: 1 1 auto; }
-}
 @media (max-width: 520px) {
   .jornada-jogo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 8px; gap: 6px; }
   .jj-acoes { grid-column: 1 / -1; justify-content: center; }
   .jj-equipa { font-size: .78rem; }
   .jj-equipa .team-logo, .jj-equipa .team-logo-placeholder { width: 22px; height: 22px; }
-  .jornada-form { padding: 12px 10px; gap: 10px; }
 }
 
 /* ---------- Ordenação por coluna ---------- */

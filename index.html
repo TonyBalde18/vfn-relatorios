@@ -453,28 +453,8 @@
       <div id="jornadasPaineis">
       <div data-seg-painel="tabela"><div id="jornadasTabela"></div></div>
       <div data-seg-painel="jornadas" hidden>
-      <div class="jornada-form" role="group" aria-label="Adicionar resultado">
-        <div class="field jf-jornada"><label for="jornadaNumero">Jornada</label><input type="number" id="jornadaNumero" min="1" placeholder="Nº"></div>
-        <div class="field jf-jornada" hidden><label for="jornadaFase">Fase</label><select id="jornadaFase"></select></div>
-        <div class="field jf-data"><label for="jornadaData">Data do jogo</label><input type="date" id="jornadaData"></div>
-        <div class="field jf-vencedor" hidden><label for="jornadaVencedor">Vencedor (passa à fase seguinte)</label><select id="jornadaVencedor"></select><small class="muted">Automático pelo resultado; em caso de empate escolhe quem ganhou nos penáltis.</small></div>
-        <div class="field jf-casa"><label for="jornadaCasa">Equipa da casa</label><select id="jornadaCasa"></select></div>
-        <div class="field jf-golos"><label for="jornadaGolosCasa">Golos casa</label><input type="number" id="jornadaGolosCasa" min="0" inputmode="numeric"></div>
-        <div class="field jf-golos"><label for="jornadaGolosFora">Golos fora</label><input type="number" id="jornadaGolosFora" min="0" inputmode="numeric"></div>
-        <div class="field jf-fora"><label for="jornadaFora">Equipa de fora</label><select id="jornadaFora"></select></div>
-        <div class="field jf-marcadores"><label for="jornadaMarcadores">Notas (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: golo de penálti, expulsão aos 80'"></div>
-        <!-- V2.0: marcadores em duas colunas (golos da casa | golos de fora): um golo por linha, com minuto e p.b. -->
-        <div class="jf-lista-marcadores">
-          <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><small class="muted">Um golo por linha. p.b. = autogolo (o jogador é da outra equipa).</small></div>
-          <div id="jornadaMarcadoresLista" class="jf-golos-cols"></div>
-        </div>
-        <div class="jf-acoes">
-          <button type="button" id="btnCancelarResultadoLiga" class="btn btn-ghost btn-sm" hidden>Cancelar</button>
-          <button type="button" id="btnGuardarResultadoLiga" class="btn btn-accent btn-sm">Adicionar resultado</button>
-        </div>
-      </div>
-      <p id="jornadasErro" class="form-error" role="alert"></p>
       <div class="toolbar">
+        <button type="button" id="btnNovoResultadoLiga" class="btn btn-accent btn-sm">+ Resultado</button>
         <label class="toolbar-label" for="jornadasFiltroJornada">Jornada</label><select id="jornadasFiltroJornada"></select>
         <label class="toolbar-label" for="jornadasFiltroEquipa">Equipa</label><select id="jornadasFiltroEquipa"></select>
         <button type="button" id="btnOrdemJornadas" class="btn btn-ghost btn-sm">Jornada ↑</button>
@@ -694,8 +674,44 @@
 <!-- MODAL: Editar resultado das Jornadas AF Guarda (o formulário das Jornadas muda-se para aqui ao editar) -->
 <div id="modalResultadoLiga" class="modal-overlay" hidden>
   <div class="modal-box modal-resultado" role="dialog" aria-modal="true" aria-labelledby="modalResultadoLigaTitulo">
-    <div class="modal-cab"><h3 id="modalResultadoLigaTitulo" class="modal-title">Editar resultado</h3><button type="button" class="modal-x" data-fechar-resultado aria-label="Fechar">×</button></div>
-    <div id="modalResultadoLigaCorpo"></div>
+    <div class="modal-cab"><div class="jf-titulo"><h3 id="modalResultadoLigaTitulo" class="modal-title">Adicionar resultado</h3><span id="jfCompeticao" class="jf-comp"></span></div><button type="button" class="modal-x" data-fechar-resultado aria-label="Fechar">×</button></div>
+    <!-- V2.0: o mesmo modal para adicionar e editar; placar ao centro, marcadores por baixo de cada equipa -->
+    <div class="jornada-form" role="group" aria-labelledby="modalResultadoLigaTitulo">
+      <div class="jf-topo">
+        <div class="field jf-jornada"><label for="jornadaNumero">Jornada</label><input type="number" id="jornadaNumero" min="1" placeholder="Nº" inputmode="numeric"></div>
+        <div class="field jf-jornada" hidden><label for="jornadaFase">Fase</label><select id="jornadaFase"></select></div>
+        <div class="field jf-data"><label for="jornadaData">Data do jogo</label><input type="date" id="jornadaData"></div>
+        <div class="field jf-vencedor" hidden><label for="jornadaVencedor">Vencedor (passa à fase seguinte)</label><select id="jornadaVencedor"></select><small class="muted">Automático pelo resultado; em caso de empate escolhe quem ganhou nos penáltis.</small></div>
+      </div>
+      <div class="jf-placar">
+        <div class="field jf-equipa"><span id="jfEscudoCasa" class="jf-escudo" aria-hidden="true"></span><label for="jornadaCasa">Equipa da casa</label><select id="jornadaCasa"></select></div>
+        <div class="jf-resultado">
+          <div class="jf-golos">
+            <button type="button" class="jf-passo" data-passo="jornadaGolosCasa" data-delta="1" aria-label="Mais um golo da casa">+</button>
+            <input type="number" id="jornadaGolosCasa" min="0" max="99" inputmode="numeric" placeholder="–" aria-label="Golos da equipa da casa">
+            <button type="button" class="jf-passo" data-passo="jornadaGolosCasa" data-delta="-1" aria-label="Menos um golo da casa">−</button>
+          </div>
+          <span class="jf-traco" aria-hidden="true">–</span>
+          <div class="jf-golos">
+            <button type="button" class="jf-passo" data-passo="jornadaGolosFora" data-delta="1" aria-label="Mais um golo de fora">+</button>
+            <input type="number" id="jornadaGolosFora" min="0" max="99" inputmode="numeric" placeholder="–" aria-label="Golos da equipa de fora">
+            <button type="button" class="jf-passo" data-passo="jornadaGolosFora" data-delta="-1" aria-label="Menos um golo de fora">−</button>
+          </div>
+        </div>
+        <div class="field jf-equipa"><span id="jfEscudoFora" class="jf-escudo" aria-hidden="true"></span><label for="jornadaFora">Equipa de fora</label><select id="jornadaFora"></select></div>
+      </div>
+      <div class="jf-lista-marcadores">
+        <div class="jf-marcadores-cab"><span class="toolbar-label">Marcadores (opcional)</span><small class="muted">Uma linha por golo (aparecem pelo resultado). p.b. = autogolo: o jogador é da outra equipa.</small></div>
+        <div id="jornadaMarcadoresLista" class="jf-golos-cols"></div>
+      </div>
+      <div class="field jf-notas"><label for="jornadaMarcadores">Notas (opcional)</label><input type="text" id="jornadaMarcadores" placeholder="Ex: golo de penálti, expulsão aos 80'"></div>
+    </div>
+    <p id="jornadasErro" class="form-error" role="alert"></p>
+    <div class="modal-actions jf-acoes">
+      <button type="button" id="btnCancelarResultadoLiga" class="btn btn-ghost">Cancelar</button>
+      <button type="button" id="btnGuardarOutroResultadoLiga" class="btn btn-ghost">Guardar e adicionar outro</button>
+      <button type="button" id="btnGuardarResultadoLiga" class="btn btn-accent">Guardar resultado</button>
+    </div>
   </div>
 </div>
 

@@ -1913,7 +1913,17 @@ function initJornadas() {
   el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
   el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
   el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
-  el("btnGuardarResultadoLiga").addEventListener("click", guardarResultadoLiga);
+  el("btnGuardarResultadoLiga").addEventListener("click", () => guardarResultadoLiga(false));
+  el("btnGuardarOutroResultadoLiga").addEventListener("click", () => guardarResultadoLiga(true));
+  el("btnNovoResultadoLiga").addEventListener("click", novoResultadoLiga);
+  // placar: + e − nos golos (o campo continua a aceitar escrever)
+  document.querySelectorAll(".jf-passo").forEach(b => b.addEventListener("click", () => {
+    const campo = el(b.dataset.passo);
+    const atual = Number(campo.value) || 0; // vazio: + dá 1, − dá 0
+    campo.value = Math.min(99, Math.max(0, atual + Number(b.dataset.delta)));
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+    campo.dispatchEvent(new Event("change", { bubbles: true }));
+  }));
   el("jornadaFase").innerHTML = VFN.FASES_TACA.map(([k, nome], i) => `<option value="${k}" data-jornada="${i + 1}">${escapeHtml(nome)}</option>`).join("");
   ["jornadaCasa", "jornadaFora", "jornadaGolosCasa", "jornadaGolosFora"].forEach(id => el(id).addEventListener("change", () => renderVencedorForm()));
   // sugere a data do jogo do VFN da mesma jornada (as jornadas jogam-se no mesmo fim de semana)
@@ -1922,7 +1932,7 @@ function initJornadas() {
     const jogo = VFN.jogosDoVFN(jogosCalendario).find(j => j.competition === filtrosJornadas.competicao && String(j.jornada) === el("jornadaNumero").value);
     if (jogo) el("jornadaData").value = VFN.dataIso(jogo.date);
   });
-  el("btnCancelarResultadoLiga").addEventListener("click", () => limparFormJornada());
+  el("btnCancelarResultadoLiga").addEventListener("click", fecharModalResultado);
   el("jornadasLista").addEventListener("click", e => {
     const botao = e.target.closest("[data-acao]");
     if (!botao) return;
@@ -1958,6 +1968,7 @@ function renderJornadasAdmin() {
   el("btnOrdemJornadas").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
   // as equipas podem chegar depois do primeiro render: reconstrói os menus mantendo a escolha
   ["jornadaCasa", "jornadaFora"].forEach(id => { const v = el(id).value; el(id).innerHTML = opcoesEquipasLiga(v); });
+  renderEscudosForm();
   const taca = VFN.eliminatorias(filtrosJornadas.competicao);
   el("jornadaNumero").closest(".field").hidden = taca;
   el("jornadaFase").closest(".field").hidden = !taca;
@@ -1999,7 +2010,6 @@ function focarResultadoEditado(id) {
 }
 
 function limparFormJornada(manterJornada) {
-  const editado = resultadoEmEdicao && resultadoEmEdicao.id;
   resultadoEmEdicao = null;
   const jornada = manterJornada ? el("jornadaNumero").value : "";
   el("jornadaNumero").value = jornada;
@@ -2008,33 +2018,47 @@ function limparFormJornada(manterJornada) {
   el("jornadaFora").innerHTML = opcoesEquipasLiga("");
   ["jornadaGolosCasa", "jornadaGolosFora", "jornadaMarcadores"].forEach(id => { el(id).value = ""; });
   marcadoresForm = [];
+  renderVencedorForm();
+  renderEscudosForm();
   renderMarcadoresForm();
-  el("btnGuardarResultadoLiga").textContent = "Adicionar resultado";
-  el("btnCancelarResultadoLiga").hidden = true;
   mostrarErroAdmin("jornadasErro", null);
-  devolverFormJornada();
-  focarResultadoEditado(editado);
 }
 
-/*
- * Editar um resultado abre o formulário das Jornadas num modal (o mesmo formulário, que se muda
- * para lá e volta ao fechar); adicionar um resultado continua no topo da página.
- */
-let ancoraFormJornada = null;
+/** Escudos ao lado das equipas escolhidas (placar do modal). */
+function renderEscudosForm() {
+  [["jornadaCasa", "jfEscudoCasa"], ["jornadaFora", "jfEscudoFora"]].forEach(([sel, alvo]) => {
+    const equipa = equipaPorId(el(sel).value);
+    el(alvo).innerHTML = equipa ? logoEquipaHTML(equipa, equipa.name) : "";
+  });
+}
 
-function abrirFormJornadaEmModal() {
-  const form = document.querySelector(".jornada-form");
-  if (!form) return;
-  if (!ancoraFormJornada) { ancoraFormJornada = document.createComment("formulário das Jornadas"); form.before(ancoraFormJornada); }
-  el("modalResultadoLigaCorpo").append(form, el("jornadasErro"));
+/**
+ * V2.0: um só modal para adicionar e editar (antes adicionar era um formulário no topo da página).
+ * modo "novo": mostra "Guardar e adicionar outro"; modo "editar": "Guardar alterações".
+ */
+function abrirModalResultado(modo) {
+  const editar = modo === "editar";
+  el("modalResultadoLigaTitulo").textContent = editar ? "Editar resultado" : "Adicionar resultado";
+  el("jfCompeticao").innerHTML = VFN.nomeCompeticaoHTML(filtrosJornadas.competicao, true);
+  el("btnGuardarResultadoLiga").textContent = editar ? "Guardar alterações" : "Guardar resultado";
+  el("btnGuardarOutroResultadoLiga").hidden = editar;
   abrirModalAdmin("modalResultadoLiga");
 }
 
-function devolverFormJornada() {
-  const form = document.querySelector(".jornada-form");
-  if (!ancoraFormJornada || !form || !el("modalResultadoLigaCorpo").contains(form)) return;
-  ancoraFormJornada.after(form, el("jornadasErro"));
+function novoResultadoLiga() {
+  limparFormJornada(true); // mantém a jornada e a data do último resultado lançado
+  if (!el("jornadaNumero").value && filtrosJornadas.jornada) el("jornadaNumero").value = filtrosJornadas.jornada;
+  abrirModalResultado("novo");
+  const taca = VFN.eliminatorias(filtrosJornadas.competicao);
+  (taca || el("jornadaNumero").value ? el("jornadaCasa") : el("jornadaNumero")).focus();
+}
+
+/** Fechar (×, Cancelar, fora ou Esc): descarta o que estava no formulário. */
+function fecharModalResultado() {
+  const editado = resultadoEmEdicao && resultadoEmEdicao.id;
+  limparFormJornada(!editado); // ao editar não fica a jornada do resultado editado para o próximo
   fecharModalAdmin("modalResultadoLiga");
+  focarResultadoEditado(editado);
 }
 
 function editarResultadoLiga(r) {
@@ -2053,14 +2077,14 @@ function editarResultadoLiga(r) {
   el("jornadaVencedor").value = r.winner_id || el("jornadaVencedor").value;
   marcadoresForm = (Array.isArray(r.scorer_list) ? r.scorer_list : []).flatMap(s => Array.from({ length: s.minute != null ? 1 : Math.max(1, Number(s.count) || 1) }, () =>
     ({ lado: String(s.team_id) === String(r.away_team_id) ? "fora" : "casa", player_id: s.player_id || "", player_name: s.player_name || "", minute: s.minute != null ? Number(s.minute) : null, pb: !!s.own_goal })));
+  sincronizarLinhasGolos();
+  renderEscudosForm();
   renderMarcadoresForm();
-  el("btnGuardarResultadoLiga").textContent = "Guardar alterações";
-  el("btnCancelarResultadoLiga").hidden = false;
   mostrarErroAdmin("jornadasErro", null);
-  abrirFormJornadaEmModal();
+  abrirModalResultado("editar");
 }
 
-async function guardarResultadoLiga() {
+async function guardarResultadoLiga(continuar) {
   const taca = VFN.eliminatorias(filtrosJornadas.competicao);
   // nas taças só a fase é obrigatória: a jornada fica a null
   const jornada = taca ? null : Number(el("jornadaNumero").value);
@@ -2084,8 +2108,8 @@ async function guardarResultadoLiga() {
   const data = el("jornadaData").value;
   if (data) linha.match_date = data;
   else if (resultadoEmEdicao && "match_date" in resultadoEmEdicao) linha.match_date = null;
-  const botao = el("btnGuardarResultadoLiga");
-  botao.disabled = true;
+  const botoes = [el("btnGuardarResultadoLiga"), el("btnGuardarOutroResultadoLiga")];
+  botoes.forEach(b => { b.disabled = true; });
   try {
     const listaMarcadores = await gravarMarcadoresForm(casa, fora);
     // scorer_list só vai no pedido quando há marcadores (ou já existia), para funcionar antes do SQL v3
@@ -2103,12 +2127,16 @@ async function guardarResultadoLiga() {
       gravado = await dadosClube.guardar("league_results", linha);
     }
     resultadosLiga = resultadosLiga.filter(r => String(r.id) !== String(gravado.id)).concat(gravado);
-    limparFormJornada(true); // mantém a jornada para lançar os jogos seguintes
+    const editado = resultadoEmEdicao && resultadoEmEdicao.id;
+    limparFormJornada(true); // mantém a jornada e a data para lançar os jogos seguintes
     renderJornadasAdmin();
+    if (continuar) { el("jornadaCasa").focus(); return; } // "Guardar e adicionar outro": o modal fica aberto
+    fecharModalAdmin("modalResultadoLiga");
+    focarResultadoEditado(editado);
   } catch (e) {
     el("jornadasErro").textContent = mensagemErro(e);
   } finally {
-    botao.disabled = false;
+    botoes.forEach(b => { b.disabled = false; });
   }
 }
 
@@ -2117,7 +2145,7 @@ async function apagarResultadoLiga(r) {
   try {
     await dadosClube.remover("league_results", r.id);
     resultadosLiga = resultadosLiga.filter(x => x !== r);
-    if (resultadoEmEdicao === r) limparFormJornada();
+    if (resultadoEmEdicao === r) fecharModalResultado();
     renderJornadasAdmin();
   } catch (e) {
     alert(mensagemErro(e));
@@ -2142,6 +2170,26 @@ function equipaDoLado(lado) {
 /** Equipa a que pertence o jogador de uma linha: a da coluna; num autogolo, a outra. */
 const equipaDoJogadorLinha = m => equipaDoLado(m.pb ? (m.lado === "casa" ? "fora" : "casa") : m.lado);
 
+/**
+ * V2.0: uma linha por golo, pelo resultado escrito (2–1 → 2 linhas na casa e 1 fora). Se o resultado baixar,
+ * só saem linhas vazias (as que têm nome ficam, e o contador "3 de 2" avisa).
+ */
+function sincronizarLinhasGolos() {
+  ["casa", "fora"].forEach(lado => {
+    const valor = el(lado === "casa" ? "jornadaGolosCasa" : "jornadaGolosFora").value;
+    if (valor === "") return;
+    const total = Math.max(0, Math.min(99, Number(valor) || 0));
+    let linhas = marcadoresForm.filter(m => m.lado === lado);
+    while (linhas.length < total) { marcadoresForm.push({ lado, player_id: "", player_name: "", minute: null, pb: false }); linhas = marcadoresForm.filter(m => m.lado === lado); }
+    for (let i = linhas.length - 1; i >= 0 && linhas.length > total; i--) {
+      const m = linhas[i];
+      if (m.player_name || m.player_id || m.minute != null) continue;
+      marcadoresForm.splice(marcadoresForm.indexOf(m), 1);
+      linhas = marcadoresForm.filter(x => x.lado === lado);
+    }
+  });
+}
+
 function renderMarcadoresForm() {
   const golosEscritos = lado => el(lado === "casa" ? "jornadaGolosCasa" : "jornadaGolosFora").value;
   el("jornadaMarcadoresLista").innerHTML = ["casa", "fora"].map(lado => {
@@ -2151,13 +2199,15 @@ function renderMarcadoresForm() {
     const conta = total !== "" ? `<small class="jf-golos-conta${linhas.length === Number(total) ? " ok" : ""}">${linhas.length} de ${total}</small>` : "";
     return `<section class="jf-golos-col" data-lado="${lado}">
       <div class="jf-golos-cab"><strong>Golos ${escapeHtml(equipa ? equipa.name : lado === "casa" ? "da casa" : "de fora")}</strong>${conta}<button type="button" class="btn btn-ghost btn-sm" data-add-golo="${lado}">+ Golo</button></div>
-      ${linhas.map(({ m, i }) => `<div class="marcador-linha" data-i="${i}">
-        <input type="text" data-campo="player_name" placeholder="${m.pb ? "Jogador (da outra equipa)" : "Nome do jogador"}" value="${escapeHtml(m.player_name || "")}" aria-label="Marcador">
-        <input type="text" data-campo="player_id" inputmode="numeric" placeholder="ID" value="${escapeHtml(m.player_id || "")}" aria-label="ID Zerozero">
+      ${linhas.map(({ m, i }, n) => `<div class="marcador-linha" data-i="${i}">
+        <span class="jf-golo-n" aria-hidden="true">${n + 1}</span>
+        <input type="text" data-campo="player_name" placeholder="${m.pb ? "Jogador (da outra equipa)" : "Nome do jogador"}" value="${escapeHtml(m.player_name || "")}" aria-label="Marcador do ${n + 1}.º golo">
         <input type="number" data-campo="minute" min="1" max="130" placeholder="Min." value="${m.minute != null ? Number(m.minute) : ""}" aria-label="Minuto">
-        <label class="jf-pb" title="Autogolo: o jogador é da outra equipa"><input type="checkbox" data-campo="pb" ${m.pb ? "checked" : ""}> p.b.</label>
+        <label class="jf-pb" title="Autogolo: o jogador é da outra equipa"><input type="checkbox" data-campo="pb" ${m.pb ? "checked" : ""}><span>p.b.</span></label>
+        <button type="button" class="jf-id-btn${m.player_id ? " tem" : ""}" data-mostrar-id="${i}" aria-expanded="${!!m.verId}" title="${m.player_id ? "ID zerozero " + escapeHtml(m.player_id) : "ID zerozero (opcional)"}">ID</button>
         <button type="button" class="icon-btn danger" data-remover="${i}" title="Remover golo" aria-label="Remover golo">${VFN.icone("x", 14)}</button>
-      </div>`).join("") || '<p class="muted jf-golos-vazio">Sem golos lançados.</p>'}
+        ${m.verId ? `<input type="text" class="jf-id" data-campo="player_id" inputmode="numeric" placeholder="ID zerozero (só algarismos)" value="${escapeHtml(m.player_id || "")}" aria-label="ID zerozero">` : ""}
+      </div>`).join("") || '<p class="muted jf-golos-vazio">Sem golos. Escreve o resultado ou usa + Golo.</p>'}
     </section>`;
   }).join("");
 }
@@ -2220,6 +2270,15 @@ function initMarcadoresForm() {
       linhas[linhas.length - 1].querySelector("[data-campo=player_name]").focus();
       return;
     }
+    const verId = e.target.closest("[data-mostrar-id]");
+    if (verId) {
+      const m = marcadoresForm[Number(verId.dataset.mostrarId)];
+      m.verId = !m.verId;
+      renderMarcadoresForm();
+      const campo = lista.querySelector(`.marcador-linha[data-i="${verId.dataset.mostrarId}"] ${m.verId ? ".jf-id" : "[data-mostrar-id]"}`);
+      if (campo) campo.focus();
+      return;
+    }
     const b = e.target.closest("[data-remover]");
     if (b) { marcadoresForm.splice(Number(b.dataset.remover), 1); renderMarcadoresForm(); }
   });
@@ -2241,8 +2300,9 @@ function initMarcadoresForm() {
       : daEquipa.find(p => p.name.toLowerCase() === m.player_name.toLowerCase());
     if (conhecido) { m.player_id = String(conhecido.id); m.player_name = conhecido.name; renderMarcadoresForm(); }
   });
-  ["jornadaCasa", "jornadaFora"].forEach(id => el(id).addEventListener("change", () => { limparMarcadoresDeOutraEquipa(); renderMarcadoresForm(); }));
-  ["jornadaGolosCasa", "jornadaGolosFora"].forEach(id => el(id).addEventListener("input", renderMarcadoresForm)); // contador "2 de 3"
+  ["jornadaCasa", "jornadaFora"].forEach(id => el(id).addEventListener("change", () => { limparMarcadoresDeOutraEquipa(); renderEscudosForm(); renderMarcadoresForm(); }));
+  // V2.0: o resultado cria (ou tira, se vazias) as linhas dos marcadores; contador "2 de 3"
+  ["jornadaGolosCasa", "jornadaGolosFora"].forEach(id => el(id).addEventListener("input", () => { sincronizarLinhasGolos(); renderMarcadoresForm(); }));
 }
 
 /**
@@ -2909,11 +2969,11 @@ function initAdmin() {
     el(id).addEventListener("click", e => { if (e.target.id === id) fecharModalAdmin(id); });
   });
   // modal de edição das Jornadas: fechar (×, fora ou Esc) = cancelar a edição
-  el("modalResultadoLiga").addEventListener("click", e => { if (e.target.id === "modalResultadoLiga" || e.target.closest("[data-fechar-resultado]")) limparFormJornada(); });
+  el("modalResultadoLiga").addEventListener("click", e => { if (e.target.id === "modalResultadoLiga" || e.target.closest("[data-fechar-resultado]")) fecharModalResultado(); });
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     ["modalMulta", "modalMultaLote", "modalSessao", "modalJogo", "modalEquipa"].forEach(id => { if (!el(id).hidden) fecharModalAdmin(id); });
-    if (!el("modalResultadoLiga").hidden) limparFormJornada();
+    if (!el("modalResultadoLiga").hidden) fecharModalResultado();
   });
   verificarPapelAdmin();
 
