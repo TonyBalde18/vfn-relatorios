@@ -156,6 +156,10 @@ function mostrarEsqueletos() {
   $("pubHubMarcadores").innerHTML = H.esqueleto("linhas", 5);
   $("pubMinutos").innerHTML = H.esqueleto("linhas", 6);
   $("pubHubMarcadoresCamp").innerHTML = H.esqueleto("linhas", 5);
+  $("pubJornClassificacao").innerHTML = H.esqueleto("tabela", 8);
+  $("pubJornLista").innerHTML = H.esqueleto("resultados", 6);
+  $("pubJornMarcadores").innerHTML = H.esqueleto("linhas", 5);
+  $("pubAdversarios").innerHTML = H.esqueleto("cards", 6);
 }
 
 /* ---------- Jornadas AF Guarda (só leitura) ---------- */

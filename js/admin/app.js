@@ -2470,7 +2470,11 @@ function abrirJogadorDoEndereco() {
   if (j) abrirModalExistente(j);
 }
 
+/** Esconde o ecrã de arranque (#adminArranque) quando aparece a aplicação ou o login. */
+function fecharArranque() { const a = el("adminArranque"); if (a) a.hidden = true; }
+
 function mostrarAplicacao() {
+  fecharArranque();
   el("loginScreen").hidden = true;
   el("appShell").hidden = false;
   VFNNav.definirUtilizador(currentUser ? (currentUser.user_metadata && (currentUser.user_metadata.full_name || currentUser.user_metadata.name) || currentUser.email) : "Modo local", "Administrador");
@@ -2480,6 +2484,7 @@ function mostrarAplicacao() {
 const MODO_LOCAL_PERMITIDO = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === "file:";
 
 function mostrarLogin(mensagem) {
+  fecharArranque();
   el("appShell").hidden = true;
   el("loginScreen").hidden = false;
   // no site publicado, se a biblioteca do Supabase não carregar NÃO há alternativa sem login

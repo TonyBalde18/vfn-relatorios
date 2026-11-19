@@ -651,6 +651,9 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("eqPlantelGrid", "linhas", 10);
   visaoPlantel().esqueleto();
   H.mostrarEsqueleto("eqRelatoriosLista", "linhas", 4);
+  H.mostrarEsqueleto("eqHistoricoLista", "linhas", 5);
+  H.mostrarEsqueleto("eqEquipasGrid", "cards", 6);
+  H.mostrarEsqueleto("eqCalendarioLista", "resultados", 5);
 }
 
 /* ---------- Autenticação ---------- */

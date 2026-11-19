@@ -803,6 +803,7 @@ function mostrarEsqueletos() {
   H.mostrarEsqueleto("dbConvocatoria", "linhas", 6);
   H.mostrarEsqueleto("dbEquipasGrid", "cards", 6);
   H.mostrarEsqueleto("relatoriosLista", "linhas", 6);
+  H.mostrarEsqueleto("historicoLista", "linhas", 5);
   H.mostrarEsqueleto("statsTop", "linhas", 3);
 }
 
