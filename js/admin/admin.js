@@ -1922,7 +1922,7 @@ function initJornadas() {
   el("btnJornadaAnterior").addEventListener("click", () => passoJornada(-1));
   el("btnJornadaSeguinte").addEventListener("click", () => passoJornada(1));
   el("jornadasFiltroJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadasAdmin(); });
-  el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadasAdmin(); });
+  el("jornadasFiltroEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; if (filtrosJornadas.equipa) filtrosJornadas.jornada = ""; renderJornadasAdmin(); });
   el("btnOrdemJornadas").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadasAdmin(); });
   el("btnGuardarResultadoLiga").addEventListener("click", () => guardarResultadoLiga(false));
   el("btnGuardarOutroResultadoLiga").addEventListener("click", () => guardarResultadoLiga(true));

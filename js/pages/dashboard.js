@@ -688,20 +688,26 @@ function initMultasPresencasDash() {
 
 /* ---------- Jornadas AF Guarda (só leitura) ---------- */
 
-const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: "", equipa: "", ordem: "asc" };
+// jornada: null = ainda por escolher (abre na jornada atual, V2.0); "" = todas
+const filtrosJornadas = { competicao: VFN.COMPETICOES_CLASSIFICACAO[0], jornada: null, equipa: "", ordem: "asc" };
 
 function renderJornadas() {
   const comp = $("dbJornCompeticao"), jor = $("dbJornJornada"), eq = $("dbJornEquipa");
   comp.innerHTML = VFN.COMPETICOES_SELETOR.map(c => `<option value="${VFN.escapeHtml(c)}">${VFN.escapeHtml(VFN.nomeCurtoCompeticao(c))}</option>`).join("");
   comp.value = filtrosJornadas.competicao;
   const jornadas = H.jornadasDisponiveis(dados, filtrosJornadas.competicao);
+  // V2.0: abre na jornada atual (antes mostrava todas as jornadas numa lista enorme)
+  if (filtrosJornadas.jornada == null && jornadas.length) filtrosJornadas.jornada = String(H.jornadaAtual(dados, filtrosJornadas.competicao) ?? "");
   jor.innerHTML = '<option value="">Todas as jornadas</option>' + jornadas.map(n => `<option value="${n}">${VFN.escapeHtml(VFN.rotuloJornada(filtrosJornadas.competicao, n))}</option>`).join("");
-  jor.value = jornadas.map(String).includes(filtrosJornadas.jornada) ? filtrosJornadas.jornada : "";
+  jor.value = jornadas.map(String).includes(String(filtrosJornadas.jornada)) ? String(filtrosJornadas.jornada) : "";
+  const iJornada = jornadas.map(String).indexOf(jor.value);
+  $("dbJornAnterior").disabled = !jornadas.length || iJornada === 0;
+  $("dbJornSeguinte").disabled = !jornadas.length || iJornada === jornadas.length - 1;
   const equipas = H.equipasDasJornadas(dados, filtrosJornadas.competicao);
   eq.innerHTML = '<option value="">Todas as equipas</option>' + equipas.map(t => `<option value="${VFN.escapeHtml(t.id)}">${VFN.escapeHtml(t.nome)}</option>`).join("");
   eq.value = equipas.some(t => t.id === filtrosJornadas.equipa) ? filtrosJornadas.equipa : "";
   $("dbJornOrdem").innerHTML = `${VFN.icone(filtrosJornadas.ordem === "asc" ? "arrow-up-1-0" : "arrow-down-1-0", 16)} Jornada ${filtrosJornadas.ordem === "asc" ? "↑" : "↓"}`;
-  $("dbJornLista").innerHTML = H.jornadasHTML(dados, filtrosJornadas);
+  $("dbJornLista").innerHTML = H.jornadasHTML(dados, { ...filtrosJornadas, jornada: jor.value });
   $("dbJornModos").querySelector(".seg-rotulo-tabela").textContent = VFN.eliminatorias(filtrosJornadas.competicao) ? "Bracket" : "Classificação";
   document.querySelectorAll("#view-jornadas .seg-nome-comp").forEach(s => { s.innerHTML = VFN.nomeCompeticaoHTML(filtrosJornadas.competicao, true); });
   $("dbJornTabela").innerHTML = H.classificacaoHTML(dados, filtrosJornadas.competicao);
@@ -713,9 +719,19 @@ function renderJornadas() {
 function initJornadas() {
   // ao mudar para a Classificação o gráfico precisa de redimensionar (estava escondido)
   VFNComp.ligarSegmentos($("dbJornModos"), $("dbJornPaineis"), modo => { if (modo === "tabela" && graficos.posicao) graficos.posicao.resize(); });
-  $("dbJornCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = ""; filtrosJornadas.equipa = ""; renderJornadas(); });
+  $("dbJornCompeticao").addEventListener("change", e => { filtrosJornadas.competicao = e.target.value; filtrosJornadas.jornada = null; filtrosJornadas.equipa = ""; renderJornadas(); });
+  // ‹ › : jornada anterior / seguinte (de "Todas" passa para a primeira ou a última)
+  const passoJornada = delta => {
+    const lista = H.jornadasDisponiveis(dados, filtrosJornadas.competicao).map(String);
+    if (!lista.length) return;
+    const i = lista.indexOf(String(filtrosJornadas.jornada || ""));
+    filtrosJornadas.jornada = i < 0 ? lista[delta > 0 ? 0 : lista.length - 1] : lista[Math.min(lista.length - 1, Math.max(0, i + delta))];
+    renderJornadas();
+  };
+  $("dbJornAnterior").addEventListener("click", () => passoJornada(-1));
+  $("dbJornSeguinte").addEventListener("click", () => passoJornada(1));
   $("dbJornJornada").addEventListener("change", e => { filtrosJornadas.jornada = e.target.value; renderJornadas(); });
-  $("dbJornEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; renderJornadas(); });
+  $("dbJornEquipa").addEventListener("change", e => { filtrosJornadas.equipa = e.target.value; if (filtrosJornadas.equipa) filtrosJornadas.jornada = ""; renderJornadas(); });
   $("dbJornOrdem").addEventListener("click", () => { filtrosJornadas.ordem = filtrosJornadas.ordem === "asc" ? "desc" : "asc"; renderJornadas(); });
 }
 

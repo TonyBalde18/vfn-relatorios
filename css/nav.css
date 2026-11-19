@@ -630,9 +630,10 @@ html.tema-escuro .multas-filtros .filter-chip[aria-pressed="true"] { background:
 .banner-pill.mau { background: #B91C1C; color: #fff; }
 .banner-pill.aviso { background: #C2410C; color: #fff; }
 
-/* V2.0: Jornadas (admin): ‹ jornada › */
-.jornada-nav { display: inline-flex; align-items: center; gap: 4px; }
-.jornada-passo { min-width: 36px; padding: 0 10px; font-size: 1.1rem; font-weight: 800; line-height: 1; }
+/* V2.0: Jornadas (todas as páginas): ‹ jornada › */
+.jornada-nav { display: inline-flex; align-items: stretch; gap: 6px; }
+.jornada-passo { display: inline-grid; place-items: center; min-width: 40px; min-height: 38px; height: auto; padding: 0 10px; font-size: 1.25rem; font-weight: 800; line-height: 1; }
+.jornada-passo:disabled { opacity: .4; cursor: default; }
 
 /* V2.0: botão "↑ topo" */
 .vfn-topo-btn { position: fixed; right: 18px; bottom: 22px; z-index: 35; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid rgba(255, 255, 255, .15); border-radius: 50%; background: var(--vfn-navy); color: var(--vfn-yellow); box-shadow: 0 8px 22px rgba(10, 22, 40, .3); cursor: pointer; }
