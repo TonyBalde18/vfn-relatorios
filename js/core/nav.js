@@ -6,7 +6,7 @@
    no telemóvel (≤768px) a principal passa para uma barra inferior. As vistas continuam a ser de cada
    página: a nav só chama cfg.aoMudar(vista) e a página mostra a secção #view-<vista> / #tab-<vista>.
    O endereço guarda a posição (#portal/calendario), para links entre páginas e para recarregar.
-   cfg.barraInferior (V2.0, área do jogador): a barra inferior mostra atalhos para separadores
+   cfg.barraInferior (V2.0, telemóvel; admin, dashboard e área do jogador): a barra inferior mostra atalhos para separadores
    ([{ rotulo, icone, seccao, tab? }]; sem tab = a secção) e um botão "Mais" com todas as secções.
    ========================================================= */
 
@@ -62,7 +62,7 @@
 
   /** Atalhos da barra inferior (só os que existem para o papel) + "Mais". */
   function barraDeAtalhos(lista) {
-    const existe = a => lista.some(s => s.id === a.seccao && (!a.tab || s.tabs.some(t => t.id === a.tab)));
+    const existe = a => lista.some(s => s.id === a.seccao && !hrefDe(s) && (!a.tab || s.tabs.some(t => t.id === a.tab)));
     return cfg.barraInferior.filter(existe).map(a => {
       const conteudo = `<span class="vfn-nav-ic" aria-hidden="true">${icone(a.icone, 20)}</span><span class="vfn-nav-rotulo">${esc(a.rotulo)}</span>`;
       return a.tab
@@ -71,9 +71,9 @@
     }).join("") + `<button type="button" class="vfn-bottom-item vfn-mais-btn" aria-haspopup="dialog" aria-expanded="false"><span class="vfn-nav-ic" aria-hidden="true">${icone("layout-grid", 20)}</span><span class="vfn-nav-rotulo">Mais</span></button>`;
   }
 
-  /** Painel "Mais": todas as secções e separadores (e as secções de outras páginas). */
+  /** Painel "Mais": todas as secções e separadores (e as secções de outras páginas, ex.: Gestão no dashboard). */
   function gruposMais(lista) {
-    return lista.filter(s => !s.acao).map(s => {
+    return lista.map(s => {
       const href = hrefDe(s);
       if (href) return `<a class="vfn-mais-seccao-link" href="${esc(href)}">${icone(s.icone, 18)}<span>${esc(s.rotulo)}</span></a>`;
       return `<section class="vfn-mais-grupo"><h3>${icone(s.icone, 16)}<span>${esc(s.rotulo)}</span></h3><div class="vfn-mais-itens">${s.tabs.map(t => {

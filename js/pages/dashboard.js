@@ -97,6 +97,13 @@ const NAV_DASHBOARD = {
     ] },
     { id: "gestao", rotulo: "Gestão", icone: "wrench", acao: true, papeis: ["admin"], href: "index.html#gestao" }
   ],
+  // V2.0: no telemóvel, atalhos (o resto fica no "Mais")
+  barraInferior: [
+    { rotulo: "Início", icone: "house", seccao: "portal", tab: "visao" },
+    { rotulo: "Calendário", icone: "calendar-days", seccao: "portal", tab: "calendario" },
+    { rotulo: "Relatórios", icone: "file-text", seccao: "portal", tab: "relatorios" },
+    { rotulo: "Plantel", icone: "users", seccao: "plantel" }
+  ],
   links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe", novaJanela: true }],
   pesquisa: termo => VFNPortal.filtrarPesquisa(indicePesquisa(), termo),
   aoMudar: vista => mostrarVista(vista)

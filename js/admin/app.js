@@ -627,6 +627,13 @@ const NAV_ADMIN = {
     ] }
   ],
   links: [{ href: "public.html", rotulo: "HUB VFN (página pública)", icone: "globe", novaJanela: true }],
+  // V2.0: no telemóvel, atalhos para o que se usa no dia de jogo (o resto fica no "Mais")
+  barraInferior: [
+    { rotulo: "Ao Vivo", icone: "radio", seccao: "jogo", tab: "ao-vivo" },
+    { rotulo: "Convocados", icone: "clipboard-list", seccao: "gestao", tab: "convocatoria" },
+    { rotulo: "Resultados", icone: "trophy", seccao: "gestao", tab: "resultados" },
+    { rotulo: "Multas", icone: "wallet", seccao: "gestao", tab: "multas" }
+  ],
   aoMudar: tab => mostrarSeparador(tab)
 };
 
