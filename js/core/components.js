@@ -1323,10 +1323,65 @@
           <div><dt>Local</dt><dd>${casa ? "Casa" : "Fora"}${estadio ? " · " + esc(estadio) : ""} ${VFN.badgeRelvado(est.relvado)}</dd></div>
           <div class="jds-meteo"><dt>Meteorologia</dt><dd data-meteo>${VFN.icone("loader", 14)} a carregar…</dd></div>
         </dl>
+        ${opcoes.semCalendario ? "" : `<div class="jds-acoes">${botaoCalendarioHTML(jogo)}</div>`}
         ${opcoes.extra || ""}
       </div>
     </div>`;
   }
+
+  /* ---------- V2.0: "Adicionar ao calendário" (ficheiro .ics) ----------
+     Funciona no telemóvel (Google Calendar, Calendário da Apple) e no PC (Outlook). O UID é sempre o mesmo para
+     o jogo: voltar a adicionar atualiza o evento em vez de o duplicar (nas apps que o respeitam). */
+  const icsTexto = t => String(t == null ? "" : t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  const icsUtc = d => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  // linhas com mais de 75 octetos dobram-se (RFC 5545); aqui por caracteres, que chega para o texto do clube
+  const icsDobrar = l => l.length <= 74 ? l : l.match(/.{1,74}/g).join("\r\n ");
+
+  /** Texto .ics do jogo (com a concentração, se a convocatória já a tiver). */
+  function icsDoJogo(dados, jogo, squad) {
+    const inicio = VFN.paraData(jogo.date);
+    if (!inicio) return "";
+    const nome = H().nomeAdversario(dados, jogo);
+    const titulo = (VFN.jogoEmCasa(jogo) ? "VFN vs " + nome : nome + " vs VFN") + " · " + VFN.nomeCurtoCompeticao(jogo.competition);
+    const est = VFN.estadioDoJogo(jogo, dados.teams);
+    const semHora = VFN.horaIso(jogo.date) === "00:00";
+    const conc = squad && squad.squad_status === "completa" && squad.concentration_time
+      ? "Concentração: " + String(squad.concentration_time).slice(0, 5) + (squad.concentration_location ? " · " + squad.concentration_location : "") : "";
+    const descricao = [jogo.competition,VFN.etiquetaJornada(jogo), conc,
+      VFN.jogoEmCasa(jogo) ? "Jogo em casa" : "Jogo fora"].filter(Boolean).join("\n");
+    const dia = VFN.dataIso(inicio).replace(/-/g, "");
+    const diaSeguinte = VFN.dataIso(new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 1)).replace(/-/g, "");
+    const linhas = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ACD Vila Franca das Naves//VFN Hub//PT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      "UID:jogo-" + jogo.id + "@vfn-hub",
+      "DTSTAMP:" + icsUtc(new Date()),
+      ...(semHora ? ["DTSTART;VALUE=DATE:" + dia, "DTEND;VALUE=DATE:" + diaSeguinte]
+        : ["DTSTART:" + icsUtc(inicio), "DTEND:" + icsUtc(new Date(inicio.getTime() + 2 * 3600 * 1000))]),
+      "SUMMARY:" + icsTexto(titulo),
+      ...(est.nome ? ["LOCATION:" + icsTexto(est.nome)] : []),
+      ...(est.lat != null && est.lng != null ? ["GEO:" + est.lat + ";" + est.lng] : []),
+      "DESCRIPTION:" + icsTexto(descricao),
+      ...(semHora ? [] : ["BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsTexto(titulo), "TRIGGER:-PT3H", "END:VALARM"]),
+      "END:VEVENT", "END:VCALENDAR"
+    ];
+    return linhas.map(icsDobrar).join("\r\n") + "\r\n";
+  }
+
+  /** Descarrega o .ics (no telemóvel, abre o "Adicionar evento" do calendário). */
+  function adicionarAoCalendario(dados, jogo, squad) {
+    const texto = icsDoJogo(dados, jogo, squad);
+    if (!texto) return toast("Este jogo ainda não tem data.", "erro");
+    const url = URL.createObjectURL(new Blob([texto], { type: "text/calendar;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vfn-${VFN.slug(H().nomeAdversario(dados, jogo))}-${VFN.dataIso(jogo.date) || "jogo"}.ics`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  /** Botão "Adicionar ao calendário" (data-ics-jogo; o clique liga-se em ligarBotoesCalendario ou na página). */
+  const botaoCalendarioHTML = jogo => `<button type="button" class="btn btn-ghost btn-sm btn-ics" data-ics-jogo="${esc(jogo.id)}">${VFN.icone("calendar-plus", 16)} Adicionar ao calendário</button>`;
 
   /** Liga o card (contagem a cada segundo, minimizar e meteorologia). */
   async function ligarJogoDaSemana(contentor, dados) {
@@ -1340,6 +1395,8 @@
       try { localStorage.setItem("vfnJogoSemana", fechado ? "fechado" : "aberto"); } catch (e) { /* ignora */ }
     });
     const jogo = (dados.matches || []).find(j => String(j.id) === card.dataset.jogoSemana);
+    const ics = card.querySelector("[data-ics-jogo]");
+    if (ics && jogo) ics.addEventListener("click", () => adicionarAoCalendario(dados, jogo, convocatoriaDoJogo(dados.squads, jogo.id)));
     // fundo: foto do estádio onde se joga (em casa: vfn.jpg; fora: a do adversário). O banner do Pré-Jogo
     // do admin (#jogoSemanaAdmin) fica só com o gradiente azul do .jds-card (a foto ampliada ficava mal).
     if (contentor.id !== "jogoSemanaAdmin") VFN.aplicarFundoEstadio(contentor, jogo ? (VFN.jogoEmCasa(jogo) ? "vfn" : jogo.opponent_team_id) : "");
@@ -1917,7 +1974,7 @@
     MIN_CONVOCADOS, MAX_CONVOCADOS, convocatoriaDoJogo, proximaConvocatoria, jogadoresDosIds, renderSquadView, renderAnuncioConvocatoria, exportarAnuncioConvocatoria,
     listaPresencasHTML, renderAttendanceDrawer,
     criarMapaEstadios, popupEstadioHTML,
-    ligarSegmentos, ligarPuxarParaAtualizar, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo,
+    ligarSegmentos, ligarPuxarParaAtualizar, renderJogoDaSemana, ligarJogoDaSemana, previsaoDoJogo, icsDoJogo, adicionarAoCalendario, botaoCalendarioHTML,
     eventosDoDia, aniversariosDoDia, renderCalendarDay, calendarioMensalHTML, detalheDiaHTML, renderMatchEvents, escalacaoHTML, criarCalendarioMensal, criarCalendarioSemanas, ligarAlternanciaCalendario, ligarSugestoesJogador
   };
 })();

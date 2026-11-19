@@ -483,6 +483,11 @@ function renderConvocatoriaDash() {
 function initConvocatoriaDash() {
   $("dbConvJogo").addEventListener("change", renderConvocatoriaDash);
   $("dbConvAcoes").addEventListener("click", e => {
+    if (e.target.closest("[data-ics]")) {
+      const jogo = dados.matches.find(j => j.id === $("dbConvJogo").value);
+      if (jogo) VFNComp.adicionarAoCalendario(dados, jogo, VFNComp.convocatoriaDoJogo(dados.squads, jogo.id));
+      return;
+    }
     const b = e.target.closest("[data-anuncio]");
     const jogo = b && dados.matches.find(j => j.id === $("dbConvJogo").value);
     const squad = jogo && VFNComp.convocatoriaDoJogo(dados.squads, jogo.id);

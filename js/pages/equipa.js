@@ -705,6 +705,7 @@ async function iniciar() {
   $("eqAvatar").addEventListener("click", () => { if (eu) abrirJogador(eu.id); });
   document.addEventListener("click", e => { const b = e.target.closest("[data-ir-vista]"); if (b) mostrarVista(b.dataset.irVista); });
   $("eqConvAcoes").addEventListener("click", e => {
+    if (e.target.closest("[data-ics]")) { const c = convocatoriaAtual(); if (c) VFNComp.adicionarAoCalendario(dados, c.jogo, c.squad); return; }
     const b = e.target.closest("[data-anuncio]");
     const c = b && convocatoriaAtual();
     if (c) VFNComp.exportarAnuncioConvocatoria(dados, c.jogo, c.squad, pessoa, b.dataset.anuncio);

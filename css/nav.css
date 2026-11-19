@@ -656,3 +656,9 @@ html.tema-escuro .vfn-topo-btn { background: var(--surface-2); }
   #eqMultasEquipa > .card { min-width: 0; }
   #eqMultasEquipa > .card:last-child { position: sticky; top: calc(var(--vfn-nav-total, 0px) + 84px); max-height: calc(100vh - var(--vfn-nav-total, 0px) - 100px); overflow-y: auto; }
 }
+
+/* V2.0: "Adicionar ao calendário" no card do próximo jogo (fundo azul escuro) */
+.jds-acoes { display: flex; justify-content: center; margin-top: 14px; }
+.jds .btn-ics { border-color: rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .08); color: #fff; }
+.jds .btn-ics:hover { background: rgba(255, 255, 255, .16); }
+.jds .btn-ics .ic { color: var(--vfn-yellow); }
