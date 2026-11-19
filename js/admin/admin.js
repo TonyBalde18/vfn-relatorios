@@ -231,12 +231,12 @@ function renderMultas() {
   tbody.innerHTML = lista.map(f => `
     <tr data-id="${escapeHtml(f.id)}" class="${selecaoMultas.has(String(f.id)) ? "escolhida" : ""}">
       <td class="col-escolha">${VFN.eContribuicao(f) ? "" : `<input type="checkbox" data-acao="escolher" aria-label="Escolher esta multa" ${selecaoMultas.has(String(f.id)) ? "checked" : ""}>`}</td>
-      <td data-v="${escapeHtml(VFN.nomeNaMulta(f, pessoaPorId))}">${!pessoaPorId(f.player_id) && VFN.eContribuicao(f) && f.contributor_name ? VFN.celulaContribuidorHTML(f.contributor_name) : celulaJogadorHTML(f.player_id)}</td>
-      <td class="fine-infraction">${VFN.infracaoMultaHTML(f)}</td>
-      <td class="num" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
-      <td>${VFN.eContribuicao(f) ? VFN.estadoMultaHTML(f) : `<label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}`}</td>
-      <td data-v="${escapeHtml(f.match_date || "")}">${dataPt(f.match_date)}</td>
-      <td><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar" aria-label="Editar">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar" aria-label="Eliminar">${VFN.icone("trash-2", 16)}</button></div></td>
+      <td class="c-jog" data-v="${escapeHtml(VFN.nomeNaMulta(f, pessoaPorId))}">${!pessoaPorId(f.player_id) && VFN.eContribuicao(f) && f.contributor_name ? VFN.celulaContribuidorHTML(f.contributor_name) : celulaJogadorHTML(f.player_id)}</td>
+      <td class="fine-infraction c-inf">${VFN.infracaoMultaHTML(f)}</td>
+      <td class="num c-val" data-v="${Number(f.amount) || 0}">${VFN.valorMultaHTML(f)}</td>
+      <td class="c-est">${VFN.eContribuicao(f) ? VFN.estadoMultaHTML(f) : `<label class="paid-toggle" title="Marcar como pago"><input type="checkbox" data-acao="pago" ${f.paid ? "checked" : ""}><span class="switch" aria-hidden="true"></span><span>${f.paid ? "Pago" : "Pendente"}</span></label>${f.paid && f.paid_date ? `<span class="fine-desc">em ${dataPt(f.paid_date)}</span>` : ""}`}</td>
+      <td class="c-data" data-v="${escapeHtml(f.match_date || "")}">${dataPt(f.match_date)}</td>
+      <td class="c-acc"><div class="row-actions"><button type="button" class="icon-btn" data-acao="editar" title="Editar" aria-label="Editar">${VFN.icone("pencil", 16)}</button><button type="button" class="icon-btn danger" data-acao="apagar" title="Eliminar" aria-label="Eliminar">${VFN.icone("trash-2", 16)}</button></div></td>
     </tr>`).join("");
 
   tbody.querySelectorAll("tr[data-id]").forEach(tr => {

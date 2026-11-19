@@ -662,3 +662,29 @@ html.tema-escuro .vfn-topo-btn { background: var(--surface-2); }
 .jds .btn-ics { border-color: rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .08); color: #fff; }
 .jds .btn-ics:hover { background: rgba(255, 255, 255, .16); }
 .jds .btn-ics .ic { color: var(--vfn-yellow); }
+
+/* V2.0: admin, no telemóvel cada multa é um cartão:
+   [✓] nome ............ valor
+   [ ] infração ........ pago/pendente
+       data ............ editar · apagar */
+@media (max-width: 600px) {
+  #tab-multas .table-wrap:has([data-ordenar="multas-admin"]) { overflow: visible; border: 0; }
+  [data-ordenar="multas-admin"], [data-ordenar="multas-admin"] tbody { display: block; width: 100%; min-width: 0; }
+  [data-ordenar="multas-admin"] thead { display: block; margin-bottom: 8px; }
+  [data-ordenar="multas-admin"] thead tr { display: flex; }
+  [data-ordenar="multas-admin"] thead th { display: none; }
+  [data-ordenar="multas-admin"] thead th.col-escolha { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 10px; width: auto; padding: 4px 12px; border: 0; background: none; text-transform: none; letter-spacing: 0; font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+  [data-ordenar="multas-admin"] .multas-todas-rotulo { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: nowrap; cursor: pointer; }
+  [data-ordenar="multas-admin"] tbody tr { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; grid-template-areas: "esc jog val" "esc inf est" "esc data acc"; gap: 4px 10px; align-items: center; margin-bottom: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  [data-ordenar="multas-admin"] tbody tr.escolhida { border-color: var(--vfn-yellow); background: rgba(255, 215, 0, .1); }
+  [data-ordenar="multas-admin"] tbody td { display: block; min-width: 0; padding: 0; border: 0; background: none !important; text-align: left; }
+  [data-ordenar="multas-admin"] tbody td.empty-state { grid-column: 1 / -1; text-align: center; padding: 16px 0; }
+  [data-ordenar="multas-admin"] .col-escolha { grid-area: esc; align-self: start; width: auto; padding-top: 2px; }
+  [data-ordenar="multas-admin"] .c-jog { grid-area: jog; font-weight: 700; }
+  [data-ordenar="multas-admin"] .c-val { grid-area: val; text-align: right; font-weight: 800; color: var(--heading); }
+  [data-ordenar="multas-admin"] td.c-inf { grid-area: inf; min-width: 0; font-size: .85rem; overflow-wrap: anywhere; }
+  [data-ordenar="multas-admin"] .c-est { grid-area: est; justify-self: end; text-align: right; }
+  [data-ordenar="multas-admin"] .c-data { grid-area: data; color: var(--text-muted); font-size: .75rem; }
+  [data-ordenar="multas-admin"] .c-acc { grid-area: acc; justify-self: end; }
+  [data-ordenar="multas-admin"] .c-acc .row-actions { gap: 4px; }
+}
