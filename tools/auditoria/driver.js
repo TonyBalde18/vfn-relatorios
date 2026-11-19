@@ -4,6 +4,7 @@
 const http = require("http"), fs = require("fs"), path = require("path"), { spawn } = require("child_process");
 const RAIZ = process.argv[2], SAIDA = process.argv[3], FILTRO = process.argv[4] || "", SHOTS = process.argv[5] === "1";
 // FIXTURES=<ficheiro.json> { "tabela": [linhas] }: essas tabelas vêm do ficheiro (dados de teste), o resto da BD real
+// ATRASO=<ms>: as leituras demoram esses ms (estados de carregamento)
 const FIXTURES = process.env.FIXTURES ? fs.readFileSync(process.env.FIXTURES, "utf8").replace(/\s+/g, " ") : "{}";
 const DIR = path.dirname(SAIDA);
 const FAKE = fs.readFileSync(path.join(__dirname, "fake-supabase.js"));
@@ -121,7 +122,7 @@ function fecharEdge(edge) {
   let scriptId = null;
   for (const c of CENARIOS) {
     if (scriptId) await cmd("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId });
-    const s = await cmd("Page.addScriptToEvaluateOnNewDocument", { source: `try{localStorage.setItem("vfnTema","${c.tema}");localStorage.setItem("vfnFakeRole","${c.papel}");localStorage.setItem("vfnFakeFixtures",${JSON.stringify(FIXTURES)});sessionStorage.setItem("vfnSplash","1");}catch(e){}
+    const s = await cmd("Page.addScriptToEvaluateOnNewDocument", { source: `try{localStorage.setItem("vfnTema","${c.tema}");localStorage.setItem("vfnFakeRole","${c.papel}");localStorage.setItem("vfnFakeFixtures",${JSON.stringify(FIXTURES)});sessionStorage.setItem("vfnSplash","1");localStorage.setItem("vfnFakeAtraso","${process.env.ATRASO || ""}");}catch(e){}
       document.addEventListener("DOMContentLoaded",()=>{const st=document.createElement("style");st.textContent="[data-aos]{opacity:1!important;transform:none!important}*{transition:none!important;animation-duration:0s!important}";document.head.appendChild(st);});` });
     scriptId = s.result.identifier;
     await cmd("Emulation.setDeviceMetricsOverride", { width: c.largura, height: Number(process.env.ALTURA) || 900, deviceScaleFactor: 1, mobile: c.largura < 800 });

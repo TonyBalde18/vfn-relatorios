@@ -32,6 +32,7 @@ Por isso, as vistas que dependem de relatórios, presenças ou multas só são t
 | `TEMAS=escuro` · `LARGURAS=375,1280` · `ALTURA=720` | só esses temas, larguras ou altura do ecrã |
 | `VISTAS=multas,hub` | só essas vistas (as capturas de página inteira de todas demoram muito) |
 | `FIXTURES=dados.json` | `{ "tabela": [linhas] }`: essas tabelas vêm do ficheiro (dados de teste), o resto da base de dados real |
+| `ATRASO=60000` | as leituras da base de dados demoram esses milissegundos (para ver skeletons e estados de carregamento) |
 | `EVAL="(async () => …)()"` | corre a expressão em cada vista e mostra o resultado (ex.: estilos calculados, simular um clique) |
 | `DIALOGO=cancelar` | responde Cancelar às janelas `confirm` (por omissão OK); as mensagens ficam nos eventos |
 
