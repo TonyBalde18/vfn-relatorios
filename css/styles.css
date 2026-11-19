@@ -1832,6 +1832,8 @@ html.gsap-on .view.active, html.gsap-on .tab-panel.active { animation: none; } /
 .hub-inicio { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; }
 .hub-inicio .summary-tile small { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; color: var(--text-muted); }
 .hub-inicio .seq-V strong { color: #15803d; } .hub-inicio .seq-E strong { color: #475569; } .hub-inicio .seq-D strong { color: #b91c1c; }
+/* tema escuro: as cores acima ficam quase invisíveis sobre o fundo escuro */
+html.tema-escuro .hub-inicio .seq-V strong { color: #4ade80; } html.tema-escuro .hub-inicio .seq-E strong { color: #cbd5e1; } html.tema-escuro .hub-inicio .seq-D strong { color: #f87171; }
 
 /* ---------- v7: tipo de relvado (pill pequeno, inline com o nome do estádio) ---------- */
 .surface-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: 1px; }
